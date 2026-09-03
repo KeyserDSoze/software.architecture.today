@@ -218,7 +218,25 @@ Quando dovremo rivalutarla?
 
 **Guardrail:** API Contract, compatibility rules e Problem Details.
 
-## Capitolo 10 e successivi
+## Capitolo 10 — I dati sono architettura
+
+**Esigenza:** offrire a Operations una vista unica e interrogabile senza costringere l'operatore a comprendere la topologia dei domini sorgente.
+
+**Tensione:** semplicità e performance della vista vs ownership semantica di Orders/Payments/Shipping vs costo di sincronizzazione e nuovi datastore.
+
+**Decisione:** PostgreSQL resta per ora il datastore operativo principale; Order Operations persiste soltanto dati che possiede davvero (`OperationalCase`, classificazione e assignment) e continua a leggere i fatti autorevoli attraverso boundary espliciti. Nessuna projection asincrona, cache Redis o search store viene introdotta senza trigger reale.
+
+**Costo accettato:** il journey mantiene maggiore coupling runtime verso le fonti autorevoli e non ottiene ancora pieno isolamento del workload di lettura.
+
+**Quality floor:** una sola autorità semantica per business fact, tenant isolation, correctness economica, assignment concorrente deterministico, tracciabilità authoritative/derived e migration governate.
+
+**Guardrail:** Data Ownership Map, schema ownership, index legati ad access pattern misurabili, validation/reconciliation per future copie, source timestamp per future projection e trigger di revisione.
+
+**Evidence:** Microsoft Learn per data-store selection e data models; PostgreSQL per MVCC, index, partitioning e replication; Redis per cache-aside; Stripe Engineering e GitHub per migration online documentate.
+
+**Trigger:** impatto del workload operativo sul transazionale, target latency non raggiunti, nuova availability indipendente, più consumer della stessa vista, nuovi search access pattern, crescita di volume/retention o freshness compatibile con una projection asincrona.
+
+## Capitolo 11 e successivi
 
 Da qui in avanti il compromise ledger viene aggiornato insieme al manoscritto.
 
