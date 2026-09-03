@@ -37,26 +37,39 @@ I casi reali restano separati dallo scenario ESI e richiedono fonti verificabili
 | 11 — Sistemi distribuiti | sì | sì — draft pass | sì — draft pass | Microsoft Learn, AWS Builders' Library/Well-Architected, Uber Engineering; async Payment Escalation, partial failure, retry/idempotency, outbox, DLQ, saga/choreography e Failure Mode Map |
 | 12 — Cloud Architecture | sì | sì — draft pass | sì — draft pass | Microsoft Learn, AWS Well-Architected/Builders' Library e dacadoo case study; cloud-appropriate vs cloud-native, landing zone, compute fit, managed services, HA/DR, identity, IaC e Cloud Deployment Map |
 | 13 — Security by Design | sì | sì — draft pass | sì — draft pass | Microsoft Learn, NIST SSDF, OWASP ASVS e Cloudflare postmortem; threat modeling, identity/authorization, private boundary, secure SDLC, Security Control Matrix e prima baseline Bicep |
-| 14+ | non ancora | source-first | required | ricerca, compromesso ESI e aggiornamento capstone entrano nel workflow prima della chiusura del draft |
+| 14 — Reliability e resilienza | sì | sì — draft pass | sì — draft pass | Google SRE, Azure Well-Architected/reliability docs, GitHub availability report e Cloudflare postmortem; SLI/SLO/error budget, health model, graceful degradation, capacity/cascading failure, RTO/RPO, recovery drill e Reliability Contract |
+| 15+ | non ancora | source-first | required | ricerca, compromesso ESI e aggiornamento capstone entrano nel workflow prima della chiusura del draft |
 
-## Nota di verifica Capitolo 13
+## Nota di verifica Capitoli 13–14
 
-Il Capitolo 13 ha prodotto `infra/main.bicep` usando le resource schema/documentazioni Azure correnti.
+Il Capitolo 13 ha prodotto `infra/main.bicep` usando resource schema/documentazioni Azure correnti.
 
-Lo stato corretto è:
+Il Capitolo 14 ha aggiornato il template con una reliability baseline codificabile:
+
+```text
+App Service Premium-compatible SKU direction
+capacity >= 2
+App Service zoneRedundant = true
+Service Bus zoneRedundant = true
+```
+
+Lo stato corretto resta:
 
 ```text
 architecture intent: reviewed in draft
-control baseline: codified
+control/reliability baseline: codified
 Bicep build/lint: da eseguire
 Azure Policy validation: da eseguire
 deployment non-production: da eseguire
+zone/failover test: da eseguire
+PostgreSQL HA IaC: designed, non ancora codificato
+PostgreSQL PITR drill: da eseguire
 runtime evidence: non ancora disponibile
 ```
 
-Quindi l'evidence pass del manoscritto è completato a livello **draft**, ma il template non viene dichiarato production-verified.
+Quindi l'evidence pass del **manoscritto** è completato a livello draft, ma gli artefatti infrastrutturali/recovery non vengono descritti come production-verified.
 
-Questa distinzione è intenzionale e coerente con il modello:
+La distinzione resta:
 
 ```text
 Designed
@@ -64,6 +77,23 @@ Designed
 → Verified
 → Monitored
 ```
+
+## Numeri simulati ESI
+
+Dal Capitolo 14 il capstone contiene per la prima volta SLO/RTO/RPO quantitativi.
+
+Sono esplicitamente **business requirement simulati dello scenario ESI**, non benchmark né valori consigliati al lettore:
+
+```text
+Core journey SLO: 99.9% / rolling 28 days
+Escalation publication: 99% entro 5 min
+Intra-region RTO: <= 15 min
+Intra-region RPO: 0 per committed local state
+Region disaster RTO: <= 8 h
+Region disaster RPO: <= 1 h
+```
+
+In una release candidate dovremo verificare che questi valori non vengano mai presentati altrove come standard industriali.
 
 ## Workflow editoriale da Capitolo 10
 
@@ -96,7 +126,7 @@ La richiedono soprattutto:
 - affermazioni storiche;
 - raccomandazioni che dipendono da evidenze esterne.
 
-Le tesi editoriali del libro devono invece essere argomentate chiaramente e, quando possibile, confrontate con fonti che mostrino convergenza o tensione.
+Le tesi editoriali devono essere argomentate e, quando possibile, confrontate con fonti che mostrino convergenza o tensione.
 
 ## ESI compromise pass
 
