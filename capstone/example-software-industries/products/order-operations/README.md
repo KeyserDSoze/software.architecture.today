@@ -14,19 +14,19 @@ I capitoli spiegano **perché** il progetto cambia. Questa directory mostra **ch
 
 Ridurre il tempo necessario agli operatori per individuare, comprendere e gestire ordini che richiedono attenzione operativa.
 
-Il prodotto non nasce con l'obiettivo di sostituire Orders, Payments o Shipping come authoritative source.
+Order Operations non sostituisce Orders, Payments o Shipping come authoritative source.
 
 ## Regola di evoluzione
 
 Ogni capitolo può cambiare Order Operations soltanto quando introduce:
 
-- una nuova informazione;
-- un nuovo requisito;
-- una capability;
-- un vincolo;
-- un failure mode;
-- un cambiamento organizzativo;
-- un trade-off che modifica il fit della soluzione corrente.
+- nuova informazione;
+- requisito;
+- capability;
+- vincolo;
+- failure mode;
+- cambiamento organizzativo;
+- trade-off che modifica il fit della soluzione corrente.
 
 > **Il progetto deve evolvere perché cambia il contesto, non perché il libro deve mostrare una tecnologia.**
 
@@ -38,80 +38,73 @@ Nasce una console interna per rendere visibili ordini problematici.
 
 ### Capitolo 2 — Foundation e analisi funzionale
 
-Vengono esplicitati problema, outcome, attori, scope, business rule, acceptance criteria e domande aperte.
+Problema, outcome, attori, scope, business rule, acceptance criteria e domande aperte diventano espliciti.
 
 L'analisi funzionale diventa conoscenza condivisa del team.
 
 ### Capitolo 3 — System thinking
 
-La console viene osservata dentro il sistema più ampio: Orders, Payments, Shipping, identity e provider esterni.
+Il prodotto viene osservato dentro Orders, Payments, Shipping, identity e provider esterni.
 
 ### Capitolo 4 — Decisioni
 
-Si preferisce inizialmente un lookup live ai dati operativi invece di introdurre subito un read model asincrono.
+Si preferisce inizialmente un lookup live invece di introdurre subito un read model asincrono.
 
 ### Capitolo 5 — Confini
 
-Orders, Payments e Shipping acquistano responsabilità e ownership logiche distinte.
+Orders, Payments e Shipping acquistano responsibility/ownership boundary distinti anche nello stesso deployable.
 
 ### Capitolo 6 — Quality attributes
 
-Vengono esplicitate priorità di correctness, security, operability, latency, availability e cost.
+Correctness, security, operability, latency, availability e cost diventano input della technology selection.
 
-Non vengono introdotti Redis o active-active multi-region senza un requisito che ne giustifichi il costo.
+Niente Redis o active-active multi-region senza requisito che ne paghi il costo.
 
 ### Capitolo 7 — Pattern
 
-I pattern vengono adottati soltanto quando risolvono forze già presenti.
+I pattern entrano soltanto quando risolvono forze già presenti.
 
 ### Capitolo 8 — Topologia
 
-Order Operations resta per ora un **modular monolith**.
+Order Operations resta un **modular monolith**.
 
-La separazione logica non richiede ancora separazione di deployment.
+Separazione logica non significa automaticamente separazione di deployment.
 
 ### Capitolo 9 — API e contratti
 
-La Operations UI riceve il primo contratto HTTP esplicito:
+Entrano i primi contratti HTTP:
 
 ```text
 GET /api/problematic-orders
 GET /api/orders/{orderId}/operational-view
 ```
 
-Non vengono ancora introdotti command endpoint di refund o remediation perché la semantica funzionale non è abbastanza definita.
+Refund e remediation command restano fuori finché semantica e ownership non sono definite.
 
 ### Capitolo 10 — Data architecture
 
-Viene introdotta la prima **Data Ownership Map**.
+Entra la **Data Ownership Map**.
 
-Orders, Payments & Risk e Shipping restano authoritative owner dei rispettivi business fact.
-
-Order Operations diventa authoritative soltanto per concetti operativi propri:
+Order Operations diventa authoritative per:
 
 - `OperationalCase`;
 - problem classification;
 - operator assignment.
 
-Il progetto mantiene PostgreSQL come datastore operativo corrente e aggiunge la prima migration SQL reale:
+Prima migration reale:
 
 ```text
 database/migrations/001_create_operational_case.sql
 ```
 
-Non vengono ancora introdotti Redis, search store o projection asincrona: le future copie dovranno avere source, freshness, reconciliation e rebuild espliciti.
-
 ### Capitolo 11 — Sistemi distribuiti
 
-Una nuova esigenza ESI introduce la prima integrazione asincrona reale del capstone.
-
-Un operatore può richiedere una **Payment Escalation** verso Payments & Risk senza eseguire direttamente refund o altre operazioni economiche.
+Nasce la **Payment Escalation** verso Payments & Risk.
 
 Il flow usa:
 
 ```text
-local PostgreSQL transaction
-+ PaymentEscalation
+PaymentEscalation
 + Transactional Outbox
 + broker-agnostic publisher
 + at-least-once delivery contract
@@ -119,47 +112,40 @@ local PostgreSQL transaction
 + Failure Mode Map
 ```
 
-L'API contract evolve con:
+API:
 
 ```text
 POST /api/operational-cases/{caseId}/payment-escalations
 Idempotency-Key: <escalation-id>
 ```
 
-La risposta distingue:
-
-```text
-business state    = Requested
-integration state = Pending / Delivered / Delayed / DeadLettered
-```
-
-Viene aggiunta la migration:
+Seconda migration:
 
 ```text
 database/migrations/002_add_payment_escalation_and_outbox.sql
 ```
 
-E `src/` entra per la prima volta nel progetto con TypeScript strict e porte broker-agnostiche.
+`src/` entra con TypeScript strict e porte broker-agnostiche.
 
 ### Capitolo 12 — Cloud Architecture
 
-ESI introduce il proprio cloud operating model: Platform Engineering fornisce una **Azure application landing zone**, mentre il team Order Operations mantiene ownership end-to-end del workload.
+ESI adotta una **Azure application landing zone**.
 
-La prima deployment topology è:
+Prima cloud topology:
 
 ```text
 Azure App Service
-+ continuous WebJob per Outbox Publisher
++ continuous WebJob
 + Azure Database for PostgreSQL Flexible Server
 + Azure Service Bus Queue
 + Managed Identity
 + Azure Key Vault
 + Azure Monitor / Application Insights
-+ Bicep come IaC direction
++ Bicep
 + single Azure region
 ```
 
-Non vengono scelti AKS, Container Apps o multi-region perché nessun requisito corrente ne paga ancora il costo operativo.
+AKS, Container Apps e multi-region restano fuori perché nessun requisito corrente ne paga ancora il costo.
 
 Entrano:
 
@@ -169,26 +155,18 @@ docs/adr/0002-azure-paas-single-region.md
 infra/README.md
 ```
 
-`infra/` compare senza un `main.bicep` deployabile: il Capitolo 13 deve prima definire threat model, ingress/egress, private endpoint e permission boundary. L'IaC non viene lasciato inventare la security architecture.
-
 ### Capitolo 13 — Security by Design
 
-Il threat model chiude le decisioni security-sensitive lasciate intenzionalmente aperte nel Capitolo 12.
-
-Entrano due nuovi artefatti vivi:
+Entrano:
 
 ```text
 docs/threat-model.md
 docs/security-control-matrix.md
-```
-
-E viene accettato:
-
-```text
 docs/adr/0003-private-ingress-and-identity-first-security.md
+infra/main.bicep
 ```
 
-La production security direction è:
+Production security direction:
 
 ```text
 ESI workforce
@@ -196,42 +174,111 @@ ESI workforce
 → Entra authentication
 → server-side application authorization
 
-App Service / WebJob
-→ managed identity
-→ least-privilege access
-
-runtime identity
+runtime managed identity
 ≠ deployment identity
 
 PostgreSQL / Service Bus / Key Vault
 → private data-plane direction
 ```
 
-Non viene introdotto un WAF perché non esiste ancora un Internet-facing journey.
+Nessun WAF finché non esiste Internet-facing ingress.
 
-Per la prima volta il capstone contiene un template IaC concreto:
+Private Link su Service Bus richiede Premium: il security boundary produce quindi un costo FinOps esplicito.
+
+`main.bicep` viene trattato come **Codified**, non come `Verified` finché non supera build/deploy e negative test.
+
+### Capitolo 14 — Reliability e resilienza
+
+La reliability diventa un contratto misurabile e non più soltanto un NFR qualitativo.
+
+Entra:
 
 ```text
-infra/main.bicep
+docs/reliability-contract.md
 ```
 
-La baseline codifica App Service, Entra authentication direction, managed identity, private endpoint, Key Vault RBAC/private access, Service Bus Queue/private access, send-only broker privilege e observability foundation.
+La Failure Mode Map viene estesa dal solo messaging flow all'intero workload cloud.
 
-Il template dipende da subnet/private DNS capability della landing zone: il workload non reinventa la rete enterprise.
+#### Critical flows
 
-#### Compromesso Security ↔ FinOps
+```text
+CF-01 Investigation
+CF-02 Payment Escalation acceptance
+CF-03 Payment Escalation delivery
+```
 
-La scelta di Private Link per Service Bus richiede **Service Bus Premium**.
+#### Target simulati ESI
 
-Quindi il security boundary introduce un costo cloud reale.
+```text
+Core operator journey SLO
+= 99.9% good events / rolling 28 days
 
-Il costo viene accettato e reso visibile, con trigger di revisione insieme a Finance/FinOps.
+Payment Escalation publication
+= 99% entro 5 minuti
 
-Questo è deliberato:
+Intra-region RTO
+<= 15 minuti
 
-> un controllo di sicurezza deve avere un threat, un costo, un owner e una verifica.
+Intra-region RPO
+= 0 per committed local business state
 
-Il Bicep è **codified baseline**, non production readiness. Build/lint, policy validation e deployment non-production restano gate di verifica espliciti.
+Region disaster RTO
+<= 8 ore
+
+Region disaster RPO
+<= 1 ora
+```
+
+Questi numeri sono requisiti del caso fittizio, non benchmark industriali.
+
+#### Reliability topology corrente
+
+```text
+App Service Premium v3
++ capacity >= 2
++ zone redundancy
+
+PostgreSQL Flexible Server
++ zone-redundant HA direction
++ backup/PITR
+
+Service Bus Premium
++ zone redundancy
++ private endpoint
+
+single region
+```
+
+`infra/main.bicep` è stato aggiornato per codificare:
+
+```text
+App Service capacity >= 2
+App Service zoneRedundant = true
+Service Bus zoneRedundant = true
+```
+
+Il modulo PostgreSQL HA/private è ancora `Designed`, non ancora codificato.
+
+#### Health model
+
+```text
+Healthy
+Degraded
+Unhealthy
+```
+
+La health deriva dai critical flow, non dalla media della resource health Azure.
+
+#### Required recovery drills
+
+1. Payments consumer outage.
+2. App instance loss.
+3. PostgreSQL failover.
+4. PostgreSQL PITR/restore.
+5. Private DNS failure.
+6. Bad deployment rollback.
+
+Un restore non verrà dichiarato funzionante finché non viene realmente eseguito e misurato.
 
 ## Struttura corrente
 
@@ -256,6 +303,7 @@ order-operations/
 │   ├── cloud-deployment.md
 │   ├── threat-model.md
 │   ├── security-control-matrix.md
+│   ├── reliability-contract.md
 │   ├── events/
 │   │   └── operational-case-payment-escalated-v1.md
 │   └── adr/
@@ -278,27 +326,24 @@ order-operations/
 
 Non creiamo directory vuote per simulare avanzamento.
 
-## Verification status
+## Evidence status
+
+Usiamo quattro livelli:
+
+```text
+Designed
+→ Codified
+→ Verified
+→ Monitored
+```
 
 ### TypeScript
 
-Il nucleo TypeScript non dipende da framework o SDK cloud.
-
-Comandi:
-
-```bash
-npm install
-npm run typecheck
-npm run build
-```
-
-Il typecheck strict del codice introdotto nel Capitolo 11 è stato verificato durante la scrittura del capitolo.
+Il nucleo introdotto nel Capitolo 11 è stato typechecked in modalità strict durante la sua introduzione.
 
 ### Bicep
 
-`infra/main.bicep` è stato costruito sulla base delle resource schema/documentazioni Azure correnti e delle decisioni del Threat Model.
-
-Non è ancora corretto dichiararlo **verified**.
+`infra/main.bicep` è una baseline codificata.
 
 Gate ancora richiesti:
 
@@ -309,51 +354,49 @@ deployment non-production
 private connectivity test
 Entra authentication test
 RBAC negative test
-security review
+zone/recovery test
 cost review
 ```
 
-La distinzione usata dal capstone è:
+### Reliability
 
-```text
-Designed
-→ Codified
-→ Verified
-→ Monitored
-```
+SLO, RTO/RPO, health model e recovery drill sono `Designed`.
 
-## Cosa deve rimanere sincronizzato
+La zone redundancy App Service/Service Bus è `Codified` in IaC.
 
-Quando Order Operations cambia dobbiamo verificare l'impatto su:
+Il PostgreSQL zone-redundant HA è `Designed` ma il modulo IaC è ancora pending.
 
-- problem e outcome;
-- analisi funzionale;
-- glossario;
+Nessun recovery drill è ancora `Verified`.
+
+## Documenti che devono restare sincronizzati
+
+Quando Order Operations cambia verifichiamo impatto su:
+
+- problem/outcome;
+- analisi funzionale e glossario;
 - requirements;
 - ownership;
 - ADR;
-- API contract;
-- event contract;
+- API/event contract;
 - Data Ownership Map;
-- schema e migration;
+- schema/migration;
 - NFR;
 - Failure Mode Map;
 - Cloud Deployment Map;
 - Threat Model;
 - Security Control Matrix;
+- Reliability Contract;
 - infrastructure as code;
 - observability;
 - testing strategy;
-- deployment;
+- deployment/rollback;
 - runbook.
 
 Il codice è una rappresentazione importante del prodotto, ma non è l'unica.
 
 ## Contesto aziendale
 
-Order Operations non decide da solo il proprio futuro.
-
-Potrà ricevere pressioni o requisiti da:
+Order Operations può ricevere pressioni o requisiti da:
 
 - Payments & Risk;
 - Mobile Products;
@@ -364,13 +407,11 @@ Potrà ricevere pressioni o requisiti da:
 - Legal / Compliance;
 - Sales e clienti enterprise.
 
-Questo è intenzionale.
-
-Nel corso del libro vogliamo vedere come una soluzione cambia quando il problema tecnico incontra il resto dell'azienda.
+Questo è intenzionale: vogliamo vedere come una soluzione cambia quando il problema tecnico incontra il resto dell'azienda.
 
 ## Obiettivo finale
 
-Alla fine del libro Order Operations dovrà essere un progetto navigabile e funzionante con:
+Alla fine del libro Order Operations dovrà essere navigabile e funzionante con:
 
 - codice applicativo;
 - test;
@@ -380,9 +421,9 @@ Alla fine del libro Order Operations dovrà essere un progetto navigabile e funz
 - data model;
 - infrastructure as code;
 - security controls;
-- observability;
+- reliability/observability evidence;
 - deployment e rollback;
 - production readiness;
-- eventuale integrazione AI soltanto quando giustificata dal contesto.
+- eventuale integrazione AI soltanto quando giustificata.
 
 Il lettore deve poter confrontare le prime decisioni con il sistema finale e capire non soltanto **che cosa** è cambiato, ma **perché**.
