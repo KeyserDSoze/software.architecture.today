@@ -254,7 +254,25 @@ Quando dovremo rivalutarla?
 
 **Trigger:** polling publisher insufficiente, delivery lag oltre il business target, DLQ frequente, bisogno di replay/stream semantics, ordering più forte, più producer/consumer, workflow economici multi-step o recovery requirement più severi.
 
-## Capitolo 12 e successivi
+## Capitolo 12 — Cloud Architecture
+
+**Esigenza:** portare Order Operations su una piattaforma cloud enterprise governata senza trasformare il workload in un'infrastruttura più complessa del problema che deve risolvere.
+
+**Tensione:** standardizzazione Platform vs autonomia del workload team vs security baseline vs semplicità operativa vs cost vs future optionality.
+
+**Decisione:** ESI usa una Azure application landing zone; Order Operations adotta App Service + continuous WebJob, Azure Database for PostgreSQL, Service Bus Queue, Managed Identity, Key Vault, Azure Monitor/Application Insights, Bicep come IaC direction e una singola Azure region nella prima iterazione.
+
+**Costo accettato:** maggiore coupling operativo ad Azure, scaling non indipendente del publisher, minore configurabilità rispetto ad AKS e assenza di regional failover immediato.
+
+**Quality floor:** durable state, idempotency, identity/least privilege, secret governance, backup/recovery, observability, infrastructure intent versionato e ownership chiara fra Platform, workload team e Payments & Risk.
+
+**Guardrail:** Cloud Deployment Map, ADR-0002, Failure Mode Map, landing-zone policy, managed identity, cost review, backup/restore exercise e IaC review.
+
+**Evidence:** Microsoft Learn per Azure application architecture, landing zones, team topology, App Service WebJobs, container-service trade-off, PostgreSQL HA/backup, Service Bus, Managed Identity e Bicep; AWS Well-Architected e Builders' Library per trade-off/capacity; dacadoo case study per evoluzione VM→Kubernetes→serverless guidata dal contesto.
+
+**Trigger:** scale profile divergenti fra API e worker, più background workload, container portability reale, isolation/security requirement più forte, RTO/RPO più severi, consumer topology diversa, cost curve non più adatta o nuovi standard Platform.
+
+## Capitolo 13 e successivi
 
 Da qui in avanti il compromise ledger viene aggiornato insieme al manoscritto.
 
