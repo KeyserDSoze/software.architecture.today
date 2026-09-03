@@ -6,87 +6,210 @@
 
 1. correctness del dato operativo e delle intenzioni persistite;
 2. security e access control;
-3. operability e recovery;
+3. reliability, operability e recovery;
 4. latency adeguata al lavoro umano interattivo;
 5. delivery affidabile delle integrazioni significative;
-6. availability ragionevole per uno strumento interno;
-7. semplicità operativa e costo contenuto.
+6. semplicità operativa e costo contenuto.
 
 ## Quality floor corrente
 
-Per la fase attuale consideriamo non negoziabili:
+Non negoziabili:
 
 - correttezza semantica degli stati mostrati;
 - autenticazione della produzione;
 - authorization server-side per capability, risorsa e tenant;
 - niente dati cross-tenant;
 - tracciabilità verso le fonti autorevoli;
-- capacità di diagnosticare failure significativi;
-- assenza di automazioni economiche senza semantica e autorizzazioni definite;
 - nessuna perdita silenziosa di una Payment Escalation dopo local commit;
 - nessun side effect downstream duplicato per la stessa `EscalationId`;
-- payload di integrazione minimizzati;
+- committed local state preservato nei failure coperti dalla HA;
+- payload minimizzati;
 - retry bounded;
 - dead-letter path con ownership;
-- capacità di distinguere business state e integration delivery state;
+- business state distinto da integration delivery state;
 - runtime identity senza ampi privilegi sul control plane;
 - deployment identity distinta dal runtime;
 - nessun production secret nel repository;
-- revocation/rotation path per credenziali inevitabili;
 - audit delle operazioni sensibili;
-- controlli di sicurezza collegati a threat ed evidence.
+- failure, degraded mode e recovery source espliciti;
+- restore/recovery non dichiarati funzionanti senza evidence.
 
-Le soglie quantitative verranno definite quando esisteranno workload e ambiente misurabili.
+## Reliability targets — Capitolo 14
+
+I target seguenti sono **requisiti simulati ESI**. Non sono benchmark universali e dovranno essere validati con workload e ambienti production-like.
+
+### SLO-01 — Core operator journey
+
+```text
+99.9% good events
+window: rolling 28 days
+```
+
+Il good-event model comprende almeno:
+
+- accesso di un operatore valido;
+- outcome semanticamente corretto;
+- assenza di errori server inattesi;
+- latency entro il threshold del flow;
+- nessun dato noto come non affidabile presentato come current truth.
+
+La definizione tecnica esatta entrerà nell'Observability Contract.
+
+### SLO-02 — Durable Payment Escalation acceptance
+
+Una richiesta valida deve produrre:
+
+```text
+PaymentEscalation + OutboxMessage committed atomically
+```
+
+oppure un rifiuto esplicito prima del commit.
+
+Nessun partial commit silenzioso è accettabile.
+
+### SLO-03 — Payment Escalation publication
+
+```text
+99% delle escalation accepted
+published to broker within 5 minutes
+```
+
+Il target verrà raffinato con misure reali.
+
+## Error budget
+
+Per `SLO-01`:
+
+```text
+SLO 99.9%
+→ error budget 0.1%
+```
+
+Direzione di policy:
+
+- burn normale → normale release velocity;
+- burn accelerato → reliability review e riduzione del change risk;
+- budget esaurito → priorità a stability work, salvo security/emergency change.
+
+Fonte metodologica:
+
+- [Google SRE — Service Level Objectives](https://sre.google/sre-book/service-level-objectives/)
+- [Google SRE — Embracing Risk](https://sre.google/sre-book/embracing-risk/)
+
+## Health model
+
+Stati minimi:
+
+```text
+Healthy
+Degraded
+Unhealthy
+```
+
+La health è definita per critical flow e non come media della resource health.
+
+Riferimento:
+
+```text
+docs/reliability-contract.md
+```
+
+### Degraded mode
+
+Una dependency live può essere indisponibile senza rendere automaticamente inutile tutto il prodotto.
+
+Il degraded mode deve però:
+
+- dichiarare ciò che non è verificabile;
+- preservare provenance/freshness;
+- bloccare azioni che richiedono facts autorevoli mancanti;
+- mantenere security/tenant boundary.
 
 ## Performance
 
-La UI deve essere abbastanza reattiva da supportare investigazione operativa interattiva.
+La UI deve essere reattiva abbastanza da supportare investigazione operativa interattiva.
 
-La richiesta di Payment Escalation non deve attendere l'elaborazione completa di Payments & Risk dopo che la transazione locale è stata accettata.
+La Payment Escalation non deve attendere il processing completo di Payments & Risk dopo il local commit.
 
-Non introduciamo numeri fittizi come se fossero misurazioni reali. Le soglie quantitative verranno definite quando il capstone avrà un workload e un ambiente misurabile.
+I threshold di latency verranno fissati con measurement production-like e collegati allo SLO.
 
-## Availability
+## Availability / resilience
 
-Il sistema deve supportare il lavoro operativo durante le finestre previste, ma non esiste ancora un requisito che giustifichi active-active multi-region.
+Produzione mantiene una topologia **single-region**, ma con resilience intra-region più forte.
 
-La disponibilità runtime di Payments & Risk non deve essere una precondizione per registrare localmente una Payment Escalation quando Order Operations e il proprio datastore sono disponibili.
+Direzione corrente:
 
-Private DNS, identity e private network path entrano ora esplicitamente nei dependency/failure domain della produzione.
+```text
+App Service Premium v3
+capacity >= 2
+zone redundancy enabled
+
+PostgreSQL Flexible Server
+zone-redundant HA
+backup / PITR
+
+Service Bus Premium
+zone redundancy enabled
+```
+
+Non esiste ancora un requisito che giustifichi active-active multi-region.
+
+La disponibilità runtime di Payments & Risk non deve essere una precondizione per registrare localmente una Payment Escalation quando Order Operations e PostgreSQL sono disponibili.
+
+Private DNS, identity e private network path sono failure domain espliciti.
 
 ## Recovery
 
-RTO e RPO del prodotto devono essere esplicitati prima della produzione reale.
+### Intra-region target
 
-Per il flusso asincrono sono già significativi:
+```text
+RTO core journey <= 15 min
+RPO = 0 per committed OperationalCase / PaymentEscalation state
+```
 
-- recovery del polling publisher dopo restart;
-- redelivery tollerata;
-- dead-letter recovery;
+### Region-wide disaster target
+
+```text
+RTO <= 8 h
+RPO <= 1 h
+```
+
+I target sono simulati ESI.
+
+La recovery strategy deve includere:
+
+- application rollback;
+- PostgreSQL HA failover;
+- PostgreSQL PITR/restore per logical corruption;
+- outbox recovery;
 - controlled redrive;
-- reconciliation delle escalation non consegnate;
-- preservazione di `messageId`/`escalationId` durante recovery.
+- reconciliation;
+- known-good IaC/artifact;
+- identity/network recovery coordination;
+- synthetic critical-journey validation dopo recovery.
 
-Per la security architecture dobbiamo inoltre poter:
+> Un backup non viene considerato recovery evidence finché il restore non viene provato.
 
-- revocare una identity compromessa;
-- ruotare un secret inevitabile;
-- sospendere un deployment path compromesso;
-- disabilitare temporaneamente una capability write;
-- ripristinare un known-good artifact/configuration;
-- verificare e ripristinare RBAC/network configuration dopo un incidente.
+## Required reliability drills
 
-Security e recovery non sono discipline indipendenti.
+1. Payments consumer unavailable.
+2. App instance loss.
+3. PostgreSQL failover.
+4. PostgreSQL logical restore/PITR.
+5. Private DNS failure.
+6. Bad deployment / rollback.
+
+Ogni drill deve raccogliere actual recovery time, RPO osservato, manual step e unexpected behavior.
 
 ## Consistency
 
-Per l'investigazione operativa preferiamo informazioni sufficientemente aggiornate da non indurre azioni errate.
+Per l'investigazione operativa le informazioni devono essere abbastanza aggiornate da non indurre azioni errate.
 
-La freshness richiesta deve essere definita per capability; “real time” non è accettato come requisito senza una soglia e un motivo.
+“Real time” non è accettato come requisito senza soglia e motivo.
 
-### Payment Escalation consistency
+### Payment Escalation
 
-Accettiamo eventual consistency tra:
+Accettiamo eventual consistency fra:
 
 ```text
 PaymentEscalation Requested in Order Operations
@@ -98,21 +221,17 @@ e:
 escalation observed/processed by Payments & Risk
 ```
 
-Il sistema deve però convergere secondo una business delivery policy osservabile.
-
-Il numero di retry tecnici non sostituisce il business delay budget.
+Il sistema deve convergere entro una business delivery policy osservabile.
 
 ## Idempotency
 
-La stessa intenzione di Payment Escalation deve mantenere una `EscalationId` stabile.
+- stable `EscalationId` per la stessa intenzione business;
+- stable `messageId` per republish/retry della stessa outbox entry;
+- downstream duplicate tolerance in Payments & Risk.
 
-La stessa outbox entry mantiene un `messageId` stabile durante republish/retry.
+Fonti:
 
-Payments & Risk deve rendere innocua la redelivery della stessa escalation.
-
-Riferimenti:
-
-- [Microsoft Learn — Idempotent Consumer pattern](https://learn.microsoft.com/azure/architecture/patterns/idempotent-consumer)
+- [Microsoft Learn — Idempotent Consumer](https://learn.microsoft.com/azure/architecture/patterns/idempotent-consumer)
 - [Amazon Builders' Library — Making retries safe with idempotent APIs](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/)
 
 ## Retry / backoff
@@ -125,131 +244,76 @@ error classification
 exponential backoff
 jitter
 stable operation identity
-no blind retry for deterministic validation/business failures
+no blind retry for deterministic failures
 ```
 
-Le soglie concrete verranno definite dopo workload measurement.
+Retry e recovery load sono capacity consumer e devono essere inclusi nella reliability review.
 
-Riferimenti:
+## Backpressure / capacity
 
-- [Microsoft Learn — Retry pattern](https://learn.microsoft.com/azure/architecture/patterns/retry)
-- [AWS — Exponential Backoff And Jitter](https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/)
-
-## Backpressure / backlog
-
-Il sistema asincrono deve poter rendere visibili almeno:
+Segnali minimi:
 
 ```text
 outbox pending count
 outbox oldest age
 publish throughput
-consumer lag / queue age
+queue depth / age
 DLQ depth
 business delivery latency
+App Service saturation/headroom
+PostgreSQL connection pressure
 ```
 
-La messaging capability non viene trattata come buffer infinito.
-
-Capacity e scaling policy saranno quantificate con workload misurabili.
-
-## Ordering
-
-La v1 non richiede ordering globale.
-
-Se emergono eventi multipli sullo stesso `OperationalCase` con dipendenze semantiche, la requirement verrà definita in termini di ordering minimo necessario, per esempio `caseId` + versione.
+La queue non è un buffer infinito e non crea capacity downstream.
 
 ## Security
 
-### Authentication
+### Authentication / authorization
 
-Produzione non supporta accesso anonimo.
-
-Microsoft Entra ID è il provider di human identity corrente per lo scenario ESI.
-
-Un token valido non sostituisce l'authorization applicativa.
-
-### Authorization
-
-Le decisioni sensibili devono derivare da:
-
-```text
-authenticated security context
-+ authoritative resource ownership
-+ capability policy
-→ authorization decision
-```
-
-Non da `tenantId`, ruolo o altri campi inviati liberamente dal client.
-
-Negative test cross-tenant e wrong-role sono acceptance evidence obbligatorie per le capability sensibili.
+- produzione non anonima;
+- Microsoft Entra ID per human identity nello scenario corrente;
+- server-side authorization su capability, resource e tenant;
+- negative cross-tenant e wrong-role test richiesti.
 
 ### Network exposure
 
-Per produzione:
-
 - App Service private ingress;
-- public network access dell'App Service disabilitato;
+- public network access disabilitato;
 - private data-plane direction per PostgreSQL, Service Bus e Key Vault;
 - VNet integration outbound;
 - network location non considerata trusted per default.
 
-La private topology è un controllo di reachability, non un sostituto dell'identità.
-
 ### Identity / privilege
 
-- managed identity per accesso runtime ai servizi Azure quando supportato;
+- managed identity quando supportato;
 - runtime identity separata dalla deployment identity;
 - runtime senza permission generiche di resource administration/RBAC;
-- producer Service Bus con send-only permission;
-- privileged access separato e auditabile;
-- break-glass non usato come workflow ordinario.
+- Service Bus producer send-only;
+- privileged access separato e auditabile.
 
-### Secrets
+### Secrets / logging
 
-- preferire identity/federation alla credenziale statica;
-- Key Vault soltanto per secret inevitabili;
+- preferire identity/federation a secret statici;
+- Key Vault per secret inevitabili;
 - nessun production secret nel repository;
-- rotation/revocation obbligatorie;
-- secret non ammessi nei payload di messaging e nei normali log.
-
-### Data minimization / logging
-
-- payload minimizzati;
-- telemetry costruita con field allowlist;
-- niente access token, Authorization header, credential o secret nei log;
-- audit delle operazioni sensibili distinto dal normale application logging;
-- log/DLQ soggetti a data classification, access control e retention.
+- telemetry allowlist/redaction;
+- audit sensibile distinto dal normale application log.
 
 ### Secure SDLC
 
-La pipeline futura deve includere baseline verificabili per:
+Baseline futura/verificabile:
 
 - secret scanning;
-- dependency/SCA review;
+- SCA/dependency review;
 - SAST appropriato;
 - protected production deployment;
 - scoped/federated deployment identity;
 - Bicep build/lint/policy validation;
 - artifact provenance.
 
-### WAF
-
-Non è un requisito corrente.
-
-Motivo:
-
-- nessun Internet-facing ingress nello scope corrente;
-- production ingress privato.
-
-Trigger:
-
-- public API;
-- partner/mobile ingress;
-- compliance o threat model che ne giustifichino il costo.
-
 ## Threat / control traceability
 
-La security architecture è governata da:
+Artefatti:
 
 ```text
 docs/threat-model.md
@@ -257,9 +321,7 @@ docs/security-control-matrix.md
 docs/adr/0003-private-ingress-and-identity-first-security.md
 ```
 
-Un controllo non viene considerato “completato” soltanto perché è documentato.
-
-Usiamo i livelli:
+Livelli di evidence:
 
 ```text
 Designed
@@ -270,99 +332,80 @@ Designed
 
 ## Operability
 
-Il team deve poter diagnosticare:
+Il team deve poter diagnosticare almeno:
 
-- errori applicativi;
-- dipendenze lente o indisponibili;
-- query lente;
-- fallimenti di integrazione;
-- divergenze tra stato mostrato e dati autorevoli;
+- critical journey failure;
+- dependency latency/unavailability;
+- query lente e connection pressure;
 - outbox bloccata;
 - publish retry;
 - backlog/lag;
 - duplicate delivery;
 - DLQ;
 - reconciliation mismatch;
-- authentication/authorization failure significativi;
-- drift di public network exposure;
-- accessi Key Vault anomali/falliti;
-- cambi RBAC privilegiati;
-- deployment produzione.
+- authentication/authorization failure;
+- public network drift;
+- RBAC/deployment change privilegiati;
+- failover/recovery event;
+- synthetic journey failure.
 
-Failure Mode Map, Threat Model e Security Control Matrix sono parte del contract operativo.
+Failure Mode Map, Reliability Contract, Threat Model e Security Control Matrix fanno parte del contract operativo.
 
 ## Maintainability
 
-I confini tra Orders, Payments e Shipping devono restare leggibili e verificabili nel codice.
-
-La messaging infrastructure non deve trasformare event schema e broker-specific detail in business model.
-
-Il publisher resta broker-agnostico tramite port esplicito; Azure Service Bus è l'adapter cloud corrente, non il dominio.
-
-La security topology deve rimanere leggibile in IaC/documentazione e non essere ricostruibile soltanto dalla console Azure.
+- confini Orders/Payments/Shipping leggibili;
+- broker detail non trasformati in business model;
+- security/reliability topology leggibile in IaC/documentazione;
+- recovery procedure versionata;
+- SLO e degraded mode revisionabili senza ricostruire il sistema da dashboard sparse.
 
 ## Cost
 
-La complessità infrastrutturale deve essere giustificata da requisiti e rischio misurabili.
+La complessità infrastrutturale deve essere giustificata da requisito, threat o reliability target.
 
-Decisioni attuali:
+Decisioni correnti:
 
 - niente Redis soltanto per “essere pronti a scalare”;
-- niente active-active multi-region senza requisito;
-- niente microservizi per sola moda architetturale;
-- niente Kafka/event-streaming platform soltanto perché abbiamo introdotto un evento;
-- polling publisher iniziale invece di CDC finché volume e latency non ne giustificano il costo;
-- **Service Bus Premium** accettato per supportare Private Link/private endpoint nella production security topology;
-- niente WAF finché il threat model non ha un public ingress che ne giustifichi il costo.
+- niente active-active multi-region senza RTO/RPO che lo richiedano;
+- niente microservizi per moda;
+- niente Kafka soltanto perché esiste un evento;
+- polling publisher finché volume/latency non ne smentiscono il fit;
+- Service Bus Premium accettato per Private Link;
+- App Service Premium v3 + almeno due istanze accettato per zone redundancy;
+- PostgreSQL zone-redundant HA accettato per proteggere local authoritative state;
+- niente WAF finché non esiste public ingress che ne paghi il costo.
 
-### Security ↔ FinOps
+## Compromesso corrente — Capitolo 14
 
-La private endpoint decision di Service Bus ha un costo reale perché Private Link è supportato sul tier Premium.
+**Esigenza:** mantenere Order Operations utilizzabile durante failure comuni e recuperabile durante failure più ampi.
 
-Questo costo deve essere:
+**Tensione:** stronger availability/recovery vs cloud cost, operational complexity e delivery speed.
 
-- osservato;
-- attribuito al workload;
-- confrontato con il rischio mitigato;
-- rivalutato se threat model, platform capability o messaging topology cambiano.
+**Decisione:** zone-redundant App Service con almeno due istanze, PostgreSQL zone-redundant HA, backup/PITR, Service Bus zonal resilience, SLO/health model e recovery drill; il workload resta single-region.
 
-Fonte:
+**Costo accettato:** maggior costo compute/database e regional recovery non immediato.
 
-- [Microsoft Learn — Service Bus Private Link](https://learn.microsoft.com/azure/service-bus-messaging/private-link-service)
+**Quality floor:** committed local state protetto nei failure HA coperti; failure/degradation osservabili; restore con owner/evidence; security boundary non disabilitati per availability.
 
-## Compromesso corrente — Capitolo 13
-
-**Esigenza:** ridurre attack surface e blast radius prima della produzione.
-
-**Tensione:** private connectivity, least privilege e identity separation vs semplicità di sviluppo, debugging, networking e costo.
-
-**Decisione:** private production ingress/data-plane direction, identity-first authorization, managed identity, runtime/deployment identity separation e security baseline codificata progressivamente in Bicep.
-
-**Costo accettato:** private DNS/network complexity, maggiore dipendenza dalla landing zone, dev/prod parity più difficile e Service Bus Premium per Private Link.
-
-**Quality floor:** authenticated production access, tenant isolation, least privilege, nessun production secret nel repository, runtime senza broad control-plane privilege, audit delle operazioni sensibili e revocation path.
-
-**Guardrail:** Threat Model, Security Control Matrix, ADR, Bicep, platform policy, secret scanning, negative authorization tests, RBAC review e logging/redaction policy.
+**Guardrail:** Reliability Contract, Failure Mode Map, error budget, restore drill, game day, IaC e review trigger.
 
 ## Technology fit rule
 
 > Non scegliere la tecnologia più impressionante. Scegli la risposta che ha il fit migliore con il problema reale.
 
-Vale anche per i controlli di sicurezza.
-
-`Private`, `WAF`, `Premium`, `Zero Trust` e `Key Vault` non sono medaglie: devono rispondere a threat e requisiti reali.
+Vale anche per reliability: `multi-region`, `HA`, `replica`, `queue` e `circuit breaker` devono poter dire quale failure/SLO stanno pagando.
 
 ## Fonti metodologiche
 
-- [Azure Application Architecture Fundamentals](https://learn.microsoft.com/azure/architecture/guide/)
+- [Google SRE — Service Level Objectives](https://sre.google/sre-book/service-level-objectives/)
+- [Google SRE — Embracing Risk](https://sre.google/sre-book/embracing-risk/)
+- [Microsoft Learn — Azure Well-Architected Reliability](https://learn.microsoft.com/azure/well-architected/reliability/)
+- [Microsoft Learn — Health modeling](https://learn.microsoft.com/azure/well-architected/design-guides/health-modeling)
+- [Microsoft Learn — Reliability in App Service](https://learn.microsoft.com/azure/reliability/reliability-app-service)
+- [Microsoft Learn — PostgreSQL High Availability](https://learn.microsoft.com/azure/postgresql/high-availability/concepts-high-availability)
+- [Microsoft Learn — Reliability in Service Bus](https://learn.microsoft.com/azure/reliability/reliability-service-bus)
 - [Microsoft Learn — Security design principles](https://learn.microsoft.com/azure/well-architected/security/principles)
-- [Microsoft Learn — Design secure applications](https://learn.microsoft.com/azure/security/develop/secure-design)
-- [Microsoft Learn — Threat Modeling Tool](https://learn.microsoft.com/azure/security/develop/threat-modeling-tool)
-- [Microsoft Learn — App Service architecture best practices](https://learn.microsoft.com/azure/well-architected/service-guides/app-service-web-apps)
-- [Microsoft Learn — Service Bus Private Link](https://learn.microsoft.com/azure/service-bus-messaging/private-link-service)
-- [NIST SP 800-218 — Secure Software Development Framework](https://csrc.nist.gov/pubs/sp/800/218/final)
+- [NIST SP 800-218 — SSDF](https://csrc.nist.gov/pubs/sp/800/218/final)
 - [OWASP ASVS](https://owasp.org/www-project-application-security-verification-standard/)
-- [Microsoft Learn — Transactional Outbox](https://learn.microsoft.com/azure/architecture/databases/guide/transactional-outbox-cosmos)
-- [Microsoft Learn — Idempotent Consumer](https://learn.microsoft.com/azure/architecture/patterns/idempotent-consumer)
 
-Queste fonti sostengono proprietà e metodo; i requisiti specifici di Order Operations restano simulati.
+Le fonti sostengono proprietà e metodo; i requisiti specifici di Order Operations restano simulati.
