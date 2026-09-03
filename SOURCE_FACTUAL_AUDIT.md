@@ -12,14 +12,15 @@ Questo file traccia lo stato dell'evidence pass del manoscritto.
 |---|---:|---:|---|
 | 0 — Al timone | sì | da fare | prevalentemente concettuale; verificare claim su AI workflow e agenti |
 | 1 — Il software è cambiato. Il problema no. | sì | da fare | evidence pass importante su AI-assisted development e workflow |
-| 2 — Prima del codice | sì | parziale | nuova sezione functional analysis già collegata a Microsoft Learn, Scrum Guide e Fowler |
+| 2 — Prima del codice | sì | parziale | functional analysis collegata a Microsoft Learn, Scrum Guide e Fowler |
 | 3 — Pensare per sistemi | sì | da fare | cercare fonti su system thinking, failure domains e architecture context |
 | 4 — Che cos'è davvero Software Architecture | sì | da fare | ADR, ASR, trade-off e reversibilità da ancorare a fonti riconosciute |
 | 5 — Dalle feature ai confini | sì | da fare | DDD, information hiding, cohesion/coupling, dependency direction |
-| 6 — Qualità prima della tecnologia | sì | parziale | capstone NFR già collega Azure Architecture Center e AWS Well-Architected; audit del capitolo da completare |
+| 6 — Qualità prima della tecnologia | sì | parziale | capstone NFR collega Azure Architecture Center e AWS Well-Architected; audit del capitolo da completare |
 | 7 — Pattern senza religione | sì | da fare | pattern, resilience e integration guidance da verificare su fonti primarie |
 | 8 — Il monolite non è il nemico | sì | da fare | modular monolith/microservices/team topology claims da documentare |
-| 9+ | non ancora | source-first | ricerca e fonti entrano nel workflow prima della chiusura del draft |
+| 9 — API e contratti | sì | sì — draft pass | Microsoft Learn, RFC 9110, RFC 9457, gRPC, GraphQL, RFC 6455 e AsyncAPI collegati vicino ai claim principali |
+| 10+ | non ancora | source-first | ricerca e fonti entrano nel workflow prima della chiusura del draft |
 
 ## Regola editoriale da Capitolo 9
 
