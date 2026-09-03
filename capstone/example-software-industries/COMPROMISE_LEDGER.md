@@ -316,7 +316,25 @@ Trigger
 
 **Trigger:** critical journey/threat/SLO/topology cambia, suite diventa lenta o flaky, integration gap produce incidenti, AI autonomy cresce, contract/versioning o regulatory requirement cambiano.
 
-## Capitolo 17 e successivi
+## Capitolo 17 — Legacy e comprensione
+
+**Esigenza:** ridurre progressivamente costo, rischio operativo e dipendenze di **Operations Desk Classic**, consolidando capability in Order Operations senza perdere comportamenti business ancora necessari.
+
+**Tensione:** Finance, Platform e Security vogliono accelerare il retirement; Operations e Product non possono accettare regressioni silenziose; il team Order Operations non vuole trasformare ogni comportamento storico in nuovo dominio soltanto perché esiste nel codice legacy.
+
+**Decisione:** niente big-bang rewrite e niente copia immediata delle regole. ESI introduce una fase esplicita di **inventory → characterization → owner/consumer discovery → behavior classification → seam design**. La prima slice è `legacy case priority routing`.
+
+**Costo accettato:** Operations Desk Classic resta operativo più a lungo; ESI paga temporaneamente doppio runtime/knowledge, discovery effort e una characterization suite separata.
+
+**Quality floor:** nessuna semantic regression silenziosa; tenant/security boundary preservati; nessun dual ownership ambiguo; behavior legacy non promosso a requirement senza conferma; rollback necessario prima del cutover.
+
+**Guardrail:** `docs/legacy-understanding-map.md`, evidence states `Found/Inferred/Observed/Confirmed`, characterization suite, behavior classification `Required/Compatibility/Accidental`, hidden consumer discovery, candidate seam review e futuro Refactoring Safety Plan.
+
+**Evidence:** Microsoft App Modernization Guidance per assessment e phased modernization; Microsoft/AWS per Strangler Fig, Anti-Corruption Layer e Branch by Abstraction; Microsoft IntelliTest/Fowler per characterization testing; GitHub engineering per upgrade Rails incrementale e server-side hook replacement; Microsoft GitHub Copilot modernization e Fowler per AI-assisted legacy understanding. Nel capstone la characterization legacy è stata realmente eseguita: `node:test` 6/6 PASS.
+
+**Trigger:** behavior LB-01…LB-06 confermati o classificati; owner/consumer inventory completato; shared-data semantics chiarite; candidate seam approvato; rollback/coexistence definito; oppure discovery smentisce il valore della migration slice e porta a retain/retire differente.
+
+## Capitolo 18 e successivi
 
 Da qui in avanti il compromise ledger viene aggiornato insieme al manoscritto.
 
