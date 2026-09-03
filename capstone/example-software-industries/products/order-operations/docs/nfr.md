@@ -7,9 +7,10 @@
 1. correctness del dato operativo e delle intenzioni persistite;
 2. security e access control;
 3. reliability, operability e recovery;
-4. latency adeguata al lavoro umano interattivo;
-5. delivery affidabile delle integrazioni significative;
-6. semplicità operativa e costo contenuto.
+4. observability sufficiente a misurare outcome e failure significativi;
+5. latency adeguata al lavoro umano interattivo;
+6. delivery affidabile delle integrazioni significative;
+7. semplicità operativa e costo contenuto.
 
 ## Quality floor corrente
 
@@ -32,7 +33,13 @@ Non negoziabili:
 - nessun production secret nel repository;
 - audit delle operazioni sensibili;
 - failure, degraded mode e recovery source espliciti;
-- restore/recovery non dichiarati funzionanti senza evidence.
+- restore/recovery non dichiarati funzionanti senza evidence;
+- SLI con measurement source esplicito;
+- correlation sufficiente attraverso boundary sincroni e asincroni;
+- metric dimensions bounded per default;
+- access token, Authorization header e secret esclusi dai normali signal;
+- alert urgenti con owner e azione esplicita;
+- telemetry cost/cardinality soggetti a governance.
 
 ## Reliability targets — Capitolo 14
 
@@ -53,7 +60,7 @@ Il good-event model comprende almeno:
 - latency entro il threshold del flow;
 - nessun dato noto come non affidabile presentato come current truth.
 
-La definizione tecnica esatta entrerà nell'Observability Contract.
+La definizione tecnica è governata dall'Observability Contract.
 
 ### SLO-02 — Durable Payment Escalation acceptance
 
@@ -91,7 +98,7 @@ Direzione di policy:
 - burn accelerato → reliability review e riduzione del change risk;
 - budget esaurito → priorità a stability work, salvo security/emergency change.
 
-Fonte metodologica:
+Fonti:
 
 - [Google SRE — Service Level Objectives](https://sre.google/sre-book/service-level-objectives/)
 - [Google SRE — Embracing Risk](https://sre.google/sre-book/embracing-risk/)
@@ -123,7 +130,8 @@ Il degraded mode deve però:
 - dichiarare ciò che non è verificabile;
 - preservare provenance/freshness;
 - bloccare azioni che richiedono facts autorevoli mancanti;
-- mantenere security/tenant boundary.
+- mantenere security/tenant boundary;
+- produrre signal che permettano di sapere quando si entra e quando si esce dal degraded mode.
 
 ## Performance
 
@@ -330,6 +338,103 @@ Designed
 → Monitored
 ```
 
+## Observability — Capitolo 15
+
+Artefatto:
+
+```text
+docs/observability-contract.md
+```
+
+### Signal model
+
+Direzione:
+
+```text
+OpenTelemetry-compatible instrumentation
+→ Azure Monitor / Application Insights / Log Analytics
+```
+
+Metrics, logs, traces e audit/business evidence non sono considerati intercambiabili.
+
+### Correlation
+
+Semantiche distinte:
+
+```text
+traceId       = execution identity
+correlationId = flow correlation
+messageId     = technical delivery identity
+escalationId  = business intent identity
+```
+
+Un retry può cambiare trace senza cambiare la business identity.
+
+### Cardinality
+
+Metric dimensions devono essere bounded per default.
+
+Non ammessi come metric dimensions senza eccezione esplicita:
+
+```text
+operatorId
+orderId
+caseId
+escalationId
+messageId
+traceId
+raw URL
+free-text error
+```
+
+### Sampling
+
+- SLI metric non devono dipendere dal trace sampling;
+- audit evidence non segue automaticamente la stessa sampling policy dei trace diagnostici;
+- trace sampling percentuale verrà scelta dopo volume/cost measurement;
+- tail sampling resta trigger-driven.
+
+### Alerting
+
+Un page alert deve essere:
+
+```text
+urgent
+actionable
+owned
+linked to impact/risk
+```
+
+Ogni page deve avere first action e runbook/context.
+
+### Synthetic monitoring
+
+Il workload ha private production ingress.
+
+Non viene aperto un endpoint pubblico soltanto per facilitare un probe esterno.
+
+Direzione:
+
+```text
+private synthetic runner
++ dedicated test identity
++ controlled synthetic data
++ approved private network path
+```
+
+Stato: `Designed`, non ancora codificato.
+
+### Telemetry cost
+
+Devono essere governati:
+
+- ingestion volume;
+- trace sampling;
+- custom metric/cardinality;
+- retention per classe;
+- unused dashboards/alerts;
+- debug logging lasciato attivo.
+
 ## Operability
 
 Il team deve poter diagnosticare almeno:
@@ -347,9 +452,11 @@ Il team deve poter diagnosticare almeno:
 - public network drift;
 - RBAC/deployment change privilegiati;
 - failover/recovery event;
-- synthetic journey failure.
+- synthetic journey failure;
+- SLO/error-budget burn;
+- telemetry pipeline failure distinta da zero traffic sano.
 
-Failure Mode Map, Reliability Contract, Threat Model e Security Control Matrix fanno parte del contract operativo.
+Failure Mode Map, Reliability Contract, Threat Model, Security Control Matrix e Observability Contract fanno parte del contract operativo.
 
 ## Maintainability
 
@@ -357,11 +464,13 @@ Failure Mode Map, Reliability Contract, Threat Model e Security Control Matrix f
 - broker detail non trasformati in business model;
 - security/reliability topology leggibile in IaC/documentazione;
 - recovery procedure versionata;
-- SLO e degraded mode revisionabili senza ricostruire il sistema da dashboard sparse.
+- SLO e degraded mode revisionabili senza ricostruire il sistema da dashboard sparse;
+- telemetry semantic contract separato dal vendor SDK;
+- breaking change a metric/query/alert trattate come change operativo.
 
 ## Cost
 
-La complessità infrastrutturale deve essere giustificata da requisito, threat o reliability target.
+La complessità infrastrutturale deve essere giustificata da requisito, threat, reliability target o bisogno investigativo.
 
 Decisioni correnti:
 
@@ -373,39 +482,39 @@ Decisioni correnti:
 - Service Bus Premium accettato per Private Link;
 - App Service Premium v3 + almeno due istanze accettato per zone redundancy;
 - PostgreSQL zone-redundant HA accettato per proteggere local authoritative state;
-- niente WAF finché non esiste public ingress che ne paghi il costo.
+- niente WAF finché non esiste public ingress che ne paghi il costo;
+- niente full-retention di ogni trace/log senza una decisione di cost/retention.
 
-## Compromesso corrente — Capitolo 14
+## Compromesso corrente — Capitolo 15
 
-**Esigenza:** mantenere Order Operations utilizzabile durante failure comuni e recuperabile durante failure più ampi.
+**Esigenza:** misurare SLO, diagnosticare incidenti e supportare l'on-call.
 
-**Tensione:** stronger availability/recovery vs cloud cost, operational complexity e delivery speed.
+**Tensione:** visibility profonda vs ingestion/storage cost, cardinality, data minimization e alert fatigue.
 
-**Decisione:** zone-redundant App Service con almeno due istanze, PostgreSQL zone-redundant HA, backup/PITR, Service Bus zonal resilience, SLO/health model e recovery drill; il workload resta single-region.
+**Decisione:** Observability Contract, bounded metrics per SLI/alert, structured events, governed trace sampling, business/audit evidence separate, vendor-neutral telemetry port e private synthetic direction.
 
-**Costo accettato:** maggior costo compute/database e regional recovery non immediato.
+**Costo accettato:** non conservare ogni execution detail indefinitamente e richiedere correlation fra signal diversi per alcune investigazioni.
 
-**Quality floor:** committed local state protetto nei failure HA coperti; failure/degradation osservabili; restore con owner/evidence; security boundary non disabilitati per availability.
+**Quality floor:** SLI misurabili, critical failure visibility, correlation, security redaction, auditability, actionable alerts e telemetry cost visibility.
 
-**Guardrail:** Reliability Contract, Failure Mode Map, error budget, restore drill, game day, IaC e review trigger.
+**Guardrail:** cardinality budget, sampling policy, retention classes, alert quality review, owner/runbook, typed telemetry port e verification tests.
 
 ## Technology fit rule
 
 > Non scegliere la tecnologia più impressionante. Scegli la risposta che ha il fit migliore con il problema reale.
 
-Vale anche per reliability: `multi-region`, `HA`, `replica`, `queue` e `circuit breaker` devono poter dire quale failure/SLO stanno pagando.
+Vale anche per observability: più log, più trace, più retention e più alert non equivalgono automaticamente a più conoscenza.
 
 ## Fonti metodologiche
 
+- [OpenTelemetry — Documentation](https://opentelemetry.io/docs/)
+- [OpenTelemetry — Signals](https://opentelemetry.io/docs/concepts/signals/)
+- [Google SRE — Monitoring Distributed Systems](https://sre.google/sre-book/monitoring-distributed-systems/)
+- [Google SRE Workbook — Monitoring](https://sre.google/workbook/monitoring/)
+- [Microsoft Learn — Application Insights overview](https://learn.microsoft.com/azure/azure-monitor/app/app-insights-overview)
+- [Microsoft Learn — Azure Monitor OpenTelemetry](https://learn.microsoft.com/azure/azure-monitor/app/opentelemetry-overview)
 - [Google SRE — Service Level Objectives](https://sre.google/sre-book/service-level-objectives/)
-- [Google SRE — Embracing Risk](https://sre.google/sre-book/embracing-risk/)
 - [Microsoft Learn — Azure Well-Architected Reliability](https://learn.microsoft.com/azure/well-architected/reliability/)
-- [Microsoft Learn — Health modeling](https://learn.microsoft.com/azure/well-architected/design-guides/health-modeling)
-- [Microsoft Learn — Reliability in App Service](https://learn.microsoft.com/azure/reliability/reliability-app-service)
-- [Microsoft Learn — PostgreSQL High Availability](https://learn.microsoft.com/azure/postgresql/high-availability/concepts-high-availability)
-- [Microsoft Learn — Reliability in Service Bus](https://learn.microsoft.com/azure/reliability/reliability-service-bus)
 - [Microsoft Learn — Security design principles](https://learn.microsoft.com/azure/well-architected/security/principles)
-- [NIST SP 800-218 — SSDF](https://csrc.nist.gov/pubs/sp/800/218/final)
-- [OWASP ASVS](https://owasp.org/www-project-application-security-verification-standard/)
 
 Le fonti sostengono proprietà e metodo; i requisiti specifici di Order Operations restano simulati.
