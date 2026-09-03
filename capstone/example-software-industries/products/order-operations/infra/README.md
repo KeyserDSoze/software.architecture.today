@@ -1,57 +1,119 @@
 # Order Operations — Infrastructure as Code
 
-Questa directory entra nel capstone con il **Capitolo 12 — Cloud Architecture**.
+Questa directory entra nel capstone con il **Capitolo 12 — Cloud Architecture** e diventa deployabile in modo incrementale con il **Capitolo 13 — Security by Design**.
 
 ## Decisione corrente
 
 ESI usa Microsoft Azure come cloud enterprise principale per Order Operations e supporta **Bicep** come percorso Infrastructure as Code per il workload.
 
-La deployment topology decisa è documentata in:
+La deployment topology e il security boundary sono documentati in:
 
 ```text
 docs/cloud-deployment.md
+docs/threat-model.md
+docs/security-control-matrix.md
 docs/adr/0002-azure-paas-single-region.md
+docs/adr/0003-private-ingress-and-identity-first-security.md
 ```
 
-## Perché non esiste ancora `main.bicep`
+## `main.bicep` esiste ora
 
-La scelta è intenzionale.
+Il Capitolo 12 aveva scelto intenzionalmente di non generarlo prima del threat model.
 
-Il Capitolo 12 ha definito:
+Il Capitolo 13 ha finalmente chiuso abbastanza decisioni per codificare una prima baseline:
 
-- Azure application landing zone;
-- Azure App Service;
-- continuous WebJob;
-- Azure Database for PostgreSQL Flexible Server;
-- Azure Service Bus Queue;
-- Managed Identity;
-- Azure Key Vault;
-- Azure Monitor / Application Insights;
-- single-region;
-- Bicep come IaC direction.
+- App Service Linux con managed identity;
+- HTTPS only;
+- minimum TLS baseline;
+- App Service Authentication con Microsoft Entra ID;
+- FTP/SCM basic publishing credentials disabilitate;
+- private App Service ingress;
+- VNet integration outbound;
+- Key Vault con RBAC e public network disabilitato;
+- Service Bus Premium con local auth disabilitata e public network disabilitato;
+- Payment Escalation Queue;
+- private endpoint per App Service, Key Vault e Service Bus;
+- send-only Service Bus role per la runtime identity;
+- Key Vault Secrets User role per la runtime identity;
+- Log Analytics + Application Insights.
 
-Ma il **Capitolo 13 — Security by Design** deve ancora chiudere decisioni che cambiano materialmente il template deployabile:
+Il template dipende deliberatamente da due capability fornite dalla **ESI application landing zone**:
 
-- public vs private ingress;
-- VNet integration;
-- private endpoints;
-- firewall/network ACL;
-- workload identity scope;
-- Key Vault access model;
-- PostgreSQL network access;
-- Service Bus network access;
-- privileged deployment path;
-- egress constraints.
+```text
+appIntegrationSubnetId
+privateEndpointSubnetId
+```
 
-Generare oggi un template completo significherebbe lasciare che l'IaC inventi la security architecture.
-
-Il libro rifiuta questo workflow.
+Il workload non crea una VNet enterprise parallela soltanto per poter essere self-contained.
 
 > **Prima decidiamo il boundary. Poi lo codifichiamo.**
 
-## Regole per i template futuri
+## Compromesso Service Bus Premium
 
-Quando verranno introdotti i file Bicep, dovranno rispettare almeno:
+Azure Service Bus Private Link è supportato sul tier Premium.
+
+Di conseguenza la decisione di private data-plane connectivity introduce un costo cloud concreto rispetto al tier Standard.
+
+Questo costo è intenzionale e registrato nel compromesso del Capitolo 13.
+
+Non viene trattato come una conseguenza invisibile della parola “secure”.
+
+Trigger di revisione:
+
+- costo sproporzionato rispetto al rischio;
+- nuova platform capability;
+- diverso network model;
+- diverso messaging workload;
+- cambiamento della classificazione del dato/integrazione.
+
+Riferimento:
+
+- [Microsoft Learn — Service Bus Private Link](https://learn.microsoft.com/azure/service-bus-messaging/private-link-service)
+
+## Cosa non è ancora nel template
+
+`main.bicep` non rappresenta ancora l'ambiente produttivo completo.
+
+Mancano intenzionalmente elementi che richiedono ulteriori decisioni o moduli:
+
+- Azure Database for PostgreSQL Flexible Server e relativa private networking configuration;
+- private DNS zone group, perché nello scenario ESI il DNS privato è una capability della landing zone;
+- CI/CD federated identity completa;
+- diagnostic settings completi per ogni resource;
+- alert quantitativi;
+- deployment slots/blue-green strategy;
+- backup/restore configuration completa;
+- cost budget e policy;
+- Security/Platform policy assignments.
+
+Il template deve crescere insieme al libro, non fingere production readiness in anticipo.
+
+## Parametri richiesti
+
+Il deployment richiede nomi globalmente unici e subnet già provisionate dalla landing zone.
+
+Esempio concettuale:
+
+```bash
+az deployment group create \
+  --resource-group <workload-rg> \
+  --template-file main.bicep \
+  --parameters \
+      environmentName=prod \
+      appName=<globally-unique-app-name> \
+      appServicePlanName=<plan-name> \
+      keyVaultName=<globally-unique-kv-name> \
+      serviceBusNamespaceName=<globally-unique-sb-name> \
+      logAnalyticsName=<law-name> \
+      applicationInsightsName=<appi-name> \
+      appIntegrationSubnetId=<resource-id> \
+      privateEndpointSubnetId=<resource-id> \
+      entraClientId=<entra-app-client-id>
+```
+
+L'esempio non contiene credenziali.
+
+## Regole dei template
 
 1. infrastruttura significativa versionata;
 2. parameterizzazione per environment;
@@ -60,42 +122,35 @@ Quando verranno introdotti i file Bicep, dovranno rispettare almeno:
 5. tagging/cost allocation coerenti con la landing zone;
 6. network exposure intenzionale;
 7. backup/recovery configuration coerente con NFR;
-8. output limitati alle informazioni utili al deployment;
+8. output limitati alle informazioni utili;
 9. destructive changes reviewati esplicitamente;
-10. documentazione delle dipendenze dalla platform landing zone.
+10. dipendenze dalla platform landing zone documentate;
+11. runtime identity separata dalla deployment identity;
+12. local/basic authentication disabilitata quando non necessaria.
 
-## Environment direction
-
-```text
-infra/
-├── README.md
-├── main.bicep               # dal Capitolo 13+
-├── modules/                 # soltanto quando il riuso lo giustifica
-└── environments/
-    ├── dev.bicepparam
-    ├── staging.bicepparam
-    └── prod.bicepparam
-```
-
-Questa struttura è una direzione, non un obbligo a creare file vuoti.
-
-I file compariranno quando contengono decisioni implementabili.
-
-## Validation futura
+## Validation
 
 Prima di considerare production-ready l'IaC dovremo avere:
 
-- Bicep build/lint;
-- policy validation;
+- Bicep build/lint in CI;
+- Azure Policy validation;
+- deployment in environment non-production;
+- private DNS/connectivity test;
+- authentication test;
+- RBAC negative test;
 - security review;
-- deployment in environment non production;
 - drift review;
 - cost review;
 - recovery/rebuild exercise.
+
+La presenza di `main.bicep` significa **codified baseline**, non production readiness.
 
 ## Fonti
 
 - [Microsoft Learn — What is Bicep?](https://learn.microsoft.com/azure/azure-resource-manager/bicep/overview)
 - [Microsoft Learn — Azure landing zones](https://learn.microsoft.com/azure/cloud-adoption-framework/ready/landing-zone/)
+- [Microsoft Learn — App Service architecture best practices](https://learn.microsoft.com/azure/well-architected/service-guides/app-service-web-apps)
+- [Microsoft Learn — Service Bus Private Link](https://learn.microsoft.com/azure/service-bus-messaging/private-link-service)
+- [Microsoft Learn — Key Vault RBAC](https://learn.microsoft.com/azure/key-vault/general/rbac-guide)
 
-La decisione di **non** generare ancora un template deployabile è parte dell'architettura del capstone, non lavoro mancante nascosto.
+Il capstone conserva intenzionalmente il confine fra **architecture intent**, **codified control** e **verified production behavior**.
