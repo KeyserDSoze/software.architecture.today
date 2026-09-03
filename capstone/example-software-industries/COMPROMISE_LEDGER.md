@@ -272,7 +272,25 @@ Quando dovremo rivalutarla?
 
 **Trigger:** scale profile divergenti fra API e worker, più background workload, container portability reale, isolation/security requirement più forte, RTO/RPO più severi, consumer topology diversa, cost curve non più adatta o nuovi standard Platform.
 
-## Capitolo 13 e successivi
+## Capitolo 13 — Security by Design
+
+**Esigenza:** ridurre attack surface, privilege e blast radius prima che Order Operations venga considerato candidato alla produzione.
+
+**Tensione:** private connectivity, identity separation e least privilege vs semplicità di sviluppo/debugging, dipendenza dalla landing zone e costo cloud.
+
+**Decisione:** production private App Service ingress; Entra authentication + server-side authorization; managed runtime identity; runtime/deployment identity separation; private data-plane direction per PostgreSQL, Service Bus e Key Vault; secret minimization/Key Vault; threat/control traceability; prima security baseline codificata in Bicep. Nessun WAF finché non esiste un Internet-facing journey.
+
+**Costo accettato:** private DNS/network troubleshooting più complesso, maggiore dipendenza dalle subnet/capability Platform, dev/prod parity meno immediata e **Service Bus Premium** necessario per Private Link nella topologia corrente.
+
+**Quality floor:** authenticated production access, tenant isolation, explicit capability authorization, runtime senza broad control-plane privilege, nessun production secret nel repository, audit delle operazioni sensibili, revocation path, security control verificabili.
+
+**Guardrail:** Threat Model, Security Control Matrix, ADR-0003, `infra/main.bicep`, landing-zone policy, secret scanning, negative authorization tests, RBAC review, log redaction/data minimization e secure-SDLC gate proporzionati al rischio.
+
+**Evidence:** Microsoft Learn per Threat Modeling, Zero Trust/security design, identity/least privilege, App Service security/private connectivity, Key Vault RBAC e Service Bus Private Link; NIST SP 800-218 per Secure Software Development Framework; OWASP ASVS per verification requirements; Cloudflare postmortem sull'incidente Okta 2023 come caso reale di containment/assume-breach.
+
+**Trigger:** public/mobile/partner ingress, nuovo sensitive-data class, security incident, API/WebJob privilege divergence, multi-region, nuovi provider esterni, cost curve Service Bus Premium non più giustificata, cambiamenti della landing zone o nuovi compliance requirement.
+
+## Capitolo 14 e successivi
 
 Da qui in avanti il compromise ledger viene aggiornato insieme al manoscritto.
 
