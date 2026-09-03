@@ -308,7 +308,25 @@ Quando dovremo rivalutarla?
 
 **Trigger:** SLO miss persistenti, error-budget burn, RTO/RPO regionali più severi, contractual SLA, recovery drill fallito, App/worker capacity divergence, nuova geography, cost curve o Platform standard.
 
-## Capitolo 15 e successivi
+## Capitolo 15 — Observability
+
+**Esigenza:** misurare gli SLO, diagnosticare failure e ridurre il tempo necessario all'on-call per arrivare a una prima decisione informata.
+
+**Tensione:** maggiore dettaglio investigativo vs ingestion/storage cost, cardinalità, data minimization, sampling e alert fatigue.
+
+**Decisione:** adottare un Observability Contract con instrumentation OpenTelemetry-compatible e Azure Monitor/Application Insights come backend ESI; metriche bounded per SLI/alert, structured events, trace sampling governato, business/audit evidence separata, correlation end-to-end e synthetic journey soltanto attraverso il private path.
+
+**Costo accettato:** non conserviamo ogni dettaglio di ogni execution indefinitamente; alcune investigazioni richiederanno correlazione tra metriche, trace, log, audit e business state.
+
+**Quality floor:** SLI realmente misurabili; failure critici investigabili; correlation; nessun secret/token nei normali signal; audit non campionato arbitrariamente; alert con owner/action; visibility del costo telemetry.
+
+**Guardrail:** `docs/observability-contract.md`, cardinality budget, retention classes, sampling policy, alert quality review, bounded telemetry port TypeScript, synthetic identity/data separati e verification test dei signal.
+
+**Evidence:** OpenTelemetry official docs/spec per signal, correlation e instrumentation model; Google SRE/SRE Workbook per golden signals, symptom-vs-cause e actionable alerting; Microsoft Learn per Azure Monitor/Application Insights e integrazione OpenTelemetry.
+
+**Trigger:** telemetry cost fuori budget, investigation insufficienti, signal cardinality growth, alert fatigue, nuovi public/mobile journey, più servizi/runtime, compliance retention requirement, bisogno di tail sampling o nuova shared collector capability Platform.
+
+## Capitolo 16 e successivi
 
 Da qui in avanti il compromise ledger viene aggiornato insieme al manoscritto.
 
