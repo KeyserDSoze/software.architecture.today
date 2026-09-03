@@ -6,13 +6,9 @@
 
 Costruire confidence su Order Operations senza trasformare la suite in una collezione di test ridondanti, flaky o troppo costosi da eseguire.
 
-Principio:
-
 > **Il numero di test non misura la confidenza. Ogni test deve poter dire quale errore importante dovrebbe riuscire a rilevare.**
 
 ## Quality goals
-
-Priorità:
 
 1. business correctness;
 2. tenant isolation e authorization;
@@ -26,34 +22,16 @@ Priorità:
 
 ## Critical journeys
 
-### CF-01 — Investigation
-
 ```text
-operator
-→ authenticated/private access
-→ problematic-order lookup
-→ operational view
-```
+CF-01 Investigation
+operator → authenticated/private access → operational view
 
-### CF-02 — Payment Escalation acceptance
+CF-02 Payment Escalation acceptance
+operator → authorization → local transaction
+         → PaymentEscalation + OutboxMessage → 202 Accepted
 
-```text
-operator
-→ POST Payment Escalation
-→ authorization
-→ local transaction
-  ├── PaymentEscalation
-  └── OutboxMessage
-→ 202 Accepted
-```
-
-### CF-03 — Payment Escalation delivery
-
-```text
-outbox
-→ publisher
-→ Service Bus
-→ Payments & Risk consumer
+CF-03 Payment Escalation delivery
+outbox → publisher → Service Bus → Payments & Risk
 ```
 
 ## Risk sources
@@ -97,14 +75,6 @@ docs/observability-contract.md
 
 ### Layer A — Fast deterministic
 
-Target:
-
-```text
-seconds / few minutes
-```
-
-Include:
-
 - TypeScript typecheck;
 - application/component test;
 - outbox publisher test;
@@ -114,8 +84,6 @@ Include:
 
 ### Layer B — Integration
 
-Include progressivamente:
-
 - PostgreSQL real integration;
 - migration chain;
 - API host integration;
@@ -123,8 +91,6 @@ Include progressivamente:
 - real serialization adapter.
 
 ### Layer C — Staging / cloud
-
-Include:
 
 - Entra authentication;
 - tenant/wrong-role negative test;
@@ -136,8 +102,6 @@ Include:
 
 ### Layer D — Scheduled / readiness
 
-Include:
-
 - performance/capacity;
 - selected mutation testing;
 - failure injection;
@@ -148,8 +112,6 @@ Include:
 
 ### Layer E — Production continuous verification
 
-Include:
-
 - SLI/SLO measurement;
 - private synthetic journey;
 - canary/health evidence;
@@ -158,14 +120,12 @@ Include:
 
 ## Current executable suite — Capitolo 16
 
-Prima tranche:
-
 ```text
 tests/payment-escalation.test.mjs
 tests/outbox-publisher.test.mjs
 ```
 
-Copre property codificabili senza servizi esterni:
+Copre:
 
 - Payment category eligibility;
 - tenant mismatch;
@@ -177,11 +137,37 @@ Copre property codificabili senza servizi esterni:
 - stable message identity;
 - telemetry acceptance/rejection classification.
 
-Il test runner corrente è il built-in `node:test` sul JavaScript generato da `tsc`.
+Test runner:
+
+```text
+TypeScript tsc build
+→ Node built-in node:test
+```
 
 Decisione intenzionale:
 
 > nessun framework aggiuntivo finché la suite non richiede capability che giustifichino un'altra dependency.
+
+### Verification evidence — Capitolo 16
+
+La suite è stata ricostruita dai source presenti nel repository ed eseguita localmente dopo la scrittura del capitolo.
+
+Risultato:
+
+```text
+tsc -p tsconfig.json
+→ PASS
+
+node --test tests/*.test.mjs
+→ 11 tests
+→ 11 pass
+→ 0 fail
+→ 0 skipped
+```
+
+Questa evidence verifica il **fast local layer** soltanto.
+
+Non dimostra PostgreSQL, Azure, Service Bus reale, contract downstream o recovery.
 
 ## Contract testing
 
@@ -208,7 +194,7 @@ Riferimento:
 
 ## Data / migration testing
 
-Pending implementation:
+Pending:
 
 ```text
 real PostgreSQL test environment
@@ -221,7 +207,7 @@ Scenari obbligatori:
 3. escalation + outbox same transaction;
 4. uniqueness/concurrency behavior;
 5. rollback on second write failure;
-6. representative query/index behavior quando performance target esiste.
+6. representative query/index behavior quando esiste un performance target.
 
 Un fake repository non viene considerato evidence delle semantics PostgreSQL.
 
@@ -243,13 +229,13 @@ telemetry redaction
 public access disabled in production baseline
 ```
 
-Riferimento metodologico:
+Riferimento:
 
 - [OWASP ASVS](https://owasp.org/www-project-application-security-verification-standard/)
 
 ## Reliability / recovery testing
 
-Required drills dal Reliability Contract:
+Required drills:
 
 1. Payments consumer outage;
 2. App instance loss;
@@ -271,7 +257,7 @@ follow-up actions
 
 ## Performance / capacity testing
 
-Non abbiamo ancora workload measurement reale.
+Non esiste ancora workload measurement reale.
 
 Quindi:
 
@@ -305,7 +291,7 @@ La compilazione del template non equivale a workload verification.
 
 ## Synthetic / production verification
 
-Production synthetic journey resta:
+Stato:
 
 ```text
 Designed
@@ -325,17 +311,10 @@ private runner
 Usiamo il minimo environment capace di dimostrare la property.
 
 ```text
-business rule
-→ process-local
-
-PostgreSQL semantics
-→ PostgreSQL reale
-
-Azure identity/network
-→ Azure non-production
-
-region/recovery
-→ environment capace del drill
+business rule           → process-local
+PostgreSQL semantics    → PostgreSQL reale
+Azure identity/network  → Azure non-production
+region/recovery         → environment capace del drill
 ```
 
 ## Test data
@@ -396,8 +375,6 @@ security verification
 ## Flakiness policy
 
 Un flaky test è un defect del quality system.
-
-Lifecycle:
 
 ```text
 detected
@@ -507,9 +484,8 @@ Non accettiamo come evidence:
 
 ```text
 Testing Strategy               = Designed + documented
-Node fast test suite           = Codified
-TypeScript production code     = previously typechecked
-Node test execution            = must be executed before marking Verified
+Node fast test suite           = Codified + Verified locally (11/11)
+TypeScript build               = Verified locally
 PostgreSQL integration suite   = Designed / Pending
 Payments contract suite        = Designed / Pending cross-team
 Azure security integration     = Designed / Pending
@@ -530,7 +506,7 @@ Open:
 - recovery drill pending;
 - production synthetic runner pending.
 
-Questi gap restano visibili e non vengono coperti dalla presenza dei primi unit/application test.
+Questi gap restano visibili e non vengono coperti dai test locali verdi.
 
 ## Review triggers
 
