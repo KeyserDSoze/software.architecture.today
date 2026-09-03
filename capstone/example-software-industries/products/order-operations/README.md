@@ -199,15 +199,7 @@ docs/reliability-contract.md
 
 La Failure Mode Map viene estesa dal solo messaging flow all'intero workload cloud.
 
-#### Critical flows
-
-```text
-CF-01 Investigation
-CF-02 Payment Escalation acceptance
-CF-03 Payment Escalation delivery
-```
-
-#### Target simulati ESI
+Target simulati ESI:
 
 ```text
 Core operator journey SLO
@@ -231,54 +223,46 @@ Region disaster RPO
 
 Questi numeri sono requisiti del caso fittizio, non benchmark industriali.
 
-#### Reliability topology corrente
+La reliability topology corrente usa App Service Premium v3 con almeno due istanze e zone redundancy, PostgreSQL zone-redundant HA direction, Service Bus Premium zone-redundant e single-region recovery.
+
+`infra/main.bicep` codifica App Service `capacity >= 2`, App Service `zoneRedundant = true` e Service Bus `zoneRedundant = true`.
+
+PostgreSQL HA/private resta `Designed`, non ancora codificato.
+
+### Capitolo 15 — Observability
+
+La reliability riceve finalmente una measurement architecture.
+
+Entra:
 
 ```text
-App Service Premium v3
-+ capacity >= 2
-+ zone redundancy
-
-PostgreSQL Flexible Server
-+ zone-redundant HA direction
-+ backup/PITR
-
-Service Bus Premium
-+ zone redundancy
-+ private endpoint
-
-single region
+docs/observability-contract.md
 ```
 
-`infra/main.bicep` è stato aggiornato per codificare:
+La direzione è:
 
 ```text
-App Service capacity >= 2
-App Service zoneRedundant = true
-Service Bus zoneRedundant = true
+OpenTelemetry-compatible instrumentation
+→ Azure Monitor / Application Insights / Log Analytics
+→ SLI queries, alerts e investigation views
 ```
 
-Il modulo PostgreSQL HA/private è ancora `Designed`, non ancora codificato.
+Il capitolo introduce un **cardinality budget**, separa metriche, trace, structured log, audit e business evidence e vieta per default business identifier unbounded come dimensioni metriche.
 
-#### Health model
+Il production synthetic journey non riapre l'ingress pubblico: dovrà usare un runner privato, una identity dedicata e dati synthetic controllati.
+
+Il codice cresce con una porta vendor-neutral:
 
 ```text
-Healthy
-Degraded
-Unhealthy
+src/observability/telemetry.ts
+src/observability/observed-request-payment-escalation.ts
 ```
 
-La health deriva dai critical flow, non dalla media della resource health Azure.
+Il decorator osserva `accepted`, `already-accepted` e rejection class senza introdurre direttamente SDK Application Insights/OpenTelemetry nel use case.
 
-#### Required recovery drills
+La porta/decorator è stata ricostruita localmente con i source file da cui dipende e typechecked con TypeScript strict senza errori.
 
-1. Payments consumer outage.
-2. App instance loss.
-3. PostgreSQL failover.
-4. PostgreSQL PITR/restore.
-5. Private DNS failure.
-6. Bad deployment rollback.
-
-Un restore non verrà dichiarato funzionante finché non viene realmente eseguito e misurato.
+L'adapter OpenTelemetry/Application Insights resta `Designed`, non ancora codificato o verificato a runtime.
 
 ## Struttura corrente
 
@@ -304,6 +288,7 @@ order-operations/
 │   ├── threat-model.md
 │   ├── security-control-matrix.md
 │   ├── reliability-contract.md
+│   ├── observability-contract.md
 │   ├── events/
 │   │   └── operational-case-payment-escalated-v1.md
 │   └── adr/
@@ -318,8 +303,11 @@ order-operations/
     │   └── request-payment-escalation.ts
     ├── contracts/
     │   └── operational-case-payment-escalated-v1.ts
-    └── integration/
-        └── outbox-publisher.ts
+    ├── integration/
+    │   └── outbox-publisher.ts
+    └── observability/
+        ├── telemetry.ts
+        └── observed-request-payment-escalation.ts
 ```
 
 `tests/` comparirà quando il percorso del libro introdurrà la testing strategy in modo sistematico.
@@ -340,6 +328,8 @@ Designed
 ### TypeScript
 
 Il nucleo introdotto nel Capitolo 11 è stato typechecked in modalità strict durante la sua introduzione.
+
+La porta/decorator observability del Capitolo 15 è stata typechecked in modalità strict tramite ricostruzione locale dei source letti dalla repository.
 
 ### Bicep
 
@@ -368,6 +358,21 @@ Il PostgreSQL zone-redundant HA è `Designed` ma il modulo IaC è ancora pending
 
 Nessun recovery drill è ancora `Verified`.
 
+### Observability
+
+```text
+Observability Contract: Designed
+bounded telemetry port: Codified + typechecked
+Payment Escalation observable decorator: Codified + typechecked
+OpenTelemetry/Application Insights adapter: Pending
+SLI queries: Designed
+alerts: Designed
+private synthetic journey: Designed
+runtime telemetry evidence: Not yet available
+```
+
+Non chiamiamo `Monitored` una proprietà finché non esiste evidence runtime effettivamente interrogabile.
+
 ## Documenti che devono restare sincronizzati
 
 Quando Order Operations cambia verifichiamo impatto su:
@@ -386,8 +391,8 @@ Quando Order Operations cambia verifichiamo impatto su:
 - Threat Model;
 - Security Control Matrix;
 - Reliability Contract;
+- Observability Contract;
 - infrastructure as code;
-- observability;
 - testing strategy;
 - deployment/rollback;
 - runbook.
