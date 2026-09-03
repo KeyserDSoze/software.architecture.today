@@ -71,19 +71,81 @@ Business analyst, product manager e domain expert restano specializzazioni prezi
 
 Il Capitolo 2 introduce anche il **Functional Scope Map** come artefatto vivo accanto al Problem & Outcome Brief.
 
-## Acme Orders: un capstone che diventa un progetto vero
+## Example Software Industries: il mondo fittizio del libro
 
-**Acme Orders** è il capstone simulato/composito del libro.
+Il libro usa una grande azienda enterprise interamente inventata:
+
+> **Example Software Industries S.p.A. — ESI**
+
+ESI è una software product company con più business unit:
+
+- Engineering Software;
+- Commerce & Operations;
+- Payments & Risk;
+- Marketing Technology;
+- Mobile Products;
+- Data & AI;
+- Platform Engineering & Cloud;
+- Corporate Systems.
+
+Azienda, persone, clienti, numeri e incidenti ESI sono simulati/compositi e servono a mostrare come le decisioni tecniche cambiano quando entrano in gioco esigenze aziendali differenti.
+
+La presentazione dello scenario è nel front matter:
+
+- `front_matter/001_example_software_industries.md`;
+- `front_matter/002_tradeoffs_not_shortcuts.md`.
+
+ESI non sostituisce i casi reali. I casi reali presenti nel libro vengono dichiarati come tali e collegati a fonti verificabili.
+
+## Un compromesso per capitolo
+
+Ogni capitolo deve mostrare almeno un compromesso significativo nello scenario ESI.
+
+Il compromesso deve rendere leggibili, quando pertinenti:
+
+```text
+esigenza
+→ tensione
+→ scelta
+→ costo accettato
+→ quality floor
+→ guardrail
+→ evidence
+→ trigger di revisione
+```
+
+Il punto non è insegnare a “fare meno qualità”.
+
+> **Un trade-off accetta un costo consapevole per ottenere un beneficio prioritario. Una scorciatoia nasconde un costo e spera che non presenti il conto.**
+
+Per questo distinguiamo sempre fra:
+
+- qualità che vogliamo ottimizzare;
+- qualità che accettiamo di rendere meno ottimali;
+- qualità non negoziabili;
+- guardrail che impediscono al compromesso di degradare oltre il limite accettato.
+
+La regola editoriale è:
+
+> **Compromesso sì. Qualità inconsapevolmente degradata no.**
+
+I compromessi già introdotti e quelli futuri sono tracciati in:
+
+- `capstone/example-software-industries/COMPROMISE_LEDGER.md`.
+
+## Order Operations: il capstone che diventa un progetto vero
+
+Il capstone principale del libro è **Order Operations**, un prodotto simulato della business unit Commerce & Operations di ESI.
 
 Non compare soltanto come esempio nei paragrafi. Ha una directory persistente:
 
 ```text
-capstone/acme-orders/
+capstone/example-software-industries/products/order-operations/
 ```
 
 I capitoli raccontano perché cambiano requisiti e decisioni; la directory del capstone conserva lo stato corrente del progetto.
 
-Man mano che il libro prosegue, Acme Orders accumulerà:
+Man mano che il libro prosegue, Order Operations accumulerà:
 
 - analisi funzionale;
 - requisiti;
@@ -164,6 +226,8 @@ Il libro applica al proprio processo lo stesso metodo che propone ai lettori:
 
 **Fit before fashion.**
 
+**Compromesso sì. Qualità inconsapevolmente degradata no.**
+
 ## Struttura editoriale
 
 La source of truth rimane il repository.
@@ -175,9 +239,15 @@ software.architecture.today/
 ├── BOOK_ARCHITECTURE.md
 ├── SOURCE_FACTUAL_AUDIT.md
 ├── book.yml
+├── front_matter/
+│   ├── 001_example_software_industries.md
+│   └── 002_tradeoffs_not_shortcuts.md
 ├── chapters/
 ├── capstone/
-│   └── acme-orders/
+│   └── example-software-industries/
+│       ├── COMPROMISE_LEDGER.md
+│       └── products/
+│           └── order-operations/
 ├── reference/
 ├── scripts/
 └── build/
@@ -187,12 +257,15 @@ I **Dieci comandamenti della Software Architecture nell'era dell'AI** saranno de
 
 ## Stato
 
-La prima parte del manoscritto è già in costruzione nel repository.
-
-Sono presenti i capitoli da **0 a 8**, dal modello mentale iniziale fino alla scelta tra monolite, modular monolith e microservizi.
+Sono presenti i capitoli da **0 a 9**, dal modello mentale iniziale fino ad API e contratti.
 
 Il prossimo capitolo è:
 
-**Capitolo 9 — API e contratti**
+**Capitolo 10 — I dati sono architettura**
 
-Da questo punto il workflow di scrittura integra sistematicamente ricerca su fonti autorevoli, aggiornamento del capstone e factual/source audit.
+Da questo punto il workflow di scrittura integra sistematicamente:
+
+- ricerca su fonti autorevoli;
+- compromesso ESI del capitolo;
+- aggiornamento del capstone Order Operations;
+- factual/source audit.
