@@ -1,15 +1,16 @@
-# Order Operations — API Contract v0
+# Order Operations — API Contract v1
 
-> Contratto iniziale del capstone simulato/composito di Example Software Industries S.p.A.
+> Contratto corrente del capstone simulato/composito di Example Software Industries S.p.A.
 
 ## Purpose
 
-Esporre alla Operations UI capability di lettura necessarie a:
+Esporre alla Operations UI capability necessarie a:
 
 1. individuare ordini problematici;
 2. aprire il dettaglio operativo;
 3. distinguere stato ordine, pagamento e spedizione;
-4. capire quale fonte possiede il dato autorevole.
+4. capire quale fonte possiede il dato autorevole;
+5. richiedere una escalation verso Payments & Risk senza eseguire direttamente side effect economici.
 
 Il contratto non espone accesso generico al database.
 
@@ -30,14 +31,9 @@ Se uno di questi consumer diventerà reale, il contratto dovrà essere rivalutat
 
 ## Interaction style
 
-HTTP request/response con rappresentazioni JSON.
+HTTP request/response con rappresentazioni JSON per l'interazione UI.
 
-Motivo:
-
-- journey interattivo;
-- read-oriented;
-- nessun requisito attuale di streaming bidirezionale;
-- nessun requisito attuale di temporal decoupling per queste letture.
+La nuova Payment Escalation viene accettata nel request path locale e consegnata in modo asincrono a Payments & Risk tramite transactional outbox e messaging capability.
 
 ## Base path
 
@@ -61,7 +57,7 @@ Il consumer deve operare nel contesto di un utente Operations autorizzato.
 
 La risposta non deve includere dati fuori dal perimetro autorizzato dell'utente.
 
-Quando il capstone introdurrà tenancy o merchant isolation, questa regola diventerà esplicita nel modello di authorization.
+La Payment Escalation richiede inoltre un ruolo/capability Operations autorizzato a escalare casi di pagamento; il modello definitivo di RBAC/ABAC verrà definito nel capitolo Security.
 
 ---
 
@@ -83,7 +79,7 @@ limit       optional
 category    optional
 ```
 
-`category` è un filtro funzionale candidato, non un accesso arbitrario a qualsiasi colonna.
+`category` è un filtro funzionale, non un accesso arbitrario a qualsiasi colonna.
 
 ### Response — 200
 
@@ -167,6 +163,150 @@ Riferimento metodologico:
 
 ---
 
+## Operation 3 — Request payment escalation
+
+```http
+POST /api/operational-cases/{caseId}/payment-escalations
+Idempotency-Key: <escalation-id>
+```
+
+### Intent
+
+Registrare una richiesta di attenzione verso Payments & Risk per un `OperationalCase` classificato come problema di pagamento.
+
+Questa operazione **non** esegue refund, capture, retry provider o modifica dello stato economico.
+
+### Idempotency
+
+L'header `Idempotency-Key` rappresenta la stessa intenzione business della Payment Escalation.
+
+Nel modello corrente coincide concettualmente con `escalationId`.
+
+Un retry della stessa intenzione deve riusare la stessa key.
+
+Un nuovo intento futuro deve usare una nuova key soltanto se la business rule consente una nuova escalation.
+
+Riferimento metodologico:
+
+- [Amazon Builders' Library — Making retries safe with idempotent APIs](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/)
+
+### Preconditions iniziali
+
+- `caseId` esiste ed è visibile all'operatore;
+- `problemCategory = Payment`;
+- l'operatore è autorizzato a escalare;
+- non esiste già una Payment Escalation attiva incompatibile con il nuovo intento;
+- la richiesta non modifica dati posseduti da Payments & Risk.
+
+### Request body
+
+```json
+{
+  "reasonCode": "PaymentInvestigationRequired"
+}
+```
+
+La v1 non accetta note libere nel message payload downstream.
+
+Se in futuro verranno introdotte note operative, retention, security e visibility dovranno essere definite separatamente.
+
+### Response — 202 Accepted
+
+```json
+{
+  "escalationId": "433856b8-79ac-4c16-b28d-7037679eca89",
+  "caseId": "a5d9cbcb-58b2-46f6-b7af-45078c16dcb8",
+  "status": "Requested",
+  "deliveryState": "Pending",
+  "requestedAt": "2026-09-03T13:00:00Z"
+}
+```
+
+### Perché `202`
+
+La richiesta è stata accettata localmente e persistita con la propria intenzione di pubblicazione.
+
+`202` **non** significa che Payments & Risk abbia già elaborato l'escalation.
+
+La delivery è asincrona.
+
+### Local transaction
+
+La stessa transazione PostgreSQL deve persistere:
+
+```text
+PaymentEscalation
++
+OutboxMessage
+```
+
+Se la transazione fallisce, nessuna delle due deve risultare committed.
+
+### Downstream event
+
+Contratto persistente:
+
+```text
+docs/events/operational-case-payment-escalated-v1.md
+```
+
+Event type:
+
+```text
+OperationalCasePaymentEscalated
+```
+
+Delivery semantics:
+
+```text
+at-least-once
+```
+
+Il consumer Payments & Risk deve usare `escalationId` per idempotency/deduplication.
+
+### Delivery state
+
+La risposta separa:
+
+```text
+status = Requested
+```
+
+da:
+
+```text
+deliveryState = Pending | Delivered | Delayed | DeadLettered
+```
+
+Il primo è stato funzionale locale.
+
+Il secondo descrive la consegna dell'integrazione.
+
+### Retry del client
+
+Se il client perde la risposta o va in timeout, può ripetere la richiesta **con la stessa `Idempotency-Key`**.
+
+Il server non deve creare una seconda escalation per lo stesso intento.
+
+### Error cases candidati
+
+```text
+400 invalid reason/input
+401 unauthenticated
+403 unauthorized / tenant not visible
+404 operational case not found or not visible
+409 incompatible existing escalation / business state conflict
+422 case not eligible for payment escalation
+429 rate limited — quando la policy reale verrà definita
+503 local persistence unavailable
+```
+
+Il broker/downstream indisponibile **dopo** che l'intenzione è stata durabilmente registrata non deve trasformare retroattivamente l'operazione locale in un `503`.
+
+La delivery rimane `Pending/Delayed` e segue la Failure Mode Map.
+
+---
+
 ## Error model
 
 Le API HTTP useranno, quando serve dettaglio applicativo, `application/problem+json` coerente con RFC 9457.
@@ -180,40 +320,46 @@ Classi iniziali:
 ```text
 401 unauthenticated
 403 unauthorized
-404 order not found / not visible
+404 resource not found / not visible
 400 invalid request
+409 state/idempotency conflict
+422 semantically ineligible operation
 429 rate limited — quando un rate policy reale verrà definita
-503 required dependency unavailable — se non è possibile produrre una vista affidabile
+503 required local dependency unavailable
 ```
 
 Esempio:
 
 ```json
 {
-  "type": "https://esi.example/problems/order-not-visible",
-  "title": "Order is not visible",
+  "type": "https://esi.example/problems/case-not-visible",
+  "title": "Operational case is not visible",
   "status": 403,
-  "detail": "The current operator cannot access this order."
+  "detail": "The current operator cannot access this operational case."
 }
 ```
 
-Il dominio `.example` è usato qui come placeholder documentale, non rappresenta un endpoint reale.
+Il dominio `.example` è usato come placeholder documentale, non rappresenta un endpoint reale.
 
 Il problem detail non deve contenere stack trace o dettagli sensibili dell'infrastruttura.
 
 ## Freshness
 
-La prima implementazione usa dati operativi live secondo ADR 0001.
+Le read API usano ancora dati operativi live secondo ADR 0001.
 
-Non esiste ancora un read model asincrono.
+La Payment Escalation introduce eventual consistency **solo per la delivery verso Payments & Risk**.
 
-Questo contratto non promette una freshness numerica finché non viene definita e misurata una requirement reale.
+Non esiste ancora un read model asincrono di Order/Payment/Shipment status.
 
 ## Timeout expectations
 
-Da definire quando esisteranno ambiente e workload misurabili.
+I timeout concreti verranno definiti quando esisteranno runtime e workload misurabili.
 
-L'API non deve attendere indefinitamente una dipendenza.
+Regole già definite:
+
+- nessuna chiamata remota attende indefinitamente;
+- il broker/downstream non appartiene al critical request path del command di escalation dopo il commit locale;
+- retry e business delivery budget sono separati.
 
 ## Pagination
 
@@ -242,50 +388,61 @@ Considerare breaking, salvo prova contraria:
 - introduzione di required input;
 - modifica osservabile di authorization;
 - cambiamento sostanziale di freshness/consistency;
-- modifica del comportamento di pagination.
+- modifica del comportamento di pagination;
+- modifica della semantica di idempotency;
+- trasformazione di `202 accepted locally` in promessa di processing downstream sincrono.
 
 Preferire additive change quando semanticamente compatibili.
 
 ## Compromesso corrente
 
-**Esigenza:** fornire alla UI un contratto stabile senza bloccare il prodotto.
+**Esigenza:** registrare rapidamente una escalation e consegnarla affidabilmente a Payments & Risk.
 
-**Tensione:** velocità di esposizione di nuove azioni vs semantica, authorization, audit e idempotenza.
+**Tensione:** latency/availability del request path vs consistency immediata con il downstream.
 
-**Decisione:** iniziare con capability read-oriented.
+**Decisione:** local transaction + transactional outbox + delivery asincrona at-least-once.
 
-**Costo accettato:** alcune azioni operative restano manuali o fuori dal prodotto.
+**Costo accettato:** eventual consistency, stato `Pending/Delayed`, publisher, retry, DLQ e reconciliation.
 
-**Quality floor:** nessun side effect economico o customer-facing viene esposto senza semantica e ownership definite.
+**Quality floor:** nessuna perdita silenziosa dopo local commit; nessun side effect downstream duplicato per lo stesso `escalationId`; ownership economica resta a Payments & Risk.
 
-**Guardrail:** API Contract, compatibility policy e review con i domini coinvolti.
+**Guardrail:** Idempotency-Key, outbox, event contract, Failure Mode Map, DLQ ownership e reconciliation.
 
 ## Open decisions
 
-- definizione definitiva delle problem category;
-- sorting della lista;
+- sorting della lista ordini problematici;
 - default `limit` e massimo;
-- correlation/trace header convention;
+- correlation/trace header convention definitiva;
 - modello definitivo di identity e authorization;
 - eventuale ETag/conditional request;
-- eventuali command API per remediation;
-- event/webhook contract futuri.
+- acknowledgement applicativo da Payments & Risk;
+- lifecycle completo di Payment Escalation (`Accepted`, `Rejected`, `Closed`?);
+- business delivery target;
+- broker/cloud product;
+- retention outbox e DLQ;
+- eventuali altri command API di remediation.
 
 ## Decisione importante
 
-In questa versione **non esponiamo ancora comandi di refund, retry payment o shipment remediation**.
+Il Capitolo 11 introduce **Payment Escalation**, non remediation economica.
 
-La ragione non è tecnica.
+Restano fuori:
 
-L'analisi funzionale non ha ancora definito abbastanza bene:
+- refund;
+- retry payment;
+- force payment transition;
+- shipment remediation.
 
-- attori autorizzati;
+Queste azioni richiedono ancora analisi funzionale specifica su:
+
+- ownership;
 - precondizioni;
-- stati validi;
+- permission;
 - side effect;
-- idempotency unit;
+- idempotency economica;
 - audit;
-- escalation;
-- responsabilità fra Commerce & Operations e Payments & Risk.
+- compensation;
+- irreversible steps;
+- human approval.
 
-Il contratto non deve inventare semantica che il prodotto non ha ancora deciso.
+Il contratto continua a non inventare semantica che il prodotto non ha ancora deciso.
