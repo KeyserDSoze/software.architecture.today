@@ -10,6 +10,8 @@ Gli operatori impiegano troppo tempo a individuare ordini che richiedono attenzi
 
 Quando il problema richiede l'intervento di Payments & Risk, la richiesta di escalation deve essere registrabile rapidamente e consegnata in modo affidabile senza rendere la disponibilità runtime del downstream parte del critical request path.
 
+Il prodotto tratta inoltre dati operativi e capability payment-adjacent che richiedono accesso autenticato, tenant isolation e privilegi strettamente limitati.
+
 ## Outcome iniziale
 
 Ridurre il tempo necessario per:
@@ -17,7 +19,8 @@ Ridurre il tempo necessario per:
 1. individuare un ordine problematico;
 2. comprenderne la causa principale;
 3. decidere se intervenire, attendere o escalare;
-4. rendere visibile quando una escalation payment è stata richiesta ma non ancora consegnata al dominio responsabile.
+4. rendere visibile quando una escalation payment è stata richiesta ma non ancora consegnata al dominio responsabile;
+5. farlo senza ampliare inutilmente il blast radius di utenti, runtime e pipeline privilegiate.
 
 ## Contesto ESI
 
@@ -26,9 +29,10 @@ Order Operations appartiene a Commerce & Operations ma dipende da capability e v
 In particolare:
 
 - Payments & Risk possiede o governa semantiche economiche rilevanti;
-- Platform Engineering fornisce capability condivise, inclusa la messaging capability, senza possedere il dominio;
-- Security e Legal/Compliance possono introdurre quality floor non negoziabili;
-- Finance/FinOps può influenzare il costo accettabile della soluzione.
+- Platform Engineering fornisce landing zone, networking, identity foundation e messaging capability senza possedere il dominio;
+- Security introduce threat-model/security-baseline requirements condivisi;
+- Legal/Compliance può introdurre quality floor ulteriori;
+- Finance/FinOps influenza il costo accettabile della soluzione, incluso il costo dei security control cloud.
 
 ## In scope
 
@@ -42,7 +46,13 @@ In particolare:
 - richiesta di Payment Escalation per casi eligibili;
 - delivery asincrona della escalation a Payments & Risk;
 - visibilità dello stato di delivery;
-- retry/DLQ/reconciliation come parte della reliability del flusso.
+- retry/DLQ/reconciliation come parte della reliability del flusso;
+- threat modeling del workload;
+- identity e authorization boundary;
+- private production ingress/data-plane direction;
+- gestione dei secret inevitabili;
+- audit delle operazioni sensibili;
+- security baseline codificata progressivamente in IaC.
 
 ## Out of scope corrente
 
@@ -56,7 +66,10 @@ In particolare:
 - microservizi per ogni capability;
 - AI decisionale sul trattamento degli ordini;
 - saga/orchestrator general-purpose per una singola escalation;
-- read model asincrono di Order/Payment/Shipment status.
+- read model asincrono di Order/Payment/Shipment status;
+- Internet-facing public API;
+- WAF dedicato senza public ingress;
+- security operations platform dedicata al singolo workload.
 
 L'out of scope non è una promessa eterna. È lo stato attuale del contesto.
 
@@ -127,11 +140,106 @@ Il dettaglio dell'inbox/dedup storage downstream appartiene al dominio Payments 
 
 Una escalation che supera il business delivery threshold o entra nel dead-letter path deve diventare visibile secondo la recovery policy e non restare un failure silenzioso.
 
+## Security requirements
+
+### SR-001 — Authenticated production access
+
+L'accesso umano alla produzione richiede una identity ESI autenticata tramite Microsoft Entra ID.
+
+La rete privata non sostituisce authentication.
+
+### SR-002 — Server-side tenant authorization
+
+Un operatore non può accedere a `OperationalCase` appartenenti a tenant non autorizzati anche conoscendone l'identifier.
+
+Il server deve ricostruire la decisione di accesso da security context e ownership autorevole; non deve fidarsi di un `tenantId` scelto dal client.
+
+### SR-003 — Explicit Payment Escalation permission
+
+La capacità di creare una Payment Escalation richiede una capability/ruolo esplicito oltre alla semplice autenticazione.
+
+Se authorization fallisce, nessun `PaymentEscalation` o `OutboxMessage` deve essere committed.
+
+### SR-004 — Runtime least privilege
+
+La runtime managed identity può accedere soltanto alle risorse necessarie al workload.
+
+Non deve possedere privilegi generici di resource administration, RBAC assignment o modifica della network topology.
+
+### SR-005 — Runtime/deployment identity separation
+
+L'identità usata dal software in esecuzione e l'identità usata per distribuire/modificare infrastruttura devono essere distinte.
+
+La pipeline futura deve preferire federation/workload identity a credenziali statiche lunghe vita.
+
+### SR-006 — Secret management
+
+I production secret non devono essere committed nel repository.
+
+I secret inevitabili devono avere owner, scope, rotation e revocation path e devono essere conservati in Key Vault o capability equivalente approvata.
+
+Quando una managed/workload identity elimina il bisogno del secret, deve essere preferita.
+
+### SR-007 — Private production reachability
+
+Order Operations è un workload interno.
+
+La production architecture corrente richiede:
+
+- App Service private ingress;
+- public network access disabilitato per l'applicazione;
+- private data-plane direction per PostgreSQL, Service Bus e Key Vault quando supportata dalla configurazione scelta;
+- VNet integration outbound.
+
+Network reachability non conferisce authorization.
+
+### SR-008 — Sensitive operation auditability
+
+La creazione di una Payment Escalation deve produrre evidence sufficiente a ricostruire almeno:
+
+- actor;
+- case/escalation identifiers;
+- timestamp;
+- decision outcome;
+- correlation necessaria all'incident investigation.
+
+Secret e payload non necessari non devono essere inclusi nell'audit.
+
+### SR-009 — Logging data minimization
+
+Application telemetry non deve contenere access token, Authorization header, secret o credential.
+
+I field sensibili devono essere gestiti con una policy esplicita di minimization/redaction.
+
+### SR-010 — Security control traceability
+
+I security control significativi devono essere collegati a minaccia, owner ed evidence tramite Threat Model e Security Control Matrix.
+
+La presenza di documentazione non equivale a verifica del controllo.
+
+### SR-011 — Secure deployment baseline
+
+L'infrastruttura security-sensitive deve essere versionata in IaC quando praticabile.
+
+La baseline deve almeno rendere visibili:
+
+- network exposure;
+- identity;
+- RBAC;
+- basic/local authentication policy;
+- secret-store posture;
+- security-sensitive service tier/capability.
+
+### SR-012 — Revocation and containment
+
+Il sistema operativo ESI deve poter revocare o contenere identity/credential compromesse senza richiedere una modifica al business domain model.
+
 ## Acceptance evidence corrente
+
+### Functional / distributed behavior
 
 - test sui criteri di classificazione degli ordini problematici;
 - test sui principali state combination;
-- test di autorizzazione;
 - test di integrazione con le fonti dati necessarie;
 - verifica che un ordine mostrato possa essere ricondotto ai dati autorevoli;
 - scenario end-to-end del critical user journey;
@@ -143,6 +251,23 @@ Una escalation che supera il business delivery threshold o entra nel dead-letter
 - test del failure path `Delayed/DeadLettered`;
 - evidenza di reconciliation per escalation non consegnate.
 
+### Security evidence
+
+Da rendere executable/verificabile:
+
+- unauthenticated production request denied;
+- wrong-role Payment Escalation denied without persistence;
+- cross-tenant case access denied;
+- runtime identity cannot assign RBAC/change infrastructure;
+- Service Bus publisher has send-only data permission;
+- public production App Service access disabled;
+- Key Vault/Service Bus public access disabled nella baseline scelta;
+- secret scan in repository/CI;
+- telemetry sample contains no token/secret;
+- sensitive operation audit event produced;
+- Bicep build/lint/policy validation;
+- deployment in non-production con connectivity/RBAC negative tests.
+
 ## Assunzioni correnti
 
 - il prodotto è inizialmente uno strumento interno;
@@ -150,16 +275,20 @@ Una escalation che supera il business delivery threshold o entra nel dead-letter
 - le read capability principali restano live e non richiedono ancora un read model separato;
 - il team può operare un modular monolith con database relazionale;
 - non esiste ancora un requisito organizzativo che richieda deploy indipendenti per Orders, Payments e Shipping;
-- Platform Engineering può fornire una capability di messaging durabile, ma il prodotto cloud concreto verrà scelto nel Capitolo 12;
+- ESI usa Azure e una application landing zone per questo workload;
+- Platform Engineering fornisce subnet/private DNS/network foundation richieste dal workload;
+- Azure Service Bus Queue è il broker corrente per Payment Escalation;
 - il volume iniziale delle escalation è compatibile con un polling publisher della outbox;
-- Payments & Risk può implementare idempotency sul proprio consumer.
+- Payments & Risk può implementare idempotency sul proprio consumer;
+- Service Bus Premium è accettato per ora come costo della private endpoint decision;
+- l'ingress produzione rimane interno/private.
 
 ## Decisioni aperte
 
 - definizione definitiva di “problematic order”;
 - semantica delle future azioni correttive;
 - lifecycle completo di `OperationalCase`;
-- audit completo delle azioni;
+- audit retention/integrity definitiva;
 - priorità/severity;
 - eventuale aggiornamento push vs refresh/polling;
 - comportamento in presenza di fonti esterne indisponibili;
@@ -171,8 +300,13 @@ Una escalation che supera il business delivery threshold o entra nel dead-letter
 - retry count/backoff concreti;
 - DLQ retention/redrive policy;
 - outbox retention/cleanup;
-- broker/cloud product;
-- requisiti futuri introdotti da Security, Compliance o clienti enterprise.
+- RTO/RPO;
+- PostgreSQL HA/private networking module e authentication details;
+- log/audit retention;
+- quantitative abuse/rate limits;
+- CI/CD federated deployment identity completa;
+- verifica del costo Service Bus Premium rispetto al rischio;
+- requisiti futuri introdotti da Compliance o clienti enterprise.
 
 ## Traceability
 
@@ -187,6 +321,8 @@ Questo snapshot deriva dal percorso narrativo dei capitoli:
 - Capitolo 8 — modular monolith e topology decision;
 - Capitolo 9 — API contract;
 - Capitolo 10 — data ownership e schema iniziale;
-- Capitolo 11 — partial failure, idempotency, transactional outbox, async delivery e Failure Mode Map.
+- Capitolo 11 — partial failure, idempotency, transactional outbox, async delivery e Failure Mode Map;
+- Capitolo 12 — Azure cloud topology e landing-zone responsibilities;
+- Capitolo 13 — Threat Model, identity/authorization, private security topology, secure SDLC e Security Control Matrix.
 
 Quando un capitolo cambia un requisito, questo documento deve essere aggiornato insieme al codice e agli altri artefatti.
