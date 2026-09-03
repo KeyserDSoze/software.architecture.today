@@ -26,56 +26,28 @@ Non useremo il compromesso come giustificazione per:
 
 ## Quality floor
 
-Ogni compromesso deve distinguere fra:
+Ogni compromesso distingue:
 
-### Qualità ottimizzate
+```text
+Qualità ottimizzate
+Qualità sacrificate consapevolmente
+Qualità non negoziabili
+Guardrail
+Evidence
+Trigger di revisione
+```
 
-Le proprietà che vogliamo migliorare in quella decisione.
-
-### Qualità sacrificate consapevolmente
-
-Le proprietà che accettiamo di rendere meno ottimali entro un limite esplicito.
-
-### Qualità non negoziabili
-
-Le proprietà che non possono scendere sotto il livello richiesto dal contesto.
-
-### Guardrail
-
-I controlli che impediscono al compromesso di degradare oltre il limite accettato.
-
-### Trigger di revisione
-
-Le condizioni che ci dicono che il compromesso non ha più un fit sufficiente.
-
-## Template del compromesso di capitolo
-
-Ogni capitolo che usa ESI dovrebbe poter rispondere a queste domande:
+## Template del compromesso
 
 ```text
 Esigenza
-Chi sta chiedendo il cambiamento e perché?
-
 Tensione
-Quali obiettivi legittimi sono in conflitto?
-
 Decisione
-Che cosa scegliamo adesso?
-
 Costo accettato
-Che cosa peggiora o rimane meno ottimale?
-
 Quality floor
-Che cosa non siamo disposti a compromettere?
-
 Guardrail
-Come impediamo al costo accettato di diventare un problema incontrollato?
-
 Evidence
-Quali fonti, misure o test sostengono la decisione?
-
 Trigger
-Quando dovremo rivalutarla?
 ```
 
 ## Capitolo 0 — Al timone
@@ -86,7 +58,7 @@ Quando dovremo rivalutarla?
 
 **Decisione:** delegare execution mantenendo human judgment, verification e stop condition.
 
-**Costo accettato:** alcune attività richiedono checkpoint e review invece di massima autonomia.
+**Costo accettato:** checkpoint e review riducono la massima autonomia possibile.
 
 **Quality floor:** responsabilità, sicurezza e verificabilità non vengono delegate.
 
@@ -100,21 +72,21 @@ Quando dovremo rivalutarla?
 
 **Decisione:** usare l'AI per accelerare l'execution soltanto dopo avere abbastanza contesto.
 
-**Costo accettato:** spendere tempo iniziale in foundation invece di generare subito codice.
+**Costo accettato:** più lavoro iniziale di foundation.
 
-**Quality floor:** outcome, vincoli e acceptance evidence devono restare comprensibili.
+**Quality floor:** outcome, vincoli e acceptance evidence restano comprensibili.
 
 **Guardrail:** context engineering e verifica delle assunzioni.
 
 ## Capitolo 2 — Prima del codice
 
-**Esigenza:** consegnare una prima capability di Order Operations in tempi ragionevoli.
+**Esigenza:** consegnare una prima capability di Order Operations senza analizzare indefinitamente.
 
 **Tensione:** completezza dell'analisi vs velocità di apprendimento.
 
-**Decisione:** definire abbastanza problem framing e analisi funzionale per la prossima decisione, senza progettare tutto il futuro.
+**Decisione:** definire abbastanza problem framing e analisi funzionale per la prossima decisione, lasciando esplicite le domande aperte.
 
-**Costo accettato:** alcune domande rimangono esplicitamente aperte.
+**Costo accettato:** alcune decisioni vengono rimandate.
 
 **Quality floor:** business rule critiche e semantica delle operazioni pericolose non vengono inventate dall'implementazione.
 
@@ -130,7 +102,7 @@ Quando dovremo rivalutarla?
 
 **Costo accettato:** il journey dipende da più fonti autorevoli.
 
-**Quality floor:** significato e ownership dei dati devono restare distinguibili.
+**Quality floor:** significato, freshness e ownership devono restare distinguibili.
 
 **Guardrail:** Architecture Context Map e failure-domain analysis.
 
@@ -150,15 +122,15 @@ Quando dovremo rivalutarla?
 
 ## Capitolo 5 — Dalle feature ai confini
 
-**Esigenza:** evolvere Orders, Payments e Shipping senza trasformare il codice in un blocco unico.
+**Esigenza:** evolvere Orders, Payments e Shipping senza un blocco unico.
 
 **Tensione:** velocità locale vs chiarezza delle responsabilità.
 
-**Decisione:** confini logici e information hiding anche nello stesso deployable.
+**Decisione:** confini logici e information hiding anche nello stesso deployable/database envelope.
 
-**Costo accettato:** alcuni adapter e contratti interni aggiungono struttura.
+**Costo accettato:** adapter e contratti interni aggiungono struttura.
 
-**Quality floor:** le business rule non vengono duplicate in più moduli senza ownership.
+**Quality floor:** le business rule non vengono duplicate senza ownership.
 
 **Guardrail:** Component Responsibility Map e dependency direction.
 
@@ -170,7 +142,7 @@ Quando dovremo rivalutarla?
 
 **Decisione:** niente Redis e niente active-active multi-region senza requisito che ne paghi il costo.
 
-**Costo accettato:** rinunciamo a ottimizzazioni e ridondanze che potrebbero migliorare alcuni scenari.
+**Costo accettato:** rinunciamo a ottimizzazioni e ridondanze possibili.
 
 **Quality floor:** correctness, access control e operability restano prioritarie.
 
@@ -180,13 +152,13 @@ Quando dovremo rivalutarla?
 
 **Esigenza:** gestire variazioni e failure senza codice fragile.
 
-**Tensione:** robustezza e riuso vs accidental complexity.
+**Tensione:** robustezza/riuso vs accidental complexity.
 
 **Decisione:** adottare soltanto pattern che risolvono forze già presenti.
 
-**Costo accettato:** rinunciamo a generalizzazioni che potrebbero servire in futuro.
+**Costo accettato:** rinunciamo a generalizzazioni speculative.
 
-**Quality floor:** il sistema deve restare verificabile ed evolvibile.
+**Quality floor:** il sistema resta verificabile ed evolvibile.
 
 **Guardrail:** Pattern Justification Test e test della rimozione.
 
@@ -198,7 +170,7 @@ Quando dovremo rivalutarla?
 
 **Decisione:** Order Operations resta per ora un modular monolith.
 
-**Costo accettato:** deploy e failure domain non sono completamente indipendenti per ogni modulo.
+**Costo accettato:** deploy e failure domain non sono indipendenti per ogni modulo.
 
 **Quality floor:** modularità, ownership e testabilità non vengono sacrificate.
 
@@ -210,129 +182,145 @@ Quando dovremo rivalutarla?
 
 **Tensione:** velocità di esposizione di nuove azioni vs semantica, authorization, audit e idempotenza.
 
-**Decisione:** esporre inizialmente capability read-oriented; rinviare refund e remediation command.
+**Decisione:** esporre inizialmente capability read-oriented; rinviare refund/remediation command.
 
 **Costo accettato:** il prodotto non automatizza ancora alcune azioni operative.
 
-**Quality floor:** nessun comando con side effect economici o customer-facing viene inventato senza semantica definita.
+**Quality floor:** nessun comando con side effect economico viene inventato senza semantica definita.
 
 **Guardrail:** API Contract, compatibility rules e Problem Details.
 
 ## Capitolo 10 — I dati sono architettura
 
-**Esigenza:** offrire a Operations una vista unica e interrogabile senza costringere l'operatore a comprendere la topologia dei domini sorgente.
+**Esigenza:** offrire a Operations una vista unica senza trasferire accidentalmente l'autorità sui business fact.
 
-**Tensione:** semplicità e performance della vista vs ownership semantica di Orders/Payments/Shipping vs costo di sincronizzazione e nuovi datastore.
+**Tensione:** semplicità/performance della vista vs ownership di Orders/Payments/Shipping vs costo di sincronizzazione.
 
-**Decisione:** PostgreSQL resta per ora il datastore operativo principale; Order Operations persiste soltanto dati che possiede davvero (`OperationalCase`, classificazione e assignment) e continua a leggere i fatti autorevoli attraverso boundary espliciti. Nessuna projection asincrona, cache Redis o search store viene introdotta senza trigger reale.
+**Decisione:** PostgreSQL resta datastore operativo; Order Operations persiste soltanto dati che possiede davvero. Nessuna projection asincrona, Redis o search store senza trigger reale.
 
-**Costo accettato:** il journey mantiene maggiore coupling runtime verso le fonti autorevoli e non ottiene ancora pieno isolamento del workload di lettura.
+**Costo accettato:** maggiore coupling runtime verso le fonti autorevoli.
 
-**Quality floor:** una sola autorità semantica per business fact, tenant isolation, correctness economica, assignment concorrente deterministico, tracciabilità authoritative/derived e migration governate.
+**Quality floor:** una sola autorità semantica per business fact, tenant isolation, correctness economica e migration governate.
 
-**Guardrail:** Data Ownership Map, schema ownership, index legati ad access pattern misurabili, validation/reconciliation per future copie, source timestamp per future projection e trigger di revisione.
+**Guardrail:** Data Ownership Map, schema ownership, index legati ad access pattern e reconciliation per future copie.
 
-**Evidence:** Microsoft Learn per data-store selection e data models; PostgreSQL per MVCC, index, partitioning e replication; Redis per cache-aside; Stripe Engineering e GitHub per migration online documentate.
+**Evidence:** Microsoft Learn, PostgreSQL, Redis, Stripe Engineering e GitHub.
 
-**Trigger:** impatto del workload operativo sul transazionale, target latency non raggiunti, nuova availability indipendente, più consumer della stessa vista, nuovi search access pattern, crescita di volume/retention o freshness compatibile con una projection asincrona.
+**Trigger:** workload operativo impatta il transazionale, latency non raggiunta, availability indipendente, nuovi consumer/search pattern o volume/retention cambiano.
 
 ## Capitolo 11 — Sistemi distribuiti
 
-**Esigenza:** un operatore deve poter richiedere rapidamente una Payment Escalation e Payments & Risk deve riceverla in modo affidabile anche quando il downstream è temporaneamente degradato.
+**Esigenza:** richiedere Payment Escalation senza dipendere dalla disponibilità runtime di Payments & Risk.
 
-**Tensione:** latency/availability del critical request path vs consistenza immediata con Payments & Risk vs semplicità di una chiamata sincrona.
+**Tensione:** latency/availability del request path vs consistenza immediata vs semplicità sincrona.
 
-**Decisione:** `PaymentEscalation` e `OutboxMessage` vengono salvati nella stessa transazione PostgreSQL; un publisher asincrono broker-agnostico consegna `OperationalCasePaymentEscalated v1` con semantica at-least-once; Payments & Risk deve rendere idempotente la stessa `EscalationId`.
+**Decisione:** `PaymentEscalation + OutboxMessage` nella stessa transaction; publisher asincrono broker-agnostico; delivery at-least-once; consumer idempotente sulla stessa `EscalationId`.
 
-**Costo accettato:** eventual consistency, stato di delivery separato, outbox, publisher, retry/backoff/jitter, DLQ, backlog monitoring e reconciliation.
+**Costo accettato:** eventual consistency, delivery state, retry/backoff/jitter, DLQ, backlog e reconciliation.
 
-**Quality floor:** nessuna perdita silenziosa dopo il local commit; nessun duplicate business effect per la stessa escalation; tenant isolation; payload minimizzato; correlation; Payments & Risk mantiene ownership economica.
+**Quality floor:** nessuna perdita silenziosa dopo commit; nessun duplicate business effect; tenant isolation e Payments ownership economica.
 
-**Guardrail:** stable `EscalationId` e `messageId`, transactional outbox, bounded retry, Idempotent Consumer, Failure Mode Map, DLQ ownership, controlled redrive e reconciliation.
+**Guardrail:** stable IDs, transactional outbox, bounded retry, Failure Mode Map, controlled redrive e reconciliation.
 
-**Evidence:** Microsoft Azure Architecture Center per Retry, Idempotent Consumer, Transactional Outbox, Saga/Choreography e Compensating Transaction; AWS Builders' Library/Well-Architected per idempotent APIs, timeout, retry budget, backoff e jitter; Uber Engineering per reprocessing/DLQ ed exactly-once delimitato nei sistemi reali.
+**Evidence:** Microsoft Learn, AWS Builders' Library/Well-Architected e Uber Engineering.
 
-**Trigger:** polling publisher insufficiente, delivery lag oltre il business target, DLQ frequente, bisogno di replay/stream semantics, ordering più forte, più producer/consumer, workflow economici multi-step o recovery requirement più severi.
+**Trigger:** polling insufficiente, delivery lag, DLQ frequente, ordering/stream/replay o workflow multi-step più complessi.
 
 ## Capitolo 12 — Cloud Architecture
 
-**Esigenza:** portare Order Operations su una piattaforma cloud enterprise governata senza trasformare il workload in un'infrastruttura più complessa del problema che deve risolvere.
+**Esigenza:** portare Order Operations su cloud enterprise senza costruire una piattaforma più complessa del problema.
 
-**Tensione:** standardizzazione Platform vs autonomia del workload team vs security baseline vs semplicità operativa vs cost vs future optionality.
+**Tensione:** standardizzazione Platform vs autonomia workload vs security vs cost vs optionality.
 
-**Decisione:** ESI usa una Azure application landing zone; Order Operations adotta App Service + continuous WebJob, Azure Database for PostgreSQL, Service Bus Queue, Managed Identity, Key Vault, Azure Monitor/Application Insights, Bicep come IaC direction e una singola Azure region nella prima iterazione.
+**Decisione:** Azure application landing zone; App Service + continuous WebJob, PostgreSQL managed, Service Bus Queue, Managed Identity, Key Vault, Monitor/Application Insights, Bicep e single region.
 
-**Costo accettato:** maggiore coupling operativo ad Azure, scaling non indipendente del publisher, minore configurabilità rispetto ad AKS e assenza di regional failover immediato.
+**Costo accettato:** Azure coupling, scaling non indipendente del publisher e nessun regional failover immediato.
 
-**Quality floor:** durable state, idempotency, identity/least privilege, secret governance, backup/recovery, observability, infrastructure intent versionato e ownership chiara fra Platform, workload team e Payments & Risk.
+**Quality floor:** durable state, identity/least privilege, backup/recovery, observability, IaC e ownership chiara.
 
-**Guardrail:** Cloud Deployment Map, ADR-0002, Failure Mode Map, landing-zone policy, managed identity, cost review, backup/restore exercise e IaC review.
+**Guardrail:** Cloud Deployment Map, ADR, landing-zone policy, cost/recovery/IaC review.
 
-**Evidence:** Microsoft Learn per Azure application architecture, landing zones, team topology, App Service WebJobs, container-service trade-off, PostgreSQL HA/backup, Service Bus, Managed Identity e Bicep; AWS Well-Architected e Builders' Library per trade-off/capacity; dacadoo case study per evoluzione VM→Kubernetes→serverless guidata dal contesto.
+**Evidence:** Microsoft Learn, AWS Well-Architected/Builders' Library e dacadoo case study.
 
-**Trigger:** scale profile divergenti fra API e worker, più background workload, container portability reale, isolation/security requirement più forte, RTO/RPO più severi, consumer topology diversa, cost curve non più adatta o nuovi standard Platform.
+**Trigger:** scale profile diversi, isolamento più forte, RTO/RPO più severi, cost curve o Platform standard cambiano.
 
 ## Capitolo 13 — Security by Design
 
-**Esigenza:** ridurre attack surface, privilege e blast radius prima che Order Operations venga considerato candidato alla produzione.
+**Esigenza:** ridurre attack surface, privilege e blast radius.
 
-**Tensione:** private connectivity, identity separation e least privilege vs semplicità di sviluppo/debugging, dipendenza dalla landing zone e costo cloud.
+**Tensione:** private connectivity/least privilege vs semplicità, dipendenza Platform e costo.
 
-**Decisione:** production private App Service ingress; Entra authentication + server-side authorization; managed runtime identity; runtime/deployment identity separation; private data-plane direction per PostgreSQL, Service Bus e Key Vault; secret minimization/Key Vault; threat/control traceability; prima security baseline codificata in Bicep. Nessun WAF finché non esiste un Internet-facing journey.
+**Decisione:** private production ingress, Entra + server-side authorization, managed identity, runtime/deployment separation, private data-plane direction e baseline security in Bicep. Nessun WAF senza Internet-facing journey.
 
-**Costo accettato:** private DNS/network troubleshooting più complesso, maggiore dipendenza dalle subnet/capability Platform, dev/prod parity meno immediata e **Service Bus Premium** necessario per Private Link nella topologia corrente.
+**Costo accettato:** networking/DNS più complessi e Service Bus Premium per Private Link.
 
-**Quality floor:** authenticated production access, tenant isolation, explicit capability authorization, runtime senza broad control-plane privilege, nessun production secret nel repository, audit delle operazioni sensibili, revocation path, security control verificabili.
+**Quality floor:** authenticated access, tenant isolation, explicit authorization, least privilege, no production secret nel repo, audit e revocation path.
 
-**Guardrail:** Threat Model, Security Control Matrix, ADR-0003, `infra/main.bicep`, landing-zone policy, secret scanning, negative authorization tests, RBAC review, log redaction/data minimization e secure-SDLC gate proporzionati al rischio.
+**Guardrail:** Threat Model, Security Control Matrix, ADR-0003, Bicep, negative tests, RBAC review e log minimization.
 
-**Evidence:** Microsoft Learn per Threat Modeling, Zero Trust/security design, identity/least privilege, App Service security/private connectivity, Key Vault RBAC e Service Bus Private Link; NIST SP 800-218 per Secure Software Development Framework; OWASP ASVS per verification requirements; Cloudflare postmortem sull'incidente Okta 2023 come caso reale di containment/assume-breach.
+**Evidence:** Microsoft Learn, NIST SSDF, OWASP ASVS e Cloudflare.
 
-**Trigger:** public/mobile/partner ingress, nuovo sensitive-data class, security incident, API/WebJob privilege divergence, multi-region, nuovi provider esterni, cost curve Service Bus Premium non più giustificata, cambiamenti della landing zone o nuovi compliance requirement.
+**Trigger:** public/mobile/partner ingress, incident, new sensitive data, multi-region o nuovi compliance requirement.
 
 ## Capitolo 14 — Reliability e resilienza
 
-**Esigenza:** mantenere Order Operations utilizzabile durante failure comuni e recuperabile durante failure più ampi, senza comprare più ridondanza di quella che il business sa valorizzare.
+**Esigenza:** restare utilizzabile nei failure comuni e recuperabile nei failure più ampi senza comprare ridondanza indiscriminata.
 
-**Tensione:** stronger availability/recovery vs cloud cost, operational complexity, recovery testing burden e delivery speed.
+**Tensione:** stronger availability/recovery vs cloud cost, operational complexity e delivery speed.
 
-**Decisione:** introdurre SLO/health model/error-budget direction e un Reliability Contract; produzione usa App Service Premium v3 con almeno due istanze e zone redundancy, PostgreSQL zone-redundant HA direction con backup/PITR, Service Bus zone redundancy e single-region recovery. Active-active multi-region resta fuori.
+**Decisione:** SLO/health/error-budget + Reliability Contract; App Service >=2 zone-redundant, PostgreSQL zone-redundant HA direction, Service Bus zone redundancy, single-region recovery. Active-active multi-region resta fuori.
 
-**Costo accettato:** maggior costo compute/database; capacity headroom pagata anche in steady state; region-wide disaster non ha failover immediato e accetta recovery manuale entro target più rilassati.
+**Costo accettato:** capacity headroom e costo HA; region-wide disaster con recovery più lento.
 
-**Quality floor:** committed local business state preservato nei failure HA coperti; degraded mode non presenta dati non verificabili come current truth; recovery source e owner espliciti; security/tenant boundary non vengono disabilitati per availability; backup/restore non dichiarati funzionanti senza test.
+**Quality floor:** committed local state protetto nei failure coperti, degraded mode truthful, security boundary preservato, restore non dichiarato senza prova.
 
-**Guardrail:** Reliability Contract, Failure Mode Map estesa, RTO/RPO, error budget, required drills, IaC zone redundancy, PITR, synthetic journey direction e review trigger.
+**Guardrail:** Reliability Contract, Failure Mode Map, RTO/RPO, drills, IaC e review trigger.
 
-**Evidence:** Google SRE per SLI/SLO/error budget; Microsoft Azure Well-Architected e reliability documentation per health model, graceful degradation, App Service, PostgreSQL e Service Bus; GitHub availability report e Cloudflare postmortem per cascading failure, capacity, DNS/configuration failure e containment reali.
+**Evidence:** Google SRE, Microsoft Azure reliability docs, GitHub e Cloudflare.
 
-**Trigger:** SLO miss persistenti, error-budget burn, RTO/RPO regionali più severi, contractual SLA, recovery drill fallito, App/worker capacity divergence, nuova geography, cost curve o Platform standard.
+**Trigger:** SLO/error-budget miss, RTO/RPO più severi, failed drill, nuova geography o cost curve.
 
 ## Capitolo 15 — Observability
 
-**Esigenza:** misurare gli SLO, diagnosticare failure e ridurre il tempo necessario all'on-call per arrivare a una prima decisione informata.
+**Esigenza:** misurare SLO e diagnosticare failure con sufficiente velocità.
 
-**Tensione:** maggiore dettaglio investigativo vs ingestion/storage cost, cardinalità, data minimization, sampling e alert fatigue.
+**Tensione:** dettaglio investigativo vs ingestion/storage cost, cardinalità, minimization, sampling e alert fatigue.
 
-**Decisione:** adottare un Observability Contract con instrumentation OpenTelemetry-compatible e Azure Monitor/Application Insights come backend ESI; metriche bounded per SLI/alert, structured events, trace sampling governato, business/audit evidence separata, correlation end-to-end e synthetic journey soltanto attraverso il private path.
+**Decisione:** Observability Contract; instrumentation OpenTelemetry-compatible; Azure Monitor/Application Insights backend; metriche bounded, structured events, trace sampling governato, audit/business evidence separata, private synthetic journey.
 
-**Costo accettato:** non conserviamo ogni dettaglio di ogni execution indefinitamente; alcune investigazioni richiederanno correlazione tra metriche, trace, log, audit e business state.
+**Costo accettato:** non conserviamo ogni dettaglio di ogni execution indefinitamente.
 
-**Quality floor:** SLI realmente misurabili; failure critici investigabili; correlation; nessun secret/token nei normali signal; audit non campionato arbitrariamente; alert con owner/action; visibility del costo telemetry.
+**Quality floor:** SLI misurabili, failure critici investigabili, correlation, niente secret/token nei normali signal, alert con owner/action e costo visibile.
 
-**Guardrail:** `docs/observability-contract.md`, cardinality budget, retention classes, sampling policy, alert quality review, bounded telemetry port TypeScript, synthetic identity/data separati e verification test dei signal.
+**Guardrail:** cardinality budget, retention/sampling policy, alert review, bounded telemetry port, synthetic identity/data.
 
-**Evidence:** OpenTelemetry official docs/spec per signal, correlation e instrumentation model; Google SRE/SRE Workbook per golden signals, symptom-vs-cause e actionable alerting; Microsoft Learn per Azure Monitor/Application Insights e integrazione OpenTelemetry.
+**Evidence:** OpenTelemetry, Google SRE e Microsoft Learn.
 
-**Trigger:** telemetry cost fuori budget, investigation insufficienti, signal cardinality growth, alert fatigue, nuovi public/mobile journey, più servizi/runtime, compliance retention requirement, bisogno di tail sampling o nuova shared collector capability Platform.
+**Trigger:** telemetry fuori budget, investigation insufficienti, cardinality growth, alert fatigue, più runtime o nuovi retention requirement.
 
-## Capitolo 16 e successivi
+## Capitolo 16 — Testing Architecture
+
+**Esigenza:** aumentare la velocità di modifica senza perdere confidenza su business invariant, security, integrazioni e recovery.
+
+**Tensione:** confidence vs feedback speed vs environment cost vs maintenance burden. Payments & Risk vuole contract evidence forte; Security vuole negative test; Platform vuole pipeline ripetibili; Finance non vuole una seconda produzione sempre accesa.
+
+**Decisione:** Testing Strategy a più velocità: fast local/application test, PR integration/contract, staging cloud verification, scheduled/readiness test e production synthetic/SLI. La prima suite usa `node:test` senza introdurre un framework addizionale non ancora necessario.
+
+**Costo accettato:** non ogni commit attraversa PostgreSQL/Azure/recovery reali; alcune evidence arrivano in gate più lenti e costosi.
+
+**Quality floor:** idempotency, tenant isolation, authorization, escalation+outbox atomicity, contract compatibility, duplicate-delivery safety, migration safety e recovery evidence non possono essere dichiarati coperti da un layer che non li attraversa.
+
+**Guardrail:** `docs/testing-strategy.md`, Risk-to-Evidence Map, pipeline gate, flaky-test policy, coverage come signal non KPI assoluto, mutation selettiva, incident-derived regression e human review dei test AI-generated.
+
+**Evidence:** Microsoft Azure Well-Architected testing guidance; Google Testing Blog su small/E2E e flakiness; Meta Engineering su flaky-test measurement e mutation-guided LLM testing; OWASP ASVS; Pact. Nel capstone il fast local layer è stato realmente eseguito: TypeScript build PASS, `node:test` 11/11 PASS.
+
+**Trigger:** critical journey/threat/SLO/topology cambia, suite diventa lenta o flaky, integration gap produce incidenti, AI autonomy cresce, contract/versioning o regulatory requirement cambiano.
+
+## Capitolo 17 e successivi
 
 Da qui in avanti il compromise ledger viene aggiornato insieme al manoscritto.
 
-Ogni nuovo compromesso deve mostrare anche come proteggiamo la qualità.
-
-La formula che useremo è:
+Ogni nuovo compromesso deve mostrare come proteggiamo la qualità.
 
 > **Compromesso sì. Qualità inconsapevolmente degradata no.**
 
@@ -340,14 +328,14 @@ La formula che useremo è:
 
 Un compromesso ESI è simulato, ma non deve essere arbitrario.
 
-Quando dipende da caratteristiche reali di tecnologie, protocolli o pratiche operative, la decisione deve essere confrontata con:
+Quando dipende da caratteristiche reali di tecnologie, protocolli o pratiche operative, la decisione viene confrontata con:
 
 - standard e RFC;
 - documentazione ufficiale;
 - paper;
 - engineering blog e postmortem;
 - casi reali documentati;
-- misure prodotte dal capstone quando sarà eseguibile.
+- misure prodotte dal capstone quando è eseguibile.
 
 Lo scenario ci dà il contesto.
 
