@@ -36,7 +36,34 @@ I casi reali restano separati dallo scenario ESI e richiedono fonti verificabili
 | 10 — I dati sono architettura | sì | sì — draft pass | sì — draft pass | Microsoft Learn, PostgreSQL, Redis, Stripe Engineering e GitHub Blog; vista unificata vs ownership/synchronization/operational cost |
 | 11 — Sistemi distribuiti | sì | sì — draft pass | sì — draft pass | Microsoft Learn, AWS Builders' Library/Well-Architected, Uber Engineering; async Payment Escalation, partial failure, retry/idempotency, outbox, DLQ, saga/choreography e Failure Mode Map |
 | 12 — Cloud Architecture | sì | sì — draft pass | sì — draft pass | Microsoft Learn, AWS Well-Architected/Builders' Library e dacadoo case study; cloud-appropriate vs cloud-native, landing zone, compute fit, managed services, HA/DR, identity, IaC e Cloud Deployment Map |
-| 13+ | non ancora | source-first | required | ricerca, compromesso ESI e aggiornamento capstone entrano nel workflow prima della chiusura del draft |
+| 13 — Security by Design | sì | sì — draft pass | sì — draft pass | Microsoft Learn, NIST SSDF, OWASP ASVS e Cloudflare postmortem; threat modeling, identity/authorization, private boundary, secure SDLC, Security Control Matrix e prima baseline Bicep |
+| 14+ | non ancora | source-first | required | ricerca, compromesso ESI e aggiornamento capstone entrano nel workflow prima della chiusura del draft |
+
+## Nota di verifica Capitolo 13
+
+Il Capitolo 13 ha prodotto `infra/main.bicep` usando le resource schema/documentazioni Azure correnti.
+
+Lo stato corretto è:
+
+```text
+architecture intent: reviewed in draft
+control baseline: codified
+Bicep build/lint: da eseguire
+Azure Policy validation: da eseguire
+deployment non-production: da eseguire
+runtime evidence: non ancora disponibile
+```
+
+Quindi l'evidence pass del manoscritto è completato a livello **draft**, ma il template non viene dichiarato production-verified.
+
+Questa distinzione è intenzionale e coerente con il modello:
+
+```text
+Designed
+→ Codified
+→ Verified
+→ Monitored
+```
 
 ## Workflow editoriale da Capitolo 10
 
@@ -101,4 +128,5 @@ Prima di una release candidata:
 - nessun capitolo può rimanere `da fare` per l'evidence pass;
 - nessun capitolo può mancare del compromise pass quando lo scenario ESI è applicabile;
 - i casi reali devono essere chiaramente separati dai casi ESI;
-- i numeri simulati ESI non devono essere presentati come benchmark reali.
+- i numeri simulati ESI non devono essere presentati come benchmark reali;
+- gli artefatti codificati devono superare i gate tecnici dichiarati prima di essere descritti come verificati o production-ready.
