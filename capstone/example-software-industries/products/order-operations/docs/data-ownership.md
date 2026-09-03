@@ -1,6 +1,6 @@
 # Order Operations — Data Ownership Map
 
-> **Scenario fittizio ESI.** Questo documento descrive lo stato corrente del capstone dopo il Capitolo 10.
+> **Scenario fittizio ESI.** Questo documento descrive lo stato corrente del capstone dopo il Capitolo 11.
 
 ## Regola
 
@@ -23,6 +23,10 @@ Una copia fisica di un dato non trasferisce automaticamente ownership semantica.
 | OperationalCase | Order Operations | sì | read/write |
 | ProblemClassification | Order Operations | sì | read/write/derive |
 | OperatorAssignment | Order Operations | sì | read/write |
+| PaymentEscalation request | Order Operations | sì per l'intenzione locale | read/write/publish |
+| PaymentEscalation downstream workflow | Payments & Risk | sì | non posseduto |
+| Integration delivery state | Order Operations | sì per il proprio publish flow | read/write/operate |
+| OutboxMessage | Order Operations integration mechanism | sì localmente, ma tecnico | write/publish/cleanup |
 | ProblematicOrderView | Order Operations | no — derived | read |
 
 ## Orders
@@ -49,9 +53,35 @@ Se esiste una divergenza, Orders resta l'autorità.
 - refund;
 - payment provider reference;
 - economic idempotency;
-- reconciliation semantics.
+- reconciliation semantics economiche;
+- stato del workflow interno che nasce da una Payment Escalation.
 
 Order Operations può mostrare uno stato normalizzato destinato all'investigazione, ma non ridefinisce la semantica economica.
+
+### Payment Escalation: confine condiviso
+
+La richiesta di escalation nasce in Order Operations.
+
+Quindi Order Operations è autorevole su:
+
+```text
+questa escalation è stata richiesta
+chi l'ha richiesta
+quando
+per quale OperationalCase
+con quale reasonCode
+```
+
+Payments & Risk è autorevole su:
+
+```text
+come l'escalation viene trattata
+se viene accettata/rifiutata secondo le proprie regole
+quale workflow economico o investigativo viene aperto
+quali decisioni/payment side effect ne derivano
+```
+
+Non esiste quindi un singolo campo generico `escalation_status` condiviso da entrambi i domini senza semantica esplicita.
 
 ## Shipping
 
@@ -71,8 +101,11 @@ Order Operations usa il dato per diagnosticare il journey, non per diventare own
 - `OperationalCase`;
 - `ProblemClassification`;
 - `OperatorAssignment`;
-- metadata di investigazione che verranno esplicitamente introdotti;
-- eventuale escalation metadata quando l'analisi funzionale lo definirà.
+- `PaymentEscalation` come richiesta locale di attenzione;
+- `EscalationId`;
+- `EscalationReasonCode`;
+- delivery state del proprio integration flow;
+- metadata di investigazione che verranno esplicitamente introdotti.
 
 ### Derived concepts
 
@@ -81,6 +114,22 @@ Order Operations usa il dato per diagnosticare il journey, non per diventare own
 - `caseAge`;
 - `lastRelevantUpdate`;
 - combined operational summary.
+
+### Technical integration state
+
+Order Operations possiede anche dati tecnici necessari a garantire la propria publication reliability:
+
+```text
+OutboxMessage
+PublishAttemptCount
+NextAttemptAt
+PublishedAt
+LastPublishError
+```
+
+Questi dati non sono business truth da esporre automaticamente ad altri domini.
+
+Servono a operare il flusso di integrazione.
 
 ## Datastore corrente
 
@@ -92,6 +141,9 @@ PostgreSQL
 ├── payments    → Payments & Risk
 ├── shipping    → Shipping
 └── operations  → Order Operations
+    ├── operational_case
+    ├── payment_escalation
+    └── outbox_message
 ```
 
 Il database condiviso non autorizza accessi cross-owner arbitrari.
@@ -106,11 +158,43 @@ I boundary applicativi restano la via preferita per consumare semantica di altri
 - conflitti concorrenti non devono sovrascriversi silenziosamente;
 - read-your-writes richiesto nel journey corrente.
 
+### PaymentEscalation
+
+- la richiesta locale è authoritative in Order Operations;
+- `PaymentEscalation + OutboxMessage` devono essere committed nella stessa transaction;
+- la delivery verso Payments & Risk è asincrona;
+- `Requested` non significa `ProcessedByPayments`;
+- `deliveryState` descrive l'integrazione, non lo stato economico.
+
 ### Order / Payment / Shipment status
 
 - authoritative nei domini sorgente;
 - per la prima implementazione il percorso resta live secondo ADR 0001;
 - un eventuale futuro dato persistito localmente sarà marcato `derived` e avrà una freshness policy esplicita.
+
+## Event contract corrente
+
+Order Operations pubblica:
+
+```text
+OperationalCasePaymentEscalated v1
+```
+
+Contratto:
+
+```text
+docs/events/operational-case-payment-escalated-v1.md
+```
+
+Principi:
+
+- payload minimizzato;
+- stable `messageId`;
+- stable `escalationId`;
+- at-least-once delivery;
+- consumer idempotente;
+- nessuna copia del PaymentStatus necessaria nel messaggio;
+- correlation esplicita.
 
 ## Projection futura — non ancora implementata
 
@@ -139,6 +223,10 @@ Questa projection verrà introdotta soltanto se trigger reali ne giustificherann
 - freshness tollerata rende vantaggiosa propagation asincrona;
 - volume o retention cambiano sostanzialmente.
 
+L'introduzione della prima outbox **non** è un trigger automatico per creare questa projection.
+
+Un flusso asincrono locale non trasforma l'intero sistema in event-driven.
+
 ## Rebuild contract per dati derived
 
 Quando verrà introdotta una projection, dovrà avere:
@@ -151,6 +239,25 @@ Quando verrà introdotta una projection, dovrà avere:
 - metriche di lag/mismatch;
 - comportamento definito durante degrado o rebuild.
 
+## Outbox retention
+
+La outbox non è event store né audit log universale.
+
+Policy da definire:
+
+```text
+Pending / failed
+→ retention finché risolto o escalato
+
+Published
+→ retention operativa limitata, poi cleanup/archivio secondo requisito
+
+Business audit
+→ conservato secondo policy del dominio, non affidato soltanto alla outbox
+```
+
+La durata concreta verrà definita con requisiti di audit, volume e operability.
+
 ## Quality floor
 
 Non sono negoziabili:
@@ -161,13 +268,16 @@ Non sono negoziabili:
 - ownership commerciale di Orders;
 - ownership fulfillment di Shipping;
 - atomicità/concorrenza corretta per assignment;
-- tracciabilità delle future azioni con side effect;
-- capacità di distinguere authoritative e derived data.
+- tracciabilità delle azioni con side effect;
+- durable publication intent per escalation accettate;
+- idempotency downstream per la stessa `escalationId`;
+- capacità di distinguere business state, integration state, authoritative data e derived data.
 
 ## Evidenze metodologiche
 
 - [Microsoft Learn — Prepare to choose a data store](https://learn.microsoft.com/azure/architecture/guide/technology-choices/data-stores-getting-started)
-- [Microsoft Learn — Understand data models](https://learn.microsoft.com/azure/architecture/data-guide/technology-choices/understand-data-store-models)
+- [Microsoft Learn — Transactional Outbox](https://learn.microsoft.com/azure/architecture/databases/guide/transactional-outbox-cosmos)
+- [Microsoft Learn — Idempotent Consumer pattern](https://learn.microsoft.com/azure/architecture/patterns/idempotent-consumer)
 - [PostgreSQL 18 — Concurrency Control](https://www.postgresql.org/docs/18/mvcc-intro.html)
 
 Le fonti sostengono le proprietà e il metodo. Le decisioni specifiche di ESI restano simulate.
