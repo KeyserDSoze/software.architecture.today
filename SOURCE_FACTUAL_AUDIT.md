@@ -38,9 +38,10 @@ I casi reali restano separati dallo scenario ESI e richiedono fonti verificabili
 | 12 — Cloud Architecture | sì | sì — draft pass | sì — draft pass | Microsoft Learn, AWS Well-Architected/Builders' Library e dacadoo case study; cloud-appropriate vs cloud-native, landing zone, compute fit, managed services, HA/DR, identity, IaC e Cloud Deployment Map |
 | 13 — Security by Design | sì | sì — draft pass | sì — draft pass | Microsoft Learn, NIST SSDF, OWASP ASVS e Cloudflare postmortem; threat modeling, identity/authorization, private boundary, secure SDLC, Security Control Matrix e prima baseline Bicep |
 | 14 — Reliability e resilienza | sì | sì — draft pass | sì — draft pass | Google SRE, Azure Well-Architected/reliability docs, GitHub availability report e Cloudflare postmortem; SLI/SLO/error budget, health model, graceful degradation, capacity/cascading failure, RTO/RPO, recovery drill e Reliability Contract |
-| 15+ | non ancora | source-first | required | ricerca, compromesso ESI e aggiornamento capstone entrano nel workflow prima della chiusura del draft |
+| 15 — Observability | sì | sì — draft pass | sì — draft pass | OpenTelemetry, Google SRE e Microsoft Learn; signal/correlation, SLI measurement, cardinality/sampling, alerting, private synthetic journey, AI-assisted investigation e Observability Contract |
+| 16+ | non ancora | source-first | required | ricerca, compromesso ESI e aggiornamento capstone entrano nel workflow prima della chiusura del draft |
 
-## Nota di verifica Capitoli 13–14
+## Nota di verifica Capitoli 13–15
 
 Il Capitolo 13 ha prodotto `infra/main.bicep` usando resource schema/documentazioni Azure correnti.
 
@@ -53,21 +54,35 @@ App Service zoneRedundant = true
 Service Bus zoneRedundant = true
 ```
 
+Il Capitolo 15 ha aggiunto:
+
+```text
+docs/observability-contract.md
+src/observability/telemetry.ts
+src/observability/observed-request-payment-escalation.ts
+```
+
+La porta/decorator TypeScript di observability è stata ricostruita localmente insieme ai source file da cui dipende e typechecked con TypeScript strict senza errori.
+
 Lo stato corretto resta:
 
 ```text
 architecture intent: reviewed in draft
-control/reliability baseline: codified
+security/reliability baseline: codified
+observability semantic port/decorator: codified + typechecked
+OpenTelemetry/Application Insights adapter: designed, non ancora codificato
+SLI queries/alerts/dashboard: designed, non ancora verified
+private synthetic journey: designed, non ancora codificato
 Bicep build/lint: da eseguire
 Azure Policy validation: da eseguire
 deployment non-production: da eseguire
 zone/failover test: da eseguire
 PostgreSQL HA IaC: designed, non ancora codificato
 PostgreSQL PITR drill: da eseguire
-runtime evidence: non ancora disponibile
+runtime observability evidence: non ancora disponibile
 ```
 
-Quindi l'evidence pass del **manoscritto** è completato a livello draft, ma gli artefatti infrastrutturali/recovery non vengono descritti come production-verified.
+Quindi l'evidence pass del **manoscritto** è completato a livello draft, ma gli artefatti infrastrutturali, recovery e observability runtime non vengono descritti come production-verified.
 
 La distinzione resta:
 
@@ -80,7 +95,7 @@ Designed
 
 ## Numeri simulati ESI
 
-Dal Capitolo 14 il capstone contiene per la prima volta SLO/RTO/RPO quantitativi.
+Dal Capitolo 14 il capstone contiene SLO/RTO/RPO quantitativi.
 
 Sono esplicitamente **business requirement simulati dello scenario ESI**, non benchmark né valori consigliati al lettore:
 
@@ -93,7 +108,9 @@ Region disaster RTO: <= 8 h
 Region disaster RPO: <= 1 h
 ```
 
-In una release candidate dovremo verificare che questi valori non vengano mai presentati altrove come standard industriali.
+Il Capitolo 15 usa questi valori per mostrare come si progettano measurement source, signal e alerting. Non li trasforma in standard industriali.
+
+In una release candidate dovremo verificare che questi valori non vengano mai presentati altrove come benchmark reali.
 
 ## Workflow editoriale da Capitolo 10
 
