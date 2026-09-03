@@ -1,6 +1,6 @@
 # Book Architecture — Software Architecture Today
 
-> Questo documento è intenzionalmente **living**. Definisce il percorso didattico iniziale, non congela il numero definitivo di capitoli. La struttura verrà revisionata dopo i primi capitoli pilota e durante la crescita del capstone.
+> Questo documento è intenzionalmente **living**. Definisce il percorso didattico e le regole strutturali del libro, ma non congela il numero definitivo di sezioni o la forma finale di ogni capitolo.
 
 ## Obiettivo della struttura
 
@@ -10,7 +10,7 @@ Il primo è diventare un'enciclopedia di argomenti tecnici: API, database, cloud
 
 Il secondo è diventare un manifesto sull'AI con poca sostanza di software engineering.
 
-La struttura deve far emergere una progressione:
+La progressione deve rimanere riconoscibile:
 
 ```text
 responsabilità
@@ -18,6 +18,8 @@ responsabilità
 → sistema
 → decisioni
 → design
+→ contratti
+→ dati
 → distribuzione
 → operabilità
 → evoluzione
@@ -28,11 +30,226 @@ responsabilità
 
 L'AI attraversa il libro. Non viene confinata agli ultimi capitoli.
 
-## Parte I — Al timone
+## Il mondo enterprise del libro: ESI
+
+Il libro usa una grande azienda interamente fittizia:
+
+> **Example Software Industries S.p.A. — ESI**
+
+ESI è una software product company con più business unit:
+
+```text
+Engineering Software
+Commerce & Operations
+Payments & Risk
+Marketing Technology
+Mobile Products
+Data & AI
+Platform Engineering & Cloud
+Corporate Systems
+```
+
+Il front matter introduce l'azienda prima dei capitoli tecnici:
+
+- `front_matter/001_example_software_industries.md`;
+- `front_matter/002_tradeoffs_not_shortcuts.md`.
+
+ESI serve a mostrare che Software Architecture non è soltanto scelta di strutture software.
+
+Una decisione vive dentro esigenze aziendali differenti:
+
+- Product vuole valore e time-to-market;
+- Engineering vuole comprensibilità ed evolvibilità;
+- Security vuole ridurre rischio e blast radius;
+- Operations vuole sistemi diagnosticabili e recuperabili;
+- Platform vuole standardizzazione e leverage;
+- Finance/FinOps vuole costi sostenibili;
+- Legal/Compliance introduce obblighi non negoziabili;
+- Sales e Customer Success portano commitment e clienti strategici;
+- Leadership decide quale rischio aziendale sia accettabile.
+
+Il lavoro architetturale rende questi trade-off visibili.
+
+> **L'architettura non elimina il compromesso. Impedisce che il compromesso rimanga nascosto.**
+
+## Un compromesso ESI per capitolo
+
+Ogni capitolo deve contenere almeno un compromesso significativo legato al tema del capitolo.
+
+Non deve essere una scenetta artificiale ripetuta meccanicamente.
+
+Il ragionamento deve però rendere leggibili, quando pertinenti:
+
+```text
+Esigenza
+→ perché dobbiamo decidere
+
+Tensione
+→ quali obiettivi legittimi sono in conflitto
+
+Decisione
+→ che cosa scegliamo adesso
+
+Costo accettato
+→ che cosa non massimizziamo
+
+Quality floor
+→ che cosa non possiamo compromettere
+
+Guardrail
+→ come limitiamo il rischio
+
+Evidence
+→ su cosa basiamo la scelta
+
+Trigger
+→ quando rivaluteremo la decisione
+```
+
+Regola fondamentale:
+
+> **Un trade-off accetta un costo consapevole per ottenere un beneficio prioritario. Una scorciatoia nasconde un costo e spera che non presenti il conto.**
+
+Il libro può accettare:
+
+- meno availability per ridurre complessità;
+- meno autonomia per ridurre costo operativo;
+- più latency per ottenere consistency più forte;
+- meno generalità per aumentare semplicità;
+- meno automazione per proteggere accountability.
+
+Non può usare il compromesso come scusa per:
+
+- ignorare requisiti normativi;
+- perdere dati senza accettazione esplicita del rischio;
+- eliminare verification necessaria;
+- violare tenant isolation;
+- nascondere technical debt;
+- dichiarare production-ready una demo;
+- delegare accountability all'AI.
+
+Formula ricorrente:
+
+> **Compromesso sì. Qualità inconsapevolmente degradata no.**
+
+Il registro dei compromessi vive in:
+
+- `capstone/example-software-industries/COMPROMISE_LEDGER.md`.
+
+## Il capstone principale: Order Operations
+
+Il progetto principale del libro è **Order Operations**, prodotto simulato della business unit Commerce & Operations di ESI.
+
+Il capstone non compare soltanto nel manoscritto.
+
+Ha una directory persistente:
+
+```text
+capstone/example-software-industries/products/order-operations/
+```
+
+I capitoli spiegano **perché** le decisioni cambiano.
+
+Il capstone conserva **lo stato corrente** del progetto.
+
+Il principio di evoluzione è:
+
+> **Il progetto deve evolvere perché cambia il contesto, non perché il libro deve mostrare una tecnologia.**
+
+Progressione possibile:
+
+```text
+problem framing
+→ analisi funzionale
+→ system context
+→ decisioni
+→ boundaries
+→ NFR
+→ pattern
+→ topology
+→ API
+→ data ownership
+→ distributed behavior
+→ cloud deployment
+→ security
+→ reliability
+→ observability
+→ testing
+→ refactoring
+→ cost
+→ AI integration
+→ production readiness
+```
+
+Non conosciamo in anticipo l'architettura finale.
+
+Questa è una caratteristica del capstone, non una mancanza.
+
+## Analisi funzionale come competenza condivisa
+
+Business analyst, product manager e domain expert rimangono specializzazioni importanti.
+
+Ma il libro non accetta il silo secondo cui soltanto l'analista debba conoscere realmente il comportamento del prodotto.
+
+Developer, tech lead e architect devono essere in grado almeno di:
+
+- leggere un'analisi funzionale;
+- comprendere attori, journey, business rule, stati e transizioni;
+- individuare ambiguità;
+- contribuire alla definizione dei requisiti;
+- produrre una prima analisi funzionale quando serve;
+- distinguere semantica del prodotto da soluzione tecnica.
+
+> **L'analisi può avere uno specialista. La comprensione del prodotto non può avere un unico proprietario.**
+
+## Evidenze e casi reali
+
+ESI è finzione didattica.
+
+Non sostituisce le evidenze.
+
+Il libro alterna:
+
+### Scenario ESI
+
+Serve a mostrare evoluzione, decisioni e compromessi end-to-end.
+
+### Casi reali documentati
+
+Servono a confrontare il metodo con sistemi, incidenti e decisioni realmente descritti da organizzazioni affidabili.
+
+Fonti preferite:
+
+- standard e RFC;
+- documentazione ufficiale;
+- Microsoft Learn e Azure Architecture Center;
+- AWS Well-Architected e Builders' Library;
+- Google Cloud Architecture Framework e Google SRE;
+- NIST;
+- OWASP;
+- CNCF;
+- OpenTelemetry;
+- paper originali;
+- postmortem ed engineering blog dell'organizzazione coinvolta;
+- autori tecnici riconosciuti quando appropriato.
+
+Le regole complete vivono in:
+
+- `reference/SOURCE_POLICY.md`;
+- `reference/RESEARCH_WORKFLOW.md`;
+- `SOURCE_FACTUAL_AUDIT.md`.
+
+Dal Capitolo 9 il workflow è esplicitamente source-first per i claim che richiedono evidenza.
+
+I capitoli precedenti ricevono un evidence pass retroattivo prima della release candidata.
+
+---
+
+# Parte I — Al timone
 
 Questa parte stabilisce il modello mentale.
 
-### Capitolo 0 — Al timone
+## Capitolo 0 — Al timone
 
 Domanda centrale:
 
@@ -50,7 +267,11 @@ Temi:
 - deskilling;
 - livelli di autonomia.
 
-### Capitolo 1 — Il software è cambiato. Il problema no.
+Compromesso ESI:
+
+> più autonomia degli agenti vs comprensione, blast radius e accountability.
+
+## Capitolo 1 — Il software è cambiato. Il problema no.
 
 Domanda centrale:
 
@@ -66,7 +287,13 @@ Temi:
 - feedback loop accelerati;
 - blast radius degli agenti.
 
-### Capitolo 2 — Prima del codice
+Order Operations viene introdotto come primo prodotto ESI seguito nel libro.
+
+Compromesso ESI:
+
+> velocità di delivery vs comprensione sufficiente del problema.
+
+## Capitolo 2 — Prima del codice
 
 Domanda centrale:
 
@@ -81,11 +308,19 @@ Temi:
 - vincoli;
 - MVP;
 - acceptance criteria;
-- Foundation Before Execution.
+- Foundation Before Execution;
+- analisi funzionale come competenza condivisa.
 
-Artefatto principale: **Problem & Outcome Brief**.
+Artefatti principali:
 
-### Capitolo 3 — Pensare per sistemi
+- **Problem & Outcome Brief**;
+- **Functional Scope Map**.
+
+Compromesso ESI:
+
+> completezza dell'analisi vs velocità di apprendimento.
+
+## Capitolo 3 — Pensare per sistemi
 
 Domanda centrale:
 
@@ -103,9 +338,15 @@ Temi:
 
 Artefatto principale: **Architecture Context Map**.
 
-## Parte II — Decisioni e design
+Compromesso ESI:
 
-### Capitolo 4 — Che cos'è davvero Software Architecture
+> freshness e completezza della vista vs availability, latency e semplicità operativa.
+
+---
+
+# Parte II — Decisioni e design
+
+## Capitolo 4 — Che cos'è davvero Software Architecture
 
 Domanda centrale:
 
@@ -123,7 +364,11 @@ Temi:
 
 Artefatto principale: **Architecture Decision Record**.
 
-### Capitolo 5 — Dalle feature ai confini
+Compromesso ESI:
+
+> lookup live vs read model asincrono.
+
+## Capitolo 5 — Dalle feature ai confini
 
 Temi:
 
@@ -139,7 +384,11 @@ Temi:
 
 Artefatto principale: **Component Responsibility Map**.
 
-### Capitolo 6 — Qualità prima della tecnologia
+Compromesso ESI:
+
+> infrastruttura condivisa vs ownership e confini logici forti.
+
+## Capitolo 6 — Qualità prima della tecnologia
 
 Temi:
 
@@ -153,15 +402,20 @@ Temi:
 - privacy;
 - maintainability;
 - operability;
-- cost.
+- cost;
+- fit before fashion.
 
 Tesi:
 
-> Gli aggettivi non sono requisiti.
+> **Gli aggettivi non sono requisiti.**
 
 Artefatto principale: **Non-Functional Requirements Card**.
 
-### Capitolo 7 — Pattern senza religione
+Compromesso ESI:
+
+> performance/availability vs costo e complessità operativa, con quality floor esplicito.
+
+## Capitolo 7 — Pattern senza religione
 
 Temi:
 
@@ -179,9 +433,15 @@ Domanda ricorrente:
 
 > Quale problema risolve, che cosa costa e quando non dovrei usarlo?
 
-## Parte III — Contratti, dati e distribuzione
+Compromesso ESI:
 
-### Capitolo 8 — Il monolite non è il nemico
+> robustezza e flessibilità vs complexity debt.
+
+---
+
+# Parte III — Contratti, dati e distribuzione
+
+## Capitolo 8 — Il monolite non è il nemico
 
 Temi:
 
@@ -194,7 +454,11 @@ Temi:
 - operational cost;
 - microservices by default.
 
-### Capitolo 9 — API e contratti
+Compromesso ESI:
+
+> autonomia e isolation vs costo della distribuzione.
+
+## Capitolo 9 — API e contratti
 
 Temi:
 
@@ -213,7 +477,11 @@ Temi:
 
 Artefatto principale: **API Contract**.
 
-### Capitolo 10 — I dati sono architettura
+Compromesso ESI:
+
+> automatizzare presto le action API vs definire prima semantica, authorization, audit e idempotenza.
+
+## Capitolo 10 — I dati sono architettura
 
 Temi:
 
@@ -231,7 +499,9 @@ Temi:
 
 Artefatto principale: **Data Ownership Map**.
 
-### Capitolo 11 — Sistemi distribuiti
+Il compromesso ESI dovrà emergere dal contesto reale del capitolo, non essere deciso a priori.
+
+## Capitolo 11 — Sistemi distribuiti
 
 Temi:
 
@@ -254,9 +524,11 @@ Temi:
 
 Artefatto principale: **Failure Mode Map**.
 
-## Parte IV — Cloud, security e operabilità
+---
 
-### Capitolo 12 — Cloud Architecture
+# Parte IV — Cloud, security e operabilità
+
+## Capitolo 12 — Cloud Architecture
 
 Temi:
 
@@ -279,7 +551,7 @@ Temi:
 
 Artefatto principale: **Cloud Deployment Map**.
 
-### Capitolo 13 — Security by Design
+## Capitolo 13 — Security by Design
 
 Temi:
 
@@ -300,7 +572,7 @@ Temi:
 
 Artefatto principale: **Threat Model**.
 
-### Capitolo 14 — Reliability e resilienza
+## Capitolo 14 — Reliability e resilienza
 
 Temi:
 
@@ -316,7 +588,7 @@ Temi:
 - retry storm;
 - failure-driven architecture.
 
-### Capitolo 15 — Observability
+## Capitolo 15 — Observability
 
 Temi:
 
@@ -334,7 +606,7 @@ Temi:
 
 Artefatto principale: **Observability Contract**.
 
-### Capitolo 16 — Testing Architecture
+## Capitolo 16 — Testing Architecture
 
 Temi:
 
@@ -354,9 +626,11 @@ Temi:
 
 Artefatto principale: **Testing Strategy**.
 
-## Parte V — Cambiare sistemi esistenti
+---
 
-### Capitolo 17 — Legacy e comprensione
+# Parte V — Cambiare sistemi esistenti
+
+## Capitolo 17 — Legacy e comprensione
 
 Temi:
 
@@ -369,7 +643,7 @@ Temi:
 - architecture map;
 - characterization test.
 
-### Capitolo 18 — Refactoring nell'era dell'AI
+## Capitolo 18 — Refactoring nell'era dell'AI
 
 Temi:
 
@@ -386,7 +660,7 @@ Temi:
 
 Artefatto principale: **Refactoring Safety Plan**.
 
-### Capitolo 19 — Architecture Evolution
+## Capitolo 19 — Architecture Evolution
 
 Temi:
 
@@ -400,7 +674,7 @@ Temi:
 
 Artefatto principale: **Architecture Fitness Checklist**.
 
-### Capitolo 20 — Costi e decisioni
+## Capitolo 20 — Costi e decisioni
 
 Temi:
 
@@ -418,9 +692,11 @@ Temi:
 - complexity cost;
 - FinOps.
 
-## Parte VI — AI-native software engineering
+---
 
-### Capitolo 21 — AI-ready repository
+# Parte VI — AI-native software engineering
+
+## Capitolo 21 — AI-ready repository
 
 Temi:
 
@@ -434,7 +710,7 @@ Temi:
 - source of truth;
 - documentation drift.
 
-### Capitolo 22 — Issue-driven development
+## Capitolo 22 — Issue-driven development
 
 Temi:
 
@@ -451,7 +727,7 @@ Temi:
 
 Artefatto principale: **Agent Delegation Contract**.
 
-### Capitolo 23 — Manager di agenti
+## Capitolo 23 — Manager di agenti
 
 Temi:
 
@@ -473,7 +749,7 @@ Artefatti principali:
 - **Agent Verification Bundle**;
 - **AI Autonomy Matrix**.
 
-### Capitolo 24 — AI dentro l'architettura
+## Capitolo 24 — AI dentro l'architettura
 
 Temi:
 
@@ -491,7 +767,7 @@ Temi:
 - fallback;
 - human-in-the-loop.
 
-### Capitolo 25 — One-Man Project
+## Capitolo 25 — One-Man Project
 
 Temi:
 
@@ -512,9 +788,11 @@ Tesi:
 
 > L'AI può ampliare il perimetro di una singola persona, ma non elimina i limiti della sua comprensione.
 
-## Parte VII — Portare il sistema nel mondo reale
+---
 
-### Capitolo 26 — Production Readiness
+# Parte VII — Portare il sistema nel mondo reale
+
+## Capitolo 26 — Production Readiness
 
 Temi:
 
@@ -532,7 +810,7 @@ Temi:
 
 Artefatto principale: **Production Readiness Review**.
 
-### Capitolo 27 — Casi end-to-end
+## Capitolo 27 — Casi end-to-end
 
 Almeno tre percorsi completi:
 
@@ -542,11 +820,13 @@ Almeno tre percorsi completi:
 
 I casi devono mostrare evoluzione nel tempo e cambiamenti di decisione quando cambiano requisiti e vincoli.
 
-Il capstone principale può essere **Acme Orders**, introdotto presto e fatto crescere lungo il libro.
+Order Operations fornisce il filo enterprise principale, ma non deve essere l'unico caso del libro.
 
-## Parte VIII — Il mestiere che cambia
+---
 
-### Capitolo 28 — L'architect del 2030
+# Parte VIII — Il mestiere che cambia
+
+## Capitolo 28 — L'architect del 2030
 
 Temi:
 
@@ -562,7 +842,7 @@ Temi:
 
 Questo capitolo non deve fare previsioni teatrali. Deve distinguere ciò che è già osservabile da ciò che rimane una possibilità.
 
-### Capitolo finale — Il timone resta a noi
+## Capitolo finale — Il timone resta a noi
 
 Il capitolo conclusivo riprende il percorso senza introdurre nuove tecnologie.
 
@@ -587,36 +867,9 @@ Il tono potrà essere più leggero, ironico e goliardico del resto del libro, se
 
 **Devono essere letteralmente l'ultima cosa del manoscritto principale.**
 
-## Capstone incrementale
+---
 
-Il capstone non deve comparire soltanto alla fine.
-
-**Acme Orders** parte da un prodotto semplice e viene riutilizzato per mostrare come cambiano le decisioni quando emergono nuovi requisiti.
-
-Progressione possibile:
-
-```text
-MVP
-→ autenticazione
-→ database
-→ API
-→ deployment cloud
-→ caching
-→ queue
-→ observability
-→ scale
-→ security
-→ DR
-→ AI integration
-```
-
-Ogni capitolo deve evitare di “anticipare” la soluzione finale.
-
-L'obiettivo è mostrare che:
-
-> **l'architettura è conseguenza del contesto, non una destinazione da raggiungere.**
-
-## Regola di revisione della struttura
+# Regola di revisione della struttura
 
 Un capitolo rimane nella struttura soltanto se risponde ad almeno una di queste funzioni:
 
@@ -625,8 +878,21 @@ Un capitolo rimane nella struttura soltanto se risponde ad almeno una di queste 
 - spiega un failure mode significativo;
 - costruisce una competenza necessaria per i capitoli successivi;
 - introduce un artefatto operativo utile;
-- permette un caso o esercizio che migliora la capacità di giudizio del lettore.
+- permette un caso o esercizio che migliora la capacità di giudizio;
+- fa evolvere in modo significativo lo scenario ESI o un caso reale documentato.
+
+Inoltre ogni capitolo deve essere revisionato con queste domande:
+
+1. Qual è il compromesso principale?
+2. Qual è il quality floor?
+3. Quali guardrail lo proteggono?
+4. Quali claim richiedono evidenza?
+5. Order Operations o un altro caso rende il concetto più concreto?
+6. Abbiamo distinto chiaramente scenario simulato e caso reale?
+7. L'AI cambia davvero qualcosa in questa decisione o la stiamo aggiungendo artificialmente?
 
 Se due capitoli svolgono la stessa funzione, vanno uniti.
 
 Se un capitolo è soltanto un catalogo di tool, va ripensato.
+
+Se un compromesso è soltanto una scusa per abbassare la qualità, va riscritto.
