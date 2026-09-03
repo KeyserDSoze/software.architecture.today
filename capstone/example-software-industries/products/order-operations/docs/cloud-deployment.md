@@ -1,6 +1,6 @@
 # Order Operations — Cloud Deployment Map
 
-> **Scenario fittizio ESI.** Questo documento descrive la deployment topology corrente dopo i Capitoli 12 e 13. Le proprietà dei servizi Azure sono basate su documentazione ufficiale; requisiti, costi accettati e circostanze ESI restano simulati.
+> **Scenario fittizio ESI.** Stato corrente dopo i Capitoli 12–14. Le proprietà dei servizi Azure sono basate su documentazione ufficiale; requisiti, target e compromessi ESI restano simulati.
 
 ## Workload
 
@@ -10,34 +10,27 @@
 
 Ridurre il tempo necessario agli operatori per individuare, comprendere e gestire ordini che richiedono attenzione operativa, incluso l'invio di Payment Escalation durabili verso Payments & Risk.
 
-## Cloud constraint
+## Cloud operating model
 
-ESI usa Microsoft Azure come cloud enterprise principale per questo workload.
+ESI usa Microsoft Azure per questo workload.
 
-Order Operations viene deployed dentro una **Azure application landing zone** fornita da Platform Engineering.
+Order Operations vive in una **Azure application landing zone** fornita da Platform Engineering.
 
-La landing zone fornisce guardrail e capability condivise. Non trasferisce l'ownership del workload a Platform.
+Platform fornisce guardrail e capability condivise; il workload team mantiene ownership end-to-end del prodotto.
 
-## Security artifacts collegati
-
-La security topology è governata da:
+## Artefatti collegati
 
 ```text
 docs/threat-model.md
 docs/security-control-matrix.md
+docs/reliability-contract.md
+docs/failure-mode-map.md
+docs/adr/0002-azure-paas-single-region.md
 docs/adr/0003-private-ingress-and-identity-first-security.md
 infra/main.bicep
 ```
 
-La Cloud Deployment Map descrive dove vive il workload.
-
-Il Threat Model descrive che cosa può essere abusato o compromesso.
-
-La Security Control Matrix collega threat, controllo, owner ed evidence.
-
 ## Environments
-
-Direzione corrente:
 
 ```text
 dev
@@ -45,499 +38,399 @@ staging
 production
 ```
 
-Gli ambienti condividono lo stesso architecture intent e deployment mechanism.
+Architecture intent condiviso; SKU/capacity/redundancy possono differire soltanto in modo esplicito.
 
-SKU, capacity, retention, network exposure e redundancy possono differire soltanto in modo esplicito e documentato.
-
-Produzione applica la baseline security più restrittiva descritta in questo documento.
-
-## Region / failure boundaries
+## Region strategy
 
 ### Produzione
 
-Prima iterazione **single-region**.
+```text
+single Azure region
+```
 
-Non è prevista active-active multi-region.
+Non esiste ancora active-active multi-region.
 
-La regione concreta non viene fissata finché non vengono definiti:
+### Reliability target
 
-- data residency;
-- proximity requirements;
-- service availability;
-- cost;
-- organizzazione ESI reale dello scenario.
+Intra-region:
 
-### Failure boundaries da governare
+```text
+RTO core journey <= 15 min
+RPO = 0 per committed local business state
+```
 
-- App Service instance/process failure;
-- database node failure;
-- availability-zone failure dove applicabile;
-- Service Bus availability;
-- private DNS / network path failure;
-- regional outage;
-- identity dependency;
-- Key Vault dependency;
-- deployment/control-plane failure.
+Region-wide disaster:
 
-Multi-region rimane una decisione trigger-driven.
+```text
+RTO <= 8 h
+RPO <= 1 h
+```
+
+I target sono simulati ESI e spiegano perché compriamo resilience zonale ma non continuità active-active regionale.
 
 ## Compute
 
-### HTTP API
+### HTTP API + related WebJob
 
-**Azure App Service**.
+**Azure App Service** con continuous WebJob per Outbox Publisher.
 
-Motivazione:
+### Production reliability baseline
 
-- workload web/API relativamente tradizionale;
-- nessun requisito di controllo OS;
-- nessun requisito Kubernetes;
-- stesso team e lifecycle del modular monolith;
-- riduzione dell'operational overhead.
+```text
+Premium v3
+capacity >= 2
+zone redundancy enabled
+```
 
-### Background processing
-
-**Continuous WebJob** associato all'App Service per l'Outbox Publisher.
+La baseline è codificata in `infra/main.bicep`.
 
 Motivazione:
 
-- background task strettamente correlato al workload;
-- nessun scaling indipendente richiesto oggi;
-- polling continuo dell'outbox;
-- deployment e operation inizialmente condivisi con l'applicazione.
+- tollerare instance/zone failure meglio della precedente singola istanza;
+- mantenere single-region;
+- non introdurre Kubernetes o compute separato senza trigger.
 
-### Privilege consequence
+### Trade-off
 
-API e WebJob condividono attualmente lo stesso runtime/identity envelope.
+Più capacity fissa aumenta il costo.
 
-Questo riduce complessità operativa ma aumenta il blast radius rispetto a due runtime con identity distinte.
-
-È un rischio accettato e registrato nel Threat Model.
+La proprietà comprata è coerente con il failure target intra-region.
 
 ### Trigger di revisione compute
 
-Rivalutare App Service/WebJob se:
-
-- API e publisher richiedono scale profile diversi;
-- il background workload interferisce con l'API;
-- i privilegi del publisher diventano troppo ampi per il web runtime;
-- crescono worker indipendenti;
-- container portability acquista valore reale;
-- serve isolation più forte;
-- il workload richiede orchestration avanzata.
-
-Candidate future: Azure Container Apps, Azure Functions, AKS — soltanto se i trigger lo giustificano.
+- API e publisher con scale profile divergenti;
+- background workload interferisce con API;
+- privilege isolation più forte;
+- più worker indipendenti;
+- container portability reale;
+- SLO/capacity non soddisfatti.
 
 ## Human ingress
 
-Order Operations è oggi un workload interno ESI.
-
-Produzione usa la direzione:
+Produzione:
 
 ```text
 ESI workforce
 → enterprise private access path
 → App Service private endpoint
-→ Microsoft Entra authentication
+→ Entra authentication
 → application authorization
 ```
 
-### Decisione corrente
-
-- App Service public network access disabilitato in produzione;
+- App Service public network disabled;
 - private endpoint inbound;
-- Microsoft Entra authentication obbligatoria;
-- authorization server-side su capability, risorsa e tenant;
-- nessuna trust implicita derivata dalla sola provenienza di rete.
+- authentication obbligatoria;
+- authorization server-side;
+- network location non considerata trusted.
 
-Il private ingress riduce reachability.
+## Outbound / private dependencies
 
-Non sostituisce identity o authorization.
+App Service usa VNet integration.
 
-## Networking outbound
-
-App Service usa **VNet integration** per il percorso outbound verso le capability private del workload.
-
-La landing zone ESI fornisce:
+Landing zone fornisce:
 
 ```text
-appIntegrationSubnetId
-privateEndpointSubnetId
+app integration subnet
+private endpoint subnet
 private DNS capability
-shared routing / governance
+shared routing/governance
 ```
 
-Il workload non crea una rete enterprise parallela soltanto per essere self-contained.
+Private DNS è un failure domain esplicito e deve entrare nei synthetic reliability check.
 
-### Egress inventory corrente
-
-Egress legittimi:
-
-- Microsoft Entra / identity endpoints;
-- PostgreSQL;
-- Service Bus;
-- Key Vault;
-- Azure Monitor / Application Insights;
-- Payments & Risk o provider esplicitamente approvati quando il journey lo richiede.
-
-Order Operations non offre una capability di outbound fetch verso URL arbitrari forniti dall'utente.
-
-## State and data
-
-### Operational state
+## PostgreSQL
 
 **Azure Database for PostgreSQL Flexible Server**.
 
-Contiene lo schema `operations` posseduto da Order Operations e gli artefatti introdotti dalle migration versionate.
+### Production direction
 
-Authoritative ownership rimane conforme a `data-ownership.md`.
+```text
+zone-redundant HA
+backup / point-in-time restore
+private data-plane connectivity
+single region
+```
 
-### Production security direction
+Lo schema `operations` contiene i dati posseduti da Order Operations.
 
-- private data-plane connectivity;
-- public network access disabilitato una volta disponibile la private path;
-- authentication/authorization del database ancora necessarie;
-- tenant isolation e schema ownership non vengono affidate alla rete.
+### Evidence status
 
-### Stato IaC
+```text
+Architecture decision: Designed
+PostgreSQL HA/private IaC module: Pending
+Failover test: Pending
+PITR restore drill: Pending
+```
 
-Il modulo PostgreSQL e la relativa private connectivity non sono ancora implementati in `infra/main.bicep`.
-
-Questa è una gap esplicita, non un controllo dichiarato come completato.
-
-### Current production decision
-
-- managed PostgreSQL;
-- backup obbligatorio;
-- single-region;
-- HA tier/configuration definitiva da legare a RTO/RPO e availability target quantitativi.
+La HA non sostituisce backup/restore per logical corruption.
 
 ### Non scelto
 
 - Redis;
 - search store dedicato;
-- read projection asincrona;
-- cross-region active-active database.
+- cross-region active-active database;
+- read projection asincrona senza trigger.
 
-## Messaging / integration
+## Messaging
 
-### Payment Escalation channel
-
-**Azure Service Bus Queue**.
-
-Pattern corrente:
+Payment Escalation:
 
 ```text
 Order Operations
-→ outbox publisher
-→ Service Bus Queue
-→ Payments & Risk consumer
+→ transactional outbox
+→ publisher
+→ Azure Service Bus Queue
+→ Payments & Risk
 ```
 
-La queue è point-to-point perché oggi esiste un consumer business principale.
-
-Il contract rimane provider-agnostic:
+### Production baseline
 
 ```text
-OperationalCasePaymentEscalatedV1
+Service Bus Premium
+private endpoint
+local/SAS auth disabled
+managed identity
+send-only producer RBAC
+zone redundancy enabled
 ```
 
-### Production security topology
+La zone redundancy è codificata in `infra/main.bicep`.
 
-- Service Bus public network access disabilitato;
-- private endpoint;
-- local/SAS authentication disabilitata nel baseline IaC;
-- managed identity per il publisher;
-- runtime identity con **send-only** permission sulla queue;
-- consumer permission di Payments & Risk separata;
-- broker administration separata da producer e consumer runtime.
+### Cross-region
 
-### Service Bus Premium: compromesso Security ↔ FinOps
+Non abilitiamo ancora Geo-Replication.
 
-Azure Service Bus Private Link/private endpoint è supportato sul tier **Premium**.
-
-Quindi la scelta di private data-plane connectivity compra una proprietà security pagando un costo cloud superiore rispetto a un tier Standard.
-
-Non trattiamo Premium come "best practice" universale.
-
-Lo accettiamo oggi perché il workload è interno e la security architecture privilegia una superficie di rete ridotta.
-
-Il costo deve essere misurato e rivalutato insieme a Finance/FinOps.
+La durable outbox resta source di republish e i regional RTO/RPO correnti non richiedono immediate broker continuity.
 
 Trigger:
 
-- costo sproporzionato rispetto al rischio;
-- nuova capability di platform networking;
-- cambiamento del threat model;
-- diverso messaging volume/topology;
-- public/private boundary differente.
-
-Fonte ufficiale:
-
-- [Microsoft Learn — Integrate Azure Service Bus with Azure Private Link](https://learn.microsoft.com/azure/service-bus-messaging/private-link-service)
-
-### Delivery model
-
-- durable local intent via transactional outbox;
-- broker delivery può produrre redelivery;
-- consumer deve essere idempotente;
-- DLQ richiede owner, alert, retention e redrive policy;
-- business state e integration delivery state restano distinti.
+- RTO regionale più severo;
+- RPO messaggi più severo;
+- contractual commitment;
+- regional active-active strategy.
 
 ## Identity and secrets
 
 ### Human identity
 
-Microsoft Entra ID per operatori e amministratori ESI.
+Microsoft Entra ID.
 
-Authorization applicativa resta responsabilità di Order Operations.
+### Runtime identity
 
-### Workload identity
+System-assigned managed identity.
 
-App Service usa una **system-assigned managed identity** nella baseline Bicep.
+### Deployment identity
 
-Il privilege envelope corrente include soltanto capability necessarie al workload.
-
-### Runtime identity ≠ deployment identity
-
-La runtime identity non riceve privilegi per:
-
-- creare/eliminare risorse;
-- assegnare RBAC;
-- modificare network exposure;
-- distribuire nuove versioni.
-
-La deployment identity è separata e verrà definita in modo completo con la CI/CD pipeline.
-
-La direzione è federation/workload identity anziché credenziale statica lunga vita.
+Separata dal runtime; CI/CD federation completa ancora da definire.
 
 ### Secrets
 
-**Azure Key Vault** per secret inevitabili.
+Azure Key Vault per secret inevitabili:
 
-Baseline corrente:
-
-- RBAC authorization;
+- RBAC;
 - soft delete;
 - purge protection;
-- public network access disabilitato;
 - private endpoint;
-- workload identity con scope limitato;
-- nessun production secret committed nel repository.
+- public access disabled.
 
-Il secret migliore resta quello eliminato tramite identity.
+## Reliability health model
 
-## WAF
+Riferimento:
 
-**Non introdotto nella topologia corrente.**
+```text
+docs/reliability-contract.md
+```
 
-Reason:
+Critical flow:
 
-- il workload è interno;
-- l'ingress produzione è privato;
-- non esiste oggi Internet-facing/partner ingress.
+```text
+CF-01 Investigation
+CF-02 Payment Escalation acceptance
+CF-03 Payment Escalation delivery
+```
 
-Questo è un rischio accettato esplicitamente, non una dimenticanza.
+Health states:
 
-Trigger di revisione:
+```text
+Healthy
+Degraded
+Unhealthy
+```
 
-- public API;
-- mobile/partner access;
-- Internet exposure;
-- compliance requirement;
-- threat model che giustifica application-layer filtering a monte.
+La resource health Azure non è sufficiente per derivare la product health.
 
-## Observability / security signals
+## Graceful degradation
 
-Foundation ESI:
+### Live authoritative dependency unavailable
+
+Order Operations può mantenere local-case visibility solo se:
+
+- provenance/freshness sono esplicite;
+- il dato non verificabile non è presentato come current truth;
+- azioni che richiedono il fact mancante sono bloccate.
+
+### Messaging/downstream unavailable
+
+```text
+CF-02 acceptance = può restare Healthy
+CF-03 delivery = Degraded
+```
+
+La queue/outbox assorbono il delay entro un envelope governato; backlog e oldest age devono essere osservabili.
+
+## Observability foundation
 
 - Azure Monitor;
 - Application Insights;
 - Log Analytics;
-- central logging capability della landing zone.
+- landing-zone logging.
 
-Signal minimi del workload:
+Candidate signal da formalizzare nel Capitolo 15:
 
 ```text
-HTTP request health
-application errors
-dependency latency
-failed authentication/authorization
-cross-tenant authorization denials
-Payment Escalation accepted/rejected
-PostgreSQL health
-outbox backlog
-oldest unpublished message age
-publish failure rate
-Payment Escalation delivery latency
-Service Bus DLQ depth
-Key Vault access failures
-RBAC / privileged configuration changes
-production deployments
-runtime health
+core journey good-event ratio
+core journey latency
+synthetic journey success
+App instance health/saturation
+PostgreSQL connection pressure/failover
+outbox pending/oldest age
+Service Bus queue depth/age
+DLQ depth
+payment escalation delivery latency
+auth/authz failures
+private dependency connectivity
 ```
 
-Log e audit devono rispettare data minimization e redaction policy.
+## IaC status
 
-Threshold e SLO quantitativi saranno definiti nei capitoli Reliability/Observability.
+### Codified
 
-## Deployment / IaC
+`infra/main.bicep` contiene oggi:
 
-### IaC direction
-
-**Bicep** è il percorso Azure supportato da Platform Engineering nello scenario ESI.
-
-`infra/main.bicep` esiste ora e codifica una prima baseline security-aware.
-
-### Codificato oggi
-
-- App Service + system-assigned managed identity;
-- HTTPS only / TLS baseline;
-- Entra authentication configuration;
-- FTP/SCM basic publishing credentials disabled;
-- App Service public network disabled;
+- App Service Premium-compatible plan with capacity >= 2;
+- App Service zone redundancy;
+- managed identity;
+- HTTPS/TLS baseline;
+- Entra auth configuration;
+- private App Service ingress;
 - VNet integration;
-- App Service private endpoint;
-- Key Vault RBAC / private endpoint / public access disabled;
-- Service Bus Premium / queue / private endpoint / local auth disabled;
-- send-only Service Bus RBAC per runtime identity;
-- Key Vault Secrets User RBAC per runtime identity;
-- Log Analytics + Application Insights.
+- private Key Vault;
+- Service Bus Premium + zone redundancy + private endpoint;
+- send-only runtime RBAC;
+- Log Analytics/Application Insights.
 
-### Non ancora codificato/completato
+### Pending
 
-- PostgreSQL resource/private networking;
-- private DNS zone groups della landing zone;
-- federated deployment identity completa;
+- PostgreSQL resource/private networking/HA;
+- private DNS zone group wiring specifico della landing zone;
+- deployment identity completa;
 - diagnostic settings completi;
-- quantitative alert/SLO;
-- backup/recovery configuration completa;
-- deployment slots/blue-green;
-- policy assignments e cost budget.
+- autoscale/headroom policy;
+- health check path;
+- recovery environment parameters;
+- deployment slot/canary strategy.
 
-La presenza di Bicep significa **codified baseline**, non production readiness.
+`Codified` non significa `Verified`.
 
-La build/deployment validation deve essere eseguita in CI e in un environment non-production.
+Bicep build/lint, non-production deployment e failure drill sono ancora evidence da produrre.
+
+## Reliability drills
+
+Required:
+
+1. Payments consumer outage.
+2. App instance loss.
+3. PostgreSQL failover.
+4. PostgreSQL PITR/restore.
+5. Private DNS failure.
+6. Bad deployment rollback.
+
+## Cost drivers
+
+- App Service Premium v3 + minimum instance capacity;
+- PostgreSQL HA standby/backup;
+- Service Bus Premium richiesto anche dalla private endpoint decision;
+- log/telemetry ingestion;
+- private networking;
+- recovery environment quando introdotto.
+
+Il costo è parte del workload e viene confrontato con SLO/RTO/RPO e threat model.
 
 ## Ownership
 
 ### Platform Engineering
 
-- platform landing zone;
-- private DNS/network capability;
-- policy baseline;
-- identity foundation;
-- privileged access baseline;
-- logging/monitoring foundation;
-- approved Bicep path;
-- subscription/resource governance.
+- landing zone;
+- private DNS/network foundation;
+- policy;
+- privileged cloud recovery path;
+- shared monitoring.
 
-### Security
+### Order Operations
 
-- identity/security baseline;
-- threat-model review per cambiamenti ad alto impatto;
-- privileged access governance;
-- policy e incident-response requirements.
-
-### Order Operations workload team
-
-- application authorization;
-- application runtime;
-- App Service/WebJob configuration;
-- PostgreSQL schema e sizing;
+- application/runtime;
+- SLO/health model;
+- App Service/WebJob config;
+- database schema/sizing;
 - queue semantics;
-- workload identity scope richiesto;
-- application deployment;
-- runtime config;
-- NFR;
-- cost;
-- failure handling;
-- application/security telemetry;
-- threat model e control matrix del workload;
-- application on-call.
+- application rollback;
+- outbox recovery;
+- reconciliation;
+- restore validation;
+- cost e on-call.
 
 ### Payments & Risk
 
-- queue consumer semantics;
-- economic workflow;
+- consumer recovery;
 - downstream idempotency;
-- payment-domain decisions.
+- payment workflow state.
 
-## Recovery
+### Security
 
-Current minimum:
-
-- managed database backup direction;
-- versioned migrations;
-- repeatable infrastructure intent;
-- event/outbox reconciliation;
-- Failure Mode Map;
-- Threat Model;
-- identity/secret revocation paths;
-- known-good deployment direction;
-- restore procedure da rendere eseguibile prima della production readiness.
-
-RTO/RPO quantitativi sono ancora open decision.
-
-## Cost drivers
-
-- App Service plan / runtime capacity;
-- PostgreSQL compute/storage/backup/HA option;
-- **Service Bus Premium** richiesto dalla private endpoint decision;
-- Application Insights / Log Analytics ingestion e retention;
-- Key Vault transactions;
-- private endpoints/networking;
-- eventuale redundancy aggiuntiva.
-
-Il costo è parte del workload e deve essere discusso con Finance/FinOps, non scoperto dopo il deployment.
+- threat/control baseline;
+- privileged identity/break-glass governance.
 
 ## Open decisions
 
 1. Azure region concreta.
-2. PostgreSQL production HA mode.
-3. RTO/RPO numerici.
-4. App Service scaling baseline.
-5. PostgreSQL Bicep module/private networking/authentication details.
-6. private DNS integration verification con la landing zone.
-7. backup retention.
-8. log retention e cost budget.
-9. deployment strategy (rolling/slot/blue-green) definitiva.
-10. runtime configuration strategy.
-11. federated CI/CD deployment identity e permission scope.
-12. cost review del Service Bus Premium security trade-off.
-13. quantitative rate/abuse limits.
+2. PostgreSQL HA/private Bicep module.
+3. backup retention.
+4. App Service autoscale/headroom.
+5. health endpoint/readiness design.
+6. exact SLI/latency thresholds.
+7. burn-rate alert policy.
+8. regional recovery runbook/environment.
+9. deployment strategy.
+10. log retention/cost budget.
+11. federated CI/CD identity.
+12. quantitative rate/abuse limits.
 
 ## Review triggers
 
-Rivalutare la Cloud Deployment Map quando cambia almeno uno fra:
+Rivalutare questa mappa quando cambia:
 
+- SLO;
 - RTO/RPO;
 - data residency;
 - scale profile;
-- number of background workers;
+- worker topology;
 - consumer topology;
-- public/private ingress;
-- security/compliance constraint;
+- security constraint;
 - platform standard;
 - region strategy;
 - cost curve;
-- containerization requirement;
-- operational ownership;
-- security incident.
+- recovery drill result;
+- operational ownership.
 
 ## Fonti
 
-- [Microsoft Learn — Azure Application Architecture Fundamentals](https://learn.microsoft.com/azure/architecture/guide/)
 - [Microsoft Learn — Azure landing zones](https://learn.microsoft.com/azure/cloud-adoption-framework/ready/landing-zone/)
-- [Microsoft Learn — App Service WebJobs](https://learn.microsoft.com/azure/app-service/overview-webjobs)
-- [Microsoft Learn — App Service security](https://learn.microsoft.com/azure/app-service/overview-security)
-- [Microsoft Learn — App Service architecture best practices](https://learn.microsoft.com/azure/well-architected/service-guides/app-service-web-apps)
-- [Microsoft Learn — Azure Database for PostgreSQL](https://learn.microsoft.com/azure/postgresql/overview)
-- [Microsoft Learn — Service Bus queues, topics and subscriptions](https://learn.microsoft.com/azure/service-bus-messaging/service-bus-queues-topics-subscriptions)
+- [Microsoft Learn — Reliability in App Service](https://learn.microsoft.com/azure/reliability/reliability-app-service)
+- [Microsoft Learn — Configure App Service zone redundancy](https://learn.microsoft.com/azure/app-service/configure-zone-redundancy)
+- [Microsoft Learn — PostgreSQL High Availability](https://learn.microsoft.com/azure/postgresql/high-availability/concepts-high-availability)
+- [Microsoft Learn — PostgreSQL business continuity](https://learn.microsoft.com/azure/postgresql/backup-restore/concepts-business-continuity)
+- [Microsoft Learn — Reliability in Service Bus](https://learn.microsoft.com/azure/reliability/reliability-service-bus)
 - [Microsoft Learn — Service Bus Private Link](https://learn.microsoft.com/azure/service-bus-messaging/private-link-service)
-- [Microsoft Learn — Managed identity best practices](https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/managed-identity-best-practice-recommendations)
-- [Microsoft Learn — Key Vault RBAC guide](https://learn.microsoft.com/azure/key-vault/general/rbac-guide)
-- [Microsoft Learn — Security design principles](https://learn.microsoft.com/azure/well-architected/security/principles)
-- [Microsoft Learn — Bicep overview](https://learn.microsoft.com/azure/azure-resource-manager/bicep/overview)
+- [Google SRE — Service Level Objectives](https://sre.google/sre-book/service-level-objectives/)
 
-Le fonti descrivono capability e guidance. La topologia ESI è una decisione simulata e rimane soggetta a verification reale.
+Le fonti descrivono capability e metodo. La topologia e i target ESI restano decisioni simulate.
