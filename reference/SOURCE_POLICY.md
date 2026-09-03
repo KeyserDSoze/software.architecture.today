@@ -1,6 +1,6 @@
 # Source Policy — Software Architecture Today
 
-Questo libro distingue tra **principio editoriale**, **esempio simulato** e **claim fattuale verificabile**.
+Questo libro distingue tra **principio editoriale**, **scenario simulato**, **caso reale documentato** e **claim fattuale verificabile**.
 
 L'obiettivo non è riempire ogni pagina di link. È fare in modo che le affermazioni tecniche importanti possano essere ricondotte a evidenze affidabili e che i casi reali non vengano trasformati in folklore.
 
@@ -59,13 +59,51 @@ Nei file Markdown useremo link o note leggibili.
 
 Per capitoli con forte contenuto fattuale potranno esistere file di reference dedicati.
 
-## Casi reali e casi simulati
+## ESI e i casi reali
 
-**Caso reale documentato** significa che esistono fonti verificabili per gli elementi essenziali del racconto.
+**Example Software Industries S.p.A. (ESI)** è lo scenario enterprise interamente fittizio del libro.
 
-**Caso simulato/composito** significa che la situazione è costruita per insegnare un concetto e non deve essere confusa con un incidente o un'architettura realmente esistiti.
+Order Operations e gli altri prodotti ESI sono casi simulati/compositi. Persone, clienti, numeri, vincoli aziendali e incidenti ESI non devono essere interpretati come fatti reali.
 
-Acme Orders è un capstone simulato/composito.
+Lo scenario ESI serve a mostrare:
+
+- evoluzione end-to-end;
+- compromessi fra stakeholder;
+- cambiamenti di requisito;
+- decisioni architetturali nel tempo;
+- applicazione concreta delle pratiche discusse.
+
+**Caso reale documentato** significa invece che esistono fonti verificabili per gli elementi essenziali del racconto.
+
+Quando usiamo un caso reale:
+
+- lo dichiariamo esplicitamente;
+- preferiamo la fonte primaria dell'organizzazione coinvolta;
+- distinguiamo fatti, interpretazioni e inferenze;
+- non usiamo ESI per riempire i dettagli mancanti del caso reale.
+
+## Compromessi ESI ed evidenza
+
+Ogni capitolo contiene almeno un compromesso significativo nello scenario ESI.
+
+Il bisogno aziendale può essere simulato, ma le proprietà tecniche su cui si basa la decisione non devono essere inventate.
+
+Se il compromesso dipende da HTTP, database, cloud, distributed systems, security, observability, AI o altra tecnologia reale, cerchiamo evidenza appropriata.
+
+La struttura attesa è:
+
+```text
+scenario simulato
++ proprietà tecniche verificate
++ trade-off esplicito
++ quality floor
++ guardrail
++ trigger di revisione
+```
+
+Il compromise ledger vive in:
+
+- `capstone/example-software-industries/COMPROMISE_LEDGER.md`.
 
 ## Dati quantitativi
 
@@ -78,7 +116,9 @@ Quando sono fattuali devono avere:
 - la data quando rilevante;
 - le condizioni che ne limitano la generalizzazione.
 
-Quando sono numeri del capstone devono essere marcati come requisiti o assunzioni simulate, non come benchmark reali.
+Quando sono numeri dello scenario ESI devono essere marcati come requisiti o assunzioni simulate, non come benchmark reali.
+
+Quando Order Operations diventerà eseguibile, le misure del capstone dovranno indicare ambiente, workload e metodo di misura.
 
 ## Informazioni soggette a cambiamento
 
@@ -109,6 +149,7 @@ Queste fonti hanno già influenzato il metodo del libro:
 
 - [Microsoft Learn — Azure Application Architecture Fundamentals](https://learn.microsoft.com/azure/architecture/guide/)
 - [Microsoft Learn — Design Principles for Azure Applications](https://learn.microsoft.com/azure/architecture/guide/design-principles/)
+- [Microsoft Learn — Build for business needs](https://learn.microsoft.com/azure/architecture/guide/design-principles/build-for-business)
 - [Microsoft Learn — Use Domain Analysis to Model Microservices](https://learn.microsoft.com/azure/architecture/microservices/model/domain-analysis)
 - [Microsoft Learn — Manage requirements for Agile teams in Azure DevOps](https://learn.microsoft.com/azure/devops/cross-service/manage-requirements)
 - [AWS Well-Architected Framework](https://docs.aws.amazon.com/wellarchitected/latest/framework/welcome.html)
