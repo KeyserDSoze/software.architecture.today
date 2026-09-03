@@ -236,7 +236,25 @@ Quando dovremo rivalutarla?
 
 **Trigger:** impatto del workload operativo sul transazionale, target latency non raggiunti, nuova availability indipendente, più consumer della stessa vista, nuovi search access pattern, crescita di volume/retention o freshness compatibile con una projection asincrona.
 
-## Capitolo 11 e successivi
+## Capitolo 11 — Sistemi distribuiti
+
+**Esigenza:** un operatore deve poter richiedere rapidamente una Payment Escalation e Payments & Risk deve riceverla in modo affidabile anche quando il downstream è temporaneamente degradato.
+
+**Tensione:** latency/availability del critical request path vs consistenza immediata con Payments & Risk vs semplicità di una chiamata sincrona.
+
+**Decisione:** `PaymentEscalation` e `OutboxMessage` vengono salvati nella stessa transazione PostgreSQL; un publisher asincrono broker-agnostico consegna `OperationalCasePaymentEscalated v1` con semantica at-least-once; Payments & Risk deve rendere idempotente la stessa `EscalationId`.
+
+**Costo accettato:** eventual consistency, stato di delivery separato, outbox, publisher, retry/backoff/jitter, DLQ, backlog monitoring e reconciliation.
+
+**Quality floor:** nessuna perdita silenziosa dopo il local commit; nessun duplicate business effect per la stessa escalation; tenant isolation; payload minimizzato; correlation; Payments & Risk mantiene ownership economica.
+
+**Guardrail:** stable `EscalationId` e `messageId`, transactional outbox, bounded retry, Idempotent Consumer, Failure Mode Map, DLQ ownership, controlled redrive e reconciliation.
+
+**Evidence:** Microsoft Azure Architecture Center per Retry, Idempotent Consumer, Transactional Outbox, Saga/Choreography e Compensating Transaction; AWS Builders' Library/Well-Architected per idempotent APIs, timeout, retry budget, backoff e jitter; Uber Engineering per reprocessing/DLQ ed exactly-once delimitato nei sistemi reali.
+
+**Trigger:** polling publisher insufficiente, delivery lag oltre il business target, DLQ frequente, bisogno di replay/stream semantics, ordering più forte, più producer/consumer, workflow economici multi-step o recovery requirement più severi.
+
+## Capitolo 12 e successivi
 
 Da qui in avanti il compromise ledger viene aggiornato insieme al manoscritto.
 
