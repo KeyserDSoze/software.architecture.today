@@ -1,12 +1,14 @@
 # Order Operations — Testing Strategy
 
-> **Scenario fittizio ESI.** Stato corrente dopo il Capitolo 16. Questa strategy governa quali proprietà vogliamo verificare, a quale layer e con quale evidence. I riferimenti a Microsoft, Google, Meta, OWASP e Pact descrivono guidance o casi reali; risk, target e compromessi Order Operations restano simulati.
+> **Scenario fittizio ESI.** Stato corrente dopo il Capitolo 17. Questa strategy governa quali proprietà vogliamo verificare, a quale layer e con quale evidence. I riferimenti a Microsoft, Google, Meta, OWASP e Pact descrivono guidance o casi reali; risk, target e compromessi Order Operations restano simulati.
 
 ## Purpose
 
 Costruire confidence su Order Operations senza trasformare la suite in una collezione di test ridondanti, flaky o troppo costosi da eseguire.
 
 > **Il numero di test non misura la confidenza. Ogni test deve poter dire quale errore importante dovrebbe riuscire a rilevare.**
+
+Dal Capitolo 17 la strategy copre anche la **characterization evidence** necessaria quando Order Operations deve convivere con un sistema legacy.
 
 ## Quality goals
 
@@ -18,7 +20,8 @@ Costruire confidence su Order Operations senza trasformare la suite in una colle
 6. reliability/recovery evidence;
 7. operability e telemetry verification;
 8. fast feedback per il team;
-9. costo sostenibile della test estate.
+9. costo sostenibile della test estate;
+10. legacy behavior visibility prima del refactoring.
 
 ## Critical journeys
 
@@ -49,6 +52,7 @@ docs/threat-model.md
 docs/security-control-matrix.md
 docs/reliability-contract.md
 docs/observability-contract.md
+docs/legacy-understanding-map.md
 ```
 
 ## Risk-to-Evidence Map
@@ -70,6 +74,8 @@ docs/observability-contract.md
 | TST-013 | telemetry non espone secret/token | high | adapter/policy unit | staging telemetry query | PR/staging |
 | TST-014 | alert criticali raggiungono owner/runbook | high | alert definition review | alert drill | readiness |
 | TST-015 | migration chain preserva schema/data | high | SQL static review | real PostgreSQL migration test | PR |
+| TST-016 | legacy priority behavior cambia accidentalmente durante modernization | high | characterization suite | shadow/coexistence comparison | PR/migration |
+| TST-017 | behavior legacy osservato viene promosso a requisito senza domain confirmation | high | Legacy Understanding Map review | Product/Operations confirmation | migration decision |
 
 ## Test layers
 
@@ -80,6 +86,7 @@ docs/observability-contract.md
 - outbox publisher test;
 - telemetry classification test;
 - schema/serialization check;
+- legacy characterization test;
 - static security checks quando introdotti.
 
 ### Layer B — Integration
@@ -88,7 +95,8 @@ docs/observability-contract.md
 - migration chain;
 - API host integration;
 - contract verification;
-- real serialization adapter.
+- real serialization adapter;
+- future legacy/new adapter integration.
 
 ### Layer C — Staging / cloud
 
@@ -108,7 +116,8 @@ docs/observability-contract.md
 - PostgreSQL failover;
 - PITR/restore;
 - alert drill;
-- broader security verification.
+- broader security verification;
+- migration/shadow comparison when legacy coexistence begins.
 
 ### Layer E — Production continuous verification
 
@@ -116,9 +125,10 @@ docs/observability-contract.md
 - private synthetic journey;
 - canary/health evidence;
 - alerting;
-- drift detection.
+- drift detection;
+- controlled coexistence telemetry when introduced.
 
-## Current executable suite — Capitolo 16
+## Current executable suite — Order Operations
 
 ```text
 tests/payment-escalation.test.mjs
@@ -150,10 +160,6 @@ Decisione intenzionale:
 
 ### Verification evidence — Capitolo 16
 
-La suite è stata ricostruita dai source presenti nel repository ed eseguita localmente dopo la scrittura del capitolo.
-
-Risultato:
-
 ```text
 tsc -p tsconfig.json
 → PASS
@@ -168,6 +174,63 @@ node --test tests/*.test.mjs
 Questa evidence verifica il **fast local layer** soltanto.
 
 Non dimostra PostgreSQL, Azure, Service Bus reale, contract downstream o recovery.
+
+## Legacy characterization suite — Capitolo 17
+
+Operations Desk Classic vive come sistema separato:
+
+```text
+../../legacy/operations-desk-classic/
+```
+
+Suite:
+
+```text
+../../legacy/operations-desk-classic/tests/priority-routing.characterization.test.mjs
+```
+
+Behavior:
+
+```text
+LB-01 CLOSED → NONE
+LB-02 manual hold → MANUAL_REVIEW
+LB-03 Payment + failed_attempts >= 3 → URGENT
+LB-04 Enterprise + age >= 30 min → URGENT
+LB-05 Enterprise before threshold → STANDARD
+LB-06 ordinary case → STANDARD
+```
+
+Verification eseguita durante il Capitolo 17:
+
+```text
+node --test priority-routing.characterization.test.mjs
+→ 6 tests
+→ 6 pass
+→ 0 fail
+→ 0 skipped
+```
+
+Questa evidence significa:
+
+```text
+behavior under characterized input
+= Observed + locally Verified
+```
+
+Non significa:
+
+```text
+business requirement
+= Confirmed
+```
+
+La semantica resta governata da:
+
+```text
+docs/legacy-understanding-map.md
+```
+
+Il comando `npm test` del capstone è stato aggiornato per includere sia la suite Order Operations sia la characterization legacy. Il nuovo pattern combinato è **Codified**; i due gruppi di test hanno evidence di esecuzione locale separata (11/11 e 6/6).
 
 ## Contract testing
 
@@ -311,10 +374,11 @@ private runner
 Usiamo il minimo environment capace di dimostrare la property.
 
 ```text
-business rule           → process-local
-PostgreSQL semantics    → PostgreSQL reale
-Azure identity/network  → Azure non-production
-region/recovery         → environment capace del drill
+business rule                → process-local
+legacy observed behavior     → characterization at legacy boundary
+PostgreSQL semantics         → PostgreSQL reale
+Azure identity/network       → Azure non-production
+region/recovery              → environment capace del drill
 ```
 
 ## Test data
@@ -342,6 +406,7 @@ npm test
 ```text
 typecheck
 fast tests
+legacy characterization
 PostgreSQL integration
 migration test
 API integration
@@ -370,6 +435,7 @@ failure injection
 restore
 alert drill
 security verification
+migration/shadow comparison when applicable
 ```
 
 ## Flakiness policy
@@ -406,9 +472,10 @@ Applicazione selettiva futura su:
 - idempotency/conflict;
 - outbox append/atomicity adapter;
 - logging/redaction;
-- eventuali future action economiche.
+- eventuali future action economiche;
+- future priority policy **dopo** averne confermato la semantica.
 
-Non inseguiamo 100% mutation score.
+Non usiamo mutation per trasformare automaticamente behavior legacy non confermato in requisito.
 
 Riferimenti:
 
@@ -424,6 +491,7 @@ Gli agenti possono:
 - generare synthetic fixture;
 - proporre realistic fault/mutant;
 - cercare coverage gap;
+- generare characterization candidate;
 - minimizzare failure reproduction;
 - fare adversarial review della suite.
 
@@ -431,13 +499,14 @@ Ogni test merged richiede review umana su:
 
 ```text
 risk/source
-fault detected
+fault or behavior detected
 assertion strength
 layer fit
 determinism
 data safety
 redundancy
 maintenance cost
+requirement state: Confirmed vs Characterized
 ```
 
 Non accettiamo come evidence:
@@ -454,7 +523,14 @@ Non accettiamo come evidence:
 - DB/API integration;
 - migration;
 - application security;
-- suite health.
+- suite health;
+- modernization adapter tests quando introdotti.
+
+### Operations / legacy owner
+
+- characterization semantics review;
+- legacy operational behavior confirmation;
+- hidden consumer discovery.
 
 ### Payments & Risk
 
@@ -483,15 +559,18 @@ Non accettiamo come evidence:
 ## Evidence status
 
 ```text
-Testing Strategy               = Designed + documented
-Node fast test suite           = Codified + Verified locally (11/11)
-TypeScript build               = Verified locally
-PostgreSQL integration suite   = Designed / Pending
-Payments contract suite        = Designed / Pending cross-team
-Azure security integration     = Designed / Pending
-Performance evidence           = Pending
-Recovery drills                = Designed / Pending
-Production synthetic journey   = Designed / Pending
+Testing Strategy                    = Designed + documented
+Order Operations fast test suite    = Codified + Verified locally (11/11)
+Legacy characterization suite       = Codified + Verified locally (6/6)
+Combined npm test command            = Codified
+TypeScript build                    = Verified locally in Chapter 16
+PostgreSQL integration suite        = Designed / Pending
+Payments contract suite             = Designed / Pending cross-team
+Azure security integration          = Designed / Pending
+Performance evidence                = Pending
+Recovery drills                     = Designed / Pending
+Production synthetic journey        = Designed / Pending
+Legacy business semantics           = Observed, not yet Confirmed
 ```
 
 ## Test debt register — current
@@ -504,7 +583,10 @@ Open:
 - Azure adapter verification pending;
 - Bicep build/deploy verification pending;
 - recovery drill pending;
-- production synthetic runner pending.
+- production synthetic runner pending;
+- legacy owner/domain confirmation pending;
+- legacy hidden consumer inventory pending;
+- shadow/coexistence test not yet designed in executable form.
 
 Questi gap restano visibili e non vengono coperti dai test locali verdi.
 
@@ -522,12 +604,15 @@ Rivedere la strategy quando cambia:
 - team ownership;
 - incident class;
 - suite runtime/flakiness;
-- AI autonomy nel repository.
+- AI autonomy nel repository;
+- legacy behavior classification;
+- modernization seam/cutover plan.
 
 ## Sources
 
 - [Microsoft Learn — Architecture strategies for testing](https://learn.microsoft.com/en-us/azure/well-architected/operational-excellence/testing)
 - [Microsoft Learn — Build confidence in Azure workloads with effective testing practices](https://learn.microsoft.com/en-us/azure/well-architected/design-guides/testing)
+- [Microsoft Learn — IntelliTest characterization tests](https://learn.microsoft.com/en-us/visualstudio/test/intellitest-manual/)
 - [Google Testing Blog — Just Say No to More End-to-End Tests](https://testing.googleblog.com/2015/04/just-say-no-to-more-end-to-end-tests.html)
 - [Engineering at Meta — Probabilistic flakiness](https://engineering.fb.com/2020/12/10/developer-tools/probabilistic-flakiness/)
 - [OWASP ASVS](https://owasp.org/www-project-application-security-verification-standard/)
