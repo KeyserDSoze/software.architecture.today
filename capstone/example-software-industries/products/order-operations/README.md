@@ -218,22 +218,9 @@ tests/payment-escalation.test.mjs
 tests/outbox-publisher.test.mjs
 ```
 
-La prima tranche protegge:
+La prima tranche protegge Payment eligibility, tenant boundary, idempotency, escalation+outbox orchestration, retry/exhaustion e telemetry classification.
 
-- Payment category eligibility;
-- tenant mismatch;
-- idempotent replay;
-- idempotency-key conflict;
-- escalation + outbox orchestration;
-- bounded retry;
-- exhausted delivery path;
-- stable `messageId` durante retry;
-- telemetry acceptance/rejection classification;
-- bounded metric context vs high-cardinality correlation identifiers.
-
-Il progetto usa per ora il runner integrato `node:test` sul JavaScript compilato da TypeScript invece di introdurre un framework aggiuntivo senza un requisito.
-
-Verification eseguita durante la scrittura del capitolo:
+Verification:
 
 ```text
 tsc -p tsconfig.json
@@ -245,21 +232,61 @@ node --test tests/*.test.mjs
 → 0 fail
 ```
 
-Questa evidence è limitata al fast local layer.
+Questa evidence resta limitata al fast local layer.
 
-Restano pending:
+### Capitolo 17 — Legacy e comprensione
+
+ESI introduce un sistema brownfield separato:
 
 ```text
-PostgreSQL integration/migration tests
-API host integration
-Payments & Risk consumer contract
-Azure identity/network/RBAC tests
-performance/capacity evidence
-recovery drills
-production synthetic journey
+capstone/example-software-industries/legacy/operations-desk-classic/
 ```
 
-Questo è intenzionale: test locali verdi non vengono usati per dichiarare verified ciò che richiede un boundary reale.
+Order Operations non lo assorbe ancora.
+
+Prima costruisce:
+
+```text
+docs/legacy-understanding-map.md
+```
+
+La slice legacy in scope è:
+
+```text
+legacy case priority routing
+```
+
+con codice volutamente non refactorizzato e characterization suite dedicata.
+
+Evidence eseguita:
+
+```text
+node --test priority-routing.characterization.test.mjs
+→ 6 tests
+→ 6 pass
+→ 0 fail
+```
+
+I behavior `LB-01…LB-06` sono quindi **Observed** sotto input caratterizzati, ma restano `Unknown` come requirement finché Product/Operations/domain owner non ne confermano la semantica.
+
+Il progetto adotta esplicitamente gli stati:
+
+```text
+Found
+→ Inferred
+→ Observed
+→ Confirmed
+```
+
+Candidate modernization direction:
+
+```text
+PriorityRouting seam
++ Branch by Abstraction
++ Anti-Corruption Layer where needed
+```
+
+ma nessun seam/refactor viene ancora implementato: appartiene al Capitolo 18.
 
 ## Struttura corrente
 
@@ -287,6 +314,7 @@ order-operations/
 │   ├── reliability-contract.md
 │   ├── observability-contract.md
 │   ├── testing-strategy.md
+│   ├── legacy-understanding-map.md
 │   ├── events/
 │   │   └── operational-case-payment-escalated-v1.md
 │   └── adr/
@@ -311,6 +339,20 @@ order-operations/
     └── outbox-publisher.test.mjs
 ```
 
+Il sistema legacy è intenzionalmente separato dal prodotto target:
+
+```text
+example-software-industries/
+├── legacy/
+│   └── operations-desk-classic/
+│       ├── README.md
+│       ├── src/priority-routing.cjs
+│       └── tests/
+│           ├── README.md
+│           └── priority-routing.characterization.test.mjs
+└── products/order-operations/
+```
+
 Non creiamo directory vuote per simulare avanzamento.
 
 ## Evidence status
@@ -328,11 +370,14 @@ Designed
 
 ```text
 TypeScript source: Codified + typechecked
-fast Node test suite: Codified + Verified locally, 11/11
+Order Operations fast Node suite: Codified + Verified locally, 11/11
+Operations Desk Classic characterization: Codified + Verified locally, 6/6
 PostgreSQL integration: Designed / Pending
 API integration: Designed / Pending
 Payments contract: Designed / Pending cross-team
 ```
+
+I `6/6` legacy verificano il comportamento della slice. Non promuovono i behavior a business requirement `Confirmed`.
 
 ### Bicep
 
@@ -368,31 +413,20 @@ private synthetic journey: Designed
 runtime telemetry evidence: Not yet available
 ```
 
-Non chiamiamo `Monitored` una proprietà finché non esiste evidence runtime effettivamente interrogabile.
+### Legacy understanding
+
+```text
+legacy source slice: Found
+characterized behavior LB-01…LB-06: Observed + locally Verified
+business intent: not yet Confirmed
+hidden consumer inventory: Inferred / Pending
+candidate seam: Designed only
+refactoring/migration: not started
+```
 
 ## Documenti che devono restare sincronizzati
 
-Quando Order Operations cambia verifichiamo impatto su:
-
-- problem/outcome;
-- analisi funzionale e glossario;
-- requirements;
-- ownership;
-- ADR;
-- API/event contract;
-- Data Ownership Map;
-- schema/migration;
-- NFR;
-- Failure Mode Map;
-- Cloud Deployment Map;
-- Threat Model;
-- Security Control Matrix;
-- Reliability Contract;
-- Observability Contract;
-- Testing Strategy;
-- infrastructure as code;
-- deployment/rollback;
-- runbook.
+Quando Order Operations cambia verifichiamo impatto su problem/outcome, analisi funzionale, requirements, ownership, ADR, API/event contract, Data Ownership Map, schema/migration, NFR, Failure Mode Map, Cloud Deployment Map, Threat Model, Security Control Matrix, Reliability Contract, Observability Contract, Testing Strategy, Legacy Understanding Map, infrastructure as code, deployment/rollback e runbook.
 
 Il codice è una rappresentazione importante del prodotto, ma non è l'unica.
 
@@ -400,23 +434,12 @@ Il codice è una rappresentazione importante del prodotto, ma non è l'unica.
 
 Order Operations può ricevere pressioni o requisiti da Payments & Risk, Mobile Products, Data & AI, Platform Engineering, Security, Finance/FinOps, Legal/Compliance, Sales e clienti enterprise.
 
-Questo è intenzionale: vogliamo vedere come una soluzione cambia quando il problema tecnico incontra il resto dell'azienda.
+Dal Capitolo 17 aggiungiamo anche una pressione tipica delle grandi aziende:
+
+> **un sistema nuovo deve spesso convivere con software che non può essere spento soltanto perché il target è più elegante.**
 
 ## Obiettivo finale
 
-Alla fine del libro Order Operations dovrà essere navigabile e funzionante con:
-
-- codice applicativo;
-- test;
-- documentazione;
-- decision log;
-- contratti;
-- data model;
-- infrastructure as code;
-- security controls;
-- reliability/observability evidence;
-- deployment e rollback;
-- production readiness;
-- eventuale integrazione AI soltanto quando giustificata.
+Alla fine del libro Order Operations dovrà essere navigabile e funzionante con codice applicativo, test, documentazione, decision log, contratti, data model, infrastructure as code, security controls, reliability/observability evidence, deployment/rollback, production readiness ed eventuale integrazione AI soltanto quando giustificata.
 
 Il lettore deve poter confrontare le prime decisioni con il sistema finale e capire non soltanto **che cosa** è cambiato, ma **perché**.
