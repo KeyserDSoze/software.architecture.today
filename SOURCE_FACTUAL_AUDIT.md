@@ -33,7 +33,8 @@ I casi reali restano separati dallo scenario ESI e richiedono fonti verificabili
 | 7 — Pattern senza religione | sì | da fare | sì — draft pass | robustezza vs complexity debt |
 | 8 — Il monolite non è il nemico | sì | da fare | sì — draft pass | autonomia/isolation vs costo distribuito |
 | 9 — API e contratti | sì | sì — draft pass | sì — draft pass | source-first; action API rinviate finché semantica e ownership non sono definite |
-| 10+ | non ancora | source-first | required | ricerca, compromesso ESI e aggiornamento capstone entrano nel workflow prima della chiusura del draft |
+| 10 — I dati sono architettura | sì | sì — draft pass | sì — draft pass | Microsoft Learn, PostgreSQL, Redis, Stripe Engineering e GitHub Blog; vista unificata vs ownership/synchronization/operational cost |
+| 11+ | non ancora | source-first | required | ricerca, compromesso ESI e aggiornamento capstone entrano nel workflow prima della chiusura del draft |
 
 ## Workflow editoriale da Capitolo 10
 
@@ -66,7 +67,7 @@ La richiedono soprattutto:
 - affermazioni storiche;
 - raccomandazioni che dipendono da evidenze esterne.
 
-Le tesi editoriali del libro devono essere argomentate chiaramente e, quando possibile, confrontate con fonti che mostrino convergenza o tensione.
+Le tesi editoriali del libro devono invece essere argomentate chiaramente e, quando possibile, confrontate con fonti che mostrino convergenza o tensione.
 
 ## ESI compromise pass
 
