@@ -101,31 +101,100 @@ database/migrations/001_create_operational_case.sql
 
 Non vengono ancora introdotti Redis, search store o projection asincrona: le future copie dovranno avere source, freshness, reconciliation e rebuild espliciti.
 
+### Capitolo 11 — Sistemi distribuiti
+
+Una nuova esigenza ESI introduce la prima integrazione asincrona reale del capstone.
+
+Un operatore può richiedere una **Payment Escalation** verso Payments & Risk senza eseguire direttamente refund o altre operazioni economiche.
+
+Il flow usa:
+
+```text
+local PostgreSQL transaction
++ PaymentEscalation
++ Transactional Outbox
++ broker-agnostic publisher
++ at-least-once delivery contract
++ downstream idempotency
++ Failure Mode Map
+```
+
+L'API contract evolve con:
+
+```text
+POST /api/operational-cases/{caseId}/payment-escalations
+Idempotency-Key: <escalation-id>
+```
+
+La risposta distingue:
+
+```text
+business state   = Requested
+integration state = Pending / Delivered / Delayed / DeadLettered
+```
+
+Viene aggiunta la migration:
+
+```text
+database/migrations/002_add_payment_escalation_and_outbox.sql
+```
+
+E `src/` entra per la prima volta nel progetto con TypeScript strict e porte broker-agnostiche.
+
+Non scegliamo ancora il prodotto cloud di messaging: il Capitolo 12 deciderà l'adapter infrastrutturale sulla base dei requisiti già espliciti.
+
 ## Struttura corrente
 
 ```text
 order-operations/
 ├── README.md
+├── package.json
+├── tsconfig.json
 ├── database/
 │   ├── README.md
 │   └── migrations/
-│       └── 001_create_operational_case.sql
-└── docs/
-    ├── functional-analysis.md
-    ├── requirements.md
-    ├── architecture-context.md
-    ├── nfr.md
-    ├── api-contract.md
-    ├── data-ownership.md
-    └── adr/
-        └── 0001-live-read-before-read-model.md
+│       ├── 001_create_operational_case.sql
+│       └── 002_add_payment_escalation_and_outbox.sql
+├── docs/
+│   ├── functional-analysis.md
+│   ├── requirements.md
+│   ├── architecture-context.md
+│   ├── nfr.md
+│   ├── api-contract.md
+│   ├── data-ownership.md
+│   ├── failure-mode-map.md
+│   ├── events/
+│   │   └── operational-case-payment-escalated-v1.md
+│   └── adr/
+│       └── 0001-live-read-before-read-model.md
+└── src/
+    ├── application/
+    │   └── request-payment-escalation.ts
+    ├── contracts/
+    │   └── operational-case-payment-escalated-v1.ts
+    └── integration/
+        └── outbox-publisher.ts
 ```
 
-`src/`, `tests/` e `infra/` compariranno quando il percorso del libro avrà costruito foundation sufficiente per implementation e deployment significativi.
+`tests/` e `infra/` compariranno quando il percorso del libro avrà costruito foundation sufficiente per testing strategy e deployment significativi.
 
 Non creiamo directory vuote per simulare avanzamento.
 
-La directory `database/` compare ora perché il Capitolo 10 ha prodotto la prima decisione dati sufficientemente concreta da meritare un artefatto eseguibile.
+La directory `src/` compare ora perché il Capitolo 11 ha prodotto una business operation e un integration boundary sufficientemente definiti da meritare codice reale senza anticipare la scelta del cloud provider.
+
+## TypeScript
+
+Il nucleo TypeScript corrente non dipende da framework o SDK cloud.
+
+Comandi:
+
+```bash
+npm install
+npm run typecheck
+npm run build
+```
+
+Il typecheck strict del codice introdotto nel Capitolo 11 è stato verificato durante la scrittura del capitolo.
 
 ## Cosa deve rimanere sincronizzato
 
@@ -138,17 +207,18 @@ Quando Order Operations cambia dobbiamo verificare l'impatto su:
 - ownership;
 - ADR;
 - API contract;
+- event contract;
 - Data Ownership Map;
 - schema e migration;
 - NFR;
-- failure model;
+- Failure Mode Map;
 - threat model;
 - observability;
 - testing strategy;
 - deployment;
 - runbook.
 
-Il codice sarà una rappresentazione importante del prodotto, ma non sarà l'unica.
+Il codice è una rappresentazione importante del prodotto, ma non è l'unica.
 
 ## Contesto aziendale
 
