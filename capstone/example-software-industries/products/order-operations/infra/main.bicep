@@ -17,6 +17,13 @@ param appName string
 @description('App Service Plan name.')
 param appServicePlanName string
 
+@description('App Service Plan SKU. Production reliability direction uses Premium v3; lower environments may override intentionally.')
+param appServicePlanSku string = 'P1v3'
+
+@minValue(2)
+@description('App Service Plan capacity. Chapter 14 requires at least two instances for the current zone-redundant production baseline.')
+param appServicePlanCapacity int = 2
+
 @description('Globally unique Key Vault name.')
 @minLength(3)
 @maxLength(24)
@@ -98,13 +105,12 @@ resource appServicePlan 'Microsoft.Web/serverfarms@2024-04-01' = {
   location: location
   tags: commonTags
   sku: {
-    name: 'S1'
-    tier: 'Standard'
-    capacity: 1
+    name: appServicePlanSku
+    capacity: appServicePlanCapacity
   }
   properties: {
     reserved: true
-    zoneRedundant: false
+    zoneRedundant: true
   }
 }
 
@@ -233,8 +239,9 @@ resource serviceBusNamespace 'Microsoft.ServiceBus/namespaces@2024-01-01' = {
   }
   properties: {
     disableLocalAuth: true
+    minimumTlsVersion: '1.2'
     publicNetworkAccess: 'Disabled'
-    zoneRedundant: false
+    zoneRedundant: true
   }
 }
 
