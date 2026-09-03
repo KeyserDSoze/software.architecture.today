@@ -17,6 +17,10 @@ Capstone principale:
 
 > **Order Operations** — business unit Commerce & Operations.
 
+Dal Capitolo 17 entra anche un sistema brownfield separato:
+
+> **Operations Desk Classic** — legacy ESI simulato.
+
 I casi reali restano separati dallo scenario ESI e richiedono fonti verificabili.
 
 ## Stato corrente
@@ -39,10 +43,11 @@ I casi reali restano separati dallo scenario ESI e richiedono fonti verificabili
 | 13 — Security by Design | sì | sì — draft pass | sì — draft pass | Microsoft Learn, NIST SSDF, OWASP ASVS e Cloudflare; Threat Model, private boundary, secure SDLC, Security Control Matrix e prima baseline Bicep |
 | 14 — Reliability e resilienza | sì | sì — draft pass | sì — draft pass | Google SRE, Microsoft Learn, GitHub e Cloudflare; SLI/SLO/error budget, failure/recovery, RTO/RPO, Reliability Contract |
 | 15 — Observability | sì | sì — draft pass | sì — draft pass | OpenTelemetry, Google SRE e Microsoft Learn; signal/correlation, SLI measurement, cardinality/sampling, alerting, private synthetic journey, Observability Contract |
-| 16 — Testing Architecture | sì | sì — draft pass | sì — draft pass | Microsoft Learn, Google Testing Blog, Meta Engineering, OWASP ASVS e Pact; risk-driven testing, testability, contract/integration/E2E, mutation, flaky-test policy, AI-generated tests e Testing Strategy |
-| 17+ | non ancora | source-first | required | ricerca, compromesso ESI e aggiornamento capstone entrano nel workflow prima della chiusura del draft |
+| 16 — Testing Architecture | sì | sì — draft pass | sì — draft pass | Microsoft Learn, Google Testing Blog, Meta Engineering, OWASP ASVS e Pact; risk-driven testing, contract/integration/E2E, mutation, flaky-test policy, AI-generated tests e Testing Strategy |
+| 17 — Legacy e comprensione | sì | sì — draft pass | sì — draft pass | Microsoft App Modernization Guidance, Azure/AWS modernization pattern, Microsoft characterization guidance, Fowler, GitHub engineering; legacy assessment, Found/Inferred/Observed/Confirmed, characterization, hidden contract, Strangler/Branch by Abstraction/ACL, AI-assisted discovery e Legacy Understanding Map |
+| 18+ | non ancora | source-first | required | ricerca, compromesso ESI e aggiornamento capstone entrano nel workflow prima della chiusura del draft |
 
-## Nota di verifica Capitoli 13–16
+## Nota di verifica Capitoli 13–17
 
 ### Infrastruttura
 
@@ -90,7 +95,7 @@ private synthetic journey: Designed / Pending
 runtime observability evidence: non ancora disponibile
 ```
 
-### Testing
+### Testing — Order Operations
 
 Il Capitolo 16 ha aggiunto:
 
@@ -99,15 +104,6 @@ docs/testing-strategy.md
 tests/payment-escalation.test.mjs
 tests/outbox-publisher.test.mjs
 ```
-
-Il package usa ora:
-
-```text
-npm run build
-node --test tests/*.test.mjs
-```
-
-La suite è stata ricostruita localmente dai source correnti del repository ed eseguita dopo la scrittura del capitolo.
 
 Evidence osservata:
 
@@ -122,14 +118,7 @@ node --test tests/*.test.mjs
 → 0 skipped
 ```
 
-Questa verifica copre soltanto il **fast local layer**:
-
-- business/application logic;
-- idempotent replay/conflict;
-- tenant mismatch nel use case;
-- outbox publisher retry/exhaustion;
-- stable `messageId`;
-- telemetry classification.
+Questa verifica copre soltanto il **fast local layer**.
 
 Non dimostra ancora:
 
@@ -145,11 +134,55 @@ failover/PITR
 production synthetic journey
 ```
 
-Questi restano `Designed/Pending`, non implicitamente verificati dai test locali verdi.
+### Legacy characterization — Capitolo 17
 
-## Evidence state vocabulary
+Il Capitolo 17 ha aggiunto:
 
-Il capstone usa:
+```text
+capstone/example-software-industries/legacy/operations-desk-classic/
+products/order-operations/docs/legacy-understanding-map.md
+```
+
+La legacy slice contiene:
+
+```text
+src/priority-routing.cjs
+tests/priority-routing.characterization.test.mjs
+```
+
+La characterization suite è stata ricostruita dal codice presente nel repository ed eseguita localmente.
+
+Evidence osservata:
+
+```text
+node --test priority-routing.characterization.test.mjs
+→ 6 tests
+→ 6 pass
+→ 0 fail
+→ 0 skipped
+```
+
+Stato corretto:
+
+```text
+legacy source slice: Found
+LB-01…LB-06 behavior under characterized inputs: Observed + Verified locally
+business intent / requirement status: Unknown, non ancora Confirmed
+runtime caller evidence: Pending
+hidden consumer inventory: Pending
+candidate modernization seam: Designed only
+refactoring/cutover: non iniziati
+```
+
+Questo è intenzionale.
+
+Un characterization test può verificare che un comportamento esista e sia riproducibile.
+
+Non può dimostrare da solo che quel comportamento debba diventare un requisito del nuovo sistema.
+
+## Evidence vocabulary
+
+Per artefatti/capability usiamo:
 
 ```text
 Designed
@@ -158,11 +191,26 @@ Designed
 → Monitored
 ```
 
-Un file di test committed è `Codified`.
+Per legacy knowledge aggiungiamo una seconda dimensione:
 
-Diventa `Verified` soltanto quando è stato eseguito e l'evidence è coerente con la property dichiarata.
+```text
+Found
+→ Inferred
+→ Observed
+→ Confirmed
+```
 
-Un test locale non promuove automaticamente a `Verified` un boundary esterno che non ha attraversato.
+Le due scale non sono equivalenti.
+
+Esempio:
+
+```text
+characterization test = Codified + Verified
+legacy behavior = Observed
+business requirement = non ancora Confirmed
+```
+
+Questo evita che test verdi trasformino automaticamente il comportamento storico in semantica ufficiale.
 
 ## Numeri simulati ESI
 
@@ -179,9 +227,9 @@ Region disaster RTO: <= 8 h
 Region disaster RPO: <= 1 h
 ```
 
-I Capitoli 15–16 usano questi valori per mostrare come si progettano measurement source, alerting e verification. Non li trasformano in standard industriali.
+I Capitoli 15–17 non trasformano questi numeri in standard industriali.
 
-In una release candidate dovremo verificare che non vengano mai presentati altrove come benchmark reali.
+Anche le regole `LB-01…LB-06` di Operations Desk Classic sono **behavior simulati ESI**, non best practice o regole reali di settore.
 
 ## Workflow editoriale da Capitolo 10
 
@@ -196,6 +244,15 @@ outline
 → adversarial review
 → final editorial pass
 ```
+
+Dal Capitolo 17, quando entra un brownfield system, aggiungiamo:
+
+```text
+claim provenance
+→ Found / Inferred / Observed / Confirmed
+```
+
+per evitare che inferenze del repository o output AI diventino documentazione autorevole senza evidence.
 
 ## Evidence pass
 
@@ -245,5 +302,7 @@ Prima di una release candidata:
 - nessun capitolo può mancare del compromise pass quando ESI è applicabile;
 - i casi reali devono essere chiaramente separati dai casi ESI;
 - i numeri simulati ESI non devono essere presentati come benchmark reali;
+- i behavior simulati legacy non devono essere presentati come regole industry;
 - gli artefatti codificati devono superare i gate tecnici dichiarati prima di essere descritti come production-ready;
-- la test suite deve avere una policy per flakiness, test debt e risk-to-evidence traceability, non soltanto un numero di test crescente.
+- la test suite deve avere una policy per flakiness, test debt e risk-to-evidence traceability;
+- le affermazioni su sistemi legacy devono conservare provenance e distinguere inferenza da osservazione/conferma.
