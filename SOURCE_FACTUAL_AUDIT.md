@@ -9,11 +9,11 @@ Questo file traccia due revisioni distinte del manoscritto:
 
 ## Convenzione narrativa corrente
 
-Lo scenario enterprise fittizio ufficiale del libro è:
+Scenario enterprise fittizio ufficiale:
 
 > **Example Software Industries S.p.A. — ESI**
 
-Il capstone principale è:
+Capstone principale:
 
 > **Order Operations** — business unit Commerce & Operations.
 
@@ -35,17 +35,20 @@ I casi reali restano separati dallo scenario ESI e richiedono fonti verificabili
 | 9 — API e contratti | sì | sì — draft pass | sì — draft pass | source-first; action API rinviate finché semantica e ownership non sono definite |
 | 10 — I dati sono architettura | sì | sì — draft pass | sì — draft pass | Microsoft Learn, PostgreSQL, Redis, Stripe Engineering e GitHub Blog; vista unificata vs ownership/synchronization/operational cost |
 | 11 — Sistemi distribuiti | sì | sì — draft pass | sì — draft pass | Microsoft Learn, AWS Builders' Library/Well-Architected, Uber Engineering; async Payment Escalation, partial failure, retry/idempotency, outbox, DLQ, saga/choreography e Failure Mode Map |
-| 12 — Cloud Architecture | sì | sì — draft pass | sì — draft pass | Microsoft Learn, AWS Well-Architected/Builders' Library e dacadoo case study; cloud-appropriate vs cloud-native, landing zone, compute fit, managed services, HA/DR, identity, IaC e Cloud Deployment Map |
-| 13 — Security by Design | sì | sì — draft pass | sì — draft pass | Microsoft Learn, NIST SSDF, OWASP ASVS e Cloudflare postmortem; threat modeling, identity/authorization, private boundary, secure SDLC, Security Control Matrix e prima baseline Bicep |
-| 14 — Reliability e resilienza | sì | sì — draft pass | sì — draft pass | Google SRE, Azure Well-Architected/reliability docs, GitHub availability report e Cloudflare postmortem; SLI/SLO/error budget, health model, graceful degradation, capacity/cascading failure, RTO/RPO, recovery drill e Reliability Contract |
-| 15 — Observability | sì | sì — draft pass | sì — draft pass | OpenTelemetry, Google SRE e Microsoft Learn; signal/correlation, SLI measurement, cardinality/sampling, alerting, private synthetic journey, AI-assisted investigation e Observability Contract |
-| 16+ | non ancora | source-first | required | ricerca, compromesso ESI e aggiornamento capstone entrano nel workflow prima della chiusura del draft |
+| 12 — Cloud Architecture | sì | sì — draft pass | sì — draft pass | Microsoft Learn, AWS Well-Architected/Builders' Library e dacadoo; cloud-appropriate vs cloud-native, landing zone, compute fit, managed services, HA/DR, identity, IaC |
+| 13 — Security by Design | sì | sì — draft pass | sì — draft pass | Microsoft Learn, NIST SSDF, OWASP ASVS e Cloudflare; Threat Model, private boundary, secure SDLC, Security Control Matrix e prima baseline Bicep |
+| 14 — Reliability e resilienza | sì | sì — draft pass | sì — draft pass | Google SRE, Microsoft Learn, GitHub e Cloudflare; SLI/SLO/error budget, failure/recovery, RTO/RPO, Reliability Contract |
+| 15 — Observability | sì | sì — draft pass | sì — draft pass | OpenTelemetry, Google SRE e Microsoft Learn; signal/correlation, SLI measurement, cardinality/sampling, alerting, private synthetic journey, Observability Contract |
+| 16 — Testing Architecture | sì | sì — draft pass | sì — draft pass | Microsoft Learn, Google Testing Blog, Meta Engineering, OWASP ASVS e Pact; risk-driven testing, testability, contract/integration/E2E, mutation, flaky-test policy, AI-generated tests e Testing Strategy |
+| 17+ | non ancora | source-first | required | ricerca, compromesso ESI e aggiornamento capstone entrano nel workflow prima della chiusura del draft |
 
-## Nota di verifica Capitoli 13–15
+## Nota di verifica Capitoli 13–16
 
-Il Capitolo 13 ha prodotto `infra/main.bicep` usando resource schema/documentazioni Azure correnti.
+### Infrastruttura
 
-Il Capitolo 14 ha aggiornato il template con una reliability baseline codificabile:
+Il Capitolo 13 ha prodotto `infra/main.bicep`.
+
+Il Capitolo 14 lo ha aggiornato con una reliability baseline:
 
 ```text
 App Service Premium-compatible SKU direction
@@ -53,6 +56,19 @@ capacity >= 2
 App Service zoneRedundant = true
 Service Bus zoneRedundant = true
 ```
+
+Stato:
+
+```text
+Bicep build/lint: da eseguire
+Azure Policy validation: da eseguire
+deployment non-production: da eseguire
+zone/failover test: da eseguire
+PostgreSQL HA IaC: designed, non ancora codificato
+PostgreSQL PITR drill: da eseguire
+```
+
+### Observability
 
 Il Capitolo 15 ha aggiunto:
 
@@ -62,29 +78,78 @@ src/observability/telemetry.ts
 src/observability/observed-request-payment-escalation.ts
 ```
 
-La porta/decorator TypeScript di observability è stata ricostruita localmente insieme ai source file da cui dipende e typechecked con TypeScript strict senza errori.
+La porta/decorator TypeScript è stata ricostruita localmente con i source file da cui dipende e typechecked con TypeScript strict senza errori.
 
-Lo stato corretto resta:
+Stato:
 
 ```text
-architecture intent: reviewed in draft
-security/reliability baseline: codified
-observability semantic port/decorator: codified + typechecked
-OpenTelemetry/Application Insights adapter: designed, non ancora codificato
-SLI queries/alerts/dashboard: designed, non ancora verified
-private synthetic journey: designed, non ancora codificato
-Bicep build/lint: da eseguire
-Azure Policy validation: da eseguire
-deployment non-production: da eseguire
-zone/failover test: da eseguire
-PostgreSQL HA IaC: designed, non ancora codificato
-PostgreSQL PITR drill: da eseguire
+observability semantic port/decorator: Codified + typechecked
+OpenTelemetry/Application Insights adapter: Designed / Pending
+SLI queries/alerts/dashboard: Designed / Pending
+private synthetic journey: Designed / Pending
 runtime observability evidence: non ancora disponibile
 ```
 
-Quindi l'evidence pass del **manoscritto** è completato a livello draft, ma gli artefatti infrastrutturali, recovery e observability runtime non vengono descritti come production-verified.
+### Testing
 
-La distinzione resta:
+Il Capitolo 16 ha aggiunto:
+
+```text
+docs/testing-strategy.md
+tests/payment-escalation.test.mjs
+tests/outbox-publisher.test.mjs
+```
+
+Il package usa ora:
+
+```text
+npm run build
+node --test tests/*.test.mjs
+```
+
+La suite è stata ricostruita localmente dai source correnti del repository ed eseguita dopo la scrittura del capitolo.
+
+Evidence osservata:
+
+```text
+tsc -p tsconfig.json
+→ PASS
+
+node --test tests/*.test.mjs
+→ 11 tests
+→ 11 pass
+→ 0 fail
+→ 0 skipped
+```
+
+Questa verifica copre soltanto il **fast local layer**:
+
+- business/application logic;
+- idempotent replay/conflict;
+- tenant mismatch nel use case;
+- outbox publisher retry/exhaustion;
+- stable `messageId`;
+- telemetry classification.
+
+Non dimostra ancora:
+
+```text
+PostgreSQL transaction semantics
+migration chain
+HTTP host/authentication
+Payments & Risk consumer contract
+Azure Service Bus adapter
+Azure RBAC/private networking
+performance/capacity
+failover/PITR
+production synthetic journey
+```
+
+Questi restano `Designed/Pending`, non implicitamente verificati dai test locali verdi.
+
+## Evidence state vocabulary
+
+Il capstone usa:
 
 ```text
 Designed
@@ -92,6 +157,12 @@ Designed
 → Verified
 → Monitored
 ```
+
+Un file di test committed è `Codified`.
+
+Diventa `Verified` soltanto quando è stato eseguito e l'evidence è coerente con la property dichiarata.
+
+Un test locale non promuove automaticamente a `Verified` un boundary esterno che non ha attraversato.
 
 ## Numeri simulati ESI
 
@@ -108,13 +179,11 @@ Region disaster RTO: <= 8 h
 Region disaster RPO: <= 1 h
 ```
 
-Il Capitolo 15 usa questi valori per mostrare come si progettano measurement source, signal e alerting. Non li trasforma in standard industriali.
+I Capitoli 15–16 usano questi valori per mostrare come si progettano measurement source, alerting e verification. Non li trasformano in standard industriali.
 
-In una release candidate dovremo verificare che questi valori non vengano mai presentati altrove come benchmark reali.
+In una release candidate dovremo verificare che non vengano mai presentati altrove come benchmark reali.
 
 ## Workflow editoriale da Capitolo 10
-
-Per i nuovi capitoli:
 
 ```text
 outline
@@ -164,7 +233,7 @@ Regola:
 
 > **Un trade-off accetta un costo consapevole per ottenere un beneficio prioritario. Una scorciatoia nasconde un costo e spera che non presenti il conto.**
 
-E corollario editoriale:
+Corollario:
 
 > **Compromesso sì. Qualità inconsapevolmente degradata no.**
 
@@ -173,7 +242,8 @@ E corollario editoriale:
 Prima di una release candidata:
 
 - nessun capitolo può rimanere `da fare` per l'evidence pass;
-- nessun capitolo può mancare del compromise pass quando lo scenario ESI è applicabile;
+- nessun capitolo può mancare del compromise pass quando ESI è applicabile;
 - i casi reali devono essere chiaramente separati dai casi ESI;
 - i numeri simulati ESI non devono essere presentati come benchmark reali;
-- gli artefatti codificati devono superare i gate tecnici dichiarati prima di essere descritti come verificati o production-ready.
+- gli artefatti codificati devono superare i gate tecnici dichiarati prima di essere descritti come production-ready;
+- la test suite deve avere una policy per flakiness, test debt e risk-to-evidence traceability, non soltanto un numero di test crescente.
