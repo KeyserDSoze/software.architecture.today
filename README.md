@@ -13,6 +13,7 @@ Questo non elimina il bisogno di software engineering. Sposta il collo di bottig
 Quando l'execution diventa più abbondante, aumentano il valore e il rischio delle decisioni che vengono prima e intorno al codice:
 
 - capire il problema;
+- comprendere il comportamento funzionale del prodotto;
 - definire confini e responsabilità;
 - esplicitare requisiti e vincoli;
 - scegliere tra alternative;
@@ -53,6 +54,84 @@ Un buon indicatore operativo è questo:
 
 > **Se, davanti a un errore, la nostra giustificazione è “lo ha scritto l'AI”, abbiamo probabilmente delegato troppo.**
 
+## L'analisi funzionale è una competenza condivisa
+
+Il libro rifiuta anche il silo secondo cui soltanto l'analista debba conoscere davvero il comportamento del prodotto.
+
+Business analyst, product manager e domain expert restano specializzazioni preziose. Ma developer, tech lead e architect che prendono decisioni sul sistema devono avere almeno una visione d'insieme delle funzionalità e devono saper:
+
+- leggere un'analisi funzionale;
+- ricostruire attori, flow, business rule, stati ed eccezioni;
+- individuare ambiguità;
+- parlare con domain expert usando un linguaggio condiviso;
+- produrre una prima analisi funzionale quando serve;
+- distinguere semantica del prodotto da soluzione tecnica.
+
+> **L'analisi può avere uno specialista. La comprensione del prodotto non può avere un unico proprietario.**
+
+Il Capitolo 2 introduce anche il **Functional Scope Map** come artefatto vivo accanto al Problem & Outcome Brief.
+
+## Acme Orders: un capstone che diventa un progetto vero
+
+**Acme Orders** è il capstone simulato/composito del libro.
+
+Non compare soltanto come esempio nei paragrafi. Ha una directory persistente:
+
+```text
+capstone/acme-orders/
+```
+
+I capitoli raccontano perché cambiano requisiti e decisioni; la directory del capstone conserva lo stato corrente del progetto.
+
+Man mano che il libro prosegue, Acme Orders accumulerà:
+
+- analisi funzionale;
+- requisiti;
+- architecture context;
+- ADR;
+- NFR;
+- API contract;
+- data ownership;
+- failure model;
+- threat model;
+- testing strategy;
+- observability;
+- infrastruttura;
+- codice applicativo reale;
+- deployment, rollback e production readiness.
+
+La regola è:
+
+> **Il progetto deve evolvere perché cambia il contesto, non perché il libro deve mostrare una tecnologia.**
+
+Alla fine il lettore dovrà poter aprire il capstone e vedere non soltanto il sistema finale, ma la storia delle decisioni che lo hanno portato lì.
+
+## Evidenze e fonti
+
+Le affermazioni tecniche significative devono essere verificabili.
+
+Il libro preferisce:
+
+- standard e RFC;
+- documentazione ufficiale;
+- Microsoft Learn e Azure Architecture Center;
+- AWS Well-Architected Framework e Builders' Library;
+- Google Cloud Architecture Framework e Google SRE;
+- NIST, OWASP, CNCF e OpenTelemetry;
+- paper originali;
+- postmortem ed engineering blog dell'organizzazione coinvolta;
+- autori tecnici riconosciuti quando appropriato.
+
+La documentazione dei vendor è una fonte importante, non un oracolo universale. Le raccomandazioni vengono sempre lette dentro requisiti e trade-off del contesto.
+
+Le regole editoriali sono in:
+
+- `reference/SOURCE_POLICY.md`;
+- `reference/RESEARCH_WORKFLOW.md`;
+- `SOURCE_FACTUAL_AUDIT.md`.
+
+Dal Capitolo 9 in avanti il flusso è esplicitamente **source-first** sui claim che richiedono evidenza. I capitoli 0–8 verranno sottoposti anche a un evidence pass retroattivo prima della release candidata.
+
 ## Un seguito metodologico
 
 `software.architecture.today` nasce come seguito metodologico di [`data.analyst.today`](https://github.com/KeyserDSoze/data.analyst.today).
@@ -83,21 +162,22 @@ Il libro applica al proprio processo lo stesso metodo che propone ai lettori:
 
 **Un diagramma rappresenta l'architettura. Non è l'architettura.**
 
-## Struttura editoriale iniziale
+**Fit before fashion.**
 
-La struttura definitiva emergerà durante la scrittura e verrà consolidata dopo i primi capitoli pilota. La source of truth rimane il repository.
+## Struttura editoriale
+
+La source of truth rimane il repository.
 
 ```text
 software.architecture.today/
 ├── README.md
 ├── BOOK_MANIFESTO.md
 ├── BOOK_ARCHITECTURE.md
+├── SOURCE_FACTUAL_AUDIT.md
 ├── book.yml
-├── front_matter/
 ├── chapters/
-│   ├── 000_chapter/
-│   ├── 001_chapter/
-│   └── ...
+├── capstone/
+│   └── acme-orders/
 ├── reference/
 ├── scripts/
 └── build/
@@ -107,10 +187,12 @@ I **Dieci comandamenti della Software Architecture nell'era dell'AI** saranno de
 
 ## Stato
 
-Il progetto è all'inizio della scrittura.
+La prima parte del manoscritto è già in costruzione nel repository.
 
-Il primo capitolo in lavorazione è:
+Sono presenti i capitoli da **0 a 8**, dal modello mentale iniziale fino alla scelta tra monolite, modular monolith e microservizi.
 
-**Capitolo 0 — Al timone**
+Il prossimo capitolo è:
 
-Il suo compito non è spiegare una tecnologia. Deve stabilire il contratto del libro: che cosa cambia quando l'esecuzione può essere delegata a sistemi artificiali e perché comprensione, verifica e responsabilità diventano ancora più importanti.
+**Capitolo 9 — API e contratti**
+
+Da questo punto il workflow di scrittura integra sistematicamente ricerca su fonti autorevoli, aggiornamento del capstone e factual/source audit.
