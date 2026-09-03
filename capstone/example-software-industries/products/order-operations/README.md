@@ -129,7 +129,7 @@ Idempotency-Key: <escalation-id>
 La risposta distingue:
 
 ```text
-business state   = Requested
+business state    = Requested
 integration state = Pending / Delivered / Delayed / DeadLettered
 ```
 
@@ -141,7 +141,35 @@ database/migrations/002_add_payment_escalation_and_outbox.sql
 
 E `src/` entra per la prima volta nel progetto con TypeScript strict e porte broker-agnostiche.
 
-Non scegliamo ancora il prodotto cloud di messaging: il Capitolo 12 deciderà l'adapter infrastrutturale sulla base dei requisiti già espliciti.
+### Capitolo 12 — Cloud Architecture
+
+ESI introduce il proprio cloud operating model: Platform Engineering fornisce una **Azure application landing zone**, mentre il team Order Operations mantiene ownership end-to-end del workload.
+
+La prima deployment topology è:
+
+```text
+Azure App Service
++ continuous WebJob per Outbox Publisher
++ Azure Database for PostgreSQL Flexible Server
++ Azure Service Bus Queue
++ Managed Identity
++ Azure Key Vault
++ Azure Monitor / Application Insights
++ Bicep come IaC direction
++ single Azure region
+```
+
+Non vengono scelti AKS, Container Apps o multi-region perché nessun requisito corrente ne paga ancora il costo operativo.
+
+Entrano:
+
+```text
+docs/cloud-deployment.md
+docs/adr/0002-azure-paas-single-region.md
+infra/README.md
+```
+
+`infra/` compare senza un `main.bicep` deployabile: il Capitolo 13 deve prima definire threat model, ingress/egress, private endpoint e permission boundary. L'IaC non viene lasciato inventare la security architecture.
 
 ## Struttura corrente
 
@@ -163,10 +191,14 @@ order-operations/
 │   ├── api-contract.md
 │   ├── data-ownership.md
 │   ├── failure-mode-map.md
+│   ├── cloud-deployment.md
 │   ├── events/
 │   │   └── operational-case-payment-escalated-v1.md
 │   └── adr/
-│       └── 0001-live-read-before-read-model.md
+│       ├── 0001-live-read-before-read-model.md
+│       └── 0002-azure-paas-single-region.md
+├── infra/
+│   └── README.md
 └── src/
     ├── application/
     │   └── request-payment-escalation.ts
@@ -176,11 +208,11 @@ order-operations/
         └── outbox-publisher.ts
 ```
 
-`tests/` e `infra/` compariranno quando il percorso del libro avrà costruito foundation sufficiente per testing strategy e deployment significativi.
+`tests/` comparirà quando il percorso del libro introdurrà la testing strategy in modo sistematico.
 
 Non creiamo directory vuote per simulare avanzamento.
 
-La directory `src/` compare ora perché il Capitolo 11 ha prodotto una business operation e un integration boundary sufficientemente definiti da meritare codice reale senza anticipare la scelta del cloud provider.
+`infra/` esiste ora perché il Capitolo 12 ha prodotto una Cloud Deployment Map e una decisione IaC sufficientemente concreta; i template deployabili aspettano deliberatamente il security boundary del Capitolo 13.
 
 ## TypeScript
 
@@ -212,6 +244,8 @@ Quando Order Operations cambia dobbiamo verificare l'impatto su:
 - schema e migration;
 - NFR;
 - Failure Mode Map;
+- Cloud Deployment Map;
+- infrastructure as code;
 - threat model;
 - observability;
 - testing strategy;
