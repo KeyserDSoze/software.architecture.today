@@ -171,6 +171,68 @@ infra/README.md
 
 `infra/` compare senza un `main.bicep` deployabile: il Capitolo 13 deve prima definire threat model, ingress/egress, private endpoint e permission boundary. L'IaC non viene lasciato inventare la security architecture.
 
+### Capitolo 13 — Security by Design
+
+Il threat model chiude le decisioni security-sensitive lasciate intenzionalmente aperte nel Capitolo 12.
+
+Entrano due nuovi artefatti vivi:
+
+```text
+docs/threat-model.md
+docs/security-control-matrix.md
+```
+
+E viene accettato:
+
+```text
+docs/adr/0003-private-ingress-and-identity-first-security.md
+```
+
+La production security direction è:
+
+```text
+ESI workforce
+→ private App Service ingress
+→ Entra authentication
+→ server-side application authorization
+
+App Service / WebJob
+→ managed identity
+→ least-privilege access
+
+runtime identity
+≠ deployment identity
+
+PostgreSQL / Service Bus / Key Vault
+→ private data-plane direction
+```
+
+Non viene introdotto un WAF perché non esiste ancora un Internet-facing journey.
+
+Per la prima volta il capstone contiene un template IaC concreto:
+
+```text
+infra/main.bicep
+```
+
+La baseline codifica App Service, Entra authentication direction, managed identity, private endpoint, Key Vault RBAC/private access, Service Bus Queue/private access, send-only broker privilege e observability foundation.
+
+Il template dipende da subnet/private DNS capability della landing zone: il workload non reinventa la rete enterprise.
+
+#### Compromesso Security ↔ FinOps
+
+La scelta di Private Link per Service Bus richiede **Service Bus Premium**.
+
+Quindi il security boundary introduce un costo cloud reale.
+
+Il costo viene accettato e reso visibile, con trigger di revisione insieme a Finance/FinOps.
+
+Questo è deliberato:
+
+> un controllo di sicurezza deve avere un threat, un costo, un owner e una verifica.
+
+Il Bicep è **codified baseline**, non production readiness. Build/lint, policy validation e deployment non-production restano gate di verifica espliciti.
+
 ## Struttura corrente
 
 ```text
@@ -192,13 +254,17 @@ order-operations/
 │   ├── data-ownership.md
 │   ├── failure-mode-map.md
 │   ├── cloud-deployment.md
+│   ├── threat-model.md
+│   ├── security-control-matrix.md
 │   ├── events/
 │   │   └── operational-case-payment-escalated-v1.md
 │   └── adr/
 │       ├── 0001-live-read-before-read-model.md
-│       └── 0002-azure-paas-single-region.md
+│       ├── 0002-azure-paas-single-region.md
+│       └── 0003-private-ingress-and-identity-first-security.md
 ├── infra/
-│   └── README.md
+│   ├── README.md
+│   └── main.bicep
 └── src/
     ├── application/
     │   └── request-payment-escalation.ts
@@ -212,11 +278,11 @@ order-operations/
 
 Non creiamo directory vuote per simulare avanzamento.
 
-`infra/` esiste ora perché il Capitolo 12 ha prodotto una Cloud Deployment Map e una decisione IaC sufficientemente concreta; i template deployabili aspettano deliberatamente il security boundary del Capitolo 13.
+## Verification status
 
-## TypeScript
+### TypeScript
 
-Il nucleo TypeScript corrente non dipende da framework o SDK cloud.
+Il nucleo TypeScript non dipende da framework o SDK cloud.
 
 Comandi:
 
@@ -227,6 +293,34 @@ npm run build
 ```
 
 Il typecheck strict del codice introdotto nel Capitolo 11 è stato verificato durante la scrittura del capitolo.
+
+### Bicep
+
+`infra/main.bicep` è stato costruito sulla base delle resource schema/documentazioni Azure correnti e delle decisioni del Threat Model.
+
+Non è ancora corretto dichiararlo **verified**.
+
+Gate ancora richiesti:
+
+```text
+bicep build/lint
+Azure Policy validation
+deployment non-production
+private connectivity test
+Entra authentication test
+RBAC negative test
+security review
+cost review
+```
+
+La distinzione usata dal capstone è:
+
+```text
+Designed
+→ Codified
+→ Verified
+→ Monitored
+```
 
 ## Cosa deve rimanere sincronizzato
 
@@ -245,8 +339,9 @@ Quando Order Operations cambia dobbiamo verificare l'impatto su:
 - NFR;
 - Failure Mode Map;
 - Cloud Deployment Map;
+- Threat Model;
+- Security Control Matrix;
 - infrastructure as code;
-- threat model;
 - observability;
 - testing strategy;
 - deployment;
