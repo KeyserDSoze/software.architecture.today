@@ -22,9 +22,11 @@ Non anticipiamo l'architettura finale.
 
 Acme Orders nasce come strumento interno per rendere visibili ordini problematici e ridurre il tempo necessario agli operatori per individuarli.
 
-### Capitolo 2 — Foundation
+### Capitolo 2 — Foundation e analisi funzionale
 
 Vengono esplicitati problema, outcome, attori, scope, vincoli, functional behavior, acceptance criteria e domande aperte.
+
+L'analisi funzionale diventa un artefatto vivo condiviso dal team, non un documento consegnato una volta sola.
 
 Artefatti:
 
@@ -80,7 +82,30 @@ La separazione logica è considerata reale anche senza separazione di deployment
 
 Payments e Shipping hanno trigger espliciti che potrebbero giustificare una futura estrazione.
 
-## Struttura prevista
+### Capitolo 9 — API e contratti
+
+La Operations UI riceve il primo contratto HTTP esplicito.
+
+Capability correnti:
+
+```text
+GET /api/problematic-orders
+GET /api/orders/{orderId}/operational-view
+```
+
+Decisioni deliberate:
+
+- il contratto modella il dominio, non le tabelle;
+- stati Order, Payment e Shipment restano distinti;
+- cursor pagination per la collection iniziale;
+- Problem Details per errori HTTP che richiedono dettaglio applicativo;
+- nessun endpoint di refund/retry/remediation finché l'analisi funzionale non ne definisce semantica, permission, idempotenza e audit.
+
+Artefatto:
+
+- `docs/api-contract.md`.
+
+## Struttura corrente
 
 ```text
 capstone/acme-orders/
@@ -90,15 +115,15 @@ capstone/acme-orders/
     requirements.md
     architecture-context.md
     nfr.md
+    api-contract.md
     adr/
-  src/
-  tests/
-  infra/
+      0001-live-read-before-read-model.md
+  src/        # arriverà quando iniziamo implementation reale
+  tests/      # arriverà insieme al codice verificabile
+  infra/      # arriverà quando il deployment diventa parte del contesto
 ```
 
-Le directory `src`, `tests` e `infra` verranno introdotte quando il percorso del libro arriverà al punto in cui esiste abbastanza foundation per costruire codice significativo.
-
-Non creeremo cartelle vuote per fingere avanzamento.
+Non creiamo cartelle vuote per fingere avanzamento.
 
 ## Cosa deve rimanere sincronizzato
 
