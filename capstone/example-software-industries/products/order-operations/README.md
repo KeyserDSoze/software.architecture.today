@@ -18,15 +18,7 @@ Order Operations non sostituisce Orders, Payments o Shipping come authoritative 
 
 ## Regola di evoluzione
 
-Ogni capitolo può cambiare Order Operations soltanto quando introduce:
-
-- nuova informazione;
-- requisito;
-- capability;
-- vincolo;
-- failure mode;
-- cambiamento organizzativo;
-- trade-off che modifica il fit della soluzione corrente.
+Ogni capitolo può cambiare Order Operations soltanto quando introduce nuova informazione, requisito, capability, vincolo, failure mode, cambiamento organizzativo o trade-off che modifica il fit della soluzione corrente.
 
 > **Il progetto deve evolvere perché cambia il contesto, non perché il libro deve mostrare una tecnologia.**
 
@@ -38,9 +30,7 @@ Nasce una console interna per rendere visibili ordini problematici.
 
 ### Capitolo 2 — Foundation e analisi funzionale
 
-Problema, outcome, attori, scope, business rule, acceptance criteria e domande aperte diventano espliciti.
-
-L'analisi funzionale diventa conoscenza condivisa del team.
+Problema, outcome, attori, scope, business rule, acceptance criteria e domande aperte diventano espliciti. L'analisi funzionale diventa conoscenza condivisa del team.
 
 ### Capitolo 3 — System thinking
 
@@ -56,9 +46,7 @@ Orders, Payments e Shipping acquistano responsibility/ownership boundary distint
 
 ### Capitolo 6 — Quality attributes
 
-Correctness, security, operability, latency, availability e cost diventano input della technology selection.
-
-Niente Redis o active-active multi-region senza requisito che ne paghi il costo.
+Correctness, security, operability, latency, availability e cost diventano input della technology selection. Niente Redis o active-active multi-region senza requisito che ne paghi il costo.
 
 ### Capitolo 7 — Pattern
 
@@ -66,9 +54,7 @@ I pattern entrano soltanto quando risolvono forze già presenti.
 
 ### Capitolo 8 — Topologia
 
-Order Operations resta un **modular monolith**.
-
-Separazione logica non significa automaticamente separazione di deployment.
+Order Operations resta un **modular monolith**. Separazione logica non significa automaticamente separazione di deployment.
 
 ### Capitolo 9 — API e contratti
 
@@ -83,13 +69,7 @@ Refund e remediation command restano fuori finché semantica e ownership non son
 
 ### Capitolo 10 — Data architecture
 
-Entra la **Data Ownership Map**.
-
-Order Operations diventa authoritative per:
-
-- `OperationalCase`;
-- problem classification;
-- operator assignment.
+Entra la **Data Ownership Map**. Order Operations diventa authoritative per `OperationalCase`, problem classification e operator assignment.
 
 Prima migration reale:
 
@@ -147,14 +127,6 @@ Azure App Service
 
 AKS, Container Apps e multi-region restano fuori perché nessun requisito corrente ne paga ancora il costo.
 
-Entrano:
-
-```text
-docs/cloud-deployment.md
-docs/adr/0002-azure-paas-single-region.md
-infra/README.md
-```
-
 ### Capitolo 13 — Security by Design
 
 Entrano:
@@ -181,15 +153,9 @@ PostgreSQL / Service Bus / Key Vault
 → private data-plane direction
 ```
 
-Nessun WAF finché non esiste Internet-facing ingress.
-
-Private Link su Service Bus richiede Premium: il security boundary produce quindi un costo FinOps esplicito.
-
-`main.bicep` viene trattato come **Codified**, non come `Verified` finché non supera build/deploy e negative test.
+Nessun WAF finché non esiste Internet-facing ingress. Private Link su Service Bus richiede Premium: il security boundary produce un costo FinOps esplicito.
 
 ### Capitolo 14 — Reliability e resilienza
-
-La reliability diventa un contratto misurabile e non più soltanto un NFR qualitativo.
 
 Entra:
 
@@ -197,41 +163,20 @@ Entra:
 docs/reliability-contract.md
 ```
 
-La Failure Mode Map viene estesa dal solo messaging flow all'intero workload cloud.
-
 Target simulati ESI:
 
 ```text
-Core operator journey SLO
-= 99.9% good events / rolling 28 days
-
-Payment Escalation publication
-= 99% entro 5 minuti
-
-Intra-region RTO
-<= 15 minuti
-
-Intra-region RPO
-= 0 per committed local business state
-
-Region disaster RTO
-<= 8 ore
-
-Region disaster RPO
-<= 1 ora
+Core operator journey SLO = 99.9% / rolling 28 days
+Payment Escalation publication = 99% entro 5 minuti
+Intra-region RTO <= 15 minuti
+Intra-region RPO = 0 per committed local business state
+Region disaster RTO <= 8 ore
+Region disaster RPO <= 1 ora
 ```
-
-Questi numeri sono requisiti del caso fittizio, non benchmark industriali.
 
 La reliability topology corrente usa App Service Premium v3 con almeno due istanze e zone redundancy, PostgreSQL zone-redundant HA direction, Service Bus Premium zone-redundant e single-region recovery.
 
-`infra/main.bicep` codifica App Service `capacity >= 2`, App Service `zoneRedundant = true` e Service Bus `zoneRedundant = true`.
-
-PostgreSQL HA/private resta `Designed`, non ancora codificato.
-
 ### Capitolo 15 — Observability
-
-La reliability riceve finalmente una measurement architecture.
 
 Entra:
 
@@ -247,22 +192,74 @@ OpenTelemetry-compatible instrumentation
 → SLI queries, alerts e investigation views
 ```
 
-Il capitolo introduce un **cardinality budget**, separa metriche, trace, structured log, audit e business evidence e vieta per default business identifier unbounded come dimensioni metriche.
-
-Il production synthetic journey non riapre l'ingress pubblico: dovrà usare un runner privato, una identity dedicata e dati synthetic controllati.
-
-Il codice cresce con una porta vendor-neutral:
+Il codice cresce con:
 
 ```text
 src/observability/telemetry.ts
 src/observability/observed-request-payment-escalation.ts
 ```
 
-Il decorator osserva `accepted`, `already-accepted` e rejection class senza introdurre direttamente SDK Application Insights/OpenTelemetry nel use case.
+La porta/decorator è stata typechecked con TypeScript strict. L'adapter OpenTelemetry/Application Insights resta `Designed`, non ancora codificato o verificato a runtime.
 
-La porta/decorator è stata ricostruita localmente con i source file da cui dipende e typechecked con TypeScript strict senza errori.
+### Capitolo 16 — Testing Architecture
 
-L'adapter OpenTelemetry/Application Insights resta `Designed`, non ancora codificato o verificato a runtime.
+La qualità diventa una **evidence strategy** derivata da risk, requirement, contract, threat e failure mode.
+
+Entra:
+
+```text
+docs/testing-strategy.md
+```
+
+Per la prima volta compare anche una suite eseguibile:
+
+```text
+tests/payment-escalation.test.mjs
+tests/outbox-publisher.test.mjs
+```
+
+La prima tranche protegge:
+
+- Payment category eligibility;
+- tenant mismatch;
+- idempotent replay;
+- idempotency-key conflict;
+- escalation + outbox orchestration;
+- bounded retry;
+- exhausted delivery path;
+- stable `messageId` durante retry;
+- telemetry acceptance/rejection classification;
+- bounded metric context vs high-cardinality correlation identifiers.
+
+Il progetto usa per ora il runner integrato `node:test` sul JavaScript compilato da TypeScript invece di introdurre un framework aggiuntivo senza un requisito.
+
+Verification eseguita durante la scrittura del capitolo:
+
+```text
+tsc -p tsconfig.json
+→ PASS
+
+node --test tests/*.test.mjs
+→ 11 tests
+→ 11 pass
+→ 0 fail
+```
+
+Questa evidence è limitata al fast local layer.
+
+Restano pending:
+
+```text
+PostgreSQL integration/migration tests
+API host integration
+Payments & Risk consumer contract
+Azure identity/network/RBAC tests
+performance/capacity evidence
+recovery drills
+production synthetic journey
+```
+
+Questo è intenzionale: test locali verdi non vengono usati per dichiarare verified ciò che richiede un boundary reale.
 
 ## Struttura corrente
 
@@ -289,6 +286,7 @@ order-operations/
 │   ├── security-control-matrix.md
 │   ├── reliability-contract.md
 │   ├── observability-contract.md
+│   ├── testing-strategy.md
 │   ├── events/
 │   │   └── operational-case-payment-escalated-v1.md
 │   └── adr/
@@ -298,19 +296,20 @@ order-operations/
 ├── infra/
 │   ├── README.md
 │   └── main.bicep
-└── src/
-    ├── application/
-    │   └── request-payment-escalation.ts
-    ├── contracts/
-    │   └── operational-case-payment-escalated-v1.ts
-    ├── integration/
-    │   └── outbox-publisher.ts
-    └── observability/
-        ├── telemetry.ts
-        └── observed-request-payment-escalation.ts
+├── src/
+│   ├── application/
+│   │   └── request-payment-escalation.ts
+│   ├── contracts/
+│   │   └── operational-case-payment-escalated-v1.ts
+│   ├── integration/
+│   │   └── outbox-publisher.ts
+│   └── observability/
+│       ├── telemetry.ts
+│       └── observed-request-payment-escalation.ts
+└── tests/
+    ├── payment-escalation.test.mjs
+    └── outbox-publisher.test.mjs
 ```
-
-`tests/` comparirà quando il percorso del libro introdurrà la testing strategy in modo sistematico.
 
 Non creiamo directory vuote per simulare avanzamento.
 
@@ -325,11 +324,15 @@ Designed
 → Monitored
 ```
 
-### TypeScript
+### Application / tests
 
-Il nucleo introdotto nel Capitolo 11 è stato typechecked in modalità strict durante la sua introduzione.
-
-La porta/decorator observability del Capitolo 15 è stata typechecked in modalità strict tramite ricostruzione locale dei source letti dalla repository.
+```text
+TypeScript source: Codified + typechecked
+fast Node test suite: Codified + Verified locally, 11/11
+PostgreSQL integration: Designed / Pending
+API integration: Designed / Pending
+Payments contract: Designed / Pending cross-team
+```
 
 ### Bicep
 
@@ -350,20 +353,14 @@ cost review
 
 ### Reliability
 
-SLO, RTO/RPO, health model e recovery drill sono `Designed`.
-
-La zone redundancy App Service/Service Bus è `Codified` in IaC.
-
-Il PostgreSQL zone-redundant HA è `Designed` ma il modulo IaC è ancora pending.
-
-Nessun recovery drill è ancora `Verified`.
+SLO, RTO/RPO, health model e recovery drill sono `Designed`. Zone redundancy App Service/Service Bus è `Codified`; PostgreSQL HA è ancora parzialmente `Designed`. Nessun recovery drill è ancora `Verified`.
 
 ### Observability
 
 ```text
 Observability Contract: Designed
 bounded telemetry port: Codified + typechecked
-Payment Escalation observable decorator: Codified + typechecked
+Payment Escalation observable decorator: Codified + typechecked + locally exercised by tests
 OpenTelemetry/Application Insights adapter: Pending
 SLI queries: Designed
 alerts: Designed
@@ -392,8 +389,8 @@ Quando Order Operations cambia verifichiamo impatto su:
 - Security Control Matrix;
 - Reliability Contract;
 - Observability Contract;
+- Testing Strategy;
 - infrastructure as code;
-- testing strategy;
 - deployment/rollback;
 - runbook.
 
@@ -401,16 +398,7 @@ Il codice è una rappresentazione importante del prodotto, ma non è l'unica.
 
 ## Contesto aziendale
 
-Order Operations può ricevere pressioni o requisiti da:
-
-- Payments & Risk;
-- Mobile Products;
-- Data & AI;
-- Platform Engineering;
-- Security;
-- Finance / FinOps;
-- Legal / Compliance;
-- Sales e clienti enterprise.
+Order Operations può ricevere pressioni o requisiti da Payments & Risk, Mobile Products, Data & AI, Platform Engineering, Security, Finance/FinOps, Legal/Compliance, Sales e clienti enterprise.
 
 Questo è intenzionale: vogliamo vedere come una soluzione cambia quando il problema tecnico incontra il resto dell'azienda.
 
