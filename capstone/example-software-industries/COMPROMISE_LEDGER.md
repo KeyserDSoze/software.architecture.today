@@ -290,7 +290,25 @@ Quando dovremo rivalutarla?
 
 **Trigger:** public/mobile/partner ingress, nuovo sensitive-data class, security incident, API/WebJob privilege divergence, multi-region, nuovi provider esterni, cost curve Service Bus Premium non più giustificata, cambiamenti della landing zone o nuovi compliance requirement.
 
-## Capitolo 14 e successivi
+## Capitolo 14 — Reliability e resilienza
+
+**Esigenza:** mantenere Order Operations utilizzabile durante failure comuni e recuperabile durante failure più ampi, senza comprare più ridondanza di quella che il business sa valorizzare.
+
+**Tensione:** stronger availability/recovery vs cloud cost, operational complexity, recovery testing burden e delivery speed.
+
+**Decisione:** introdurre SLO/health model/error-budget direction e un Reliability Contract; produzione usa App Service Premium v3 con almeno due istanze e zone redundancy, PostgreSQL zone-redundant HA direction con backup/PITR, Service Bus zone redundancy e single-region recovery. Active-active multi-region resta fuori.
+
+**Costo accettato:** maggior costo compute/database; capacity headroom pagata anche in steady state; region-wide disaster non ha failover immediato e accetta recovery manuale entro target più rilassati.
+
+**Quality floor:** committed local business state preservato nei failure HA coperti; degraded mode non presenta dati non verificabili come current truth; recovery source e owner espliciti; security/tenant boundary non vengono disabilitati per availability; backup/restore non dichiarati funzionanti senza test.
+
+**Guardrail:** Reliability Contract, Failure Mode Map estesa, RTO/RPO, error budget, required drills, IaC zone redundancy, PITR, synthetic journey direction e review trigger.
+
+**Evidence:** Google SRE per SLI/SLO/error budget; Microsoft Azure Well-Architected e reliability documentation per health model, graceful degradation, App Service, PostgreSQL e Service Bus; GitHub availability report e Cloudflare postmortem per cascading failure, capacity, DNS/configuration failure e containment reali.
+
+**Trigger:** SLO miss persistenti, error-budget burn, RTO/RPO regionali più severi, contractual SLA, recovery drill fallito, App/worker capacity divergence, nuova geography, cost curve o Platform standard.
+
+## Capitolo 15 e successivi
 
 Da qui in avanti il compromise ledger viene aggiornato insieme al manoscritto.
 
