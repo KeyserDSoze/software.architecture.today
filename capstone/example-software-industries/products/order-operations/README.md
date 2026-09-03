@@ -81,17 +81,42 @@ GET /api/orders/{orderId}/operational-view
 
 Non vengono ancora introdotti command endpoint di refund o remediation perché la semantica funzionale non è abbastanza definita.
 
+### Capitolo 10 — Data architecture
+
+Viene introdotta la prima **Data Ownership Map**.
+
+Orders, Payments & Risk e Shipping restano authoritative owner dei rispettivi business fact.
+
+Order Operations diventa authoritative soltanto per concetti operativi propri:
+
+- `OperationalCase`;
+- problem classification;
+- operator assignment.
+
+Il progetto mantiene PostgreSQL come datastore operativo corrente e aggiunge la prima migration SQL reale:
+
+```text
+database/migrations/001_create_operational_case.sql
+```
+
+Non vengono ancora introdotti Redis, search store o projection asincrona: le future copie dovranno avere source, freshness, reconciliation e rebuild espliciti.
+
 ## Struttura corrente
 
 ```text
 order-operations/
 ├── README.md
+├── database/
+│   ├── README.md
+│   └── migrations/
+│       └── 001_create_operational_case.sql
 └── docs/
     ├── functional-analysis.md
     ├── requirements.md
     ├── architecture-context.md
     ├── nfr.md
     ├── api-contract.md
+    ├── data-ownership.md
     └── adr/
         └── 0001-live-read-before-read-model.md
 ```
@@ -99,6 +124,8 @@ order-operations/
 `src/`, `tests/` e `infra/` compariranno quando il percorso del libro avrà costruito foundation sufficiente per implementation e deployment significativi.
 
 Non creiamo directory vuote per simulare avanzamento.
+
+La directory `database/` compare ora perché il Capitolo 10 ha prodotto la prima decisione dati sufficientemente concreta da meritare un artefatto eseguibile.
 
 ## Cosa deve rimanere sincronizzato
 
@@ -111,7 +138,8 @@ Quando Order Operations cambia dobbiamo verificare l'impatto su:
 - ownership;
 - ADR;
 - API contract;
-- data ownership;
+- Data Ownership Map;
+- schema e migration;
 - NFR;
 - failure model;
 - threat model;
@@ -130,6 +158,7 @@ Potrà ricevere pressioni o requisiti da:
 
 - Payments & Risk;
 - Mobile Products;
+- Data & AI;
 - Platform Engineering;
 - Security;
 - Finance / FinOps;
