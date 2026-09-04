@@ -1,107 +1,125 @@
-# 19.6 — AI, agenti e architecture drift
+# 19.6 — AI e architecture drift: il repository insegna ciò che rende visibile
 
-L'AI cambia il rapporto fra architettura e velocità.
+L'AI aumenta la velocità con cui un repository può cambiare.
 
-Quando produrre codice era costoso, molte deviazioni architetturali richiedevano comunque tempo umano sufficiente da essere visibili.
+Questo rende più economico anche il drift.
 
-Con agenti capaci di modificare decine o centinaia di file in pochi minuti, possiamo produrre drift molto più velocemente.
+Il problema non è semplicemente che un agente “non conosce l'architettura”.
 
-Il problema non è che l'AI "non capisca l'architettura" in assoluto.
-
-Il problema è più concreto:
+È più concreto:
 
 > **l'agente vede soprattutto il contesto che gli abbiamo reso disponibile e ottimizza soprattutto il risultato che gli abbiamo chiesto.**
 
-Se il prompt dice:
+Se il task dice:
 
 ```text
 Add feature X.
 ```
 
-ma il repository non rende esplicito:
+ma il sistema non rende visibili decisioni come:
 
 ```text
-no dependency on layer Y
 no direct legacy import
-no vendor SDK in domain
-Payments owns economic semantics
+no vendor SDK in core semantics
+Payments owns economic behavior
+application does not depend on integration
 ```
 
-una soluzione localmente corretta può essere globalmente sbagliata.
+una soluzione può essere funzionalmente corretta e architetturalmente regressiva.
 
-## Architecture by autocomplete, seconda forma
+## Il drift può diventare training data del repository
 
-Nel Capitolo 1 abbiamo parlato di architecture by autocomplete come effetto dell'execution senza foundation.
+C'è un failure mode ancora più sottile.
 
-Qui ne vediamo una versione più sottile.
+Il progetto possiede già tre eccezioni storiche.
 
-Il progetto ha già un'architettura.
+Un agente esplora la codebase e le vede ripetute.
 
-L'agente la osserva dal codice esistente.
+Può inferire che rappresentino il pattern normale.
 
-Se esistono già tre violazioni storiche, può inferire che siano pattern accettati.
-
-Poi ne aggiunge una quarta.
-
-A quel punto il repository stesso inizia a insegnare il drift agli agenti futuri.
+Poi aggiunge una quarta implementazione coerente con ciò che ha osservato.
 
 ```text
 exception
-→ copied pattern
-→ repeated exception
+→ repeated pattern
 → perceived convention
-→ architectural drift
+→ new generated usage
+→ stronger drift
 ```
 
-Questo rende importante distinguere:
+A quel punto il repository inizia a insegnare agli agenti futuri il proprio drift.
+
+Questo riprende il problema del legacy:
 
 ```text
 code that exists
 ≠
-code that represents intended architecture
+intended architecture
 ```
 
-## Il repository deve diventare leggibile anche dagli agenti
+La differenza deve essere espressa da qualcosa di più forte della frequenza del pattern nel source code.
 
-un'AI-ready architecture non significa aggiungere un file gigantesco con tutte le regole.
+## Un repository AI-ready deve contenere anche il proprio intent
 
-Significa distribuire il contesto nei punti adatti:
+Non significa creare un file gigantesco con tutte le regole.
+
+Significa distribuire il contesto nelle forme che già usiamo:
 
 ```text
-architecture docs
+Functional Analysis
 ADR
 contracts
 ownership maps
-tests
+architecture docs
 fitness functions
+tests
 CI gates
 issue acceptance criteria
 ```
 
-Così un agente può trovare sia la regola sia il meccanismo che la verifica.
+La documentazione spiega il perché.
+
+Il verifier dà feedback sull'implementazione.
+
+L'issue delimita il change corrente.
+
+Questa combinazione riduce la probabilità che l'agente impari l'architettura soltanto dai precedenti accidentali del codice.
+
+## La fitness function è anche context engineering
+
+Per un agente un architecture test non è soltanto un gate finale.
+
+È feedback durante l'execution.
+
+```text
+agent changes source
+→ AF-002 fails
+→ "src/application cannot import src/integration"
+→ agent changes approach
+```
+
+La fitness function diventa contemporaneamente:
+
+- documentazione eseguibile;
+- constraint;
+- verifier;
+- feedback per la strategia dell'agente.
+
+Questo è più scalabile di ricordare la regola in ogni prompt manuale.
 
 ## Agent Architecture Review
 
-Un agente può essere utile come reviewer architetturale.
+Un agente può anche essere usato come reviewer architetturale.
 
-Per esempio può:
+Può confrontare un diff con ADR e checklist, trovare nuove dependency, segnalare accessi cross-boundary, cercare vendor leakage, identificare data copy o feature flag prive di cleanup condition.
 
-- confrontare un diff con gli ADR;
-- individuare nuove dependency;
-- cercare accessi cross-boundary;
-- verificare se un nuovo datastore cambia ownership;
-- cercare SDK vendor dentro layer vietati;
-- confrontare IaC con security/reliability intent;
-- identificare feature flag senza cleanup condition;
-- suggerire ADR da riaprire.
-
-Ma non deve produrre un verdetto opaco:
+L'output utile però non è:
 
 ```text
 Architecture looks good.
 ```
 
-Meglio un output strutturato:
+È qualcosa come:
 
 ```text
 Changed architectural surface
@@ -109,136 +127,117 @@ Relevant decisions
 Fitness functions affected
 Potential drift
 Evidence
-Exceptions required
-Review triggers hit
-Confidence / unknowns
+Exception required?
+Review trigger hit?
+Unknowns
 ```
 
-## Agent-generated governance
+Il reviewer non sostituisce la decisione.
 
-C'è anche il rischio opposto.
+Riduce lo spazio di ricerca del reviewer umano.
 
-L'AI può generare moltissime regole.
+## Non generare governance dalla forma corrente del repository
 
-Prompt:
+Il rischio opposto è chiedere:
 
 ```text
-Create architecture tests for this repository.
+Create architecture tests for this codebase.
 ```
 
-Output:
+Un agente può generare decine di naming rule, dependency limit, threshold e convention.
 
-```text
-42 dependency rules
-17 naming rules
-9 file-count thresholds
-13 complexity thresholds
-```
+Il risultato sembra sofisticato.
 
-Il risultato può sembrare maturo.
+Può avere soltanto automatizzato la fotografia corrente, compresi accidenti e legacy.
 
-Ma rischia di automatizzare accidentalmente la forma corrente del repository.
+> **Una regola generata senza una proprietà da proteggere è rigidità generata.**
 
-> **Una regola generata senza una proprietà da proteggere è soltanto rigidità generata.**
-
-Ogni fitness function proposta da un agente deve quindi rispondere a:
+Ogni fitness candidate dovrebbe quindi dichiarare:
 
 ```text
 Which risk?
 Which decision?
 Which property?
-Why automated?
+Why automate?
 What happens on failure?
-When can this rule change?
+When does this rule expire or change?
 ```
 
-## Exception abuse
+Il source code può suggerire la regola.
 
-Un agente autonomo non dovrebbe poter aggirare liberamente una architecture gate aggiungendo una waiver.
+Non è sufficiente ad autorizzarla.
 
-Il permission model deve distinguere:
+## L'agente non deve poter approvare il proprio bypass
+
+Il permission model deve separare:
 
 ```text
 change implementation
-≠
 change architecture policy
-≠
 approve architecture exception
 ```
 
-Questa separazione tornerà nei capitoli sugli agenti.
+Se lo stesso agente può violare una regola, modificarla, aggiungere la waiver e poi dichiarare la verifica conclusa, abbiamo costruito self-approval automatizzato.
 
-Se lo stesso agente può:
+Il principio è lo stesso degli agenti che vedremo più avanti:
 
-1. violare una regola;
-2. modificare la regola;
-3. approvare l'eccezione;
-4. dichiarare il lavoro verificato;
+> **capability, authority e verification non devono collassare nello stesso ruolo quando il blast radius è significativo.**
 
-non abbiamo governance.
+## Non tutto diventa una fitness automatica
 
-Abbiamo self-approval automatizzato.
+Un test non può decidere se:
 
-## Fitness function come contesto eseguibile
-
-Per gli agenti una fitness function ha un valore aggiuntivo.
-
-Non deve essere spiegata perfettamente nel prompt ogni volta.
-
-L'agente può tentare una modifica.
-
-Il sistema risponde:
-
-```text
-AF-002 failed:
-src/application cannot import src/integration
-```
-
-Questo crea un feedback loop concreto.
-
-L'agente può correggere la propria strategia.
-
-La regola è quindi contemporaneamente:
-
-- documentazione;
-- constraint;
-- verifier;
-- feedback per l'agente.
-
-## Ma non tutto è automatizzabile
-
-Un architecture test non può decidere se:
-
-- un nuovo bounded context ha senso;
-- il business deve accettare eventual consistency;
-- un vendor lock-in vale il beneficio;
-- un costo Premium è giustificato;
-- una regola legacy debba essere eliminata;
+- un nuovo bounded context abbia senso;
+- eventual consistency sia accettabile per il business;
+- un vendor lock-in valga il beneficio;
+- un premium cloud tier sia giustificato;
+- un behavior legacy debba essere ritirato;
 - un nuovo SLA richieda multi-region.
 
-Qui resta necessario il judgment.
+Queste sono decisioni di significato e trade-off.
 
-> **Automatizziamo la protezione delle decisioni che abbiamo già capito. Manteniamo umano il giudizio sulle decisioni che cambiano il significato del sistema.**
+Automatizziamo la protezione delle decisioni già comprese.
 
-## Un nuovo verification bundle
+Manteniamo umano il judgment quando cambia il significato del sistema.
 
-Per un grande change agentico, ESI chiederà in futuro almeno:
+## Verification Bundle per change agentici ampi
+
+Quando un agente produce un change significativo, ESI vuole poter vedere almeno:
 
 ```text
-functional tests
-architecture fitness
-security checks
-contract impact
-cost/topology impact
-ADR trigger review
-exception list
-human approval for one-way doors
+functional evidence
+architecture fitness result
+security/contract impact
+changed architectural surface
+ADR triggers hit
+exceptions introduced
+cost/topology impact when relevant
+one-way doors requiring approval
 ```
 
-Questo porta naturalmente verso i capitoli successivi su repository AI-ready e manager di agenti.
+Il punto non è aggiungere documenti a ogni PR.
 
-La cosa importante è non arrivarci pensando che gli agenti abbiano bisogno soltanto di prompt migliori.
+È evitare che la velocità del diff superi la capacità del sistema di dire che cosa quel diff ha cambiato davvero.
 
-Hanno bisogno di **sistemi di feedback migliori**.
+## La trasformazione fondamentale
 
-> **Nell'era dell'AI l'architecture governance deve diventare meno dipendente dalla capacità di un reviewer di leggere ogni riga e più capace di trasformare l'intento in evidence.**
+Prima potevamo usare l'architect come parser umano di una parte importante dei change.
+
+Con execution agentica crescente, quel modello scala peggio.
+
+Dobbiamo quindi trasformare una parte dell'architecture governance da:
+
+```text
+remember and inspect
+```
+
+in:
+
+```text
+encode intent
+→ execute change
+→ receive evidence
+→ use judgment on the meaningful remainder
+```
+
+> **L'AI non elimina il bisogno di architettura. Aumenta il valore di un'architettura che sa rispondere automaticamente quando un change sta oltrepassando un boundary già deciso.**
