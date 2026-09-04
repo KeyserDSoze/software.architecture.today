@@ -57,7 +57,7 @@ I casi reali rimangono separati da ESI.
 | 26 — Production Readiness | sì | sì — draft | sì — draft | AWS ORR/Google SRE/Microsoft/GitHub; dedicated audit |
 | 27 — Casi end-to-end | sì | sì — draft | sì — draft | Microsoft/GitHub/Uber; dedicated audit |
 | 28 — L'architect del 2030 | sì | sì — draft | sì — draft | Microsoft architect role/DORA/Microsoft Research/OpenAI; dedicated audit |
-| Capitolo finale | non ancora | source-first | required | chiusura + Dieci comandamenti come ultimissimo contenuto |
+| Capitolo finale — Il timone resta a noi | sì — sezioni 001–008 | sintesi di evidence già auditata | sì — draft | `009` intenzionalmente assente; Dieci comandamenti ancora da scegliere |
 
 Dedicated audits:
 
@@ -66,6 +66,7 @@ reference/CHAPTER_025_EVIDENCE.md
 reference/CHAPTER_026_EVIDENCE.md
 reference/CHAPTER_027_EVIDENCE.md
 reference/CHAPTER_028_EVIDENCE.md
+reference/CHAPTER_029_EVIDENCE.md
 ```
 
 ---
@@ -153,6 +154,8 @@ Production-readiness fitness                   Codified; real environment eviden
 Chapter 27 adds decision-trace/documentary synthesis, not new runtime verification.
 
 Chapter 28 adds company-level capability/governance documentation, not a claim that ESI people were empirically assessed.
+
+The final chapter sections 001–008 synthesize the already established method and introduce no new runtime verification or production claim.
 
 ---
 
@@ -285,6 +288,43 @@ OpenAI internal workflow
 Detailed audit:
 
 - `reference/CHAPTER_028_EVIDENCE.md`.
+
+---
+
+# Final chapter evidence policy
+
+Sections 001–008 are intentionally synthesis-heavy.
+
+They do not introduce new vendor recommendations, benchmark numbers, production claims or new real-company architecture claims.
+
+They summarize concepts already developed and audited across Chapters 0–28, including:
+
+```text
+functional understanding
+fit before fashion
+trade-off + quality floor
+Designed → Codified → Verified → Monitored
+Observed ≠ Confirmed
+verification without re-execution
+capability ≠ authority
+Production Readiness NO-GO
+One-Man Project / Specialist Gate
+```
+
+The final chapter preserves the current ESI truth:
+
+```text
+Order Operations PRR
+= NO-GO — evidence closure required
+```
+
+It deliberately does not invent a successful launch for narrative closure.
+
+Detailed audit and final-section gate:
+
+- `reference/CHAPTER_029_EVIDENCE.md`.
+
+The only future main-manuscript section allowed after `chapters/029_chapter/008_before_the_commandments.md` is the final Dieci comandamenti section.
 
 ---
 
