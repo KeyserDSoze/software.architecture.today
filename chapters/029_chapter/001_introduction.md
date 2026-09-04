@@ -1,4 +1,4 @@
-# Capitolo finale — Il timone resta a noi
+# Capitolo 29 — Il timone resta a noi
 
 All'inizio del libro abbiamo incontrato una situazione ormai comune.
 
