@@ -167,6 +167,49 @@ I tre casi usano lo stesso metodo ma producono architetture differenti.
 
 > **La maturità non sta nel far assomigliare i prodotti. Sta nel sapere quali proprietà devono essere condivise e quali decisioni devono restare specifiche del workload.**
 
+## Architect Capability Map — Capitolo 28
+
+Il Capitolo 28 introduce un artefatto company-level:
+
+```text
+ARCHITECT_CAPABILITY_MAP.md
+```
+
+La map non è una matrice di certificazioni né un ranking delle persone.
+
+Descrive undici aree di capacità:
+
+```text
+Product & Functional Analysis
+System Boundaries & Domain Design
+Technical & Code Literacy
+Data & Distributed Systems
+Security, Reliability & Operability
+Economics & Cost
+Evolution, Legacy & Reversibility
+AI Runtime Architecture
+Agentic Engineering Governance
+Enterprise Systems & Communication
+Evidence, Learning & Teaching
+```
+
+Uso ESI:
+
+```text
+learning plan
+staffing
+specialist trigger
+continuity
+mentoring
+portfolio risk
+```
+
+Principio:
+
+> **Ampiezza per capire il sistema. Profondità sufficiente per non essere ingannati dalle astrazioni.**
+
+L'artefatto è company-level perché la responsabilità architetturale attraversa Order Operations, Campaign Launchpad e i futuri prodotti ESI senza dipendere da un singolo stack.
+
 ## Company-level paved roads
 
 ESI può offrire capability comuni quando riducono costo e rischio senza cancellare il fit locale.
