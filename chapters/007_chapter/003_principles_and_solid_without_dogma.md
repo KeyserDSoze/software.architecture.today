@@ -1,117 +1,79 @@
 ## Principi prima dei rituali
 
-Prima dei pattern vengono i principi.
+Prima dei pattern vengono i principi, perché un principio non prescrive la forma del codice: ci aiuta a capire se il design sta andando nella direzione giusta.
 
-Un principio non ci dice quale classe creare. Ci aiuta a valutare la direzione del design.
+È per questo che cohesion, coupling, information hiding e dependency direction sono più importanti di qualunque catalogo. Lo stesso vale per SOLID. Le cinque iniziali sono utili se diventano un linguaggio con cui diagnosticare pressioni reali; diventano pericolose quando le usiamo come una macchina che produce interfacce, classi e layer indipendentemente dal problema.
 
-Per questo concetti come cohesion, coupling, information hiding e dependency inversion hanno più valore di qualsiasi catalogo di pattern.
+Il punto non è quindi “applicare SOLID”. È osservare che cosa rende costoso cambiare il software e capire quale principio ci aiuta a descrivere quella tensione.
 
-Lo stesso vale per SOLID.
+## Le ragioni di cambiamento vengono prima delle classi
 
-SOLID può essere molto utile come linguaggio di review.
+La versione scolastica del **Single Responsibility Principle** viene spesso riassunta con “una classe deve fare una sola cosa”. Ma quasi ogni comportamento può essere scomposto in cose più piccole, quindi la frase non ci dice dove fermarci.
 
-Può anche diventare una liturgia capace di produrre codice più astratto del problema.
+La domanda più utile è: **per quali ragioni indipendenti cambia questo componente?**
 
-### Single Responsibility Principle
+Se pricing, authorization, persistenza e rendering evolvono per decisioni diverse e obbligano sempre a modificare lo stesso oggetto, stiamo comprimendo responsabilità che non condividono davvero la stessa vita. Se invece più comportamenti cambiano insieme perché proteggono la stessa invariante del dominio, separarli soltanto per ottenere classi più piccole può peggiorare la comprensione.
 
-La formulazione più utile non è:
+SRP non ci chiede quindi di minimizzare la dimensione. Ci chiede di rendere leggibili le ragioni di cambiamento.
 
-> “Una classe deve fare una sola cosa.”
+## Estendere soltanto dove esiste una variazione credibile
 
-Questa frase è troppo vaga.
+L'**Open/Closed Principle** viene spesso interpretato come un invito a progettare ogni parte del sistema per l'estensione futura. È un modo molto efficiente per comprare complexity debt prima di sapere se la variazione arriverà mai.
 
-Più interessante è ragionare sulle **ragioni di cambiamento**.
+La domanda interessante è diversa:
 
-Se un componente cambia per motivi indipendenti — pricing, persistence, authorization, rendering — probabilmente contiene responsabilità troppo diverse.
+> **Quale dimensione del comportamento abbiamo evidenza che varierà, e quanto ci costerebbe assorbire quella variazione senza un punto di estensione?**
 
-Ma questo non significa che ogni responsabilità debba vivere in una classe separata.
+Se Order Operations usa un solo provider e non esiste alcun segnale concreto che questo cambierà, un plugin system sofisticato è probabilmente prematuro. Se il business ha già deciso di operare in mercati che richiedono provider differenti, la stessa astrazione può diventare una protezione utile.
 
-La granularità dipende dal costo del cambiamento e dal contesto.
+L'obiettivo non è essere chiusi alla modifica in senso assoluto. È impedire che una variazione nota e ricorrente costringa ogni volta a riscrivere parti che non dovrebbero esserne coinvolte.
 
-Un'applicazione piccola può mantenere responsabilità correlate nello stesso modulo senza violare alcun principio sostanziale.
+## Un contratto promette comportamento, non soltanto tipi
 
-### Open/Closed Principle
+Qui entra il **Liskov Substitution Principle**. Due implementazioni non diventano sostituibili soltanto perché il compilatore accetta la stessa interfaccia.
 
-Essere “aperti all'estensione e chiusi alla modifica” non significa progettare ogni componente come un framework estensibile.
+Immaginiamo due adapter che implementano lo stesso `PaymentGateway`. Il primo considera un timeout un risultato incerto e richiede una verifica successiva; il secondo garantisce che il timeout significhi nessun addebito. Dal punto di vista del type system possono essere identici. Dal punto di vista del caso d'uso hanno semantiche radicalmente diverse.
 
-Se non esiste alcuna evidenza che una dimensione varierà, costruire extension point preventivi crea complexity debt.
+La sostituibilità riguarda quindi errori e timeout, idempotenza e side effect, ordering e consistency, oltre ai valori di ritorno. Un contratto utile deve rendere abbastanza esplicite queste aspettative da permettere al consumer di non dipendere accidentalmente dall'implementazione concreta.
 
-La domanda utile è:
+Questo collega direttamente LSP al coupling semantico visto nel Capitolo 5.
 
-> “Quale variazione abbiamo ragione di aspettarci e quanto costa assorbirla?”
+## Il consumer non deve conoscere più di ciò che usa
 
-Se in Order Operations abbiamo un solo provider di pagamento e nessun piano realistico per sostituirlo, un'astrazione sofisticata di plugin potrebbe essere prematura.
+L'**Interface Segregation Principle** non dice che le interfacce debbano essere microscopiche. Dice che un consumer non dovrebbe essere obbligato a conoscere capacità che non gli appartengono.
 
-Se invece il business sa già che opererà in paesi con provider differenti, quella stessa astrazione può avere un ottimo fit.
+Un'interfaccia enorme che espone authorization, refund, settlement, reconciliation e provider administration a un componente che deve soltanto leggere lo stato di un pagamento crea coupling inutile. Ma spezzarla meccanicamente in venti micro-interface può rendere altrettanto difficile capire il modello.
 
-### Liskov Substitution Principle
+Il criterio rimane semantico: il contratto deve rappresentare la capability di cui quel consumer ha bisogno, con una granularità che conservi significato.
 
-LSP diventa rilevante quando un'astrazione promette sostituibilità.
+## La direzione della conoscenza
 
-Il problema non è soltanto il tipo.
+Il **Dependency Inversion Principle** completa il quadro. Una policy importante non dovrebbe essere trascinata da dettagli che cambiano per altre ragioni.
 
-È il comportamento.
+Se una regola del dominio dipende direttamente dal client SDK di un provider, dal framework HTTP o dal database, la conoscenza sta puntando dal significato verso il dettaglio. Un contratto può invertire quella direzione e fare in modo che sia l'adapter infrastrutturale a conformarsi alla capability richiesta dal dominio.
 
-Se due implementazioni condividono un'interfaccia ma hanno semantiche incompatibili su timeout, errori, idempotenza o side effect, non sono veramente sostituibili dal punto di vista del sistema.
+Ma l'interfaccia non è il principio.
 
-Questo è particolarmente importante con adapter verso servizi esterni.
+Creare `IClock`, `IIdGenerator`, `ILogger`, `IRepository`, `IHttpClient`, `IConfigurationProvider` e una controparte astratta per ogni classe concreta non dimostra dependency inversion. Può semplicemente aumentare il numero di salti mentali necessari per seguire il comportamento.
 
-La firma può essere identica mentre il comportamento operativo è completamente diverso.
+L'astrazione ha valore quando rende locale una decisione che vogliamo poter cambiare, testare o governare indipendentemente.
 
-### Interface Segregation Principle
+## SOLID come diagnostica
 
-Interfacce piccole possono ridurre coupling.
+Una review basata su SOLID dovrebbe quindi produrre domande, non punteggi. Possiamo chiederci se un componente cambi per ragioni davvero indipendenti, se stiamo pagando oggi per una variazione soltanto immaginata, se due implementazioni rispettino lo stesso comportamento e se un consumer conosca più del necessario. Possiamo soprattutto verificare se una policy importante dipenda da un dettaglio volatile soltanto perché era il percorso più breve da implementare.
 
-Ma spezzare indiscriminatamente ogni contratto produce decine di micro-interface che rendono difficile capire quale comportamento appartenga a chi.
+Queste domande possono portarci a introdurre un pattern.
 
-Il criterio non è “più piccola è meglio”.
+Possono anche portarci a rimuoverne uno.
 
-È:
+## La semplicità sufficiente
 
-> **il consumer deve dipendere soltanto dal contratto di cui ha davvero bisogno.**
+Quasi sempre esiste una tensione tra flessibilità futura e semplicità presente. Nessun principio elimina quel trade-off.
 
-### Dependency Inversion Principle
+Un design troppo rigido rende costosi cambiamenti che sappiamo già arriveranno. Un design eccessivamente estensibile trasforma il presente in un framework per futuri possibili.
 
-Abbiamo già visto che dependency inversion riguarda la direzione della conoscenza.
+La scelta matura è comprare la struttura necessaria per rendere economici i cambiamenti plausibili e lasciare aperte, senza implementarle in anticipo, le possibilità ancora incerte.
 
-Il dominio non dovrebbe essere costretto a conoscere dettagli di infrastruttura che cambiano per ragioni indipendenti.
-
-Ma anche qui l'interfaccia non è un feticcio.
-
-Se creiamo un `IClock`, `IIdGenerator`, `ILogger`, `IRepository`, `IHttpClient`, `IConfigurationProvider` e altre venti astrazioni solo perché “SOLID”, possiamo finire con un sistema in cui leggere una funzione richiede navigare una foresta di indirezioni.
-
-### SOLID come diagnostica
-
-Un modo maturo di usare SOLID è come strumento diagnostico.
-
-Durante una review possiamo chiedere:
-
-- questo componente cambia per troppe ragioni indipendenti?
-- stiamo rendendo costosa una variazione che sappiamo essere frequente?
-- un'implementazione rompe le aspettative del contratto?
-- un consumer conosce più del necessario?
-- una policy di business dipende da un dettaglio volatile?
-
-Queste domande sono utili.
-
-La checklist “una interface per ogni classe” non lo è.
-
-### Il principio della semplicità sufficiente
-
-In un sistema reale due obiettivi competono spesso:
-
-```text
-flessibilità futura
-vs
-semplicità presente
-```
-
-Non esiste una risposta universale.
-
-Dobbiamo scegliere quanta struttura comprare oggi.
-
-Il design migliore non è quello che supporta il maggior numero di estensioni immaginabili.
-
-È quello che rende semplici i cambiamenti probabili senza rendere difficile il presente.
+Questo è coerente con reversibilità, fit before fashion e Pattern Justification.
 
 > **Un principio è una bussola. Quando diventa una procedura meccanica, smette di aiutarci a pensare.**
