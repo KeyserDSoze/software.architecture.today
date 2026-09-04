@@ -232,7 +232,7 @@ Conta quante assunzioni sono state implicitamente trasformate in fatti.
 
 ## Esercizio 14 — Il test della rimozione
 
-Scegli tre meccanismi presenti in una architettura:
+Scegli tre meccanismi presenti in un’architettura:
 
 ```text
 replica
