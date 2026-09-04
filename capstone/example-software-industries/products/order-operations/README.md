@@ -16,162 +16,49 @@ Order Operations non sostituisce Orders, Payments o Shipping come authoritative 
 
 > **Il progetto deve evolvere perché cambia il contesto, non perché il libro deve mostrare una tecnologia.**
 
-Ogni capitolo può cambiare il capstone soltanto quando introduce nuova informazione, requisito, capability, vincolo, failure mode, cambiamento organizzativo o trade-off che modifica il fit della soluzione corrente.
-
 ## Evoluzione capitolo per capitolo
 
-### 1 — Prima iterazione
+| Capitolo | Evoluzione principale |
+|---|---|
+| 1 | prima console interna per ordini problematici |
+| 2 | problem framing, analisi funzionale condivisa e acceptance criteria |
+| 3 | system context e dipendenze |
+| 4 | ADR e lookup live prima del read model |
+| 5 | responsibility/ownership boundary |
+| 6 | quality attributes e fit before fashion |
+| 7 | pattern soltanto quando una forza li giustifica |
+| 8 | modular monolith invece di microservices prematuri |
+| 9 | primi API Contract read-oriented |
+| 10 | Data Ownership Map e prima migration PostgreSQL |
+| 11 | Payment Escalation, transactional outbox e Failure Mode Map |
+| 12 | Azure application landing zone e Cloud Deployment Map |
+| 13 | Threat Model, Security Control Matrix e prima baseline Bicep |
+| 14 | Reliability Contract, SLO/RTO/RPO e zone resilience direction |
+| 15 | Observability Contract e telemetry port vendor-neutral |
+| 16 | Testing Strategy e prima suite eseguibile |
+| 17 | Operations Desk Classic, characterization e Legacy Understanding Map |
+| 18 | PriorityPolicy seam, Branch by Abstraction, shadow comparison e Refactoring Safety Plan |
+| 19 | Architecture Fitness Checklist e architecture fitness test eseguibile |
 
-Console interna per rendere visibili ordini problematici.
+## Stato funzionale corrente
 
-### 2 — Foundation e analisi funzionale
-
-Problem/outcome, attori, scope, business rule e acceptance criteria diventano espliciti. L'analisi funzionale diventa conoscenza condivisa.
-
-### 3 — System thinking
-
-Order Operations viene inserito nel contesto di Orders, Payments, Shipping, identity e provider esterni.
-
-### 4 — Decisioni
-
-Lookup live prima di un read model asincrono.
-
-### 5 — Confini
-
-Responsibility/ownership boundary distinti anche nello stesso deployable.
-
-### 6 — Quality attributes
-
-Correctness, security, operability, latency, availability e cost guidano le technology choice. Niente Redis o active-active multi-region senza requisito che ne paghi il costo.
-
-### 7 — Pattern
-
-I pattern entrano soltanto quando risolvono forze già presenti.
-
-### 8 — Topologia
-
-Order Operations resta un **modular monolith**.
-
-### 9 — API e contratti
-
-Entrano i primi contratti HTTP read-oriented. Command economici/remediation restano fuori finché semantica e ownership non sono definite.
-
-### 10 — Data architecture
-
-Entra la Data Ownership Map. `OperationalCase`, classificazione e assignment diventano dati locali posseduti dal prodotto.
-
-Migration:
+### Payment Escalation
 
 ```text
-database/migrations/001_create_operational_case.sql
+OperationalCase
+→ Payment Escalation
+→ local transaction
+   ├── PaymentEscalation
+   └── OutboxMessage
+→ async delivery
+→ Payments & Risk
 ```
 
-### 11 — Sistemi distribuiti
+Order Operations possiede l'intenzione di escalation; Payments & Risk mantiene ownership della semantica economica.
 
-Nasce la Payment Escalation verso Payments & Risk:
+### Priority migration
 
-```text
-PaymentEscalation
-+ Transactional Outbox
-+ at-least-once delivery
-+ downstream idempotency
-+ Failure Mode Map
-```
-
-Migration:
-
-```text
-database/migrations/002_add_payment_escalation_and_outbox.sql
-```
-
-### 12 — Cloud Architecture
-
-Prima topologia Azure:
-
-```text
-App Service + continuous WebJob
-Azure Database for PostgreSQL
-Service Bus Queue
-Managed Identity
-Key Vault
-Azure Monitor / Application Insights
-Bicep
-single region
-```
-
-### 13 — Security by Design
-
-Entrano Threat Model, Security Control Matrix e prima baseline `infra/main.bicep`.
-
-Production direction:
-
-```text
-private ingress
-+ Entra authentication
-+ server-side authorization
-+ runtime/deployment identity separation
-+ private data-plane direction
-```
-
-### 14 — Reliability e resilienza
-
-Entra `docs/reliability-contract.md` con target simulati ESI per SLO/RTO/RPO, zone resilience e required recovery drill.
-
-### 15 — Observability
-
-Entra `docs/observability-contract.md` e una porta telemetry vendor-neutral in TypeScript.
-
-```text
-OpenTelemetry-compatible instrumentation
-→ Azure Monitor / Application Insights
-```
-
-### 16 — Testing Architecture
-
-Entra `docs/testing-strategy.md` e la prima suite eseguibile.
-
-Evidence originaria:
-
-```text
-TypeScript build PASS
-11/11 Order Operations tests PASS
-```
-
-### 17 — Legacy e comprensione
-
-ESI introduce un sistema brownfield separato:
-
-```text
-capstone/example-software-industries/legacy/operations-desk-classic/
-```
-
-La slice `legacy case priority routing` riceve characterization test:
-
-```text
-6/6 PASS
-```
-
-Entrano:
-
-```text
-docs/legacy-understanding-map.md
-Found → Inferred → Observed → Confirmed
-```
-
-Nel Capitolo 17 i behavior sono osservati ma non ancora promossi automaticamente a requirement.
-
-### 18 — Refactoring nell'era dell'AI
-
-ESI classifica la semantica della priority e introduce il primo **refactoring slice reale**.
-
-Nuovi artefatti:
-
-```text
-docs/priority-functional-analysis.md
-docs/refactoring-safety-plan.md
-```
-
-Target priority semantics:
+Target semantics confermate nello scenario ESI:
 
 ```text
 Closed                  → NotActionable
@@ -186,59 +73,118 @@ Il vecchio behavior:
 Enterprise + age >= 30m → URGENT
 ```
 
-viene rimosso tramite decisione esplicita simulata ESI e registrato come:
+è stato rimosso tramite decisione funzionale esplicita e registrato come:
 
 ```text
 ED-001 — ExpectedDifference
 ```
 
-Nuovo codice:
-
-```text
-src/priority/
-├── priority-policy.ts
-├── confirmed-priority-policy.ts
-├── legacy-priority-adapter.ts
-└── branching-priority-policy.ts
-```
-
-La migration usa:
+Coexistence direction:
 
 ```text
 PriorityPolicy seam
-+ Anti-Corruption legacy adapter
-+ Branch by Abstraction
-+ modes legacy | shadow | candidate
-+ Match / ExpectedDifference / UnexpectedDifference
+├── LegacyPriorityAdapter
+└── ConfirmedPriorityPolicy
+
+BranchingPriorityPolicy
+modes: legacy | shadow | candidate
 ```
 
-Il legacy originale resta intatto.
+Il production candidate cutover non è ancora autorizzato.
 
-Verification locale dopo il Capitolo 18:
+## Architecture Evolution — Capitolo 19
+
+Entrano:
+
+```text
+docs/architecture-fitness-checklist.md
+tests/architecture-fitness.test.mjs
+```
+
+Prime fitness function strutturali:
+
+```text
+AF-001 legacy isolation
+AF-002 application dependency direction
+AF-003 contract independence
+AF-004 priority isolation
+AF-005 vendor SDK boundary
+```
+
+Il gate usa il normale runner `node:test`; nessun framework aggiuntivo è stato introdotto perché il portfolio corrente non lo giustifica ancora.
+
+Verification dedicata eseguita durante il Capitolo 19 sul current import graph ricostruito dai source correnti:
+
+```text
+node --test tests/architecture-fitness.test.mjs
+→ 5 tests
+→ 5 pass
+→ 0 fail
+```
+
+Questa evidence verifica **soltanto** AF-001…AF-005. Non promuove a Verified proprietà cloud, runtime, data, recovery o production observability.
+
+## Evidence già accumulata
+
+### Capitolo 18 — local application/refactoring gate
 
 ```text
 tsc -p tsconfig.json
 → PASS
 
 Order Operations tests
-→ 19 tests
 → 19 pass
 → 0 fail
 
 Operations Desk Classic characterization
-→ 6 tests
 → 6 pass
 → 0 fail
 ```
 
-Dei 19 test Order Operations:
+### Capitolo 19 — architecture structural gate
 
 ```text
-11 = suite precedente
-8  = priority/refactoring/shadow tests
+AF-001…AF-005
+→ 5 pass
+→ 0 fail
 ```
 
-Questa evidence verifica il layer locale. **Non** dimostra production shadow rollout, PostgreSQL/Azure integration, consumer retirement o candidate cutover.
+Il test architecture è ora incluso dal wildcard `tests/*.test.mjs`, ma non dichiariamo una nuova esecuzione end-to-end di tutti i gate dopo il commit del Capitolo 19 finché non viene realmente eseguita come tale.
+
+## Evidence model
+
+Per artefatti e capability:
+
+```text
+Designed
+→ Codified
+→ Verified
+→ Monitored
+```
+
+Per conoscenza legacy:
+
+```text
+Found
+→ Inferred
+→ Observed
+→ Confirmed
+```
+
+Current snapshot:
+
+```text
+TypeScript application/refactoring source        Codified + previously typechecked
+Order Operations local suite                     previously Verified 19/19
+Legacy priority characterization                 Verified 6/6
+Architecture fitness AF-001…AF-005              Codified + Verified locally 5/5
+Production priority shadow telemetry             Designed / Pending
+Candidate production cutover                     Not authorized
+PostgreSQL integration                           Designed / Pending
+Azure security/network verification              Designed / Pending
+Recovery drills                                  Pending
+Production observability evidence                Pending
+```
 
 ## Struttura corrente
 
@@ -257,6 +203,7 @@ order-operations/
 │   ├── priority-functional-analysis.md
 │   ├── requirements.md
 │   ├── architecture-context.md
+│   ├── architecture-fitness-checklist.md
 │   ├── nfr.md
 │   ├── api-contract.md
 │   ├── data-ownership.md
@@ -270,30 +217,22 @@ order-operations/
 │   ├── legacy-understanding-map.md
 │   ├── refactoring-safety-plan.md
 │   ├── events/
-│   │   └── operational-case-payment-escalated-v1.md
 │   └── adr/
-│       ├── 0001-live-read-before-read-model.md
-│       ├── 0002-azure-paas-single-region.md
-│       └── 0003-private-ingress-and-identity-first-security.md
 ├── infra/
 │   ├── README.md
 │   └── main.bicep
 ├── src/
 │   ├── application/
-│   │   └── request-payment-escalation.ts
 │   ├── contracts/
-│   │   └── operational-case-payment-escalated-v1.ts
 │   ├── integration/
-│   │   └── outbox-publisher.ts
 │   ├── observability/
-│   │   ├── telemetry.ts
-│   │   └── observed-request-payment-escalation.ts
 │   └── priority/
 │       ├── priority-policy.ts
 │       ├── confirmed-priority-policy.ts
 │       ├── legacy-priority-adapter.ts
 │       └── branching-priority-policy.ts
 └── tests/
+    ├── architecture-fitness.test.mjs
     ├── payment-escalation.test.mjs
     ├── outbox-publisher.test.mjs
     └── priority-policy.test.mjs
@@ -303,84 +242,35 @@ Legacy system separato:
 
 ```text
 example-software-industries/
-├── legacy/
-│   └── operations-desk-classic/
-│       ├── README.md
-│       ├── src/priority-routing.cjs
-│       └── tests/priority-routing.characterization.test.mjs
-└── products/
-    └── order-operations/
+├── legacy/operations-desk-classic/
+└── products/order-operations/
 ```
-
-## Evidence model
-
-Per gli artefatti:
-
-```text
-Designed
-→ Codified
-→ Verified
-→ Monitored
-```
-
-Per la conoscenza legacy:
-
-```text
-Found
-→ Inferred
-→ Observed
-→ Confirmed
-```
-
-Stato corrente:
-
-```text
-TypeScript application source                 Codified + typechecked
-Order Operations local suite                  Verified locally 19/19
-Legacy priority characterization              Verified locally 6/6
-Priority target policy                        Codified + Verified locally
-LegacyPriorityAdapter                         Codified + Verified locally
-Shadow comparison logic                       Codified + Verified locally
-Production priority shadow telemetry          Designed / Pending
-Candidate production cutover                  Not authorized / Not executed
-Legacy priority retirement                    Not started
-PostgreSQL integration                        Designed / Pending
-Azure security/network verification           Designed / Pending
-Recovery drills                               Pending
-Production observability evidence             Pending
-```
-
-## Refactoring rule
-
-Il Capitolo 18 introduce un principio che deve restare valido per le prossime evoluzioni:
-
-> **Ogni passo di una trasformazione deve produrre abbastanza evidence da meritare il passo successivo.**
-
-L'AI può accelerare seam, adapter, test e trasformazioni repository-wide. Non può trasformare automaticamente comportamento osservato in requisito, né autorizzare one-way door o cutover business-critical.
 
 ## Documenti da mantenere sincronizzati
 
-Quando Order Operations cambia, verifichiamo almeno:
+Quando il prodotto cambia verifichiamo almeno:
 
-- functional analysis;
-- requirements;
-- ownership;
-- ADR;
-- API/event contracts;
-- data model/migrations;
+- Functional Analysis e Requirements;
+- Architecture Context e ADR;
+- Architecture Fitness Checklist;
+- API/event contract;
+- Data Ownership Map e migration;
 - NFR;
 - Failure Mode Map;
-- Threat Model;
-- Security Control Matrix;
+- Threat Model e Security Control Matrix;
 - Reliability Contract;
 - Observability Contract;
 - Testing Strategy;
 - Legacy Understanding Map;
 - Refactoring Safety Plan;
-- IaC;
-- deployment/rollback;
-- runbook.
+- IaC, deployment/rollback e runbook.
+
+## Regola corrente di evoluzione
+
+> **Il buon guardrail blocca il drift. Non blocca l'evoluzione intenzionale.**
+
+Una fitness function può essere modificata quando cambia l'architectural intent, ma la modifica della policy non viene trattata come un modo automatico per far passare una implementation violation.
 
 ## Obiettivo finale
 
-Alla fine del libro il lettore deve poter confrontare la prima iterazione con il sistema finale e capire non soltanto **che cosa** è cambiato, ma **quale nuova informazione o trade-off ha reso necessario ogni cambiamento**.
+Alla fine del libro il lettore deve poter confrontare la prima iterazione con il sistema finale e capire non soltanto **che cosa** è cambiato, ma **quale nuova informazione, trade-off o evidence ha reso necessario ogni cambiamento**.
