@@ -28,6 +28,7 @@ Ridurre il tempo necessario agli operatori per individuare, comprendere e gestir
 24     runtime AI — Case Explanation Assistant
 25     One-Man Project operating model
 26     Production Readiness Review
+27     end-to-end synthesis / decision traces
 ```
 
 ---
@@ -92,6 +93,12 @@ NOT AUTHORIZED
 
 Runtime shadow/retirement evidence remains pending.
 
+End-to-end trace:
+
+```text
+docs/end-to-end-priority-migration.md
+```
+
 ## Case Explanation Assistant
 
 First runtime AI capability.
@@ -119,6 +126,12 @@ Real model/provider evaluation:
 ```text
 OO-002
 = Pending
+```
+
+End-to-end trace:
+
+```text
+docs/end-to-end-case-explanation.md
 ```
 
 ---
@@ -219,6 +232,49 @@ The PRR deliberately does **not** call the project “almost ready”. It record
 
 ---
 
+# Chapter 27 — End-to-end synthesis
+
+Order Operations participates in two of the three ESI cases:
+
+```text
+Operations Desk Classic → Priority migration
+Case Explanation Assistant
+```
+
+The purpose of the new traces is not to duplicate canonical documentation.
+
+They show the causal chain:
+
+```text
+problem
+→ outcome
+→ functional scope
+→ owner
+→ quality floor
+→ trade-off
+→ architecture
+→ failure
+→ verification
+→ production decision
+```
+
+Canonical summary views:
+
+```text
+docs/end-to-end-priority-migration.md
+docs/end-to-end-case-explanation.md
+```
+
+The third Chapter 27 case lives in another ESI product:
+
+```text
+../campaign-launchpad/
+```
+
+This is intentional: ESI is now a multi-product software company, and the same method is expected to produce different architectures when the workload changes.
+
+---
+
 # Current work items
 
 ```text
@@ -276,6 +332,9 @@ One-Man Project fitness                       Codified; authoring-runtime execut
 
 Chapter 26
 Production Readiness fitness                  Codified; real production-readiness evidence remains external/environment-specific
+
+Chapter 27
+End-to-end traces                             Codified; no new runtime verification claimed
 ```
 
 Important:
@@ -310,6 +369,7 @@ Capacity evidence                            Pending
 Real AI model/provider evaluation            Pending via OO-002
 Priority authoritative cutover               Not authorized
 A3/A4 production agent autonomy              Not authorized
+End-to-end decision traces                   Codified / summary only
 ```
 
 Evidence vocabulary:
@@ -358,6 +418,8 @@ order-operations/
 │   ├── ai-feature-contract.md
 │   ├── one-man-project-operating-model.md
 │   ├── production-readiness-review.md
+│   ├── end-to-end-priority-migration.md
+│   ├── end-to-end-case-explanation.md
 │   ├── events/
 │   └── adr/
 ├── evals/
@@ -385,7 +447,8 @@ order-operations/
 - AI authority/context/tool/model → AI Feature Contract + evals;
 - agent permission/autonomy → Delegation/Verification/Autonomy artifacts;
 - One-Man Project WIP/continuity → Operating Model;
-- launch boundary/blocker/risk acceptance → Production Readiness Review + primary evidence.
+- launch boundary/blocker/risk acceptance → Production Readiness Review + primary evidence;
+- end-to-end traces → update only when their underlying canonical decision chain changes.
 
 ---
 
@@ -400,6 +463,8 @@ order-operations/
 > **Closing one blocker does not make the system production-ready.**
 
 > **Readiness non è ottenere un sì. È rendere costoso dire sì senza sapere perché.**
+
+> **Lo stesso metodo deve poter produrre architetture diverse quando cambiano le forze del workload.**
 
 ## End goal
 
