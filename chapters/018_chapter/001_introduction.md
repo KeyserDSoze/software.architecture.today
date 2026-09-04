@@ -1,231 +1,235 @@
 # Capitolo 18 — Refactoring nell'era dell'AI
 
-Nel Capitolo 17 abbiamo fatto una cosa poco spettacolare e molto importante: non abbiamo riscritto nulla.
+Nel Capitolo 17 abbiamo resistito alla tentazione di cambiare subito Operations Desk Classic.
 
-Abbiamo studiato **Operations Desk Classic**, isolato una capability, aggiunto characterization test e distinto ciò che avevamo trovato da ciò che avevamo soltanto inferito.
+Abbiamo prima costruito una baseline: behavior osservati, claim con provenance, unknown espliciti e un candidate seam.
 
-Ora possiamo cambiare il sistema.
+Ora possiamo iniziare a trasformare il sistema.
 
-Ed è proprio qui che l'AI rende il refactoring più potente e più pericoloso.
+È qui che l'AI rende il refactoring contemporaneamente più potente e più pericoloso.
 
-Un agente può oggi:
+Un agente può oggi rinominare migliaia di simboli, migrare call site, creare adapter, aggiornare framework, generare migration e produrre in minuti un diff che un team avrebbe costruito in settimane.
 
-- rinominare migliaia di simboli;
-- convertire API obsolete;
-- spostare responsabilità fra moduli;
-- creare adapter;
-- modificare centinaia di call site;
-- generare migration;
-- aggiungere test;
-- aggiornare configurazioni;
-- produrre un diff che un team umano avrebbe costruito in settimane.
+La capacità di execution è aumentata.
 
-Il problema è che **la velocità di trasformazione non riduce automaticamente il rischio della trasformazione**.
-
-Può fare il contrario.
+Il rischio semantico non è diminuito automaticamente.
 
 > **L'AI può rendere enorme il diff. Il nostro lavoro è rendere piccolo il rischio.**
 
-## Refactoring non significa soltanto codice più bello
+## Refactoring e modernization non sono la stessa cosa
 
-Nel senso classico, refactoring indica una modifica della struttura interna che preserva il comportamento osservabile.
+Nel senso classico, refactoring significa cambiare la struttura interna preservando il comportamento osservabile.
 
-Nella pratica di una modernizzazione enterprise, però, ci troviamo spesso davanti a un insieme più ampio di cambiamenti:
+In una modernization enterprise incontriamo però spesso una sequenza più ampia:
 
 ```text
-refactoring interno
-+ cambio di boundary
+internal refactor
++ new boundary
 + adapter
-+ migration dati
-+ sostituzione dependency
-+ rollout progressivo
-+ rimozione legacy
++ intentional behavior change
++ state migration
++ rollout
++ legacy removal
 ```
 
-Non tutto questo è tecnicamente refactoring puro.
+Non tutto questo è refactoring puro.
 
-Ma tutto questo richiede la stessa disciplina fondamentale:
+Per questo nel capitolo distingueremo sempre fra:
 
-> **cambiare il sistema senza perdere il controllo di ciò che deve rimanere vero.**
+```text
+behavior preserved
+behavior changed intentionally
+contract changed
+state migrated
+ownership moved
+compatibility removed
+```
 
-Per questo in questo capitolo useremo *refactoring* in un senso operativo più ampio, distinguendo sempre quando stiamo:
+La disciplina comune è una sola:
 
-- preservando comportamento;
-- introducendo intenzionalmente un nuovo comportamento;
-- migrando stato;
-- cambiando un contratto;
-- spostando ownership;
-- eliminando una compatibilità storica.
+> **rendere deliberato ogni cambiamento di significato e verificabile ogni promessa di preservazione.**
 
-## Il rischio non è proporzionale alle righe modificate
+## Il rischio non vive nelle linee modificate
 
-Un diff di ventimila righe può essere relativamente sicuro se è una trasformazione meccanica deterministica con ottima verification.
+Un diff di ventimila righe può essere relativamente sicuro se applica una trasformazione meccanica deterministica con ottima verification.
 
-Una modifica di tre righe può essere devastante se cambia:
+Tre righe possono essere catastrofiche se cambiano authorization, precedence di una business rule, retry semantics o ownership di un dato.
 
-- precedence di una business rule;
-- authorization;
-- una query nel critical path;
-- semantica di retry;
-- serializzazione di un evento;
-- ownership di un dato;
-- una condizione di fallback.
-
-Quindi non useremo:
+Non useremo quindi:
 
 ```text
 lines changed
 ```
 
-come proxy del rischio.
+come proxy della pericolosità.
 
-Useremo piuttosto:
+Ragioneremo piuttosto su:
 
 ```text
 semantic surface
 × blast radius
-× reversibility
-× evidence quality
+× irreversibility
+× uncertainty
+÷ evidence quality
 ```
 
-## Il refactoring ha bisogno di una safety envelope
+Non è una formula matematica.
 
-Prima di cambiare Operations Desk Classic dobbiamo sapere:
+È un modo per ricordare che il rischio nasce dal significato del cambiamento, non dal peso del diff.
 
-1. quale capability stiamo modificando;
-2. quali comportamenti devono essere preservati;
-3. quali comportamenti possono cambiare intenzionalmente;
-4. quali consumer possono essere colpiti;
-5. quale stato viene letto o scritto;
-6. quale rollback è realmente possibile;
-7. quali segnali ci dicono che il nuovo percorso sta funzionando;
-8. quali condizioni devono interrompere il rollout.
+## Dal Legacy Understanding Map al Safety Envelope
 
-Questo insieme formerà il nuovo artefatto del capitolo:
+Prima di toccare una capability dobbiamo poter rispondere almeno a queste domande:
 
-> **Refactoring Safety Plan**
+```text
+che cosa stiamo cambiando?
+quali behavior devono restare uguali?
+quali differenze sono intenzionali?
+quali consumer possono essere colpiti?
+quale stato viene letto o scritto?
+come osserviamo il candidate?
+quando fermiamo il rollout?
+come torniamo indietro?
+qual è il primo one-way door?
+```
 
-Non è una checklist burocratica.
+Queste risposte formano la **safety envelope** della trasformazione.
 
-È il contratto che ci permette di aumentare la velocità di modifica senza perdere accountability.
+L'artefatto persistente del capitolo sarà il **Refactoring Safety Plan**.
 
-## Piccolo cambiamento, piccolo blast radius
+Non serve a rallentare il lavoro.
 
-Microsoft Azure Well-Architected raccomanda safe deployment practice coerenti e osserva che deploy frequenti e piccoli sono generalmente più semplici da recuperare rispetto a cambiamenti grandi e infrequenti.
+Serve a permettere di accelerarlo senza rendere impliciti i rischi.
+
+## Più execution disponibile dovrebbe produrre batch più piccoli
+
+Microsoft Azure Well-Architected raccomanda safe deployment practice incrementali e osserva che cambiamenti piccoli e frequenti sono generalmente più semplici da diagnosticare e recuperare rispetto a grandi release infrequenti.
 
 Fonte:
 
 - [Microsoft Learn — Architecture strategies for safe deployment practices](https://learn.microsoft.com/azure/well-architected/operational-excellence/safe-deployments)
 
-Questo principio è particolarmente importante con gli agenti.
+Questa raccomandazione diventa ancora più importante quando gli agenti abbassano il costo del cambiamento.
 
-Se l'AI può modificare cento file in pochi minuti, il nostro istinto non dovrebbe essere:
+Se possiamo modificare cento file in pochi minuti, non segue che dovremmo modificare cento file nello stesso step.
 
-> “Fantastico, facciamoli tutti insieme.”
+Segue piuttosto che possiamo permetterci di introdurre:
 
-Dovrebbe essere:
+```text
+seam
+→ adapter
+→ candidate inactive
+→ shadow comparison
+→ controlled routing
+→ legacy cleanup
+```
 
-> **“Fantastico, possiamo permetterci di costruire incrementi ancora più piccoli.”**
+con incrementi molto più piccoli di quanto fosse economicamente conveniente prima.
 
-La maggiore capacità di execution può essere usata per produrre:
+> **La velocità dell'AI dovrebbe ridurre la dimensione del rischio che dobbiamo accettare per ogni passo, non aumentarla.**
 
-- diff più piccoli;
-- adapter temporanei;
-- comparison layer;
-- migration step;
-- test più mirati;
-- rollback più precisi;
-- documentazione aggiornata a ogni fase.
+## Rollback è una famiglia di problemi
 
-L'AI non ci obbliga ai big bang.
+Una parola crea molta confusione: `rollback`.
 
-Può rendere i big bang ancora meno giustificabili.
+Durante una modernization dobbiamo distinguere almeno:
 
-## Tre tipi di rollback
+```text
+Deployment rollback
+→ tornare all'artifact precedente
 
-Nel resto del capitolo distingueremo almeno tre concetti che spesso vengono confusi.
+Behavior fallback
+→ mantenere il deploy ma tornare al path legacy
 
-### Deployment rollback
+Configuration rollback
+→ ripristinare una configurazione precedente
 
-Tornare all'artifact precedente.
+Data rollback
+→ ripristinare o compensare stato persistente
 
-### Behavior fallback
+Contract rollback
+→ tornare a una versione precedente quando consumer/provider lo consentono
+```
 
-Lasciare deployato il nuovo codice ma riportare il traffico o la decisione alla vecchia implementazione.
+Una feature flag può rendere facilissimo il behavior fallback e non fare nulla per una migration dati irreversibile.
 
-### Data rollback
+Un artifact rollback può fallire perché il vecchio codice non comprende più lo schema nuovo.
 
-Ripristinare lo stato precedente.
+La regola è:
 
-Sono tre problemi diversi.
+> **reversibile nel codice non significa reversibile nel sistema.**
 
-Una feature flag può rendere facile il behavior fallback e non fare nulla per invertire una migration dati distruttiva.
+## Il punto di non ritorno deve essere esplicito
 
-Un rollback applicativo può essere inutile se il nuovo codice ha già scritto dati che il vecchio non comprende.
+Le prime fasi di una migrazione possono essere molto reversibili:
 
-> **Reversibile nel codice non significa reversibile nel sistema.**
+```text
+candidate inactive
+shadow mode
+small cohort
+```
 
-## Il caso ESI
+La reversibilità scende quando:
 
-Nel Capitolo 17 abbiamo osservato sei behavior nella priority routing di Operations Desk Classic.
+```text
+candidate becomes authoritative writer
+legacy consumer is removed
+old schema is dropped
+historical provenance is destroyed
+```
 
-Ma non li abbiamo ancora promossi tutti a requirement.
+Il Refactoring Safety Plan deve rendere visibile il **point of no return**.
 
-Adesso ESI riunisce:
+Non per vietarlo.
 
-- Operations;
-- Product;
-- Payments & Risk;
-- Sales;
-- il team Order Operations;
-- Platform Engineering.
+Per sapere quando una trasformazione passa da two-way door a one-way door e richiede un livello diverso di evidence e approval.
 
-L'obiettivo è classificare quei behavior e spostare la capability in Order Operations.
+## ESI: finalmente decidiamo quali behavior meritano di sopravvivere
 
-Il conflitto è evidente.
+Nel Capitolo 17 abbiamo osservato sei behavior della priority routing legacy.
 
-### Finance / Platform
+Ora ESI svolge un workshop simulato con Operations, Product, Payments & Risk, Sales e Order Operations.
 
-Vogliono ridurre il costo del legacy e accelerarne il retirement.
+Il risultato non sarà “copiamo il codice”.
 
-### Operations
+Sarà una classificazione semantica.
 
-Vuole preservare il comportamento che tiene in piedi il lavoro quotidiano.
+Alcuni behavior vengono confermati come necessari.
 
-### Product
+Uno — la vecchia regola Enterprise dopo 30 minuti — viene deliberatamente rimosso.
 
-Non vuole trasformare workaround storiche in regole del nuovo prodotto.
+Questo introduce una distinzione fondamentale per tutto il capitolo:
 
-### Engineering
+```text
+regression
+≠
+intentional difference
+```
 
-Vuole un cambiamento piccolo, osservabile e reversibile.
+La nuova policy non deve raggiungere zero mismatch con il legacy.
 
-### AI-enabled delivery
+Deve preservare i behavior confermati e produrre **esattamente** le differenze deliberate.
 
-Rende tecnicamente possibile riscrivere tutto molto rapidamente.
+## Il compromesso ESI
 
-Ed è proprio per questo che dobbiamo resistere alla tentazione.
+**Esigenza:** trasferire la priority routing da Operations Desk Classic a Order Operations e ridurre il legacy footprint.
 
-## Compromesso ESI del capitolo
+**Tensione:** retirement speed contro semantic safety, coexistence cost e desiderio di semplificare regole storiche.
 
-**Esigenza:** trasferire la priority routing da Operations Desk Classic a Order Operations per ridurre il legacy footprint.
+**Decisione:** classificazione esplicita dei behavior, seam `PriorityPolicy`, `LegacyPriorityAdapter`, nuova `ConfirmedPriorityPolicy`, shadow comparison e cutover separato dalla rimozione del legacy.
 
-**Tensione:** retirement speed vs semantic safety vs coexistence cost vs desiderio di semplificare regole storiche.
+**Costo accettato:** per un periodo esistono due implementazioni e una struttura temporanea di routing/comparison.
 
-**Decisione:** classification esplicita dei behavior, seam `PriorityPolicy`, Branch by Abstraction, nuova implementazione in shadow mode, comparison evidence e cutover separato dalla rimozione del legacy.
+**Quality floor:** nessuna silent regression sui behavior confermati; differenze intenzionali registrate prima del rollout; tenant/security invarianti preservati; nessuna migration dati nel primo slice; fallback disponibile finché non attraversiamo un one-way door dichiarato.
 
-**Costo accettato:** per un periodo manteniamo due implementazioni, un comparison path e una feature/switch policy temporanea.
-
-**Quality floor:** nessuna regressione silenziosa su behavior confermati; differenze intenzionali documentate; tenant/security invarianti preservati; rollback possibile finché non raggiungiamo il punto di non ritorno dichiarato.
-
-**Guardrail:** characterization suite, Refactoring Safety Plan, behavior classification, small batches, shadow comparison, stop condition e cleanup obbligatorio delle strutture temporanee.
+**Guardrail:** characterization suite, Priority Functional Analysis, Refactoring Safety Plan, small batch, Expected Difference Registry, shadow comparison, stop condition e cleanup obbligatorio della migration architecture.
 
 ## La domanda del capitolo
 
 Non è:
 
-> Come facciamo a riscrivere velocemente questo codice?
+> Come facciamo a riscrivere più velocemente?
 
 È:
 
-> **Come aumentiamo drasticamente la velocità di trasformazione mantenendo piccolo, osservabile e reversibile il rischio di ogni passo?**
+> **Come usiamo una capacità di trasformazione molto più alta mantenendo ogni passo abbastanza piccolo, osservabile e reversibile da meritare il passo successivo?**
