@@ -1,344 +1,355 @@
 # 18.6 — Refactoring Safety Plan
 
-Un refactoring significativo dovrebbe poter essere spiegato prima di essere eseguito.
+Un refactoring significativo dovrebbe poter essere spiegato **prima** di essere eseguito.
 
-Non in ogni dettaglio di implementazione.
+Non serve anticipare ogni dettaglio del codice.
 
-Ma almeno nel suo perimetro di rischio.
+Serve rendere esplicito il perimetro entro cui il cambiamento è autorizzato a muoversi.
 
 Per questo introduciamo il **Refactoring Safety Plan**.
 
-## A cosa serve
+La sua domanda centrale è:
 
-Il piano risponde a una domanda semplice:
+> **Che cosa deve restare vero mentre cambiamo il sistema, quale differenza vogliamo introdurre e quale evidence ci autorizza a passare alla fase successiva?**
 
-> **Che cosa deve rimanere vero mentre cambiamo il sistema?**
+## Il piano è una safety envelope, non una checklist
 
-E a una seconda:
+Un buon piano collega:
 
-> **Come sapremo abbastanza presto che non lo è più?**
+```text
+intent
+→ scope
+→ invariants
+→ phases
+→ evidence
+→ stop conditions
+→ fallback / rollback
+→ point of no return
+→ cleanup
+```
 
-## Template
+Se una di queste parti manca, possiamo ancora modificare codice.
 
-### 1. Goal
+Abbiamo però meno capacità di governare ciò che succede quando il cambiamento non si comporta come previsto.
 
-Quale outcome vogliamo ottenere?
+## Goal: descrivere l'outcome, non il gesto tecnico
 
-Non:
+Debole:
 
 ```text
 refactor priority code
 ```
 
-Meglio:
+Più utile:
 
 ```text
 move priority decision capability from Operations Desk Classic
-into Order Operations while preserving confirmed behavior
-and removing one explicitly obsolete rule.
+into Order Operations,
+preserve confirmed behaviors,
+remove one explicitly retired legacy rule,
+without changing persistence/API ownership in this slice
 ```
 
-### 2. Scope
+Il goal dice quale responsabilità stiamo trasferendo e quali limiti rendono il primo step deliberatamente più piccolo.
 
-Quali componenti possono cambiare?
+## Scope e out of scope
+
+Per la slice ESI lo scope include:
 
 ```text
-Order Operations priority boundary
-legacy adapter
-candidate policy
-comparison telemetry
-rollout switch
-tests/docs
+PriorityPolicy seam
+LegacyPriorityAdapter
+ConfirmedPriorityPolicy
+BranchingPriorityPolicy
+shadow comparison
+ED-001
+tests / docs
 ```
 
-### 3. Out of scope
-
-Cosa non tocchiamo ancora?
+Restano fuori:
 
 ```text
 priority persistence ownership
-shared legacy database cleanup
+shared legacy DB retirement
 nightly export replacement
-public API changes
-payment workflow
+new public API
+manual-hold command
+production rollout
+legacy deletion
 ```
 
-L'out-of-scope è importante quanto lo scope.
+L'`out of scope` è importante quanto lo scope.
 
-### 4. Behavior classification
+Impedisce a un refactoring tecnicamente comodo di assorbire nuove decisioni mentre l'agente o il team è già in execution mode.
 
-Ogni behavior legacy rilevante deve essere classificato:
+## Behavior classification prima delle invarianti
+
+Il Safety Plan non può dire “preserva il comportamento” quando sappiamo che una parte del behavior legacy deve cambiare.
+
+Ogni comportamento significativo deve quindi essere classificato:
 
 ```text
 Required
 Compatibility
 Accidental
-Removed by explicit product decision
+Removed by explicit decision
 Unknown
 ```
 
-Un behavior `Unknown` non dovrebbe essere eliminato silenziosamente.
+`Unknown` non significa “mantienilo per sempre”.
 
-### 5. Invariants
+Significa “non eliminarlo silenziosamente dentro questo change”.
 
-Esempi:
+Da questa classificazione derivano le invarianti.
+
+Per ESI, per esempio:
 
 ```text
-closed case cannot become actionable priority
-manual hold remains visible
-payment repeated-failure rule remains urgent
-cross-tenant behavior unchanged
-candidate path has no external side effect during shadow
+Closed stays NotActionable
+ManualReview keeps precedence
+RepeatedPaymentFailure stays Urgent
+Default open case stays Standard
+shadow candidate has no external side effect
+ED-001 is the only intentional semantic difference
 ```
 
-### 6. Preconditions
+## Preconditions: non entrare in execution troppo presto
 
-Che cosa deve essere vero prima di iniziare?
+Prima del primo cambiamento significativo vogliamo almeno:
 
-- characterization suite green;
-- owner identificati;
-- expected difference approvate;
-- telemetry comparison disponibile;
-- rollback mode definito;
-- nessuna migration dati distruttiva nel primo slice.
+- characterization suite verde;
+- target semantics confermate;
+- differenze intenzionali registrate;
+- rollback/fallback model definito;
+- side effect del candidate compresi;
+- nessuna one-way door accidentale nel primo slice.
 
-### 7. Migration phases
+Prima di un futuro production shadow serviranno inoltre comparison telemetry, performance budget, consumer inventory e un owner con autorità di stop.
 
-Esempio:
+Le precondition fanno una cosa importante: separano **“possiamo scriverlo”** da **“siamo pronti a eseguirlo”**.
+
+## Le fasi devono guadagnarsi quella successiva
+
+Per ESI la progressione è:
 
 ```text
 P0 — characterize
-P1 — seam
-P2 — legacy adapter behind seam
-P3 — candidate inactive
-P4 — shadow
-P5 — selected candidate routing
+P1 — introduce seam
+P2 — route legacy through adapter
+P3 — add candidate inactive
+P4 — shadow comparison
+P5 — controlled candidate routing
 P6 — candidate default
-P7 — remove legacy path
+P7 — legacy cleanup
+P8 — migration architecture cleanup
 ```
 
-### 8. Evidence per fase
+Non tutte le fasi vengono eseguite nel capitolo.
 
-Ogni fase deve avere evidence proportionate.
+Il Capitolo 18 arriva localmente a P4.
+
+P5 e oltre richiedono runtime evidence che il repository da solo non può produrre.
+
+Questa distinzione protegge il capstone dalla tentazione di dichiarare `Verified` ciò che è soltanto `Designed`.
+
+## Evidence per fase
+
+Ogni step deve avere una domanda falsificabile.
 
 ```text
+P0
+Does legacy characterization reproduce the observed baseline?
+
 P1
-build + existing characterization
+Can callers use the seam without behavior change?
+
+P2
+Does the adapter reproduce the real legacy calculator semantics?
 
 P3
-candidate unit tests
+Does target policy implement confirmed requirements and ED-001?
 
 P4
-comparison distribution
-unexpected mismatch = 0
+Can comparison distinguish Match / Expected / Unexpected without changing authority?
 
 P5
-business + technical SLI by cohort
-
-P6
-stability window
-support signal
-
-P7
-consumer inventory confirms no legacy caller
+Does the candidate remain correct under a controlled runtime cohort?
 ```
 
-### 9. Stop conditions
+L'evidence cresce con il blast radius.
 
-Esempi:
+Non serve un production game day per P1.
+
+Non basta un unit test per P5.
+
+## Stop condition: qualcuno deve poter dire no
+
+Un rollout governato non possiede soltanto metriche.
+
+Possiede condizioni che impediscono di aumentare il blast radius.
+
+Per la priority routing possono includere:
 
 ```text
-unexpected semantic mismatch
-increase in operator manual correction
-new authorization failure class
-latency over agreed budget
-candidate exception not explained
-legacy consumer discovered late
-reconciliation divergence
+UnexpectedDifference on confirmed rules
+manual-hold precedence regression
+closed case becomes actionable
+payment repeated-failure loses urgency
+new authorization/security behavior
+candidate exception unexplained
+shadow path causes side effect
+latency overhead beyond budget
+late legacy consumer discovered
 ```
 
-Una stop condition non è un commento nel runbook.
+Una stop condition senza **stop authority** è soltanto documentazione.
 
-Deve avere un owner capace di fermare il rollout.
+Il piano deve dire chi può fermare il rollout anche quando Finance, Product o Engineering desiderano continuare.
 
-### 10. Fallback / rollback
+## Fallback e rollback devono essere specifici
 
-Dobbiamo specificare:
+Il piano deve distinguere:
 
 ```text
 behavior fallback
 artifact rollback
 configuration rollback
 data rollback
+contract rollback
 ```
 
-se applicabili.
+Se un tipo non è applicabile o non è possibile, va scritto.
 
-Se un tipo di rollback **non è possibile**, va scritto.
+Nel primo slice ESI non esiste data migration, quindi il data rollback non è necessario.
 
-### 11. Point of no return
+Se in futuro la priority diventerà persisted state, questa sezione dovrà essere ridisegnata **prima** dell'esecuzione.
 
-Quale step trasforma il cambiamento in una one-way door?
+## Point of no return
 
-Esempi:
+Il Safety Plan deve rendere visibile la prima one-way door.
 
-- drop dello schema legacy;
-- dismissione del job vecchio;
-- eliminazione del consumer fallback;
-- conversione irreversibile dello stato;
-- rimozione dell'ultimo owner operativo legacy.
+Nel Capitolo 18 non ne attraversiamo nessuna.
 
-### 12. Owners
+Potrebbero comparire più avanti con:
 
-Almeno:
+- eliminazione di state legacy ancora consumato;
+- rimozione dell'ultimo compatibility path;
+- cambio irreversibile del persisted representation;
+- dismissione di un job prima della migrazione dei consumer.
 
-- change owner;
-- domain owner;
-- operational owner;
-- rollback decision owner;
-- data owner quando coinvolto.
+Il point of no return non è una proibizione.
 
-### 13. Temporary architecture cleanup
+È il punto in cui serve un livello superiore di evidence perché il fallback semplice non esiste più.
 
-Quali cose devono scomparire a fine migrazione?
+## Ownership
+
+Per una trasformazione significativa distinguiamo almeno:
 
 ```text
-feature flag
+change owner
+domain owner
+operational owner
+data owner when relevant
+rollback / stop decision owner
+```
+
+Un agente può produrre codice e perfino un eccellente report.
+
+Non può essere il proprietario del rischio aziendale.
+
+## Temporary architecture cleanup
+
+La migration architecture deve dichiarare ciò che dovrà scomparire:
+
+```text
+feature/routing flag
 legacy adapter
 shadow comparison path
-expected-difference registry
+Expected Difference Registry
 compatibility parser
-migration-only metrics
+migration-only telemetry
+obsolete tests
 ```
 
-Se non definiamo questo punto, la struttura temporanea tende a diventare permanente.
+Questo fa parte della Definition of Done.
 
-## Safety plan ≠ approvazione burocratica
+Un rollout al 100% con flag, adapter e dual path ancora permanenti non è una migrazione finita.
 
-Il piano non serve a creare una riunione in più.
+> **La parte finale di una migrazione è eliminare la migrazione dal sistema.**
 
-Serve a consentire:
+## Il piano non è un approval theater
 
-- execution parallela;
-- agent delegation;
+Il Safety Plan non serve a creare una riunione in più.
+
+Serve a rendere possibile:
+
+- delegation agli agenti;
+- execution parallela entro boundary chiari;
 - review mirata;
-- rollout governato;
+- rollout progressivo;
 - decisioni rapide durante un problema.
 
-Un buon piano può stare in poche pagine.
+Il dettaglio cresce con blast radius, irreversibilità, data sensitivity, numero di consumer e uncertainty.
 
-Un piano enorme che nessuno usa non aumenta la safety.
+Un rename locale non richiede lo stesso livello del trasferimento di authority su un ledger.
 
-## Risk-weighted detail
+## L'AI può scrivere il draft, non confermare il significato
 
-Il dettaglio deve crescere con:
+Dato Legacy Understanding Map, requirements, Threat Model, Failure Mode Map e Testing Strategy, un agente può proporre scope, invarianti, fasi, test, rollback question e stop condition.
+
+Ma non può ricavare dal repository risposte autorevoli a domande come:
 
 ```text
-blast radius
-irreversibility
-data sensitivity
-consumer count
-business impact
-uncertainty
+Questo behavior è obsoleto?
+Il business accetta la compatibility break?
+Chi autorizza il cutover?
+Quale perdita dati è accettabile?
 ```
 
-Un rename locale non richiede lo stesso piano di una migration del ledger finanziario.
-
-## L'AI può scrivere il piano?
-
-Può aiutarci molto.
-
-Dato:
-
-- Legacy Understanding Map;
-- Requirements;
-- Threat Model;
-- Failure Mode Map;
-- Testing Strategy;
-- repository diff;
-
-un agente può proporre:
-
-- affected boundary;
-- invariants candidate;
-- risk;
-- phase;
-- test;
-- rollback question;
-- stop condition.
-
-Ma alcune decisioni devono essere confermate da chi possiede il rischio.
-
-Per esempio:
+Il flusso ESI è quindi:
 
 ```text
-Is this behavior obsolete?
-Can the business accept this compatibility break?
-Who can approve cutover?
-What RPO is acceptable?
-```
-
-Non sono domande che il repository può risolvere.
-
-## Human approval point
-
-Nel nostro workflow ESI distinguiamo:
-
-```text
-AI drafts safety plan
+AI drafts
 → technical review
-→ domain confirmation
+→ domain/risk confirmation
 → execution
 ```
 
-Per change ad alto impatto possiamo aggiungere Security, Platform o Finance.
+Per change con impatto diverso possono entrare Security, Platform, Finance o altri owner.
 
-Non perché ogni team debba approvare ogni refactoring.
+## Dal Safety Plan al work item
 
-Perché il sistema è il punto di incontro fra più responsabilità aziendali.
+Più avanti useremo issue-driven development.
 
-## Safety Plan e issue-driven development
-
-Più avanti parleremo di issue-driven development e repository AI-ready.
-
-Il Refactoring Safety Plan è già un buon esempio di contesto che può essere collegato a un work item.
-
-Una issue potrebbe contenere:
+Il Safety Plan è già un esempio del tipo di contesto che rende un work item realmente eseguibile da una persona o da un agente:
 
 ```text
 Goal
-Scope
+Scope / forbidden scope
 Safety Plan
 Acceptance evidence
 Stop condition
 Cleanup definition
 ```
 
-Così un agente non riceve soltanto:
+Questo è molto diverso da:
 
 ```text
-refactor this
+refactor this module
 ```
 
-ma un contratto di execution.
+## Definition of Done
 
-## Definizione di done
+Il refactoring non finisce quando il candidate riceve il 100% del traffico.
 
-Un refactoring non è concluso quando:
+Finisce quando:
 
-```text
-candidate = 100%
-```
-
-È concluso quando:
-
-- candidate è stabile;
 - behavior richiesti sono verificati;
-- differenze intenzionali sono confermate;
-- old path non serve più;
-- flag e adapter temporanei sono rimossi;
-- test obsoleti sono puliti;
-- documentazione descrive lo stato finale;
-- monitoring non dipende da metriche di migrazione ormai inutili.
+- differenze intenzionali restano deliberate;
+- old path non ha più consumer;
+- rollback window viene chiusa intenzionalmente;
+- migration flag/adapter/comparison sono rimossi;
+- test e telemetry temporanei vengono puliti;
+- documentazione descrive lo stato finale.
 
-> **La parte finale di una migrazione è eliminare la migrazione dal sistema.**
+> **Un Safety Plan non promette che il change sia sicuro. Definisce quale evidence deve esistere prima che siamo autorizzati ad aumentare il rischio.**
