@@ -18,6 +18,7 @@ order-operations/
 ├── tsconfig.json
 ├── database/
 ├── docs/
+├── evals/
 ├── infra/
 ├── src/
 ├── tests/
@@ -140,6 +141,46 @@ target requirement Confirmed
 
 ED-001 intentionally removes the historical `Enterprise + age >= 30m → URGENT` rule from the target semantics.
 
+### `src/ai/`
+
+Responsibility:
+
+- product-level runtime AI contracts;
+- provider-neutral model boundary;
+- deterministic validation that belongs outside the model.
+
+Current file:
+
+```text
+case-explanation.ts
+```
+
+Current capability:
+
+```text
+Case Explanation Assistant
+```
+
+Canonical context:
+
+```text
+docs/ai-feature-contract.md
+evals/case-explanation-v1.jsonl
+docs/threat-model.md
+docs/observability-contract.md
+docs/cost-model.md
+```
+
+Architectural intent:
+
+```text
+model interpretation
+≠
+authoritative business fact
+```
+
+Provider SDKs and model-specific types do not belong in this semantic contract.
+
 ## `database/`
 
 Responsibility:
@@ -164,6 +205,42 @@ docs/failure-mode-map.md
 
 Do not introduce authoritative copies of Payments/Orders/Shipping facts without an explicit ownership decision.
 
+## `evals/`
+
+Responsibility:
+
+- versioned runtime AI evaluation scenarios;
+- risk-driven inputs/required behavior/forbidden behavior;
+- regression context for future model/provider comparison.
+
+Current file:
+
+```text
+case-explanation-v1.jsonl
+```
+
+Current seed classes:
+
+```text
+nominal
+missing-evidence
+conflicting-evidence
+prompt-injection
+cross-tenant
+authority-boundary
+ambiguity
+```
+
+Important:
+
+```text
+eval dataset exists
+≠
+model quality Verified
+```
+
+No provider/model adapter has yet been run against the dataset.
+
 ## `infra/`
 
 Responsibility:
@@ -185,6 +262,8 @@ Current architectural direction includes private ingress/data-plane controls, ma
 
 `infra/main.bicep` is **Codified**, but production/deployment evidence remains incomplete until the real Azure verification gates are executed.
 
+No runtime AI model/provider resource has been added to IaC yet.
+
 ## `tests/`
 
 Current verification surface:
@@ -198,6 +277,7 @@ cost-fitness.test.mjs
 agent-context-fitness.test.mjs
 issue-readiness-fitness.test.mjs
 agent-governance-fitness.test.mjs
+ai-boundary-fitness.test.mjs
 ```
 
 Additional legacy characterization lives outside the product directory:
@@ -212,9 +292,11 @@ Testing strategy:
 docs/testing-strategy.md
 ```
 
-Do not infer that a local green suite proves PostgreSQL, Azure, runtime observability, recovery or production behavior unless that boundary was actually exercised.
+Do not infer that a local green suite proves PostgreSQL, Azure, runtime observability, recovery or production AI behavior unless that boundary was actually exercised.
 
 `agent-governance-fitness.test.mjs` checks selected mechanical properties of Delegation/Verification/Autonomy artifacts. It does not prove that an agent run or OO-001 completed successfully.
+
+`ai-boundary-fitness.test.mjs` checks selected deterministic AI-boundary properties. It does not prove groundedness, prompt-injection resistance of a real model, latency, cost or production quality.
 
 ## `work-items/`
 
@@ -307,18 +389,9 @@ Status remains `Pending execution` until primary evidence exists.
 
 ### `ai-autonomy-matrix.md`
 
-Defines capability-specific A0…A4 levels and human gates.
+Defines capability-specific A0…A4 levels and human gates for development/execution agents.
 
-Current important boundaries:
-
-```text
-OO-001 scoped implementation     A2
-local deterministic tests        A3-like bounded execution
-change business/data ownership   A0
-merge default branch             human/repository gate
-production destructive DB action A0
-production secret access         forbidden in coding workflow
-```
+Runtime AI authority is separately constrained by `docs/ai-feature-contract.md`.
 
 An executor may propose an autonomy change but cannot grant itself the permission required to finish the current task.
 
@@ -341,9 +414,10 @@ architecture-context.md
 architecture-fitness-checklist.md
 api-contract.md
 data-ownership.md
+ai-feature-contract.md
 ```
 
-Use when changing component responsibility, contract, ownership or dependency direction.
+Use when changing component responsibility, contract, ownership, dependency direction or runtime AI authority/context/tool boundary.
 
 ### Failure / quality / operations
 
@@ -358,7 +432,7 @@ testing-strategy.md
 cost-model.md
 ```
 
-Use when changing a quality attribute, failure behavior, cloud mechanism, telemetry, test evidence or architectural premium.
+Use when changing a quality attribute, failure behavior, cloud mechanism, telemetry, test/eval evidence or architectural premium.
 
 ### Agent execution / governance
 
@@ -368,7 +442,7 @@ agent-verification-bundle.md
 ai-autonomy-matrix.md
 ```
 
-Use when delegation scope, permission, verification independence or autonomy changes.
+Use when delegated-development scope, permission, verification independence or autonomy changes.
 
 ### Legacy / migration
 
@@ -397,6 +471,10 @@ Use when changing topology or revisiting an architecturally significant decision
 | Payment Escalation semantics | API Contract, Event Contract, Data Ownership, Failure Mode Map |
 | New persisted fact | Data Ownership Map, schema/migration, NFR |
 | PostgreSQL transaction evidence | Testing Strategy, Data Ownership, migrations, relevant work item, active Delegation Contract |
+| Runtime AI authority/output | AI Feature Contract, Functional Analysis/ownership, evals, Testing Strategy |
+| Runtime AI context/retrieval | AI Feature Contract, Data Ownership, Threat Model, evals |
+| Runtime AI write/tool capability | AI Feature Contract, Threat Model, AI Autonomy Matrix, API/authorization, Failure Mode Map, Testing Strategy |
+| Model/provider change | AI Feature Contract, evals, Observability Contract, Cost Model |
 | Cloud resource/topology | Cloud Deployment, Threat Model, Reliability Contract, Cost Model |
 | New security boundary | Threat Model, Security Control Matrix, relevant ADR |
 | New retry/failure behavior | Failure Mode Map, Reliability Contract, Testing Strategy |
@@ -440,7 +518,7 @@ Found
 
 Do not collapse these dimensions.
 
-A Delegation Contract being `Codified` does not imply the delegated task is `Verified`.
+An AI Feature Contract being `Codified` does not imply model quality is `Verified`.
 
 ## Ownership / decision boundaries
 
@@ -450,6 +528,7 @@ A Delegation Contract being `Codified` does not imply the delegated task is `Ver
 - Security owns enterprise security policy; product teams still own workload security implementation.
 - Finance/FinOps participates when architectural premiums materially affect cost/value.
 - Human/domain owners retain authority for the high-impact gates listed in the AI Autonomy Matrix.
+- Case Explanation Assistant is advisory and does not become a new source of business authority.
 
 ## Stop conditions
 
@@ -469,6 +548,7 @@ Update this map when:
 - a new capability creates a new navigation path;
 - a former temporary migration boundary becomes permanent or is removed;
 - the work-item model or task-routing rules change materially;
-- the agent governance model changes materially.
+- the agent governance model changes materially;
+- runtime AI context, provider/tool boundary or eval surface changes materially.
 
 > **The map describes where knowledge and responsibility live. It must not become a second copy of that knowledge.**
