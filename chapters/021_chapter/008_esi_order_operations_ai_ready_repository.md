@@ -1,44 +1,21 @@
-# ESI — Rendere Order Operations AI-ready
+# 21.8 — ESI: rendere Order Operations AI-ready
 
-Order Operations è un buon candidato per questo capitolo proprio perché non nasce come repository vuoto.
+Order Operations è un buon candidato per questo capitolo proprio perché non è un repository vuoto.
 
-Ha già accumulato molte decisioni.
+Ha già Functional Analysis, Requirements, contract, ownership map, quality artifact, migration plan, code, IaC e test. Il problema non è aggiungere altra conoscenza. È ridurre il costo necessario a trovare quella giusta prima di un change.
 
-Il problema non è aggiungere conoscenza.
+Platform propone quindi una convenzione semplice: i repository che lavorano con coding agent devono offrire un entry point operativo prevedibile. Commerce & Operations accetta il principio ma rifiuta di duplicare il prodotto dentro un file vendor-specific. Security aggiunge due boundary: niente secret nelle instruction e niente permission production implicita. Finance collega infine il problema al Capitolo 20: rediscovery ripetitiva consuma tempo, agent execution e context budget senza produrre outcome.
 
-È renderla navigabile.
-
-## Il task ESI
-
-Platform propone una standardizzazione:
-
-> ogni repository che usa coding agent deve avere un entry point operativo comune.
-
-Commerce & Operations è d'accordo con il principio, ma non vuole duplicare tutti i documenti del prodotto dentro un file vendor-specific.
-
-Security aggiunge:
-
-- nessun secret nelle instruction;
-- nessuna authorization implicita a deployment production;
-- stop condition per boundary sensibili.
-
-Finance aggiunge un'osservazione dal Capitolo 20:
-
-> rediscovery ripetitiva del repository consuma tempo umano, agent execution e token senza produrre valore di prodotto.
-
-Il compromesso è quindi:
+Il compromesso diventa:
 
 ```text
-persistent context sufficiente
-+
-low duplication
-+
-clear verification
-+
-strict stop conditions
+enough persistent context
++ low duplication
++ reproducible verification
++ explicit stop conditions
 ```
 
-## Decisione
+## Prima decisione — `AGENTS.md` fa routing
 
 ESI introduce nella root del prodotto:
 
@@ -46,256 +23,156 @@ ESI introduce nella root del prodotto:
 AGENTS.md
 ```
 
-come **entry point tool-neutral**.
+come entry point tool-neutral.
 
-Non sarà una enciclopedia.
+Il file non contiene l'intera architettura. Dichiara il purpose di Order Operations, indirizza alla Repository Map, mostra i golden command, richiama pochi boundary ad alto valore e definisce quando il task deve fermarsi.
 
-Contiene:
+Questa scelta è intenzionale. GitHub potrebbe avere proprie superfici di custom instruction e altri agenti potrebbero usare formati differenti. Nel Capitolo 21 non abbiamo però una esigenza che giustifichi più copie della stessa conoscenza.
 
-- purpose del prodotto;
-- repository map sintetica;
-- link ai documenti canonical;
-- golden verification commands;
-- architecture constraints;
-- change synchronization rules;
-- stop conditions;
-- definition of done.
+```text
+canonical operating entry point
+= AGENTS.md
+```
 
-Aggiungiamo inoltre:
+Un adapter tool-specific potrà esistere se servirà davvero, ma dovrà puntare alla source of truth invece di riscriverla.
+
+## Seconda decisione — la Repository Map descrive responsabilità
+
+ESI aggiunge:
 
 ```text
 docs/repository-map.md
 ```
 
-per descrivere responsabilità, documenti e verification surface senza sovraccaricare `AGENTS.md`.
+La mappa non prova a elencare ogni file. Descrive dove vivono le responsabilità principali e quali knowledge source leggere per classi di change.
 
-## Perché non `.github/copilot-instructions.md` come source of truth
+La baseline del Capitolo 21 è questa:
 
-GitHub supporta repository instructions e `AGENTS.md` in diverse superfici Copilot.
+| Area | Responsabilità nel repository |
+|---|---|
+| `src/application/` | use-case orchestration |
+| `src/contracts/` | integration contract indipendenti dai meccanismi |
+| `src/integration/` | adapter e meccanismi infrastructure-facing |
+| `src/observability/` | telemetry boundary |
+| `src/priority/` | target priority semantics + legacy compatibility seam |
+| `database/` | persistence posseduta da Order Operations |
+| `infra/` | Azure workload infrastructure |
+| `tests/` | behavior e fitness verificabili localmente |
+| `docs/` | canonical product/architecture knowledge |
 
-ESI potrebbe usare entrambe.
+Il valore non è la directory tree. È la relazione fra path e responsibility.
 
-Ma il problema corrente non richiede due copie.
+Chi deve cambiare priority viene indirizzato verso `priority-functional-analysis.md`, `legacy-understanding-map.md` e `refactoring-safety-plan.md`. Chi tocca Payment Escalation viene portato verso API/event contract, Data Ownership e Failure Mode Map. Chi modifica cloud topology deve aprire deployment, threat, reliability e Cost Model.
 
-Quindi:
+Così il decision context entra **prima** del diff.
 
-```text
-canonical agent entry point
-= AGENTS.md
-```
+## I golden command sono quelli che esistono davvero
 
-Se in futuro una superficie GitHub richiederà comportamento aggiuntivo specifico, potremo introdurre un file tool-specific che **referenzia** il contesto canonical invece di duplicarlo.
+Il repository offre oggi:
 
-Questa è un'applicazione diretta di fit before fashion.
-
-## Repository map corrente
-
-La nuova map descrive:
-
-```text
-src/application/
-  application use cases
-
-src/contracts/
-  integration contract types
-
-src/integration/
-  infrastructure-facing mechanisms
-
-src/observability/
-  application telemetry boundary
-
-src/priority/
-  target priority semantics + legacy compatibility seam
-
-database/
-  Order Operations-owned persistence
-
-infra/
-  Azure workload infrastructure
-
-tests/
-  local behavior + architecture + cost/context fitness
-
-docs/
-  canonical product/architecture evidence
-```
-
-La mappa indica anche quali documenti leggere per classi di change.
-
-## Canonical decision routing
-
-Per esempio:
-
-```text
-Business behavior
-→ functional-analysis.md
-→ requirements.md
-
-Priority
-→ priority-functional-analysis.md
-→ legacy-understanding-map.md
-→ refactoring-safety-plan.md
-
-Payment Escalation
-→ api-contract.md
-→ events/*
-→ data-ownership.md
-→ failure-mode-map.md
-
-Cloud / Security / Reliability
-→ cloud-deployment.md
-→ threat-model.md
-→ security-control-matrix.md
-→ reliability-contract.md
-→ cost-model.md
-
-Architecture policy
-→ architecture-fitness-checklist.md
-```
-
-Questo riduce la probabilità che un agent tocchi `src/priority/` leggendo soltanto il codice corrente.
-
-## Golden commands
-
-Lo stato corrente offre:
-
-```text
+```bash
 npm run typecheck
 npm test
 ```
 
-`npm test` include oggi il wildcard dei test del prodotto e la characterization legacy collegata dal package script.
+Non scriviamo “run Azure integration tests” o “verify recovery” perché quei gate non sono ancora disponibili come evidence eseguita.
 
-Il documento non promette gate che non esistono.
+`npm test` costruisce il prodotto, esegue i test del package e include la characterization suite legacy configurata nel `package.json`.
 
-Quindi non scriviamo:
+Questo ci permette di affermare che esiste un verification path locale. Non ci autorizza a dire che PostgreSQL, Azure, recovery o production behavior siano `Verified`.
 
-```text
-run Azure integration tests
-```
-
-perché non sono ancora implementati.
-
-Li manteniamo come gap nella Testing Strategy e negli altri artifact.
-
-## Architecture constraints
-
-`AGENTS.md` non copia tutte le fitness function.
-
-Dice invece:
-
-```text
-Architecture policy is executable in tests/architecture-fitness.test.mjs.
-Do not weaken a fitness rule merely to make a task pass.
-If a rule appears obsolete, reopen the decision.
-```
-
-E rende visibili alcuni boundary ad alto valore:
-
-```text
-Payments & Risk owns economic effects.
-Order Operations does not own PaymentStatus.
-Core semantic layers do not import Azure SDKs.
-Legacy implementation stays behind explicit compatibility boundaries.
-```
-
-## Stop conditions ESI
-
-Il file operativo dichiara:
-
-```text
-STOP if the task requires:
-- new economic side effects;
-- new authoritative data ownership;
-- public Internet ingress;
-- destructive/irreversible data migration;
-- weakening tenant isolation;
-- changing confirmed functional semantics without explicit product decision;
-- changing architecture policy only because implementation currently fails it.
-```
-
-Questa lista non copre ogni possibile rischio.
-
-Copre i boundary più importanti già emersi nel libro.
-
-## Definition of done
-
-Per un normale change applicativo:
-
-```text
-1. implement only the scoped behavior;
-2. update canonical docs when semantics/decision change;
-3. run typecheck;
-4. run tests;
-5. report what was not verified;
-6. do not claim runtime/cloud evidence without executing it.
-```
-
-Questa ultima frase è deliberata.
-
-Order Operations ha già una lunga storia di distinzione fra:
+La stessa disciplina epistemica che abbiamo applicato al capstone diventa ora una instruction per chiunque esegua task:
 
 ```text
 Designed
-Codified
-Verified
-Monitored
+→ Codified
+→ Verified
+→ Monitored
 ```
 
-L'agente deve continuare a rispettarla.
+Non saltare livelli per rendere più convincente il report finale.
 
-## Context fitness
+## Architecture constraint: route verso il gate, non copia della policy
 
-Aggiungiamo anche un piccolo test:
+`AGENTS.md` rende visibili alcuni boundary perché sono abbastanza importanti da orientare quasi ogni task: Payments & Risk possiede gli effetti economici, Order Operations non possiede `PaymentStatus`, il core semantic layer non importa Azure SDK e il legacy resta dietro compatibility boundary espliciti.
+
+Ma non copia tutta l'Architecture Fitness Checklist.
+
+Dice invece che le regole strutturali sono eseguibili in:
+
+```text
+tests/architecture-fitness.test.mjs
+```
+
+con una istruzione cruciale:
+
+> **non indebolire una fitness rule soltanto per far passare il task; se la rule non ha più fit, riapri la decisione.**
+
+Questo evita di mantenere una seconda versione manuale delle stesse constraint.
+
+## Stop condition: ciò che l'entry point non autorizza
+
+Nel Capitolo 21 ESI rende già espliciti alcuni confini oltre i quali un coding task deve trasformarsi in decisione.
+
+Il task si ferma se richiede una nuova economic side effect, una nuova authoritative data ownership, public Internet ingress, destructive/irreversible migration, indebolimento della tenant isolation, modifica della functional semantics confermata o cambiamento dell'architecture policy soltanto perché il diff la viola.
+
+Queste stop condition non coprono ogni rischio futuro. Coprono quelli già emersi nella storia di Order Operations.
+
+È importante non anticipare il Capitolo 23: non stiamo ancora costruendo un permission framework completo per agenti. Stiamo rendendo leggibile il punto in cui il repository **non può autorizzare da solo** la prosecuzione.
+
+## Il context fitness verifica soltanto ciò che può verificare
+
+ESI aggiunge infine:
 
 ```text
 tests/agent-context-fitness.test.mjs
 ```
 
-Non prova che `AGENTS.md` sia “buono”.
+Questo test non prova che `AGENTS.md` sia semanticamente perfetto né che un agente seguirà sempre le istruzioni. Verifica soltanto proprietà meccaniche sufficientemente stabili da meritare automation.
 
-Verifica soltanto proprietà meccaniche utili:
+La baseline introdotta nel capitolo è composta da quattro check:
 
-- l'entry point esiste;
-- la repository map esiste;
-- i documenti canonical principali referenziati dalla map esistono;
-- i golden command dichiarati esistono nel `package.json`.
+| ID | Proprietà verificata |
+|---|---|
+| CTX-001 | `AGENTS.md` e `docs/repository-map.md` esistono |
+| CTX-002 | i principali documenti canonical referenziati esistono |
+| CTX-003 | `typecheck` e `test` esistono davvero nel `package.json` |
+| CTX-004 | `AGENTS.md` route verso la map, dichiara i golden command e preserva il vocabulary `Designed → Codified → Verified → Monitored` |
 
-Questo evita almeno il failure mode più banale:
+Questa evidence protegge dai failure più banali del context layer: istruzioni che puntano a file rimossi o comandi inesistenti.
 
-```text
-instructions point to files/commands that no longer exist
-```
-
-Non proviamo invece automaticamente la correttezza semantica delle istruzioni.
-
-Quella resta una review di contesto.
-
-## Stato dopo il capitolo
-
-Avremo:
+Non dimostra invece:
 
 ```text
-Agent entry point                Codified
-Repository Map                   Codified
-Golden commands                  Existing / executable
-Context fitness                  Codified + locally verifiable
-Tool-specific instruction copy   Not added
-Production permissions model     Not yet codified for agents
-Agent Delegation Contract        Future chapter
-AI Autonomy Matrix               Future chapter
+instruction semantic correctness
+agent compliance
+permission enforcement
+cloud verification
+production readiness
 ```
 
-È importante non anticipare i capitoli successivi.
+Ed è corretto che non lo faccia.
 
-Questo capitolo rende il repository **navigabile e verificabile** per un agente.
+## Stato dopo il Capitolo 21
 
-Non decide ancora quanta autonomia l'agente riceverà.
+A questo punto ESI può affermare:
 
-## Il risultato
+```text
+Agent entry point       Codified
+Repository Map          Codified
+Golden commands         Existing / executable
+Context fitness         Codified + locally exercisable
+Tool-specific copy      Not added
+Agent permission model  Future
+Delegation Contract     Future
+Autonomy Matrix         Future
+```
 
-Prima:
+L'ultimo blocco è importante: il capitolo rende il repository **navigabile e verificabile** per un nuovo esecutore. Non decide ancora quanta autonomia quell'esecutore riceverà.
+
+## Prima e dopo
+
+Prima del capitolo il percorso tipico era:
 
 ```text
 agent
@@ -305,36 +182,32 @@ agent
 → implement
 ```
 
-Dopo:
+Ora diventa:
 
 ```text
 agent
 → AGENTS.md
-→ repository map
+→ Repository Map
 → relevant canonical docs
 → scoped change
 → golden verification
 → explicit evidence gaps
 ```
 
-Non eliminiamo l'esplorazione.
-
-La rendiamo più intenzionale.
+Non abbiamo eliminato la ricerca. Abbiamo eliminato una parte della rediscovery inutile e reso più evidente ciò che non deve essere inferito.
 
 ## Compromesso ESI
 
-**Esigenza:** aumentare agent execution senza ripagare ogni volta il costo di onboarding del repository.
+**Esigenza:** aumentare agent execution senza ripagare a ogni task l'intero costo di onboarding del repository.
 
-**Tensione:** persistent context vs duplication, staleness e context cost.
+**Tensione:** persistent context contro duplicazione, staleness e context cost.
 
-**Decisione:** `AGENTS.md` corto + repository map + canonical docs + executable constraints.
+**Decisione:** `AGENTS.md` corto + Repository Map + canonical docs + executable constraint e context fitness.
 
-**Costo accettato:** nuova superficie documentale da mantenere e un context fitness gate addizionale.
+**Costo accettato:** una nuova superficie documentale da mantenere e quattro check meccanici aggiuntivi.
 
-**Quality floor:** nessuna instruction sostituisce requirement, security control o evidence; nessun secret; stop condition sui boundary critici.
+**Quality floor:** nessuna instruction sostituisce requirement, security control o evidence; niente secret; stop condition sui boundary già critici.
 
-**Guardrail:** canonical source routing, architecture fitness, context fitness, evidence vocabulary e future owner review.
+**Review trigger:** instruction drift, nuovi sottoprogetti, cambi dei golden command o comparsa di esigenze realmente tool-specific.
 
-**Trigger:** instruction drift, nuovi sottoprogetti, multi-agent workflow, nuovi tool con esigenze specifiche, crescita del file oltre una dimensione utile.
-
-> **ESI non costruisce un repository che sa rispondere a tutto. Costruisce un repository che sa indicare dove cercare, cosa non inventare e come verificare il lavoro.**
+> **ESI non costruisce un repository che sa rispondere a tutto. Costruisce un repository che sa indicare dove cercare, che cosa non inventare e quale evidence manca ancora.**
