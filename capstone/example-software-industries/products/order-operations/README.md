@@ -39,6 +39,7 @@ Order Operations non sostituisce Orders, Payments o Shipping come authoritative 
 | 17 | Operations Desk Classic, characterization e Legacy Understanding Map |
 | 18 | PriorityPolicy seam, Branch by Abstraction, shadow comparison e Refactoring Safety Plan |
 | 19 | Architecture Fitness Checklist e architecture fitness test eseguibile |
+| 20 | Cost Model, unit economics, allocation direction e cost fitness test |
 
 ## Stato funzionale corrente
 
@@ -124,6 +125,69 @@ node --test tests/architecture-fitness.test.mjs
 
 Questa evidence verifica **soltanto** AF-001…AF-005. Non promuove a Verified proprietà cloud, runtime, data, recovery o production observability.
 
+## Costi e decisioni — Capitolo 20
+
+Entra:
+
+```text
+docs/cost-model.md
+```
+
+Il Cost Model non contiene prezzi Azure inventati. Rende espliciti:
+
+```text
+cost surface
+architectural premiums
+fixed / variable / step / transition cost
+cost drivers
+allocation direction
+unit economics
+optimization order
+review triggers
+```
+
+Prime unit metric candidate:
+
+```text
+UM-01 cost per OperationalCase handled
+UM-02 cost per Payment Escalation delivered
+UM-03 observability cost per 1,000 critical journeys
+```
+
+Stato:
+
+```text
+Designed
+not yet measured from production billing
+```
+
+L'IaC possedeva già metadata utili all'allocazione:
+
+```text
+workload = order-operations
+owner = commerce-operations
+environment = <environmentName>
+```
+
+Il Capitolo 20 aggiunge:
+
+```text
+tests/cost-fitness.test.mjs
+```
+
+che protegge i metadata minimi e impedisce di hardcodare un `cost-center` fittizio del libro.
+
+Test logic esercitata localmente sulla stanza di metadata corrente dell'IaC:
+
+```text
+CF-001 allocation metadata
+CF-002 no fabricated cost-center
+→ 2 pass
+→ 0 fail
+```
+
+Questa evidence non dimostra billing, forecast o unit economics reali. Dimostra soltanto il guardrail statico sui metadata verificati.
+
 ## Evidence già accumulata
 
 ### Capitolo 18 — local application/refactoring gate
@@ -149,7 +213,15 @@ AF-001…AF-005
 → 0 fail
 ```
 
-Il test architecture è ora incluso dal wildcard `tests/*.test.mjs`, ma non dichiariamo una nuova esecuzione end-to-end di tutti i gate dopo il commit del Capitolo 19 finché non viene realmente eseguita come tale.
+### Capitolo 20 — cost metadata gate
+
+```text
+CF-001…CF-002
+→ 2 pass
+→ 0 fail
+```
+
+I test aggiunti nei capitoli successivi sono inclusi dal wildcard `tests/*.test.mjs`, ma non dichiariamo una nuova esecuzione end-to-end dell'intera suite dopo ogni commit finché non viene realmente eseguita come tale.
 
 ## Evidence model
 
@@ -178,6 +250,9 @@ TypeScript application/refactoring source        Codified + previously typecheck
 Order Operations local suite                     previously Verified 19/19
 Legacy priority characterization                 Verified 6/6
 Architecture fitness AF-001…AF-005              Codified + Verified locally 5/5
+Cost Model                                      Designed + documented
+Cost fitness metadata guard                     Codified + locally exercised 2/2
+Production billing / unit economics              Pending
 Production priority shadow telemetry             Designed / Pending
 Candidate production cutover                     Not authorized
 PostgreSQL integration                           Designed / Pending
@@ -204,6 +279,7 @@ order-operations/
 │   ├── requirements.md
 │   ├── architecture-context.md
 │   ├── architecture-fitness-checklist.md
+│   ├── cost-model.md
 │   ├── nfr.md
 │   ├── api-contract.md
 │   ├── data-ownership.md
@@ -233,6 +309,7 @@ order-operations/
 │       └── branching-priority-policy.ts
 └── tests/
     ├── architecture-fitness.test.mjs
+    ├── cost-fitness.test.mjs
     ├── payment-escalation.test.mjs
     ├── outbox-publisher.test.mjs
     └── priority-policy.test.mjs
@@ -253,6 +330,7 @@ Quando il prodotto cambia verifichiamo almeno:
 - Functional Analysis e Requirements;
 - Architecture Context e ADR;
 - Architecture Fitness Checklist;
+- Cost Model;
 - API/event contract;
 - Data Ownership Map e migration;
 - NFR;
@@ -265,9 +343,11 @@ Quando il prodotto cambia verifichiamo almeno:
 - Refactoring Safety Plan;
 - IaC, deployment/rollback e runbook.
 
-## Regola corrente di evoluzione
+## Regole correnti di evoluzione
 
 > **Il buon guardrail blocca il drift. Non blocca l'evoluzione intenzionale.**
+
+> **Un costo importante deve poter essere collegato alla proprietà che compra, al suo owner e a un trigger di revisione.**
 
 Una fitness function può essere modificata quando cambia l'architectural intent, ma la modifica della policy non viene trattata come un modo automatico per far passare una implementation violation.
 
