@@ -1,417 +1,254 @@
-# Failure testing, game day e postmortem
+## Failure testing, game day e postmortem
 
-Una architecture diagram può dimostrare l'intenzione.
-
-Non dimostra che il sistema recupera.
-
-Un runbook può descrivere un restore.
-
-Non dimostra che il restore funziona.
-
-Una standby può esistere.
-
-Non dimostra che il failover mantiene il critical journey entro l'RTO.
+Una architecture diagram dimostra intenzione. Un runbook descrive una procedura. Una standby dimostra che una risorsa è stata provisionata. Nessuna di queste cose, da sola, dimostra che il sistema recuperi davvero entro il contratto dichiarato.
 
 Per questo la reliability ha bisogno di **failure evidence**.
 
-## Testare il failure, non soltanto il codice
+Il normale testing chiede se il comportamento è corretto quando le dipendenze necessarie sono disponibili. Il failure testing aggiunge una domanda diversa: che cosa fa il sistema quando una di quelle condizioni rallenta, scompare, restituisce duplicati, cambia stato o torna disponibile dopo una interruzione?
 
-Nel normale testing chiediamo:
+Il punto non è “rompere cose”. È verificare un’ipotesi architetturale.
+
+## Dal failure model all’esperimento
+
+Un buon esperimento parte da una frase verificabile.
+
+Per esempio:
+
+> Se Payments & Risk resta indisponibile per trenta minuti, Order Operations continua ad accettare Payment Escalation localmente, rende visibile il ritardo e non perde né duplica il business intent quando il consumer recupera.
+
+Questa frase contiene già:
 
 ```text
-quando tutto ciò che serve è disponibile,
-il comportamento è corretto?
+failure
+expected product state
+degraded mode
+recovery property
+evidence da osservare
 ```
 
-Il failure testing aggiunge:
+Da qui possiamo costruire il test senza bisogno di una piattaforma chaos sofisticata.
 
-```text
-quando qualcosa di necessario rallenta, scompare,
-riparte, restituisce duplicati o cambia stato,
-che cosa fa il sistema?
-```
+Possiamo fermare un consumer, bloccare una dependency, iniettare latency, ridurre un connection limit, revocare una permission, fermare il publisher, restituire `503` o provare un restore su una copia del database.
 
-Esempi:
+Il valore nasce dalla domanda, non dal tool.
 
-- PostgreSQL temporaneamente unavailable;
-- query lente;
-- connection pool saturata;
-- Service Bus indisponibile;
-- outbox backlog crescente;
-- Payments consumer fermo;
-- DNS resolution failure;
-- secret store unavailable;
-- instance kill;
-- zone-like capacity reduction;
-- bad deployment;
-- malformed configuration;
-- restore da point-in-time backup.
-
-## Game day
-
-Un **game day** è un esercizio pianificato in cui il team simula failure o incident scenario per verificare tecnologia e processo.
-
-Non serve partire dalla production.
-
-Microsoft raccomanda di iniziare con esercizi in non-production, synthetic transaction e failure simulation prima di pratiche di chaos engineering più mature.
+Microsoft Reliability Maturity Model raccomanda di partire da esercizi controllati, synthetic transaction e failure simulation, spesso in non-production, prima di aumentare progressivamente il livello di chaos engineering.
 
 Fonte:
 
 - [Microsoft Learn — Reliability Maturity Model](https://learn.microsoft.com/azure/well-architected/reliability/maturity-model)
 
-## Chaos engineering
+## Game day: verificare anche persone e permission
 
-Chaos engineering non significa:
+Un **game day** è un esercizio pianificato in cui tecnologia, runbook, ownership e comunicazione vengono messi sotto una forma controllata di stress.
 
-```text
-rompiamo cose a caso
-```
-
-È sperimentazione controllata su ipotesi di resilienza.
-
-La struttura è più vicina a:
+Questo è importante perché molti failure non sono bloccati da un limite tecnico, ma da assunzioni operative:
 
 ```text
-steady state hypothesis
-→ controlled fault
-→ observe
-→ compare with expected behavior
-→ improve
+pensavamo che quella permission esistesse
+pensavamo che Platform possedesse il DNS rollback
+pensavamo che il restore point fosse evidente
+pensavamo che il consumer deduplicasse
+pensavamo che l’alert arrivasse al team giusto
 ```
 
-Prima di portare esperimenti aggressivi in produzione servono:
+Un game day trasforma questi “pensavamo” in evidence.
 
-- blast-radius control;
-- stop conditions;
-- observability;
-- rollback/recovery;
-- owner;
-- business awareness.
+Il chaos engineering maturo segue la stessa logica: steady-state hypothesis, fault controllato, osservazione, confronto con l’expected behavior e miglioramento. Il blast radius deve essere limitato e il team deve possedere stop condition e recovery path prima di iniziare.
 
-È molto vicino al modello di autonomia degli agenti discusso nei primi capitoli:
+Questa struttura assomiglia molto al modello di autonomia che abbiamo applicato agli agenti AI: **più alto è il possibile blast radius, più forti devono essere guardrail e stop condition**.
 
-> **più alto è il blast radius, più forti devono essere guardrail e stop condition.**
+## I primi reliability drill di ESI
 
-## Failure injection senza tool speciali
+### RD-01 — Payments consumer unavailable
 
-Non serve una piattaforma chaos per imparare.
-
-Possiamo cominciare con esercizi semplici:
-
-```text
-stop consumer
-block dependency
-inject latency
-expire token
-return 503
-reduce connection limit
-stop publisher
-restore database copy
-revoke permission
-```
-
-L'importante è avere una domanda.
-
-Esempio:
-
-> Se Payments consumer resta offline 30 minuti, Order Operations continua ad accettare escalation senza violare il core operator SLO e rende il backlog visibile?
-
-Il test deve produrre evidence.
-
-## Reliability drill ESI — 1
-
-### Scenario
+Scenario:
 
 ```text
 Payments & Risk consumer unavailable per 30 min
 ```
 
-### Expected
+Expected:
 
 ```text
-Investigation flow = Healthy
-Escalation acceptance = Healthy
-Delivery flow = Degraded
+CF-01 Investigation = Healthy
+CF-02 Escalation acceptance = Healthy
+CF-03 Escalation delivery = Degraded
 ```
 
-### Evidence candidate
+L’evidence deve mostrare che le escalation continuano ad avere un outcome locale durable, il backlog cresce in modo osservabile, nessuna escalation viene persa e la recovery non produce duplicate business effect. Se il business delay threshold entra a rischio, il sistema deve renderlo visibile.
 
-- POST escalation continua a produrre `202` dopo local commit;
-- outbox viene pubblicata al broker quando possibile;
-- queue age cresce;
-- nessuna escalation viene persa;
-- nessun duplicate business effect al recovery;
-- health model passa a `Degraded` per delivery;
-- alert appropriato viene generato quando il business delay threshold è a rischio.
+### RD-02 — App instance loss
 
-## Reliability drill ESI — 2
-
-### Scenario
+Scenario:
 
 ```text
-App Service instance killed
+una App Service instance viene persa
 ```
 
-### Expected
+Con production capacity almeno due e zone redundancy, ci aspettiamo che il critical journey resti dentro il proprio envelope, che il publisher riprenda eventuale lavoro pending e che la capacity residua non entri in overload.
 
-Con production capacity >= 2 e zone redundancy:
+Questo drill non verifica soltanto che “l’altra istanza esista”. Verifica **headroom reale**.
 
-- il critical journey resta disponibile entro SLO;
-- il publisher riprende lavoro pending;
-- nessuna outbox entry viene persa;
-- eventuali request in-flight seguono semantica nota;
-- capacity residua non entra in overload.
+### RD-03 — PostgreSQL failover
 
-Questo test verifica sia redundancy sia headroom.
-
-## Reliability drill ESI — 3
-
-### Scenario
+Scenario:
 
 ```text
-PostgreSQL primary failure / planned failover
+primary failure / planned failover
 ```
 
-### Expected
+Expected:
 
-- failover gestito dalla HA configuration;
-- transient error bounded;
-- client reconnect controllato;
+- transient impact bounded;
+- reconnect controllato;
 - nessun retry storm;
 - committed state preservato;
-- RTO intra-region rispettato.
+- core journey recuperato dentro l’RTO intra-region.
 
-## Reliability drill ESI — 4
+La differenza fra un managed failover configurato e una reliability capability verificata è proprio questo test.
 
-### Scenario
+### RD-04 — Logical data recovery
+
+Scenario:
 
 ```text
-logical data error
+logical corruption / destructive data mistake
 ```
 
-### Expected
-
-Non usiamo il failover.
-
-Eseguiamo:
+Qui non vogliamo un failover. Vogliamo:
 
 ```text
-PITR to recovery server
-→ validate
-→ measure restore duration
-→ establish recovery/cutover procedure
+PITR to recovery target
+→ validation
+→ measured restore duration
+→ cutover/reconciliation procedure
 ```
 
-Questo verifica che il team conosca la differenza fra HA e backup recovery.
+Questo drill dimostra che il team conosce la differenza fra HA e recovery da logical error.
 
-## Reliability drill ESI — 5
+### RD-05 — Private DNS failure
 
-### Scenario
+Scenario:
 
 ```text
-private DNS misconfiguration
+private DNS configuration rende irraggiungibile una dependency
 ```
 
-### Expected
+Expected:
 
-- synthetic critical journey fallisce;
-- health model rileva failure anche se resource health è verde;
-- incident response identifica DNS/network path;
-- last-known-good / rollback della config è disponibile secondo capability Platform;
-- nessun workaround disabilita arbitrariamente security boundary.
+- synthetic critical journey rileva il failure anche se la resource health resta verde;
+- il team identifica il network/DNS path;
+- esiste un rollback o last-known-good path della configurazione secondo la capability Platform;
+- nessuno “risolve” l’incidente aprendo arbitrariamente il data plane pubblico e rompendo il security boundary.
 
-## Stop condition
+Questo è un test importante perché verifica insieme reliability e Security by Design.
 
-Un failure test deve sapere quando fermarsi.
+## Stop condition: sapere quando l’esperimento sta insegnando troppo
 
-Esempi:
+Ogni failure test deve sapere quando fermarsi.
+
+Stop condition possibili:
 
 ```text
-unexpected tenant isolation risk
+unexpected tenant-isolation risk
 unexpected data corruption
-blast radius exceeds environment
-recovery mechanism not available
-critical telemetry lost
-operator unable to regain control
+blast radius oltre lo scope concordato
+recovery mechanism non disponibile
+critical telemetry persa
+operator/control owner non riesce a riprendere il sistema
 ```
 
-La regola è la stessa degli agenti:
+Lo scopo non è portare il sistema al collasso. È produrre evidence sul boundary che stiamo studiando.
 
-> **L'automazione può eseguire l'esperimento. La governance decide quanto può peggiorare prima di fermarsi.**
+> **L’automazione può iniettare il fault. La governance decide quanto il fault può espandersi prima di fermarsi.**
 
-## Postmortem
+## Postmortem: il trigger non è ancora la causa utile
 
-Quando avviene un incidente, il postmortem deve produrre conoscenza riusabile.
-
-Non dovrebbe ridursi a:
+Dopo un incidente è facile fermarsi alla frase:
 
 ```text
-X ha sbagliato configurazione
+una persona ha sbagliato configurazione
 ```
 
-La domanda più utile è:
+Questa frase può essere vera e quasi inutile.
 
-```text
-perché un singolo errore aveva questo blast radius?
-```
+La domanda architetturale è:
 
-Un buon postmortem cerca:
+> **Perché quell’errore aveva il diritto di produrre quel blast radius?**
 
-- trigger;
-- contributing factor;
-- detection gap;
-- propagation path;
-- mitigation;
-- recovery;
-- decisione che mancava;
-- control che non esisteva o non funzionava;
-- action item verificabili.
+Un postmortem utile ricostruisce trigger, contributing factor, propagation path, detection gap, mitigation, recovery e soprattutto action item che riducono la probabilità o l’ampiezza di una nuova propagazione.
 
-## Caso reale — Cloudflare, giugno 2022
-
-Cloudflare documentò nel giugno 2022 un outage che coinvolse 19 data center a seguito di una network configuration change realizzata durante un progetto che aveva proprio l'obiettivo di aumentare la resilienza.
-
-Alcune aree continuarono a operare, altre subirono outage fino al ripristino delle configurazioni.
+Cloudflare ha documentato nel giugno 2022 un outage che coinvolse più data center dopo una network configuration change introdotta durante un progetto destinato ad aumentare la resilienza. Parte della rete continuò a operare, mentre altre aree subirono outage fino al ripristino delle configurazioni.
 
 Fonte primaria:
 
 - [Cloudflare — Outage on June 21, 2022](https://blog.cloudflare.com/cloudflare-outage-on-june-21-2022/)
 
-È un esempio utile perché ricorda che:
+La lezione è particolarmente utile: un cambiamento progettato per aumentare reliability può diventare esso stesso un failure source. Change safety fa quindi parte della reliability architecture.
 
-> **Un cambiamento fatto per aumentare resilienza può essere esso stesso una fonte di failure.**
-
-Reliability engineering deve quindi governare anche change safety.
-
-## Caso reale — Cloudflare control plane, 2023
-
-In un altro postmortem Cloudflare descrisse un outage del control plane e analytics causato da un catastrophic data-center provider failure. Parte della rete e dei security service continuò a funzionare, mentre alcuni control-plane service no, anche a causa di dipendenze non ovvie.
+Cloudflare ha documentato anche un outage del control plane e analytics nel 2023 causato da un grave failure del provider di un data center; alcune capability continuarono a funzionare mentre altre no, anche a causa di dipendenze non ovvie.
 
 Fonte primaria:
 
 - [Cloudflare — Control Plane and Analytics Outage Postmortem](https://blog.cloudflare.com/post-mortem-on-cloudflare-control-plane-and-analytics-outage/)
 
-La lezione architetturale è forte:
+Il valore generale è evidente:
 
 ```text
 ridondanza dichiarata
 + hidden dependency
-=
-resilienza inferiore a quella immaginata
+→ resilienza inferiore a quella immaginata
 ```
 
-Per questo i game day devono attraversare i dependency graph reali.
+Per questo i game day devono attraversare il dependency graph reale e non soltanto i componenti che compaiono nel diagramma principale.
 
-## Caso reale — GitHub 2026
+## Action item verificabili, non buone intenzioni
 
-GitHub nei propri availability report del 2026 descrive una strategia esplicita di riduzione dei shared failure point e maggiore isolation dei domini, mentre affronta crescita importante di traffico e workload legati anche a sviluppo agentico.
+“Stare più attenti” non è un reliability control.
 
-Nel report di maggio GitHub riassume il principio con:
+Un action item migliore può essere:
 
 ```text
-availability
-then capacity
-then features
+pause migration when connection pressure supera una soglia
 ```
+
+oppure:
+
+```text
+add synthetic Payment Escalation journey dal boundary operatore
+```
+
+oppure:
+
+```text
+execute PostgreSQL restore drill con cadenza definita
+```
+
+Deve esistere un modo per sapere se l’azione è stata implementata e se riduce davvero il failure mode.
+
+Nel maggio 2026 GitHub, descrivendo incidenti e investimenti su availability e capacity, ha reso esplicita l’importanza di ridurre shared failure point e di dare priorità alla stabilità prima di aggiungere ulteriore carico funzionale quando la piattaforma è sotto pressione.
 
 Fonte:
 
 - [GitHub Availability Report — May 2026](https://github.blog/news-insights/company-news/github-availability-report-may-2026/)
 
-Non adotteremo questa frase come legge universale.
+Non trasformiamo una frase di un’altra azienda in una legge. Usiamo il caso per ricordare che availability, capacity e feature velocity competono realmente per lo stesso engineering budget.
 
-Ma è un caso contemporaneo utile per mostrare che reliability, capacity e feature velocity competono realmente per le stesse risorse di engineering.
+## Cosa cambia con l’AI
 
-## Postmortem ≠ colpevole
+L’AI può correlare timeline, riassumere log, trovare change correlati, confrontare incidenti precedenti, costruire failure tree e preparare un draft di postmortem.
 
-Se il sistema consente:
+Può anche produrre una causalità troppo pulita. Gli incidenti reali sono spesso reti di condizioni concorrenti, e una sintesi convincente non equivale a causal proof.
 
-```text
-una migration routine
-→ saturazione globale
-```
+Il reviewer deve quindi cercare uncertainty, omissioni, hidden dependency, timeline incongruenti e action item che curano il sintomo invece del propagation path.
 
-la domanda non può fermarsi a chi ha avviato la migration.
-
-Serve capire perché mancavano, per esempio:
-
-- throttling;
-- circuit breaker;
-- capacity headroom;
-- pre-flight check;
-- safe window;
-- detection anticipata.
-
-La reliability migliora quando il sistema impara, non quando trova qualcuno da punire.
-
-## Action item
-
-Un action item debole:
-
-```text
-stare più attenti
-```
-
-Un action item migliore:
-
-```text
-pause automatic migration when connection utilization > threshold
-```
-
-oppure:
-
-```text
-add synthetic escalation journey from operator boundary
-```
-
-oppure:
-
-```text
-execute PostgreSQL restore drill quarterly
-```
-
-Deve essere verificabile.
-
-## AI nel postmortem
-
-L'AI può aiutare molto:
-
-- correlare timeline;
-- riassumere log;
-- trovare change correlati;
-- confrontare incidenti precedenti;
-- proporre failure tree;
-- verificare se action item simili esistono già;
-- generare draft del postmortem.
-
-Ma può anche produrre una root cause troppo pulita.
-
-Gli incidenti reali sono spesso sistemi di cause concorrenti.
-
-Quindi:
-
-```text
-AI summary
-≠
-causal proof
-```
-
-Il reviewer deve cercare:
-
-- omissioni;
-- uncertainty;
-- hidden dependency;
-- timeline incongruenti;
-- action item che curano il sintomo invece del propagation path.
-
-## Reliability evidence bundle
-
-Per ogni failure importante potremo accumulare:
+Per ogni drill o incidente Order Operations dovrà accumulare un piccolo **Reliability Evidence Bundle**:
 
 ```text
 scenario
 expected behavior
-run result
+actual result
 metrics/traces
 recovery duration
 RPO observed
@@ -420,8 +257,6 @@ unexpected behavior
 action items
 ```
 
-Questo diventerà una parte importante della Production Readiness più avanti.
+Questa evidence tornerà più avanti nella Production Readiness Review.
 
-## Corollario
-
-> **La resilienza che non abbiamo mai provato è ancora un'ipotesi.**
+> **La resilienza che non abbiamo mai provato è ancora un’ipotesi.**
