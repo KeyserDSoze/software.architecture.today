@@ -1,37 +1,26 @@
 ## Idee chiave
 
-La Software Architecture non coincide con i diagrammi.
+La Software Architecture non coincide con diagrammi, tecnologie o topologie di deployment. Questi elementi possono rappresentarla, ma il nucleo del lavoro architetturale sta nelle decisioni che hanno conseguenze significative su comportamento, rischio, costo, operazioni ed evoluzione futura.
 
-I diagrammi sono rappresentazioni utili.
+Non ogni decisione tecnica ha lo stesso peso. Una scelta diventa architetturalmente interessante quando attraversa molti confini, è costosa da invertire, rimane incorporata nel sistema a lungo o espone il business a un rischio elevato. Gli **Architecturally Significant Requirements** ci aiutano a riconoscere quali condizioni restringono davvero il design space; possono essere funzionali o non funzionali, purché cambino materialmente le alternative disponibili.
 
-L'architettura riguarda soprattutto le decisioni che hanno conseguenze significative sul comportamento, sul rischio, sul costo e sull'evoluzione del sistema.
+I trade-off sono inevitabili. Se una soluzione sembra avere soltanto vantaggi, probabilmente abbiamo omesso una parte del costo. Team, competenze, ownership e capacità operativa fanno parte di quel costo tanto quanto latency, consistency o lock-in. Una buona decisione non cerca di massimizzare tutto: dichiara ciò che privilegia e ciò che accetta di perdere.
 
-Le idee principali del capitolo sono:
+La reversibilità ci permette poi di calibrare il processo. Una two-way door locale può essere presa velocemente; una one-way door con alto blast radius merita più evidenza. Possiamo anche aumentare la reversibilità attraverso boundary, adapter, feature flag, rollout progressivi, contract compatibili e migration path. L'obiettivo non è prevedere il futuro, ma ridurre il costo di scoprire che il contesto è cambiato.
 
-1. **Non ogni decisione tecnica è architetturale.** Il peso cresce con blast radius, costo di inversione, persistenza e rischio.
-2. **Gli Architecturally Significant Requirements restringono il design space.** Possono essere funzionali o non funzionali.
-3. **Gli aggettivi non bastano.** “Scalabile”, “sicuro” e “resiliente” devono diventare condizioni che discriminano tra alternative.
-4. **Ogni decisione importante contiene un trade-off.** Se vediamo soltanto vantaggi, probabilmente non abbiamo analizzato abbastanza.
-5. **Il team è parte del contesto architetturale.** Competenze, ownership e capacità operativa influenzano ciò che è sostenibile.
-6. **Non tutte le decisioni meritano lo stesso processo.** Two-way door e one-way door richiedono livelli diversi di analisi.
-7. **La reversibilità si può progettare.** Boundary, adapter, feature flag, contract e migration path possono ridurre il costo di cambiare idea.
-8. **Gli ADR conservano il ragionamento.** Non servono a rendere una decisione autorevole, ma a renderla comprensibile e contestabile.
-9. **Una decisione può essere corretta e temporanea.** I trigger di revisione permettono di cambiare strada quando cambia il contesto.
-10. **L'AI è molto utile per alternative e review.** Non deve diventare il giudice finale del trade-off.
-11. **Il consenso tra agenti non è evidenza.** Una stessa assunzione sbagliata può propagarsi tra reviewer differenti.
-12. **L'architettura è un sistema decisionale continuo.** Requisito → decisione → implementazione → osservazione → revisione.
+Gli ADR conservano questo reasoning nel tempo. Non rendono automaticamente corretta una decisione e non devono diventare approval theater. Servono a ricordare perché una scelta aveva senso, quali alternative erano credibili, quali conseguenze negative erano accettate e quali trigger dovrebbero farci riaprire il confronto.
 
-## Esercizi
+Con l'AI il costo di generare alternative, diagrammi e bozze di ADR si abbassa drasticamente. Il valore umano si sposta ancora di più verso selezione delle decisioni importanti, priorità tra ASR, valutazione dei trade-off, riconoscimento dell'informazione mancante e responsabilità finale della scelta.
 
-### Esercizio 1 — Design o architecture?
+---
 
-Classifica le seguenti decisioni come prevalentemente:
+# Esercizi
 
-- implementazione locale;
-- design;
-- architettura.
+Gli esercizi restano strutturati perché devono essere riutilizzabili come strumenti di pratica e review.
 
-Per ogni risposta spiega il criterio usato.
+## 1. Design o architecture?
+
+Classifica le seguenti decisioni come prevalentemente **implementazione locale**, **design** o **architettura** e spiega il criterio utilizzato:
 
 1. rinominare `OrderService` in `OrderApplicationService`;
 2. introdurre una queue tra checkout e fulfillment;
@@ -42,15 +31,11 @@ Per ogni risposta spiega il criterio usato.
 7. decidere il modello di tenant isolation;
 8. introdurre retry su una chiamata esterna.
 
-Nota: alcune risposte dipendono dal contesto. È parte dell'esercizio.
+Alcune risposte dipendono dal contesto. È parte dell'esercizio: prova a descrivere quale informazione farebbe cambiare classificazione.
 
-### Esercizio 2 — Trova gli ASR
+## 2. Trova gli ASR
 
-Scenario:
-
-Una piattaforma B2B gestisce documenti fiscali per aziende europee.
-
-Requisiti dichiarati:
+Una piattaforma B2B gestisce documenti fiscali per aziende europee. I requisiti dichiarati sono:
 
 - upload di documenti PDF;
 - ricerca per cliente;
@@ -60,51 +45,35 @@ Requisiti dichiarati:
 - esportazione massiva su richiesta del cliente;
 - supporto a 500 utenti contemporanei.
 
-Identifica gli ASR e spiega perché lo sono.
+Identifica gli ASR e spiega quali decisioni architetturali potrebbero influenzare. Poi indica almeno tre domande mancanti che potrebbero cambiare materialmente il design.
 
-Poi indica almeno tre domande mancanti che potrebbero cambiare l'architettura.
-
-### Esercizio 3 — Il requisito vago
+## 3. Dal requisito vago a una condizione discriminante
 
 Trasforma questi aggettivi in requisiti più utili:
 
-- veloce;
-- sicuro;
-- scalabile;
-- altamente disponibile;
-- economico.
+```text
+veloce
+sicuro
+scalabile
+altamente disponibile
+economico
+```
 
-Non cercare numeri “giusti” universali.
+Non cercare valori universali. Costruisci uno scenario, rendi esplicite le assunzioni e formula il requisito in modo che possa distinguere tra una soluzione accettabile e una non accettabile.
 
-Inventali come parte di uno scenario e rendi esplicite le assunzioni.
+## 4. Trade-off matrix
 
-### Esercizio 4 — Trade-off matrix
-
-Devi costruire un'applicazione interna per cinquanta operatori.
-
-Confronta:
+Devi costruire un'applicazione interna per cinquanta operatori. Confronta:
 
 1. modular monolith;
 2. microservices;
 3. serverless functions indipendenti.
 
-Usa almeno questi criteri:
+Usa almeno time-to-market, semplicità operativa, isolation, costo, deployability, competenze del team e reversibilità. Non scegliere un vincitore prima di aver definito il contesto e segnala dove la matrice nasconde incertezza o falsa precisione.
 
-- time to market;
-- semplicità operativa;
-- isolation;
-- costo;
-- deployability;
-- competenze del team;
-- reversibilità.
+## 5. Scrivere anche ciò che perdi
 
-Non assegnare un vincitore prima di aver definito il contesto.
-
-### Esercizio 5 — Conseguenze negative
-
-Scegli una decisione tecnica che hai preso in un progetto reale o simulato.
-
-Scrivi:
+Scegli una decisione tecnica reale o simulata e produci:
 
 ```text
 Decisione
@@ -114,108 +83,78 @@ Rischi
 Trigger di revisione
 ```
 
-Se fai fatica a trovare conseguenze negative, chiedi a un agente AI di assumere che la decisione sia sbagliata e di attaccarla.
+Se fai fatica a trovare conseguenze negative, chiedi a un agente AI di assumere che la scelta sia sbagliata e costruire il caso più credibile contro di essa. Poi valuta criticamente quali osservazioni siano realmente supportate dal contesto.
 
-Poi valuta criticamente l'output.
-
-### Esercizio 6 — One-way o two-way?
+## 6. One-way o two-way?
 
 Ordina queste decisioni per costo di inversione:
 
-- libreria di logging;
-- cloud provider;
-- public API contract;
-- database engine;
-- naming convention;
-- tenant model;
-- event schema pubblico;
-- authentication provider.
+```text
+libreria di logging
+cloud provider
+public API contract
+database engine
+naming convention
+tenant model
+event schema pubblico
+authentication provider
+```
 
-Poi descrivi come potresti aumentare la reversibilità delle tre decisioni più costose.
+Poi scegli le tre più costose e descrivi come potresti aumentare la loro reversibilità senza implementare oggi tutte le alternative future.
 
-### Esercizio 7 — Scrivi un ADR
+## 7. Scrivi un ADR
 
-Scenario:
+Una startup deve decidere se usare un managed database o gestire autonomamente PostgreSQL su Kubernetes. Il team è composto da cinque persone, non ha un DBA dedicato, il traffico previsto è moderato e il prodotto deve uscire in tre mesi.
 
-Una startup deve decidere se usare un managed database o gestire autonomamente PostgreSQL su Kubernetes.
+Scrivi un ADR completo includendo contesto, problema, ASR, vincoli, alternative credibili, decisione, conseguenze positive e negative, rischi e trigger di revisione.
 
-Il team è di cinque persone, non ha un DBA dedicato, il traffico previsto è moderato e il prodotto deve uscire in tre mesi.
+La vera difficoltà non è riempire il template: è spiegare perché l'alternativa scartata rimane plausibile e quale cambiamento di contesto potrebbe farla diventare preferibile.
 
-Scrivi un ADR completo con:
+## 8. ADR avversariale
 
-- contesto;
-- problema;
-- vincoli;
-- alternative;
-- decisione;
-- conseguenze positive e negative;
-- rischi;
-- trigger di revisione.
+Prendi l'ADR dell'esercizio precedente e chiedi a un agente:
 
-### Esercizio 8 — ADR avversariale
+> **Assumi che questa decisione provocherà un problema serio entro due anni. Costruisci il caso più credibile contro di essa.**
 
-Prendi l'ADR dell'esercizio precedente.
+Per ogni critica indica se è valida, troppo generica, basata su un'assunzione non supportata oppure abbastanza importante da modificare l'ADR. Specifica anche quale nuova evidenza vorresti raccogliere.
 
-Chiedi a un agente:
+## 9. Order Operations cambia contesto
 
-> “Assumi che questa decisione provocherà un problema serio entro due anni. Costruisci il caso più credibile contro di essa.”
+ADR-001 sceglie lookup live. Ora le condizioni cambiano:
 
-Poi rispondi:
-
-- quale critica è valida?
-- quale è troppo generica?
-- quale informazione mancante cambierebbe la decisione?
-- modificheresti l'ADR?
-
-### Esercizio 9 — Order Operations cambia contesto
-
-L'ADR-001 sceglie lookup live sul database operativo.
-
-Ora cambiano le condizioni:
-
-- traffico 20 volte superiore;
+- traffico venti volte superiore;
 - p95 del lookup a 650 ms;
-- il customer portal deve rimanere disponibile durante maintenance del sistema ordini;
-- nuovi consumer interni vogliono leggere lo stato ordine.
+- la vista operativa deve rimanere disponibile durante maintenance del sistema ordini;
+- nuovi consumer interni vogliono leggere la stessa rappresentazione dello stato.
 
-Scrivi un nuovo ADR che supersede ADR-001.
+Scrivi un nuovo ADR che supersede ADR-001. Non assumere automaticamente che un read model asincrono sia l'unica risposta. Confronta almeno tre opzioni e indica quale nuova evidenza rende insufficiente il reasoning precedente.
 
-Non assumere automaticamente che un read model asincrono sia l'unica soluzione.
+## 10. Architecture governance
 
-Confronta almeno tre opzioni.
+Progetta un processo leggero per un team di dieci developer. Deve chiarire quali decisioni richiedono un ADR, quali possono restare locali, chi deve essere coinvolto quando cambia il blast radius, quali guardrail possono essere automatizzati e come vengono gestiti i trigger di revisione.
 
-### Esercizio 10 — Architecture governance
+L'obiettivo è evitare contemporaneamente **architecture by committee** e **architecture by accident**.
 
-Progetta un processo leggero per un team di dieci developer che stabilisca:
-
-- quali decisioni richiedono ADR;
-- quali possono essere locali;
-- chi deve essere coinvolto;
-- quali controlli possono essere automatizzati;
-- come vengono gestiti i trigger di revisione.
-
-Obiettivo: evitare sia architecture by committee sia architecture by accident.
+---
 
 ## Domande di autovalutazione
 
-1. Riesci a spiegare perché un diagramma non è l'architettura?
-2. Sai distinguere una technology choice da una decisione architetturale usando il contesto?
-3. Sai identificare un Architecturally Significant Requirement?
-4. Riesci a spiegare perché un requisito funzionale può essere architetturalmente significativo?
-5. Sai descrivere almeno una conseguenza negativa di una scelta che consideri buona?
-6. Sai spiegare la differenza tra reversibilità del codice e reversibilità del sistema?
-7. Sai riconoscere una one-way door?
-8. Sai scrivere un trigger di revisione concreto?
-9. Sai spiegare perché un ADR non è un documento di approvazione?
-10. Sai distinguere un'alternativa credibile da un'alternativa-fantoccio?
-11. Sai usare l'AI per criticare una decisione senza delegarle il judgment?
-12. Sai spiegare quali decisioni devono essere coerenti tra team e quali possono rimanere locali?
+1. Riesco a spiegare perché un diagramma non coincide con l'architettura?
+2. So distinguere una technology choice da una decisione architetturale usando il contesto?
+3. So identificare un Architecturally Significant Requirement?
+4. Riesco a spiegare perché un requisito funzionale può essere architetturalmente significativo?
+5. So descrivere almeno una conseguenza negativa di una scelta che considero buona?
+6. So distinguere reversibilità del codice e reversibilità del sistema?
+7. So riconoscere una one-way door e spiegare perché lo è?
+8. So scrivere un trigger di revisione osservabile?
+9. So spiegare perché un ADR non è un documento di approvazione?
+10. So distinguere un'alternativa credibile da un'alternativa-fantoccio?
+11. So usare l'AI per criticare una decisione senza delegarle il judgment?
+12. So dire quali decisioni richiedono coerenza tra team e quali possono rimanere locali?
 
-## Artefatto operativo
+## Artefatto operativo — Architecture Decision Record
 
-L'artefatto principale del capitolo è l'**Architecture Decision Record**.
-
-Template:
+Il template standard del capitolo è:
 
 ```markdown
 # ADR-xxx — Titolo
@@ -245,36 +184,17 @@ Status: proposed | accepted | superseded | deprecated | rejected
 ## Trigger di revisione
 ```
 
-Non usarlo per ogni dettaglio.
-
-Usalo quando perdere il ragionamento renderebbe il sistema più difficile da governare.
+Non va usato per ogni dettaglio. È utile quando perdere il reasoning renderebbe il sistema più difficile da governare o quando una nuova evidenza potrebbe dover riaprire la scelta in futuro.
 
 ## Cosa cambia con l'AI
 
-L'AI riduce drasticamente il costo di:
+Generare alternative, confrontare pattern, preparare diagrammi, cercare failure mode o produrre una prima bozza di ADR costa molto meno di prima. Questo rende ancora più evidente che il valore architetturale non si misura dalla quantità di documentazione prodotta.
 
-- generare alternative;
-- confrontare pattern;
-- preparare diagrammi;
-- scrivere bozze di ADR;
-- cercare rischi;
-- eseguire adversarial review.
-
-Questo rende ancora più evidente che il valore dell'architect non può essere misurato sulla quantità di documentazione prodotta.
-
-Il valore si sposta su:
-
-- selezione delle decisioni importanti;
-- comprensione del contesto;
-- priorità tra ASR;
-- qualità del trade-off;
-- capacità di riconoscere informazione mancante;
-- progettazione della reversibilità;
-- responsabilità della decisione.
+Il valore si concentra nella capacità di riconoscere quali decisioni meritano attenzione, quali ASR hanno davvero priorità, quale trade-off stiamo accettando e quale informazione manca ancora. Si concentra anche nella progettazione della reversibilità e nella responsabilità di dire “questa evidenza è sufficiente per decidere” oppure “questa decisione non è ancora autorizzata”.
 
 ## Corollario
 
-Possiamo ora dare una definizione operativa che useremo nel resto del libro:
+Possiamo ora fissare la definizione operativa che useremo nel resto del libro:
 
 > **La Software Architecture non è l'insieme delle tecnologie del sistema. È l'insieme delle decisioni significative, dei trade-off che accettiamo e dei meccanismi con cui possiamo verificarle e cambiarle nel tempo.**
 
