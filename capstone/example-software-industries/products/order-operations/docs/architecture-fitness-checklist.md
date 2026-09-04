@@ -27,11 +27,24 @@ Review Required
 
 | ID | Property | Why | Mechanism | Failure action | Owner | Current state | Review trigger |
 |---|---|---|---|---|---|---|---|
-| AF-001 | `src/` non importa direttamente Operations Desk Classic | evitare legacy leakage | `tests/architecture-fitness.test.mjs` | fail local/PR gate | Commerce & Operations | Codified | legacy retirement / coexistence redesign |
-| AF-002 | `src/application` non dipende da `src/integration` | mantenere dependency direction | architecture test | fail gate | Commerce & Operations | Codified | application boundary redesign |
-| AF-003 | `src/contracts` non dipende da application/integration/observability/priority | mantenere contract boundary indipendente | architecture test | fail gate | Commerce & Operations | Codified | contract packaging redesign |
-| AF-004 | `src/priority` non dipende da integration/observability | mantenere policy isolata e testabile | architecture test | fail gate | Commerce & Operations | Codified | priority capability redesign |
-| AF-005 | application/contracts/priority non importano package `@azure/*` | evitare vendor leakage nella semantica core | architecture test | fail gate | Commerce & Operations + Platform | Codified | explicit cloud-coupling decision |
+| AF-001 | `src/` non importa direttamente Operations Desk Classic | evitare legacy leakage | `tests/architecture-fitness.test.mjs` | fail local/PR gate | Commerce & Operations | Codified + locally Verified | legacy retirement / coexistence redesign |
+| AF-002 | `src/application` non dipende da `src/integration` | mantenere dependency direction | architecture test | fail gate | Commerce & Operations | Codified + locally Verified | application boundary redesign |
+| AF-003 | `src/contracts` non dipende da application/integration/observability/priority | mantenere contract boundary indipendente | architecture test | fail gate | Commerce & Operations | Codified + locally Verified | contract packaging redesign |
+| AF-004 | `src/priority` non dipende da integration/observability | mantenere policy isolata e testabile | architecture test | fail gate | Commerce & Operations | Codified + locally Verified | priority capability redesign |
+| AF-005 | application/contracts/priority non importano package `@azure/*` | evitare vendor leakage nella semantica core | architecture test | fail gate | Commerce & Operations + Platform | Codified + locally Verified | explicit cloud-coupling decision |
+
+### Verification evidence — Capitolo 19
+
+Il gate è stato eseguito localmente sul current import graph ricostruito dai source correnti del repository.
+
+```text
+node --test tests/architecture-fitness.test.mjs
+→ 5 tests
+→ 5 pass
+→ 0 fail
+```
+
+Questa evidence verifica soltanto le dependency/import rule AF-001…AF-005. Non dimostra runtime topology, Azure policy, recovery o data ownership enforcement.
 
 ## Functional / domain fitness
 
