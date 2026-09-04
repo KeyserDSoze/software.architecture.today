@@ -1,12 +1,10 @@
 # Order Operations — Cost Model
 
-> **Scenario fittizio ESI.** Stato corrente dopo il Capitolo 20. Questo documento non contiene prezzi Azure reali né benchmark. Definisce categorie, driver, unit metrics, ownership economica e review trigger del workload.
+> **Scenario fittizio ESI.** Stato corrente dopo il Capitolo 24. Questo documento non contiene prezzi cloud o AI inventati. Definisce cost surface, driver, unit metric, architectural premium, ownership e review trigger.
 
 ## Principle
 
 > **Non ottimizziamo il costo togliendo qualità alla cieca. Ottimizziamo il rapporto fra ciò che paghiamo e ciò che il sistema deve garantire.**
-
-## Scope
 
 Workload:
 
@@ -26,7 +24,7 @@ Cost owner:
 Order Operations team
 ```
 
-Budget / finance counterpart:
+Finance counterpart:
 
 ```text
 ESI Finance / FinOps — scenario simulato
@@ -35,73 +33,63 @@ ESI Finance / FinOps — scenario simulato
 ## Evidence state
 
 ```text
-Cost Model structure              = Designed + documented
-Azure billing data                = Not available in capstone
-Unit metrics definitions          = Designed
-Unit metrics measured             = Pending production/billing data
-Cost allocation metadata in IaC   = Partially Codified
-Cost anomaly alerts               = Designed / Pending
-Rate commitments                  = Not decided
+Cost Model structure                 Codified
+Azure billing data                   Pending
+Production unit metrics              Pending
+Cost allocation metadata in IaC      Partially Codified
+Cost anomaly alerts                  Designed / Pending
+Rate commitments                     Not decided
+Runtime AI provider/model            Not selected
+Runtime AI billing/usage             Pending
+Runtime AI unit economics            Designed / not measured
 ```
 
-## Current architecture cost surface
+## Current cost surface
 
-| Area | Mechanism | Property purchased | Cost shape | Current status |
+| Area | Mechanism | Property purchased | Cost shape | State |
 |---|---|---|---|---|
-| application runtime | App Service Premium-compatible plan, >=2 instances | runtime + headroom + zonal resilience direction | base + step | Codified |
-| database | Azure Database for PostgreSQL direction | durable local state + HA/recovery | base + usage + storage | Designed / partially IaC pending |
+| application runtime | App Service, >=2 instances, zone direction | runtime + headroom + zonal resilience | base + step | Codified partly |
+| database | managed PostgreSQL direction | durable local state + HA/recovery | base + storage + usage | Designed / partially Codified |
 | messaging | Service Bus Premium | durable async delivery + private data plane + zonal resilience | premium base + usage | Codified |
-| secrets / identity | Managed Identity + Key Vault | workload identity + secret governance | base/shared | Codified partly |
-| observability | Application Insights + Log Analytics direction | SLI measurement + investigation | usage + retention | Designed/Codified partly |
+| identity/secrets | Managed Identity + Key Vault | workload identity + secret governance | base/shared | Codified partly |
+| observability | Application Insights/Log Analytics direction | SLI + investigation | usage + retention | Designed/Codified partly |
 | backup/recovery | PostgreSQL backup/PITR direction | recoverability | storage + retention | Designed |
 | networking | private endpoint direction | reduced public reachability | base/shared | Codified partly |
-| non-production | dev/staging/integration environments | verification | time + fidelity | Partially Designed |
-| legacy coexistence | Operations Desk Classic + Order Operations | migration reversibility + semantic evidence | transition | Active in capstone narrative |
-| engineering / operations | team ownership + verification | changeability + operability | people/time | not monetized |
+| non-production | test/integration/staging | verification | time + fidelity | Partially Designed |
+| legacy coexistence | Operations Desk Classic + target | reversibility + semantic evidence | transition | Active |
+| agentic engineering | sandbox/tool/model/review loops | delegated execution + verification | variable + people/time | Designed / partly observed |
+| runtime AI | future Case Explanation model/provider | cognitive assistance | tokens/invocation/context/retry | Designed / provider Pending |
+| AI evaluation | eval execution + human review | behavioral evidence | model runs + people/time | Designed / seed Codified |
 
 ## Architectural premiums
 
-### CP-01 — Private messaging premium
+### CP-01 — Private messaging
 
 ```text
 Mechanism
 Service Bus Premium + private endpoint direction
 
 Property purchased
-private data-plane reachability + current security boundary
-
-Related artifacts
-threat-model.md
-security-control-matrix.md
-cloud-deployment.md
-
-Optimization consequence
-moving to a cheaper tier is an architecture/security decision, not a pure rate optimization
+private data plane + current security boundary
 
 Review trigger
-security boundary changes, platform alternative, materially different cost/value evidence
+security boundary, platform alternative, materially different cost/value evidence
 ```
 
-### CP-02 — Zonal runtime premium
+### CP-02 — Zonal runtime
 
 ```text
 Mechanism
-App Service capacity >= 2 + zone redundancy direction
+App Service capacity >= 2 + zone resilience direction
 
 Property purchased
 intra-region resilience for current RTO/SLO assumptions
 
-Related artifact
-reliability-contract.md
-
-Optimization consequence
-rightsizing cannot silently remove required failure headroom
-
 Review trigger
-SLO/RTO changes, failure drill evidence, materially different traffic profile
+SLO/RTO change, failure-drill evidence, traffic profile change
 ```
 
-### CP-03 — Observability premium
+### CP-03 — Observability
 
 ```text
 Mechanism
@@ -110,141 +98,98 @@ metrics + logs + traces + retention
 Property purchased
 SLI measurement + incident investigation + correlation
 
-Related artifact
-observability-contract.md
-
-Optimization consequence
-sampling/retention can be tuned, but required evidence must remain available
-
 Review trigger
-telemetry cost growth faster than critical journey growth without a new diagnostic requirement
+telemetry cost grows materially faster than useful workload/evidence
 ```
 
-### CP-04 — Migration overlap premium
+### CP-04 — Legacy coexistence
 
 ```text
 Mechanism
-Operations Desk Classic remains operational while target policy evolves
+Operations Desk Classic + Order Operations coexist
 
 Property purchased
 reversibility + characterization + shadow comparison
 
-Related artifacts
-legacy-understanding-map.md
-refactoring-safety-plan.md
+Review trigger
+cutover evidence and consumer inventory allow retirement
+```
+
+### CP-05 — Runtime AI evidence premium
+
+```text
+Mechanism
+versioned evals + model comparison + security cases + sampled human review
+
+Property purchased
+confidence that Case Explanation behavior remains useful, grounded and inside authority/security boundaries
 
 Optimization consequence
-coexistence must not become permanent by inertia
+reducing evaluation cost must not silently remove critical cross-tenant, authority-boundary or prompt-injection coverage
 
 Review trigger
-candidate rollout evidence available, consumer inventory complete, retirement blockers resolved
+model/provider change, new context source, new tool, rising eval cost, stable evidence suggesting a cheaper gate can prove the same property
 ```
 
 ## Cost driver map
 
-| ID | Area | Primary driver | Secondary driver | Evidence source future |
+| ID | Area | Primary driver | Secondary driver | Future evidence |
 |---|---|---|---|---|
-| CD-01 | App runtime | operator traffic / concurrency | reliability headroom | Azure metrics + billing |
-| CD-02 | PostgreSQL | data volume + query load | HA / backup retention | DB metrics + billing |
-| CD-03 | Service Bus | baseline tier + message volume | private/HA requirements | broker metrics + billing |
-| CD-04 | Observability | telemetry volume | sampling, cardinality, retention | Azure Monitor usage + billing |
-| CD-05 | Backup | retained data | RPO/retention policy | backup usage + billing |
-| CD-06 | Network | private/shared topology + data transfer | future cross-region | network/billing |
-| CD-07 | Nonprod | environment hours | environment fidelity | deployment + billing |
-| CD-08 | Legacy overlap | coexistence duration | shadow volume + engineering effort | migration plan + finance estimate |
-| CD-09 | AI future | tokens/context/tool calls | retries + verification | future agent telemetry |
+| CD-01 | App runtime | traffic/concurrency | reliability headroom | Azure metrics + billing |
+| CD-02 | PostgreSQL | data/query load | HA + backup retention | DB metrics + billing |
+| CD-03 | Service Bus | tier + message volume | private/HA requirements | broker metrics + billing |
+| CD-04 | Observability | telemetry volume | sampling/cardinality/retention | monitor usage + billing |
+| CD-05 | Backup | retained data | RPO/retention | backup usage + billing |
+| CD-06 | Network | private/shared topology | future cross-region | billing |
+| CD-07 | Nonprod | environment hours | fidelity | deployment + billing |
+| CD-08 | Legacy overlap | coexistence duration | shadow/engineering effort | migration evidence |
+| CD-09 | Development agents | model/tool calls | repair loops + verifier/human review | agent workflow telemetry |
+| CD-10 | Runtime AI | input/output context + invocation count | model route + retries | provider usage + billing |
+| CD-11 | AI eval | case count × samples × model routes | grader + human calibration | eval run records |
 
-## Cost shape
-
-### Fixed / baseline
-
-```text
-minimum application runtime
-managed service tier baseline
-shared enterprise platform allocation
-```
-
-### Variable
+## Cost shapes
 
 ```text
-telemetry ingestion
-message volume
-storage growth
-data transfer
-future AI token/tool usage
-```
+Fixed / baseline
+→ minimum runtime, managed-service tier, shared platform allocation
 
-### Step
+Variable
+→ telemetry, messages, storage, AI tokens/invocations, eval runs
 
-```text
-capacity scale step
-new replica
-new region
-new dedicated runtime
-new operational team/tooling need
-```
+Step
+→ capacity tier, new replica/region, new dedicated runtime/platform capability
 
-### Transition
-
-```text
-legacy + target coexistence
-shadow mode
-migration/reconciliation
+Transition
+→ legacy coexistence, shadow mode, migration/reconciliation
 ```
 
 ## Unit metrics
 
 ### UM-01 — Cost per OperationalCase handled
 
-Formula direction:
-
 ```text
-allocated monthly Order Operations cost
+allocated Order Operations cost
 /
-OperationalCase handled in the same period
+OperationalCase handled
 ```
 
-Purpose:
+Read with service quality; lower cost with worse handling outcome is not automatically better.
 
-- connect workload cost with operational demand;
-- identify cost growth that is disproportionate to case volume;
-- support forecasting.
-
-State:
-
-```text
-Designed / not yet measured
-```
+State: `Designed / not measured`.
 
 ### UM-02 — Cost per Payment Escalation delivered
 
-Formula direction:
-
 ```text
-allocated messaging
-+ publisher runtime share
-+ relevant telemetry share
+allocated messaging + publisher + relevant telemetry
 /
 delivered Payment Escalation
 ```
 
-Read together with:
+Read together with Payment Escalation publication SLI.
 
-```text
-Payment Escalation publication SLI
-```
-
-A lower unit cost with degraded delivery quality is not automatically an improvement.
-
-State:
-
-```text
-Designed / not yet measured
-```
+State: `Designed / not measured`.
 
 ### UM-03 — Observability cost per 1,000 critical journeys
-
-Formula direction:
 
 ```text
 allocated observability cost
@@ -253,182 +198,258 @@ critical journey count
 * 1000
 ```
 
-Purpose:
+State: `Designed / not measured`.
 
-- detect telemetry growth detached from workload value;
-- support sampling/retention decisions;
-- preserve minimum diagnostic evidence.
+### UM-04 — Cost per accepted delegated engineering task
 
-State:
+Candidate future metric:
 
 ```text
-Designed / not yet measured
+agent/model/tool/sandbox cost
++ verification cost
++ human review cost
+/
+accepted delegated task
 ```
+
+Pair with:
+
+```text
+post-verification finding rate
+repair loops
+time-to-acceptance
+scope/policy violation rate
+```
+
+State: `Designed / no production workflow dataset`.
+
+### UM-05 — Cost per accepted Case Explanation
+
+```text
+model/provider invocation cost
++ relevant runtime share
++ evaluation/quality allocation when useful
+/
+Case Explanation accepted/useful by defined product metric
+```
+
+Pair with:
+
+```text
+critical eval failure rate
+groundedness/claim-support evidence
+InsufficientEvidence rate
+latency
+operator correction/dismiss signal
+```
+
+Do not optimize this number by encouraging the model to answer when evidence is insufficient.
+
+State: `Designed / model provider not selected / not measured`.
+
+### UM-06 — Cost per explanation without critical eval finding
+
+Candidate engineering/evaluation metric:
+
+```text
+model/eval run cost
+/
+explanation satisfying the current critical gate
+```
+
+Useful for model/provider comparison when run on the same versioned dataset.
+
+State: `Designed / eval execution Pending`.
 
 ## Allocation direction
 
-Current Bicep already carries:
+Current IaC metadata already protects:
 
 ```text
 workload = order-operations
 owner = commerce-operations
 environment = <dev|staging|prod>
-managedBy = bicep
 ```
 
-Direction after Chapter 20:
+Direction:
 
 ```text
 businessUnit = commerce-operations
 product = order-operations
 ```
 
-`cost-center` is deliberately not invented in the book. It must be supplied by the simulated ESI Finance mapping or a real organization-specific mapping.
+`cost-center` is deliberately not invented. It belongs to a real or explicitly simulated Finance mapping.
 
-Shared-cost categories that need policy:
+Shared cost policy remains necessary for:
 
 ```text
 landing zone
-enterprise networking
-identity
-central security tooling
-shared observability/platform capability
+networking
+identity/security platform
+shared observability
+future shared AI gateway/model platform
 ```
 
-Possible handling:
+## Runtime AI cost policy
+
+The Case Explanation Assistant currently has no selected provider/model and no production bill.
+
+Therefore we do **not** publish:
 
 ```text
-central budget
-showback
-proportional allocation
-usage-based allocation
-proxy metric
+price per explanation
+monthly AI run rate
+expected savings percentage
 ```
 
-The choice must remain explicit.
+as if they were evidence.
+
+When a provider comparison begins, record at least:
+
+```text
+provider/model route
+model/deployment version
+prompt/context version
+input/output tokens or equivalent usage
+retry count
+latency
+quality/eval result
+```
+
+Cost comparison without quality comparison is incomplete.
+
+> **Il modello più economico è più economico soltanto se continua a comprare la proprietà per cui lo stiamo pagando.**
+
+## Context cost
+
+More context can increase both cost and latency while sometimes decreasing quality through noise.
+
+This reinforces the Chapter 24 choice:
+
+```text
+bounded deterministic case context
+before
+broad enterprise corpus
+```
+
+If RAG is introduced later, new cost surfaces include:
+
+```text
+embedding/index build
+storage
+re-indexing
+retrieval/query
+re-ranking
+additional context tokens
+ACL/freshness operations
+```
+
+A vector database is therefore not a free architectural default.
+
+## Evaluation cost
+
+AI evaluation has a carrying cost:
+
+```text
+model runs
+multiple samples
+judge runs
+human SME review
+red-team/security review
+dataset maintenance
+```
+
+But skipping evaluation can transfer that cost into production rework, unsafe behavior or operator mistrust.
+
+Optimization direction:
+
+1. deterministic checks for deterministic properties;
+2. targeted behavioral evals for probabilistic properties;
+3. heavier human/security review for critical/high-ambiguity cases;
+4. reuse versioned datasets where they still represent current product risk;
+5. retire obsolete eval cases only through explicit review.
 
 ## Non-production economics
 
-Principle:
-
-> **Use the cheapest environment that can produce the evidence required by the property under test.**
-
-Direction:
+> **Use the cheapest environment capable of demonstrating the property.**
 
 ```text
-local
-→ fast deterministic tests
-
-integration
-→ real PostgreSQL when PostgreSQL semantics matter
-
-staging
-→ Azure identity/network/RBAC/broker verification
-
-production
-→ full quality baseline
+business rule                  → local deterministic
+PostgreSQL semantics           → real PostgreSQL
+Azure identity/network         → Azure non-production
+AI boundary/source validation  → local deterministic
+AI model behavior              → real model/configuration
+AI provider security/network   → appropriate non-production/provider boundary
+recovery                       → environment capable of the drill
 ```
-
-Not every non-production environment inherits production instance count, HA or telemetry retention by default.
 
 ## Optimization order
 
-Prefer initially:
+Prefer:
 
-1. improve allocation/visibility;
-2. remove unused/orphan resources;
+1. improve attribution and visibility;
+2. remove unused resources/workflows;
 3. reduce unnecessary non-production runtime;
-4. tune telemetry sampling/retention within observability requirements;
-5. right-size only with failure headroom evidence;
-6. evaluate rate optimization when consumption is stable enough;
-7. reduce legacy coexistence duration when migration evidence permits;
-8. only then reopen architectural premiums that protect quality attributes.
+4. control telemetry/context volume;
+5. bound retries and repair loops;
+6. route simple AI tasks to cheaper models only after workload eval;
+7. right-size infrastructure while preserving failure headroom;
+8. reduce legacy coexistence when migration evidence allows;
+9. only then reopen architectural premiums protecting security/reliability/evidence.
 
 ## Guardrail for architecture-changing cost cuts
 
-A proposed cost reduction must reopen the relevant artifact when it changes:
+A cost reduction reopens the relevant artifact when it changes:
 
 ```text
-security boundary
+security/tenant boundary
 SLO / RTO / RPO
 backup/recovery
-observability evidence
-ownership/isolation
-migration rollback capability
+observability/evaluation evidence
+data ownership
+migration rollback
+agent verification independence
+runtime AI model authority/context/tool/fallback
 ```
 
 Examples:
 
 ```text
-Service Bus Premium → cheaper tier
-=> reopen Threat Model + Security Control Matrix
+remove Service Bus Premium
+→ reopen Threat Model / Cloud Deployment
 
-2 App Service instances → 1
-=> reopen Reliability Contract
+reduce App Service below failure headroom
+→ reopen Reliability Contract
 
-trace retention ↓ below incident need
-=> reopen Observability Contract
+stop critical AI evals to save tokens
+→ reopen AI Feature Contract / Testing Strategy
+
+switch to cheaper model route
+→ run the same critical workload eval before claiming equivalence
 ```
 
-## Budget / forecast model
+## Review triggers
 
-No simulated currency amount is treated as a real benchmark.
+Review this Cost Model when:
 
-Future forecast schema:
-
-```text
-Baseline
-Expected demand
-Growth scenario
-Peak/failure scenario
-Migration overlap
-Quality premiums
-Shared allocation
-Confidence
-Review trigger
-```
-
-## AI cost direction
-
-Future AI-native chapters will add resource meters such as:
-
-```text
-token
-retrieval
-model invocation
-tool execution
-```
-
-But Order Operations should prefer outcome economics when possible:
-
-```text
-cost per accepted task
-cost per verified change
-cost per resolved case
-```
-
-Inference price alone does not include retries, human verification, rework or failure impact.
-
-## Review cadence
-
-Review when:
-
-- architecture topology changes;
-- a Premium/paid capability is introduced;
-- SLO/RTO/RPO changes;
-- telemetry policy changes;
-- a new environment becomes permanent;
-- legacy coexistence passes a planned milestone;
-- unit cost trend materially diverges from business demand;
-- a new AI workload becomes material.
+- production billing becomes available;
+- unit cost diverges materially from business volume;
+- a new paid tier/capability is introduced;
+- telemetry volume or retention changes materially;
+- legacy coexistence exceeds milestone;
+- security/SLO/recovery requirement changes;
+- a runtime AI provider/model is selected;
+- RAG/vector retrieval is introduced;
+- AI write tools increase execution/evaluation cost;
+- agent or runtime AI cost grows without proportional verified outcome.
 
 ## Sources
 
 - [Microsoft Learn — Cost Optimization design principles](https://learn.microsoft.com/en-us/azure/well-architected/cost-optimization/principles)
-- [Microsoft Learn — Architecture strategies for creating a cost model](https://learn.microsoft.com/en-us/azure/well-architected/cost-optimization/cost-model)
-- [Microsoft Learn — Introduction to cost allocation](https://learn.microsoft.com/en-us/azure/cost-management-billing/costs/cost-allocation-introduction)
-- [FinOps Framework](https://www.finops.org/framework/)
+- [Microsoft Learn — Develop a cost model](https://learn.microsoft.com/en-us/azure/well-architected/cost-optimization/cost-model)
 - [FinOps Framework — Unit Economics](https://www.finops.org/framework/capabilities/unit-economics/)
-- [FinOps — Architecting & Workload Placement](https://www.finops.org/framework/capabilities/architecting-workload-placement/)
+- [FinOps Framework — Allocation](https://www.finops.org/framework/capabilities/allocation/)
+- [OpenAI — A shared playbook for trustworthy third party evaluations](https://openai.com/index/trustworthy-third-party-evaluations-foundations/)
+- [Uber Engineering — Enhanced Agentic-RAG](https://www.uber.com/au/en/blog/enhanced-agentic-rag/)
 
-> **Il Cost Model non dice quanto costa davvero Order Operations oggi: il capstone non possiede billing production. Dice quali dati dobbiamo ottenere per poter prendere una decisione economica senza fingere che il prezzo sia separato dall'architettura.**
+> **Una metrica di costo è utile soltanto se resta accoppiata alla qualità, al rischio e all'outcome che quel costo dovrebbe comprare.**
