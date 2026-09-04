@@ -91,7 +91,7 @@ perché quella regola è stata esplicitamente ritirata tramite ED-001.
 
 Questo è un punto importante: `ConfirmedPriorityPolicy` non è una riscrittura più elegante del legacy calculator.
 
-È una implementazione della **semantica confermata**.
+È un'implementazione della **semantica confermata**.
 
 ## LegacyPriorityAdapter mantiene la compatibilità fuori dal target model
 
