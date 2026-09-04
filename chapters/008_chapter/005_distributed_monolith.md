@@ -1,24 +1,20 @@
 ## Il distributed monolith
 
-Il distributed monolith è uno dei fallimenti più costosi della migrazione a microservizi.
+Il **distributed monolith** è una delle topologie più costose da possedere perché combina molti costi della distribuzione con poca autonomia reale.
 
-Perché combina molti costi della distribuzione con pochi dei suoi vantaggi.
+Può avere molti repository, molti deployable, molte pipeline e una grande quantità di traffico di rete.
 
-Può avere:
+E continuare comunque a richiedere coordinamento quasi totale.
 
-- molti repository;
-- molti deployable;
-- molte pipeline;
-- molte chiamate di rete;
-- molti dashboard;
+Il problema non è il numero di servizi.
 
-ma continuare a richiedere coordinamento quasi totale.
+È che la separazione fisica non ha prodotto separazione decisionale.
 
-### Come nasce
+## Distribuire prima dei confini
 
-Spesso nasce da una separazione fisica applicata prima di aver costruito confini logici forti.
+Il distributed monolith nasce spesso quando rendiamo operativo un boundary prima di averlo reso credibile semanticamente.
 
-Per esempio:
+Disegniamo:
 
 ```text
 Orders Service
@@ -26,79 +22,69 @@ Payments Service
 Shipping Service
 ```
 
-sembrano indipendenti.
+ma poi scopriamo che i tre servizi condividono schema dati, domain object e regole; devono essere rilasciati nella stessa finestra; una feature richiede modifiche coordinate in tutti e tre; le chiamate sincrone sono profonde e i test end-to-end sono l'unico modo per sapere se il sistema funziona.
 
-Poi scopriamo che:
+Abbiamo distribuito la topologia.
 
-- condividono lo stesso schema dati;
-- usano DTO interni comuni pubblicati come package;
-- una modifica richiede deploy coordinati;
-- le chiamate sono sincrone e profonde;
-- una transazione di business attraversa più servizi senza strategie esplicite di failure;
-- gli stessi team devono approvare ogni modifica;
-- i test end-to-end sono l'unico modo per capire se il sistema funziona.
+Non abbiamo distribuito l'autonomia.
 
-Abbiamo distribuito la topologia senza distribuire realmente l'autonomia.
+In questo stato ogni network boundary aggiunge latency, failure mode e costi operativi senza ridurre davvero il coupling che volevamo eliminare.
 
-### Shared database come segnale
+## Il database può essere il vero contratto
 
 Un database condiviso non rende automaticamente il sistema un distributed monolith.
 
-Ma è un segnale importante quando più servizi leggono e modificano direttamente le stesse tabelle.
+Durante una migrazione o in alcuni contesti può essere una scelta temporanea ragionevole.
 
-In quel caso il contratto reale non è l'API.
+Il segnale pericoloso è un altro: più servizi leggono e modificano direttamente le stesse tabelle senza ownership distinta.
 
-È lo schema del database.
+In quel caso il contratto reale non è più l'API.
 
-E spesso è un contratto molto più difficile da evolvere.
+È lo schema fisico.
 
-Possiamo avere una fase intermedia in cui più deployable condividono la stessa istanza database ma mantengono ownership separata per schema o tabella.
+Cambiare una colonna o un'invariante può richiedere coordinamento fra consumer che il servizio owner nemmeno conosce completamente.
 
-È diverso da:
+Possiamo condividere un'istanza database e mantenere ownership logica per schema o tabella. È molto diverso da permettere a ogni servizio di trattare tutti i dati come propri.
 
-> “tutti possono toccare tutto.”
+Quando l'obiettivo è autonomia, la sovranità del dato conta più del numero di database server.
 
-Ancora una volta, il tema è l'ownership.
+La documentazione Microsoft sui microservizi esplicita proprio questa tensione: servizi che condividono lo stesso datastore finiscono per accoppiarsi allo schema sottostante e rendono più difficile l'evoluzione indipendente: [Microsoft Learn — Data considerations for microservices](https://learn.microsoft.com/azure/architecture/microservices/design/data-considerations).
 
-### Shared library come accoppiamento nascosto
+## La shared library può diventare una rete invisibile
 
-Anche una libreria condivisa può trasformarsi nel bus invisibile del distributed monolith.
+Il coupling non passa soltanto dal database.
 
-Supponiamo di pubblicare un package comune che contiene DTO, domain object, validation, persistence model e perfino business rule. Sembra un modo semplice per evitare duplicazione, ma può trasformare un confine di servizio in una dipendenza di release condivisa.
+Una libreria condivisa può trasformarsi nel bus nascosto del sistema.
 
-Ogni servizio lo importa.
+Se un package comune contiene DTO, domain object, validation, persistence model e business rule, ogni servizio che lo importa eredita implicitamente lo stesso ciclo di evoluzione. Una modifica alla libreria può costringere a upgrade coordinati e rendere impossibile capire chi possieda davvero il significato.
 
-Una modifica al package richiede aggiornamenti sincronizzati.
+Abbiamo spostato il coupling dalla rete al package manager.
 
-Abbiamo spostato coupling dalla rete al package manager.
+Le shared library sono preziose per capacità realmente generiche e stabili. Diventano pericolose quando condividono **semantica di dominio che dovrebbe avere un owner**.
 
-Una shared library è utile quando condivide capacità realmente generiche.
+Microsoft include proprio la condivisione di common library e dependency tra microservizi fra gli antipattern che possono creare tight coupling: [Microsoft Learn — Microservices architecture style](https://learn.microsoft.com/azure/architecture/microservices/).
 
-È pericolosa quando condivide **significato di dominio che dovrebbe avere un owner**.
+## La rete può mantenere il sistema sincrono come prima
 
-### Chatty architecture
-
-Un altro segnale è l'eccesso di chiamate sincrone.
-
-Per completare una richiesta:
+Un'altra forma di coupling appare quando per completare un journey dobbiamo attraversare una catena profonda:
 
 ```text
 A → B → C → D → E
 ```
 
-Ogni hop aggiunge latency e probabilità di failure, un timeout da configurare, tracing da ricostruire e una nuova capacity dependency. Una catena lunga rende il sistema più fragile anche quando ogni singolo servizio è localmente semplice.
+Ogni hop aggiunge latency e probabilità di failure, un timeout da governare, tracing da ricostruire e una dependency di capacity.
 
-Se il comportamento richiede coordinamento così stretto, potremmo aver separato componenti che in realtà cambiano e operano come un'unità.
+Se tutti i servizi devono essere disponibili nello stesso momento, il sistema può essere molto distribuito e continuare a comportarsi come una singola unità di failure.
 
-Non sempre.
+Questo non significa che ogni catena sincrona sia sbagliata.
 
-Ma dobbiamo almeno porci la domanda.
+Significa che quando una feature richiede coordinamento così stretto dobbiamo verificare se abbiamo separato componenti che, dal punto di vista delle forze reali, operano ancora come un'unità.
 
-### Coordinated deploy
+## Il deploy racconta la verità
 
-Un test semplice è osservare i rilasci.
+Un test molto semplice consiste nell'osservare come avvengono i rilasci.
 
-Se per una feature dobbiamo quasi sempre fare:
+Se per quasi ogni feature dobbiamo fare:
 
 ```text
 release A
@@ -106,30 +92,36 @@ release B
 release C
 ```
 
-nello stesso ordine e nella stessa finestra, i servizi potrebbero non essere davvero independently deployable.
+nella stessa finestra, con ordine e compatibilità rigidamente coordinati, la deployability indipendente non è ancora reale.
 
-A volte è inevitabile durante una migrazione.
+Durante una migrazione questo può essere normale.
 
-Il problema è quando diventa lo stato permanente.
+Se rimane la condizione permanente, il servizio separato non ha comprato la proprietà per cui probabilmente era stato introdotto.
 
-### Distributed monolith e AI
+La stessa verifica vale per incidenti e dati. Se un guasto locale attiva sempre una war room con tutti i team e se una modifica di schema richiede sempre una campagna cross-repository, i confini nominali stanno nascondendo dipendenze sistemiche.
 
-Gli agenti rendono particolarmente facile creare distributed monolith.
+## Distributed monolith e AI
 
-Un agente può generare tre servizi, creare Dockerfile e manifest, configurare API, produrre client SDK e aggiungere tracing in pochissimo tempo;
+Gli agenti rendono questa topologia ancora più facile da creare.
 
-in pochissimo tempo.
+In poco tempo possono generare servizi, Dockerfile, manifest, API client, pipeline e tracing. Possono persino produrre una migrazione che compila e passa i test.
 
-La struttura appare sofisticata.
+La forma distribuita appare completa.
 
-Ma l'AI non ha automaticamente dimostrato che i boundary siano autonomi.
+Ma nessuna generazione di infrastruttura dimostra che i boundary siano autonomi.
 
-Quindi dobbiamo verificare proprietà sistemiche: se i servizi possano essere deployati indipendentemente, evolvere il modello interno senza coordinamento e possedere davvero i propri dati; se possano degradare indipendentemente e, soprattutto, se una modifica locale resti davvero locale.
+Dobbiamo verificare proprietà che il diff non può certificare da solo: se i servizi possano evolvere e essere rilasciati indipendentemente, se possiedano davvero i propri dati, se una failure possa essere contenuta e se una modifica locale rimanga locale.
 
-Se la risposta è quasi sempre no, il numero di container non ci aiuta.
+Se la risposta è quasi sempre no, il numero di container non sta creando rendimento architetturale.
 
-### La regola
+## Il test dell'autonomia
+
+Prima di celebrare una decomposizione possiamo porre poche domande dure.
+
+Se cambiamo l'implementazione interna di A, B deve modificarsi? Se rilasciamo A, dobbiamo coordinare B e C? Se il database di A evolve, chi altro deve conoscere lo schema? Se A è down, il journey può degradare in modo sensato? Se un team possiede A, può davvero operarlo senza dipendere sistematicamente da altri team?
+
+Queste domande sono più informative del conteggio dei servizi.
 
 > **Microservizi senza autonomia sono distribuzione senza rendimento.**
 
-Prima di contare i servizi, contiamo le dipendenze che richiedono coordinamento.
+Prima di contare i container, contiamo le dipendenze che continuano a richiedere coordinamento.
