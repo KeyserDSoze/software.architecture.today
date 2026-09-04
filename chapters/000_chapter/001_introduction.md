@@ -98,19 +98,7 @@ Un sistema pronto per una demo e un sistema pronto per la produzione sono due og
 
 La demo ci dice che un percorso ha funzionato almeno una volta nelle condizioni che abbiamo appena osservato.
 
-La produzione ci chiede molto altro:
-
-- che cosa succede quando due richieste arrivano insieme?
-- che cosa succede quando una dipendenza rallenta?
-- possiamo ripetere una richiesta senza duplicare effetti?
-- quali dati possiamo perdere?
-- come facciamo rollback?
-- chi può leggere o modificare questa informazione?
-- come scopriamo un errore che non genera un'eccezione?
-- il sistema degrada o collassa quando il carico cresce?
-- che cosa costa tenerlo acceso?
-- chi viene svegliato quando qualcosa va storto?
-- sappiamo cambiare questa decisione tra sei mesi?
+La produzione ci chiede molto altro. Dobbiamo sapere che cosa accade quando due richieste arrivano insieme o quando una dipendenza rallenta, se una richiesta può essere ripetuta senza duplicare effetti e quali dati possiamo permetterci di perdere. Dobbiamo sapere come tornare indietro, chi può leggere o modificare un'informazione e come scoprire un errore che non genera un'eccezione. E dobbiamo ancora chiederci come il sistema reagirà al carico, quanto costerà tenerlo acceso, chi interverrà quando qualcosa andrà storto e se fra sei mesi saremo ancora in grado di cambiare la decisione presa oggi.
 
 L'AI tende a rendere spettacolare la distanza percorsa nei primi minuti.
 

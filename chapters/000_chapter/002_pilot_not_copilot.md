@@ -102,20 +102,7 @@ Per questo uno dei temi ricorrenti del libro sarà il **context engineering**.
 
 Non nel senso riduttivo di “scrivere prompt migliori”.
 
-Nel senso di costruire ambienti di lavoro in cui il contesto importante sia leggibile e utilizzabile:
-
-- overview del sistema;
-- confini architetturali;
-- decisioni già prese;
-- contratti;
-- convenzioni;
-- comandi di build e test;
-- ownership;
-- requisiti non funzionali;
-- threat model;
-- vincoli di deployment;
-- definition of done;
-- stop condition.
+Nel senso di costruire ambienti di lavoro in cui il contesto importante sia leggibile e utilizzabile. Un agente dovrebbe poter ricostruire l'overview del sistema, i confini architetturali e le decisioni già prese; trovare contratti, convenzioni, comandi di build e test; capire ownership, requisiti non funzionali, threat model e vincoli di deployment; sapere infine che cosa significa done e quando deve fermarsi.
 
 Un repository ben documentato non è soltanto più accogliente per il nuovo collega.
 
@@ -149,13 +136,7 @@ Non conosciamo il failure mode più importante, ma aggiungiamo retry “per resi
 
 Non sappiamo se un'operazione è idempotente, ma la mettiamo dietro una coda.
 
-Un engineer al timone distingue tra:
-
-- ciò che sappiamo;
-- ciò che stiamo assumendo;
-- ciò che dobbiamo misurare;
-- ciò che possiamo decidere dopo;
-- ciò che blocca l'esecuzione.
+Un engineer al timone distingue ciò che sappiamo da ciò che stiamo assumendo. Sa che alcune domande richiedono misure, altre possono essere rimandate e altre ancora bloccano l'esecuzione finché non vengono chiarite.
 
 Questa distinzione è ancora più importante quando lavoriamo con modelli capaci di riempire molto bene i vuoti con risposte plausibili.
 
@@ -216,15 +197,7 @@ Nel resto del libro costruiremo una matrice di autonomia più precisa. Per ora b
 
 Possiamo riassumere il ruolo del pilota con un test operativo.
 
-Davanti a una modifica importante dovremmo riuscire a dire:
-
-- quale problema volevamo risolvere;
-- quale alternativa abbiamo scelto;
-- perché l'abbiamo scelta;
-- quali vincoli hanno influenzato la decisione;
-- quali failure mode consideriamo principali;
-- come abbiamo verificato l'implementazione;
-- che cosa ci farebbe fermare o tornare indietro.
+Davanti a una modifica importante dovremmo riuscire a ricostruire il filo della decisione: quale problema volevamo risolvere, quale alternativa abbiamo scelto e perché, quali vincoli e failure mode hanno pesato, come abbiamo verificato l'implementazione e quali condizioni ci farebbero fermare o tornare indietro.
 
 Non serve ricordare ogni riga.
 

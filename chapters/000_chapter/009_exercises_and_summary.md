@@ -284,17 +284,7 @@ Può produrre più codice, più test, più documentazione, più refactoring, pi�
 
 La capacità di produzione cresce più velocemente della capacità umana di leggere tutto.
 
-Per questo diventano più importanti:
-
-- context engineering;
-- contracts;
-- invariants;
-- automated verification;
-- architecture boundaries;
-- permission boundaries;
-- stop conditions;
-- independent review;
-- accountability.
+Per questo acquistano ancora più peso il context engineering, i contracts e le invariants, la verifica automatica e gli architecture boundary. Permission boundary, stop condition e review indipendente permettono di aumentare execution senza perdere l'accountability che resta alla fine del processo.
 
 L'AI non elimina la necessità di ingegneria.
 

@@ -28,22 +28,7 @@ Nella maggior parte dei sistemi reali non abbiamo questa possibilità.
 
 Verificare significa raccogliere evidenza proporzionata al rischio.
 
-Per una modifica possiamo usare, per esempio:
-
-- type checking;
-- lint;
-- unit test;
-- integration test;
-- contract test;
-- property-based test;
-- mutation test;
-- static analysis;
-- security scan;
-- performance test;
-- diff review;
-- architecture test;
-- canary deployment;
-- metriche e tracing in produzione.
+Per una modifica possiamo combinare controlli molto diversi: type checking e lint, unit e integration test, contract e property-based test, mutation test, static analysis, security e performance scan. Possiamo poi aggiungere diff e architecture review, canary deployment e, quando il cambiamento arriva in produzione, metriche e tracing.
 
 Nessuno di questi strumenti è infallibile.
 
@@ -63,13 +48,7 @@ Se chiediamo:
 
 potremmo ricevere una risposta dettagliata e plausibile.
 
-È meglio poter osservare:
-
-- contract test sulle versioni precedenti;
-- schema diff;
-- fixture realistica;
-- risposta dell'API prima e dopo;
-- test su client compatibili.
+È meglio poter osservare contract test sulle versioni precedenti, uno schema diff e fixture realistiche, confrontare la risposta dell'API prima e dopo la modifica e verificare il comportamento con client che rappresentino davvero la compatibilità promessa.
 
 Il principio è semplice:
 
@@ -139,23 +118,7 @@ Per questo il diff resta uno strumento fondamentale.
 
 Ma dobbiamo imparare a leggerlo con domande diverse.
 
-Non soltanto:
-
-- il codice è pulito?
-- i nomi sono buoni?
-- i test passano?
-
-Anche:
-
-- quali assunzioni nuove introduce?
-- cambia un boundary?
-- aumenta il coupling?
-- modifica il modello di errore?
-- introduce I/O dove prima non c'era?
-- cambia una transazione?
-- amplia i permessi?
-- modifica un contratto implicito?
-- aumenta il blast radius di un failure mode?
+Non basta chiedersi se il codice sia pulito, i nomi siano buoni e i test passino. Una review deve anche cercare ciò che il diff rende vero nel sistema: quali nuove assunzioni introduce, se cambia un boundary o aumenta il coupling, se modifica il modello di errore, introduce I/O dove prima non c'era, cambia una transazione o amplia i permessi. Deve inoltre far emergere contratti impliciti modificati e failure mode il cui blast radius è appena cresciuto.
 
 Una review architetturale non guarda soltanto cosa è stato scritto.
 
@@ -167,16 +130,7 @@ Quando il rischio cresce, è utile separare chi produce da chi critica.
 
 Questo vale per gli esseri umani e per gli agenti.
 
-Possiamo chiedere a un reviewer indipendente di non spiegare la soluzione, ma di cercare attivamente:
-
-- comportamenti non coperti;
-- assunzioni non dichiarate;
-- failure mode;
-- problemi di sicurezza;
-- regressioni di performance;
-- edge case;
-- modifiche fuori scope;
-- dipendenze introdotte accidentalmente.
+Possiamo chiedere a un reviewer indipendente di non spiegare la soluzione, ma di cercare attivamente ciò che manca: comportamenti non coperti e assunzioni non dichiarate, failure mode ed edge case, problemi di sicurezza o regressioni di performance, modifiche fuori scope e dipendenze introdotte accidentalmente.
 
 Un prompt utile non è:
 
@@ -267,15 +221,7 @@ Più autonomia concediamo a un agente, più il sistema di verifica deve diventar
 
 Se un agente suggerisce una funzione che noi copiamo manualmente, il rischio è limitato dalla nostra interazione diretta.
 
-Se un agente può:
-
-- modificare decine di file;
-- eseguire migration;
-- aprire pull request;
-- distribuire in un ambiente;
-- modificare configurazioni;
-
-allora non possiamo mantenere lo stesso modello di controllo.
+Se un agente può modificare decine di file, eseguire migration, aprire pull request, distribuire in un ambiente e modificare configurazioni, non possiamo mantenere lo stesso modello di controllo usato per un semplice suggerimento.
 
 L'autonomia non elimina la verifica.
 

@@ -18,15 +18,7 @@ La prima è l'**outsourcing dell'execution**.
 
 Conosciamo il problema, comprendiamo il metodo e usiamo l'AI per eseguire più velocemente.
 
-Per esempio:
-
-- generare boilerplate;
-- scrivere test ripetitivi;
-- esplorare un repository;
-- convertire configurazioni;
-- preparare una prima implementazione;
-- cercare riferimenti nella documentazione;
-- produrre varianti di una soluzione.
+Per esempio, possiamo delegare la generazione di boilerplate e test ripetitivi, l'esplorazione di un repository o la conversione di configurazioni. Possiamo far preparare una prima implementazione, cercare riferimenti nella documentazione o produrre più varianti della stessa soluzione senza rinunciare per questo a comprenderne il metodo e il problema.
 
 La seconda è l'**outsourcing del reasoning**.
 
@@ -40,13 +32,7 @@ Il secondo può erodere competenza.
 
 Immaginiamo due developer junior.
 
-Il primo usa l'AI per produrre velocemente un'API, ma poi chiede:
-
-- perché è stata scelta questa struttura?
-- che cosa succede se due richieste arrivano insieme?
-- quali errori possono essere ritentati?
-- come cambierebbe la soluzione senza framework?
-- quali test dimostrano davvero il comportamento?
+Il primo usa l'AI per produrre velocemente un'API, ma poi continua a interrogare la soluzione: vuole sapere perché sia stata scelta quella struttura, che cosa accada con richieste concorrenti, quali errori possano essere ritentati, come cambierebbe la soluzione senza il framework e quali test dimostrino davvero il comportamento.
 
 Il secondo copia il risultato, lo fa compilare e passa al task successivo.
 
@@ -64,15 +50,7 @@ Un senior non è una persona che produce output dall'aspetto senior.
 
 È una persona che riconosce conseguenze che gli altri non vedono ancora.
 
-Sa individuare:
-
-- assunzioni nascoste;
-- failure mode;
-- coupling;
-- costi futuri;
-- incompatibilità;
-- rischi operativi;
-- trade-off tra alternative plausibili.
+Sa individuare assunzioni nascoste e failure mode, riconoscere coupling, costi futuri e incompatibilità, vedere rischi operativi e discutere trade-off fra alternative entrambe plausibili.
 
 Un modello può aiutarci a produrre un documento pieno di questi concetti.
 
@@ -116,14 +94,7 @@ Ma capire una spiegazione mentre la leggiamo non significa saper ragionare auton
 
 Per trasformare l'informazione in competenza dobbiamo recuperarla e applicarla.
 
-Per esempio:
-
-- chiudere la risposta e rispiegare il concetto;
-- modificare un requisito e prevedere cosa cambia;
-- trovare un controesempio;
-- implementare una variante;
-- criticare la soluzione proposta;
-- spiegare quando non usarla.
+Possiamo chiudere la risposta e provare a rispiegare il concetto, modificare un requisito e prevedere che cosa cambierà, cercare un controesempio o implementare una variante. Possiamo anche criticare la soluzione proposta e, soprattutto, spiegare in quali condizioni non la useremmo.
 
 La comprensione si vede quando il contesto cambia.
 
@@ -143,10 +114,7 @@ Un architect può leggere codice in linguaggi che non usa ogni giorno.
 
 Ma la breadth senza depth produce familiarità superficiale.
 
-Per questo il libro sosterrà entrambe:
-
-- **profondità reale almeno in alcuni domini**;
-- **ampiezza sufficiente per comprendere l'intero sistema**.
+Per questo il libro sosterrà entrambe: **profondità reale almeno in alcuni domini** e **ampiezza sufficiente per comprendere l'intero sistema**.
 
 La profondità ci insegna quanto può essere ingannevole una risposta apparentemente corretta.
 
@@ -158,15 +126,7 @@ Una conseguenza positiva dell'AI è che abbassa il costo di esplorare discipline
 
 Dobbiamo sfruttarla.
 
-Un engineer dovrebbe abituarsi a fare domande fuori dal proprio ruolo:
-
-- cosa vede l'utente?
-- quale requisito di business stiamo davvero soddisfacendo?
-- chi paga questo costo cloud?
-- come viene operata questa feature alle tre di notte?
-- che cosa succede ai dati dopo cinque anni?
-- quale superficie di attacco stiamo introducendo?
-- cosa dovrà capire il prossimo developer?
+Un engineer dovrebbe abituarsi a fare domande fuori dal proprio ruolo. Che cosa vede l'utente e quale requisito di business stiamo davvero soddisfacendo? Chi paga il costo cloud e chi opera la feature alle tre di notte? Che cosa succederà ai dati fra cinque anni, quale superficie di attacco stiamo introducendo e che cosa dovrà capire il prossimo developer che entrerà nel sistema?
 
 Questo non elimina la specializzazione.
 
@@ -184,13 +144,7 @@ Parte era apprendimento.
 
 Con una risposta immediata rischiamo di eliminare entrambi.
 
-Per questo a volte è utile introdurre deliberatamente una piccola frizione:
-
-- formulare prima una propria ipotesi;
-- prevedere l'output prima di eseguire;
-- scrivere i trade-off prima di chiedere confronto;
-- tentare un debug prima di chiedere la soluzione;
-- chiedere hint invece della risposta completa.
+Per questo a volte è utile introdurre deliberatamente una piccola frizione: formulare una propria ipotesi e prevedere l'output prima di eseguire, scrivere i trade-off prima di chiedere un confronto, tentare un debug prima di chiedere la soluzione o chiedere un hint invece della risposta completa.
 
 Non perché soffrire renda migliori.
 

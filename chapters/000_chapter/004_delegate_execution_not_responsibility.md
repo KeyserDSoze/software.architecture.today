@@ -4,12 +4,7 @@ La delega è uno dei moltiplicatori più potenti introdotti dall'AI.
 
 È anche uno dei punti in cui possiamo perdere più facilmente il controllo senza accorgercene.
 
-Il problema nasce quando confondiamo due cose diverse:
-
-- delegare un'attività;
-- delegare il giudizio che rende quell'attività accettabile.
-
-La prima è spesso desiderabile.
+Il problema nasce quando confondiamo il delegare un'attività con il delegare anche il giudizio che rende quell'attività accettabile. La prima forma di delega è spesso desiderabile.
 
 La seconda richiede molta più cautela.
 
@@ -25,14 +20,7 @@ abbiamo probabilmente delegato troppo.
 
 Quella frase può descrivere chi ha materialmente prodotto il codice.
 
-Non spiega però:
-
-- perché quel codice è stato richiesto;
-- quale comportamento doveva implementare;
-- quali vincoli doveva rispettare;
-- quali rischi erano noti;
-- quali controlli erano previsti;
-- perché abbiamo ritenuto il risultato accettabile.
+Non spiega però perché quel codice sia stato richiesto, quale comportamento dovesse implementare e quali vincoli dovesse rispettare. Non dice quali rischi conoscevamo, quali controlli avevamo previsto né perché, alla fine, abbiamo ritenuto il risultato accettabile.
 
 L'accountability comincia quando siamo in grado di rispondere a queste domande.
 
@@ -44,22 +32,7 @@ Richiede di sapere perché il sistema esiste nella forma in cui lo stiamo conseg
 
 Consideriamo una migration.
 
-Possiamo delegare a un agente:
-
-- la scrittura dello script;
-- la preparazione dei test;
-- la generazione della rollback procedure;
-- il controllo delle dipendenze;
-- la produzione di una prima stima del blast radius.
-
-Ma alcune decisioni restano nostre:
-
-- possiamo permetterci un lock sulla tabella?
-- il deployment può richiedere downtime?
-- la backward compatibility è necessaria?
-- abbiamo una finestra di rollback reale?
-- quale quantità di perdita dati sarebbe accettabile?
-- il rischio giustifica una strategia più lenta ma reversibile?
+Possiamo delegare a un agente la scrittura dello script, la preparazione dei test, una prima rollback procedure, il controllo delle dipendenze e persino una stima iniziale del blast radius. Restano però decisioni che non si esauriscono nell'esecuzione: possiamo permetterci un lock sulla tabella o del downtime? La backward compatibility è necessaria? Esiste davvero una finestra di rollback? Quanta perdita di dati sarebbe accettabile e il rischio giustifica una strategia più lenta ma più reversibile?
 
 Un agente può aiutarci a ragionare su queste domande.
 
@@ -99,15 +72,7 @@ L'AI può produrre diff molto grandi e molto convincenti.
 
 Questo crea un nuovo anti-pattern: la **review cosmetica**.
 
-Succede quando guardiamo:
-
-- nomi dei file;
-- formattazione;
-- test verdi;
-- commenti plausibili;
-- struttura apparentemente ordinata;
-
-e concludiamo che la modifica sia corretta.
+Succede quando ci fermiamo ai nomi dei file, alla formattazione, ai test verdi, ai commenti plausibili e a una struttura apparentemente ordinata, e da questi segnali concludiamo che la modifica sia corretta.
 
 Ma un diff può essere elegante e sbagliato.
 
@@ -191,18 +156,7 @@ A volte lo è.
 
 Ma la soluzione non può essere semplicemente rimuoverla.
 
-Dobbiamo piuttosto spostare il controllo dove è più efficace:
-
-- specifiche migliori prima dell'execution;
-- test e contratti automatici;
-- policy di repository;
-- architecture fitness functions;
-- static analysis;
-- security scanning;
-- canary deployment;
-- osservabilità;
-- reviewer indipendenti;
-- escalation solo sui cambiamenti ad alto rischio.
+Dobbiamo piuttosto spostare il controllo dove è più efficace. Una parte del lavoro avviene prima dell'execution, con specifiche migliori; una parte diventa automatica attraverso test, contratti, policy di repository, fitness function, static analysis e security scanning. Un'altra parte vive nel runtime, con canary e osservabilità, mentre la review indipendente e l'escalation umana possono concentrarsi sui cambiamenti con rischio realmente alto.
 
 L'obiettivo è evitare che ogni aumento di capacità di execution richieda un aumento lineare del controllo manuale.
 

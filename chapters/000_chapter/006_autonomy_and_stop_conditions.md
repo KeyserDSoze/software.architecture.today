@@ -32,13 +32,7 @@ L'agente può modificare file o produrre artefatti, ma ogni cambiamento viene es
 
 #### Livello 2 — Task limitato con controlli automatici
 
-L'agente riceve un perimetro preciso e può completare il task autonomamente finché:
-
-- resta nello scope;
-- i controlli obbligatori passano;
-- non incontra una stop condition.
-
-L'umano valuta il risultato finale.
+L'agente riceve un perimetro preciso e può completare il task autonomamente finché resta nello scope, i controlli obbligatori passano e non incontra una stop condition. L'umano valuta il risultato finale.
 
 #### Livello 3 — Pull request autonoma
 
@@ -95,17 +89,7 @@ Il rischio non dipende soltanto dalla quantità di codice modificato.
 
 Una variazione di cinque righe può essere più pericolosa di un refactoring di cinquemila.
 
-Possiamo ragionare almeno su:
-
-- **blast radius** — quanta parte del sistema può essere influenzata;
-- **reversibilità** — quanto costa tornare indietro;
-- **osservabilità** — quanto rapidamente ci accorgiamo di un problema;
-- **criticità del dominio** — soldi, identità, salute, privacy, compliance;
-- **novità** — quanto conosciamo quella tecnologia o quel componente;
-- **ambiguità** — quanto sono incompleti i requisiti;
-- **testabilità** — quanto possiamo verificare automaticamente;
-- **privilegi** — quali risorse l'agente può modificare;
-- **tempo di propagazione** — quanto velocemente un errore produce conseguenze.
+Possiamo ragionare almeno su nove dimensioni, senza trasformarle in uno score meccanico. Conta il **blast radius**, cioè quanta parte del sistema può essere influenzata, e conta la **reversibilità**, cioè quanto costa tornare indietro. Contano l'**osservabilità** del problema e la **criticità del dominio**, soprattutto quando entrano soldi, identità, salute, privacy o compliance. Pesano inoltre la **novità** della tecnologia, l'**ambiguità** dei requisiti, la **testabilità**, i **privilegi** concessi all'agente e il **tempo di propagazione** con cui un errore può trasformarsi in conseguenza reale.
 
 La stessa capacità tecnica può essere sicura in un contesto e irresponsabile in un altro.
 
@@ -186,18 +170,7 @@ E possibilmente per il tempo necessario.
 
 Un buon modo per aumentare autonomia senza aumentare allo stesso modo il rischio è ridurre il blast radius.
 
-Possiamo usare:
-
-- branch dedicate;
-- ambienti temporanei;
-- database di test;
-- credenziali a privilegi ridotti;
-- namespace isolati;
-- feature flag;
-- canary;
-- limiti di spesa;
-- rate limit;
-- dry run.
+Possiamo farlo con branch dedicate e ambienti temporanei, database di test, credenziali a privilegi ridotti e namespace isolati. Feature flag, canary, limiti di spesa, rate limit e dry run sono altre forme dello stesso principio: concedere capacità senza concedere automaticamente tutto il possibile blast radius.
 
 Questo è un principio architetturale generale:
 
@@ -223,14 +196,7 @@ La reversibilità è quindi uno dei criteri principali per decidere quanto contr
 
 Un'organizzazione AI-native non è quella che permette agli agenti di fare tutto.
 
-È quella che riesce a descrivere con chiarezza:
-
-- cosa possono fare;
-- cosa non possono fare;
-- quando possono procedere;
-- quando devono fermarsi;
-- quali evidenze devono produrre;
-- quali decisioni richiedono un essere umano.
+È quella che riesce a descrivere con chiarezza che cosa gli agenti possono e non possono fare, quando possono procedere e quando devono fermarsi, quali evidenze devono produrre e quali decisioni richiedono ancora un essere umano.
 
 Questo trasforma la governance da approvazione manuale continua a **architettura dell'autonomia**.
 

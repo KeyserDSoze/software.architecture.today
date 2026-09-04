@@ -42,18 +42,7 @@ Separare i due evita di trasformare l'agente in un esecutore di decisioni premat
 
 L'agente deve conoscere abbastanza del sistema da non dover inventare ciò che conta.
 
-Il contesto può includere:
-
-- requisiti;
-- architecture overview;
-- ADR;
-- contratti;
-- convenzioni del repository;
-- non-functional requirements;
-- vincoli di sicurezza;
-- comandi di test e build;
-- esempi esistenti;
-- componenti fuori scope.
+Il contesto può includere requisiti, architecture overview, ADR e contratti, insieme alle convenzioni del repository e ai non-functional requirements. Deve rendere visibili anche i vincoli di sicurezza, i comandi di test e build, gli esempi esistenti e i componenti che restano fuori scope.
 
 Context engineering non significa riempire il prompt di testo.
 
@@ -133,14 +122,7 @@ Quando una stop condition viene raggiunta, l'agente non dovrebbe improvvisare.
 
 Dovrebbe rendere la decisione visibile.
 
-Una buona escalation contiene:
-
-- il blocco;
-- perché conta;
-- quali informazioni mancano;
-- alternative plausibili;
-- impatto delle alternative;
-- eventuale raccomandazione, chiaramente distinta dalla decisione finale.
+Una buona escalation descrive il blocco e perché conta, esplicita le informazioni mancanti, porta alternative plausibili e il loro impatto e può includere una raccomandazione, purché resti chiaramente distinta dalla decisione finale.
 
 L'obiettivo è trasformare l'incertezza in una decisione gestibile.
 
@@ -200,15 +182,7 @@ Quali artefatti devono essere consegnati?
 
 Non lo compileremo per correggere un typo.
 
-Potrebbe invece essere molto utile per:
-
-- un refactoring repository-wide;
-- una migration;
-- una nuova integrazione;
-- una modifica cross-service;
-- un task affidato a più agenti;
-- una modifica con security implications;
-- una change che verrà eseguita con autonomia elevata.
+Potrebbe invece essere molto utile per un refactoring repository-wide o una migration, per una nuova integrazione o una modifica cross-service, per un task affidato a più agenti e, in generale, quando entrano security implications o un livello di autonomia elevato.
 
 ### L'Agent Verification Bundle
 

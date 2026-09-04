@@ -32,16 +32,7 @@ Lo stesso vale per gli agenti.
 
 Possiamo chiedere in parallelo a un agente di modificare un'API, a un altro di preparare il database e a un terzo di aggiornare i test.
 
-Ma se non abbiamo sincronizzato prima:
-
-- semantica dell'operazione;
-- ownership del dato;
-- schema del contratto;
-- gestione degli errori;
-- compatibilità;
-- acceptance criteria;
-
-non abbiamo parallelizzato un progetto.
+Ma se prima non abbiamo sincronizzato la semantica dell'operazione, l'ownership del dato, lo schema del contratto, il modello degli errori, la compatibilità e gli acceptance criteria, non abbiamo parallelizzato un progetto.
 
 Abbiamo semplicemente creato tre versioni indipendenti della stessa idea.
 
@@ -68,16 +59,7 @@ Agente D → test
 
 Ma potrebbe essere la scomposizione sbagliata.
 
-La vera complessità forse è nella semantica:
-
-- un ordine può essere annullato dopo il pagamento?
-- che cosa succede alla spedizione?
-- il rimborso è sincrono o asincrono?
-- come evitiamo due rimborsi?
-- l'annullamento è un cambio di stato o un evento separato?
-- quali sistemi esterni devono essere notificati?
-- chi può annullare?
-- fino a quale momento?
+La vera complessità forse è nella semantica. Dobbiamo capire se un ordine possa essere annullato dopo il pagamento, che cosa accada alla spedizione e se il rimborso sia sincrono o asincrono. Dobbiamo evitare rimborsi duplicati, decidere se l'annullamento sia un cambio di stato o un evento separato, identificare i sistemi esterni da notificare e stabilire chi possa annullare un ordine e fino a quale momento.
 
 Se queste decisioni non sono state prese, quattro agenti possono produrre quattro componenti localmente corretti che insieme implementano un comportamento incoerente.
 
@@ -230,14 +212,7 @@ La seconda:
 
 La seconda non è migliore perché è più lunga.
 
-È migliore perché rende visibili:
-
-- obiettivo;
-- perimetro;
-- invarianti;
-- rischio di sicurezza;
-- criterio di verifica;
-- stop condition.
+È migliore perché rende visibili l'obiettivo e il perimetro, esplicita le invarianti e il rischio di sicurezza, dichiara il criterio di verifica e stabilisce una stop condition.
 
 La qualità della delega aumenta quando diminuisce il numero di decisioni importanti che l'esecutore deve inventare da solo.
 
@@ -307,16 +282,7 @@ Ma dobbiamo essere precisi sul perché.
 
 Non per competere con l'agente sulla velocità di digitazione.
 
-Serve profondità tecnica per riconoscere:
-
-- un'astrazione sbagliata;
-- una race condition plausibile;
-- una query che scala male;
-- un contratto fragile;
-- un errore di gestione dello stato;
-- un uso non idiomatico di una piattaforma;
-- un test che verifica l'implementazione invece del comportamento;
-- una vulnerabilità nascosta dietro codice perfettamente leggibile.
+Serve profondità tecnica per riconoscere un'astrazione sbagliata o una race condition plausibile, una query che scala male o un contratto fragile, un errore nella gestione dello stato o un uso non idiomatico della piattaforma. Serve anche per accorgersi quando un test verifica l'implementazione invece del comportamento o quando codice perfettamente leggibile nasconde una vulnerabilità.
 
 Un manager di agenti che non sa leggere e giudicare il lavoro prodotto è soltanto un dispatcher.
 
