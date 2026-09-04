@@ -1,18 +1,16 @@
-# 24.5 — Structured output, fallback e runtime contract
+# 24.5 — Il runtime contract: output, fallback e failure behavior
 
-Una feature AI runtime non può avere come unica interfaccia:
+Una feature AI entra davvero nell'architettura quando il resto del prodotto smette di dipendere da una chiamata opaca `string → string` e comincia a dipendere da un **contratto con stati, validation e failure behavior comprensibili**.
 
-```text
-string → string
-```
+Il modello può essere probabilistico. L'interazione del sistema con quel modello non deve essere indefinita.
 
-Non perché il testo libero sia sempre sbagliato.
+Per Case Explanation Assistant il punto non è ottenere sempre una bella frase. È poter distinguere almeno quattro situazioni: abbiamo evidence sufficiente, ne abbiamo soltanto una parte, non ne abbiamo abbastanza oppure la capability non è disponibile.
 
-Ma perché un sistema software deve poter distinguere ciò che è presentabile, ciò che è verificabile e ciò che deve essere rifiutato.
+Questo diventa il cuore del runtime contract.
 
-## Il contratto di output
+## L'output deve rappresentare anche l'incertezza
 
-Per Case Explanation Assistant definiamo un risultato strutturato:
+ESI definisce:
 
 ```text
 CaseExplanationResult
@@ -25,7 +23,7 @@ missingEvidence[]
 sourceReferences[]
 ```
 
-`status` può assumere, per il primo slice:
+con stati:
 
 ```text
 Supported
@@ -34,312 +32,187 @@ InsufficientEvidence
 Unavailable
 ```
 
-Questi stati non misurano “quanto il modello è intelligente”.
+Questi valori non sono un confidence score mascherato. Descrivono **come il prodotto deve trattare la relazione fra risposta ed evidence**.
 
-Descrivono la relazione fra output e evidence disponibile.
+`InsufficientEvidence` è quindi un output di business valido della capability, non un errore da nascondere. Se manca una source necessaria, la feature può fare meglio rifiutandosi di completare la storia che provando altre cinque generazioni.
 
-## Validazione a più livelli
+> **Un sistema probabilistico diventa più governabile quando il contratto sa rappresentare anche il fatto che non abbiamo abbastanza ragioni per credere alla risposta.**
 
-Un output può fallire in modi differenti.
+## Validation a strati: rifiutare ciò che possiamo rifiutare deterministicamente
 
-### 1. Syntax / schema failure
+Non tutti i failure di output hanno la stessa natura.
 
-```text
-campo mancante
-wrong type
-invalid enum
-malformed JSON
-```
+Un JSON malformato o un enum non valido è un problema strutturale. Un `sourceReference` che non esiste nel context autorizzato è un problema referenziale che possiamo verificare senza un secondo modello. Una source di un tenant non autorizzato è un security failure. Una claim che usa una source reale ma ne esagera il significato è un grounding failure e richiede evaluation più ricca. Un output che tenta di trasformare un'interpretazione in nuovo `PaymentStatus` viola il model authority boundary.
 
-Questa classe può essere gestita con output strutturato, schema validation e bounded retry.
-
-### 2. Referential failure
+Questi failure possono essere visti come una pipeline:
 
 ```text
-sourceReference cita una source che non esiste
+model result
+→ schema validation
+→ reference integrity
+→ authorization consistency
+→ product authority rules
+→ behavioral / grounding evaluation
 ```
 
-Deterministically reject.
+Più a sinistra, maggiore è la possibilità di usare check deterministici economici. Più a destra, maggiore diventa il bisogno di eval e judgment.
 
-### 3. Authorization failure
+Nel capstone `validateCaseExplanationResult` implementa deliberatamente solo una parte della catena: verifica reference integrity e alcune invariant su missing evidence. Il commento nel codice dice esplicitamente che **non pretende di provare groundedness**.
+
+Questa è una buona proprietà del design: il validator dichiara il proprio limite invece di trasformarsi in un oracolo finto.
+
+## Retry è recovery soltanto quando il failure è recuperabile
+
+Un provider può restituire output schema-invalid. In quel caso un singolo repair attempt può essere sensato.
+
+Ma retry non deve significare:
 
 ```text
-sourceReference punta a evidence non autorizzata per l'utente
+while (!happy) callModelAgain();
 ```
 
-Deterministically reject e trattare come security signal.
+Se il failure nasce da missing evidence, nessuna quantità di sampling crea una source che non esiste. Se il failure nasce da una policy violation, riprovare senza cambiare il boundary può soltanto riprodurre o nascondere il problema.
 
-### 4. Grounding failure
-
-```text
-claim presente
-ma nessuna source lo sostiene
-```
-
-Richiede eval e, per alcune classi di claim, controlli automatici più forti.
-
-### 5. Semantic authority failure
-
-```text
-output propone come fact un'inferenza
-oppure decide un PaymentStatus
-```
-
-Il product boundary deve impedirlo.
-
-## Bounded retry
-
-Se il provider restituisce un output non valido possiamo fare retry.
-
-Ma, come nei sistemi distribuiti, retry non significa:
-
-```text
-while (!valid) callModelAgain();
-```
-
-Serve un budget.
-
-Per esempio:
+Per v1 la direzione è semplice:
 
 ```text
 initial call
-+ 1 schema-repair attempt
+→ optional one bounded format-repair attempt
 → fallback
 ```
 
-Un retry aggiunge:
+Ogni retry ha latency, token cost e nuova variabilità. Il repair budget deve quindi essere collegato alla classe di failure.
 
-- latency;
-- cost;
-- load;
-- nuova variabilità.
+> **Ripetere una generazione può correggere una forma. Non può creare evidence, authorization o authority che mancavano alla prima chiamata.**
 
-Dobbiamo quindi distinguere:
+## Il fallback decide se la feature AI trascina con sé il prodotto
 
-```text
-recoverable format failure
-≠
-missing business evidence
-```
+Il Case Explanation Assistant non appartiene al critical path per caricare l'Operational Case.
 
-Se manca il contesto necessario, chiedere al modello altre cinque volte non crea evidence.
+Questa è una decisione di reliability importante.
 
-## Fallback come parte dell'architettura
+Se il provider è lento o indisponibile, l'operatore continua a vedere i fatti autorevoli del caso. Se l'evidence è insufficiente, il prodotto mostra ciò che manca. Se l'output resta invalido dopo il repair budget, la explanation non viene mostrata come se nulla fosse. Se scatta una security policy, il risultato viene bloccato e il failure produce signal.
 
-Una feature generativa viene spesso progettata soltanto sul happy path:
+La relazione diventa:
 
 ```text
-prompt
-→ answer
+Order Operations core
+= available
+
+Case Explanation Assistant
+= possibly Degraded / Unavailable
 ```
 
-Ma il fallback deve essere definito prima.
+L'AI compra accelerazione cognitiva. Non diventa una dependency obbligatoria per accedere alla verità del sistema.
 
-Per ESI:
+> **Una capability assistiva opzionale deve poter fallire senza rendere indisponibile il journey che dovrebbe assistere.**
+
+## La UI fa parte del runtime contract
+
+Fallback non è soltanto backend behavior.
+
+Se l'assistant è unavailable, la UI deve evitare spinner infiniti o messaggi che sembrano bloccare il caso. Se lo status è `PartiallySupported`, missing evidence deve restare visibile. Se una hypothesis viene mostrata come fact con la stessa enfasi, abbiamo violato il model boundary pur avendo un JSON perfettamente valido.
+
+Il contratto deve quindi arrivare fino alla rappresentazione:
 
 ```text
-model/provider timeout
-→ assistant unavailable
-→ operator continua con current operational view
+status
+→ UI state
+
+confirmed fact
+→ source-backed presentation
+
+hypothesis
+→ explicit uncertainty
+
+missing evidence
+→ visible gap
 ```
+
+La correctness della feature non finisce nell'adapter del provider.
+
+## Latency: l'AI non deve bloccare ciò che non ha bisogno di lei
+
+Una model invocation ha una latency profile molto diversa da una query locale o da un API call tradizionale.
+
+Per questo la prima decisione ESI non è ancora un numero di SLO inventato. È una decisione di coupling: la explanation viene richiesta **on-demand** come azione secondaria.
 
 ```text
-insufficient evidence
-→ mostra missing evidence
-→ nessuna spiegazione inventata
+open Operational Case
+→ existing deterministic path
+
+request explanation
+→ asynchronous/secondary AI path
 ```
 
-```text
-invalid output after bounded retry
-→ no generated explanation
-→ telemetry + fallback UI
-```
+Questa separazione riduce il costo di provider timeout e model latency sul journey principale. Quando avremo runtime baseline reali potremo decidere target numerici e capire se streaming, precomputation o altre topologie comprino abbastanza valore.
 
-```text
-security policy failure
-→ block
-→ audit/security signal
-```
+Prima l'architecture relationship, poi il numero.
 
-Il core product journey quindi non dipende dal fatto che l'LLM risponda sempre.
+## Cost: misurare il percorso fino all'outcome
 
-> **Una feature AI opzionale deve poter fallire senza trascinare con sé il prodotto che dovrebbe assistere.**
+Un'invocation AI può essere fatturata attraverso token o request, ma il Cost Model del prodotto deve guardare il percorso completo.
 
-## Graceful degradation
+Context size, model route, retry, eventuale retrieval, tool call e human quality review possono diventare driver.
 
-Questo collega direttamente il Capitolo 24 al Reliability Contract.
-
-Possiamo descrivere lo stato:
-
-```text
-Order Operations core journey = Healthy
-Case Explanation Assistant = Degraded
-```
-
-L'operatore perde una accelerazione cognitiva.
-
-Non perde l'accesso ai fatti autorevoli.
-
-Questo è un esempio di failure isolation applicato a una capability AI.
-
-## Latency budget
-
-Un modello può avere latency molto diversa da una query tradizionale.
-
-Dobbiamo decidere se la feature è:
-
-```text
-blocking
-streaming
-async
-precomputed
-on-demand
-```
-
-Per il primo slice ESI scegliamo **on-demand**.
-
-L'operatore apre un caso e richiede esplicitamente la spiegazione.
-
-Non blocchiamo il caricamento dell'Operational Case in attesa del modello.
-
-Quindi:
-
-```text
-core operational view
-→ deterministic / existing path
-
-explanation
-→ secondary async UI action
-```
-
-Questa scelta riduce il coupling di availability e latency.
-
-## Cost budget
-
-Il Cost Model deve evolvere.
-
-Una invocation AI può avere cost driver come:
-
-```text
-input tokens
-output tokens
-model class
-retrieval calls
-tool calls
-retry
-cache
-embedding/index cost
-human verification
-```
-
-Ma il business metric utile non è:
-
-```text
-cost per 1M tokens
-```
-
-È più vicino a:
+La metrica più utile non è necessariamente `cost per 1M tokens`. Per il prodotto potrebbe diventare:
 
 ```text
 cost per accepted Case Explanation
-cost per case handling minute saved
-cost per explanation with no critical eval finding
 ```
 
-Non abbiamo ancora production data ESI.
+letta insieme a quality signal come critical eval finding, groundedness e operator usefulness.
 
-Quindi queste metriche restano `Designed`.
+Finché ESI non possiede provider, model route ed execution reali, questi restano **unit metric Designed / not measured**. Non inventiamo una cost baseline per rendere il capitolo più completo.
 
-## Prompt e model configuration sono versioned runtime artifacts
+## La configuration è parte del comportamento versionato
 
-La feature dipende da più di un model name.
+Il comportamento non dipende soltanto dal model name.
 
-La configuration reale include almeno:
+Dipende almeno da:
 
 ```text
-model/provider
-model version/deployment
+provider / model route
+model or deployment version
 system instruction version
 context builder version
 output schema version
 tool set
-sampling/reasoning configuration
-safety policy
+safety configuration
+sampling / reasoning configuration when relevant
 ```
 
-Una evaluation deve poter dire **quale configurazione** è stata testata.
+Una eval senza configuration identity è difficile da confrontare nel tempo. Se cambiamo il prompt o il context builder e manteniamo lo stesso model, abbiamo comunque modificato il sistema che produce la risposta.
 
-NIST AI RMF Generative AI Profile insiste sull'idea di gestire il rischio lungo il lifecycle del sistema e rispetto al contesto d'uso, non come proprietà isolata del modello.  
-Fonte: [NIST AI 600-1](https://www.nist.gov/publications/artificial-intelligence-risk-management-framework-generative-artificial-intelligence).
+NIST AI RMF Generative AI Profile insiste sulla gestione del rischio lungo il lifecycle e nel contesto d'uso. OpenAI ha inoltre evidenziato come harness, tool, budget, scorer e configurazione possano influenzare significativamente un assessment.
 
-OpenAI ha inoltre sottolineato nelle proprie raccomandazioni sulle evaluation che harness, tool, budget, scorer e configurazione del sistema influenzano il risultato dell'assessment, non soltanto il modello.  
-Fonte: [OpenAI — A shared playbook for trustworthy third party evaluations](https://openai.com/index/trustworthy-third-party-evaluations-foundations/).
+Fonti:
 
-## Model upgrade non è una dependency bump normale
+- [NIST AI 600-1 — Generative AI Profile](https://www.nist.gov/publications/artificial-intelligence-risk-management-framework-generative-artificial-intelligence)
+- [OpenAI — A shared playbook for trustworthy third party evaluations](https://openai.com/index/trustworthy-third-party-evaluations-foundations/)
 
-Se cambiamo:
+## Model upgrade è una modifica comportamentale
 
-```text
-model-v1
-→ model-v2
-```
+Cambiare da `model-v1` a `model-v2` può richiedere zero modifica al domain code e cambiare comunque response style, source use, refusal behavior, latency, cost e performance sui boundary critici.
 
-non basta chiedere:
+Per questo non basta che l'adapter compili.
 
-> compila?
+Un upgrade dovrà attraversare almeno workload regression eval, critical security case, schema behavior e confronto latency/cost proporzionato all'impatto.
 
-Serve almeno:
+> **Il port rende possibile sostituire il provider. L'eval decide se la sostituzione conserva abbastanza comportamento da essere accettabile.**
 
-```text
-regression eval
-security eval
-latency/cost comparison
-schema compliance
-behavioral review
-```
+## AI Feature Contract: rendere persistente il runtime boundary
 
-La ragione è semplice:
-
-> **Un model upgrade può cambiare comportamento senza cambiare una singola riga del nostro domain code.**
-
-Questa è una nuova forma di dependency risk.
-
-## AI Feature Contract
-
-Per rendere tutto questo persistente introduciamo un nuovo artefatto:
+Tutte queste decisioni convergono nel nuovo artifact del capitolo:
 
 ```text
 AI Feature Contract
 ```
 
-Campi principali:
+Il documento collega purpose, user, non-goal, model authority, context source, retrieval, tool/permission, input/output, grounding, fallback, reliability, security, evaluation, observability, cost, owner e review trigger.
 
-```text
-Purpose
-Users
-Outcome
-Non-goals
-Model authority boundary
-Context sources
-Retrieval strategy
-Tool/permission boundary
-Input classification
-Output schema
-Grounding rules
-Fallback
-Latency/reliability target
-Security controls
-Evaluation plan
-Observability
-Cost model
-Owners
-Review triggers
-```
+Non è una checklist da applicare in forma pesante a ogni chiamata LLM. Serve quando una capability probabilistica diventa parte stabile del comportamento del prodotto.
 
-Non è una checklist obbligatoria per ogni chiamata a un modello.
+Il suo valore è impedire che provider configuration e prompt siano l'unico luogo in cui vive il design.
 
-È un artefatto utile quando una capability AI entra nel comportamento del prodotto.
-
-## La regola
-
-> **Non progettare soltanto come ottenere una risposta dal modello. Progetta che cosa farà il sistema quando la risposta è incompleta, invalida, lenta, costosa o semplicemente sbagliata.**
+> **Non progettare soltanto come ottenere una risposta dal modello. Progetta che cosa farà il sistema quando la risposta è incompleta, invalida, lenta, costosa, non autorizzata o semplicemente sbagliata.**
