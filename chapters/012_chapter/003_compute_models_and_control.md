@@ -1,253 +1,64 @@
-## Compute: VM, PaaS, container, Kubernetes, serverless
+## Compute: scegliere quanto controllo possedere
 
-Quando diciamo “dobbiamo scegliere dove far girare l'applicazione” in realtà stiamo scegliendo **quanto controllo vogliamo possedere e quanto lavoro operativo siamo disposti a pagare**.
+Quando decidiamo dove far girare un’applicazione non stiamo scegliendo soltanto un runtime. Stiamo decidendo **quanta parte dello stack vogliamo controllare direttamente e quanta responsabilità operativa siamo disposti a mantenere**.
 
-Le categorie principali sono note:
+VM, PaaS, container platform, Kubernetes e serverless vengono spesso raccontati come una scala di maturità. Non lo sono. Ognuno compra un insieme differente di capability e lascia al team una quantità differente di lavoro.
 
-- virtual machine;
-- managed web/application platform;
-- container platform;
-- Kubernetes;
-- serverless functions / event-driven compute.
+La domanda utile non è “qual è il modello più moderno?”, ma “quale controllo ci serve davvero?”. Se abbiamo bisogno di modificare OS, daemon, networking di basso livello o software di sistema, la risposta sarà diversa da quella di un’API web standard. Se il workload è bursty e breve, scale-to-zero può avere valore. Se molti componenti richiedono scheduling e policy comuni, l’orchestrazione può diventare una capability reale. Se il team non sa operare il livello di controllo scelto, quel controllo diventa debito.
 
-Il problema è che vengono spesso trattate come una scala di maturità.
+## VM: controllo che va pagato nel tempo
 
-```text
-VM
-↓
-containers
-↓
-Kubernetes
-↓
-serverless
-```
+Una virtual machine ci lascia governare OS, filesystem, runtime, agent, networking e process lifecycle. Questo può essere necessario per appliance, software con dipendenze specifiche, migrazioni temporanee o workload che non trovano un fit accettabile nelle piattaforme gestite.
 
-Questa scala non esiste.
+Lo stesso controllo porta patching, hardening, image lifecycle, configuration management, capacity e maggiore superficie operativa. Una VM non è legacy per definizione. Diventa una scelta debole quando il workload paga tutto quel lavoro senza usare davvero la libertà che riceve.
 
-Sono modelli operativi differenti.
+## PaaS: ridurre il lavoro che non differenzia il prodotto
 
-## La domanda utile: che cosa dobbiamo controllare?
+Un application PaaS delega al provider una parte maggiore dell’hosting: lifecycle degli host, patching infrastrutturale, integrazione con health e scaling, deployment primitives e gestione del runtime. Il team conserva application behavior, configuration, NFR e operability del workload, ma non deve possedere ogni strato sottostante.
 
-Per ogni workload chiediamo:
-
-1. abbiamo bisogno di controllare il sistema operativo?
-2. abbiamo requisiti speciali di networking?
-3. abbiamo bisogno di daemon/processi particolari?
-4. dobbiamo scegliere runtime non supportati da PaaS?
-5. serve scaling indipendente di molti componenti?
-6. esistono workload bursty o event-driven?
-7. quanto è importante scale-to-zero?
-8. quale startup latency è accettabile?
-9. quale livello di isolamento serve?
-10. il team possiede skill e capacità operativa per il livello di controllo scelto?
-
-Queste domande eliminano gran parte delle discussioni ideologiche.
-
-## Virtual machine
-
-Una VM compra controllo.
-
-Possiamo controllare:
-
-- OS;
-- agent;
-- filesystem;
-- network stack;
-- runtime;
-- software installato;
-- process lifecycle.
-
-Ma dobbiamo pagare:
-
-- patching;
-- hardening;
-- image lifecycle;
-- autoscaling più esplicito;
-- configuration management;
-- capacity management;
-- maggiore superficie operativa.
-
-Una VM non è “legacy”.
-
-Può essere la scelta corretta per:
-
-- software con vincoli OS specifici;
-- appliance;
-- migrazioni lift-and-shift temporanee;
-- workload con dipendenze non supportate da piattaforme gestite;
-- ambienti che richiedono controllo profondo.
-
-Il problema non è usare VM.
-
-È usarle quando il controllo che comprano non serve.
-
-## PaaS applicativo
-
-Un servizio come Azure App Service, AWS Elastic Beanstalk o Google App Engine riduce il numero di decisioni operative che il team deve possedere direttamente.
-
-Il provider gestisce una parte maggiore di:
-
-- patching infrastrutturale;
-- host lifecycle;
-- runtime hosting;
-- scaling integration;
-- health management;
-- deployment integration.
-
-Il costo è minore libertà.
-
-Possiamo avere:
-
-- limiti sul runtime;
-- networking più vincolato;
-- lifecycle gestito dal servizio;
-- configuration model specifico;
-- minore portabilità diretta.
-
-Questo è spesso un buon compromesso per un workload relativamente tradizionale.
-
-La semplicità non è un difetto.
+Il prezzo è minore libertà: runtime supportati, networking, lifecycle e configuration model seguono le regole della piattaforma. Per una web/API application relativamente tradizionale questo può essere un ottimo trade-off.
 
 > **Se un PaaS soddisfa il workload, sostituirlo con un orchestratore più potente non è automaticamente un upgrade.**
 
-## Container
+## Container non significa Kubernetes
 
-Il container separa artefatto applicativo e host.
+Containerizzare un’applicazione può rendere più ripetibile il packaging e più esplicito il runtime boundary. Può migliorare portability dell’artefatto e coerenza fra ambienti. Nulla di questo implica automaticamente la necessità di un cluster Kubernetes.
 
-Può migliorare:
-
-- ripetibilità dell'ambiente;
-- portability del runtime;
-- packaging;
-- isolamento;
-- deployment consistency.
-
-Ma containerizzare non significa che serva Kubernetes.
-
-Questa distinzione è fondamentale.
-
-Microsoft Azure Architecture Center confronta Container Apps, App Service e AKS proprio lungo l'asse **ease of use vs configurability**. La guida nota che AKS offre il massimo controllo ma richiede più effort operativo, mentre piattaforme PaaS sono adatte quando il focus è sulla feature delivery e non sulla gestione dell'infrastruttura.
+Microsoft Azure Architecture Center confronta App Service, Container Apps e AKS proprio lungo l’asse **ease of use vs configurability**: AKS offre più controllo e quindi anche più responsabilità operativa, mentre piattaforme PaaS riducono cognitive load quando il team vuole concentrarsi maggiormente sulla feature delivery.
 
 Fonte:
 
 - [Microsoft Learn — Choose an Azure container service](https://learn.microsoft.com/azure/architecture/guide/choose-azure-container-service)
 
-## Kubernetes
+Una managed container platform può essere un punto intermedio utile quando vogliamo container packaging e scaling gestito senza possedere direttamente un control plane Kubernetes.
 
-Kubernetes compra una quantità enorme di capability:
+## Kubernetes: potente quando l’orchestrazione è parte del requisito
 
-- orchestration;
-- scheduling;
-- service discovery;
-- deployment primitives;
-- scaling;
-- extensibility;
-- policy integration;
-- workload portability;
-- ecosystem.
+Kubernetes compra scheduling, service discovery, deployment primitive, autoscaling, extensibility, policy integration e un ecosistema molto ricco. È una piattaforma eccellente quando molti workload containerizzati, requisiti avanzati di configurabilità o un operating model di platform engineering rendono queste proprietà economicamente utili.
 
-Ma introduce anche un sistema distribuito che dobbiamo comprendere e governare.
+Il fatto che AKS, EKS o GKE gestiscano parti del control plane non elimina resource request/limit, readiness/liveness, disruption, network policy, ingress, image lifecycle, upgrade compatibility, observability e cost allocation. Il workload continua a vivere sopra un sistema distribuito che deve essere compreso.
 
-Il fatto che AKS, EKS o GKE siano “managed” non significa che l'applicazione non debba più conoscere:
+Per un’API Node.js e un worker strettamente collegato, il valore di tutto questo controllo può essere inferiore al suo costo.
 
-- resource request/limit;
-- pod disruption;
-- readiness/liveness;
-- autoscaling behavior;
-- network policy;
-- ingress;
-- image lifecycle;
-- secret/config injection;
-- cluster upgrade compatibility;
-- observability;
-- cost allocation.
+## Serverless: delegare di più quando l’execution model coincide con il lavoro
 
-Kubernetes ha un ottimo fit quando abbiamo bisogno delle proprietà che compra.
+Serverless ha un fit forte per workload event-driven, bursty, brevi o fortemente indipendenti, soprattutto quando scale-to-zero e provisioning rapido comprano valore. In cambio accettiamo un execution model più specifico, limiti e timeout della piattaforma, cold-start behavior variabile, observability distribuita e maggiore coupling alle primitive provider.
 
-Per esempio:
+Il rischio è frammentare un sistema coerente in molte function soltanto perché l’infrastruttura rende facile crearle. Serverless non è “più moderno” di PaaS o container; è un modello operativo con forze proprie.
 
-- molti workload containerizzati;
-- team piattaforma dedicato;
-- requisiti di configurabilità avanzata;
-- scheduler/orchestration come capability reale;
-- policy e runtime condivisi;
-- ecosistema che giustifica la complessità.
+## Un caso reale: dacadoo e la topologia che cambia con il workload
 
-Ha un fit peggiore quando il requisito è semplicemente:
-
-> “abbiamo un'API Node.js e un worker”.
-
-## Serverless
-
-Serverless spinge più in là la delega dell'infrastruttura.
-
-È interessante per:
-
-- workload event-driven;
-- burst imprevedibili;
-- execution breve;
-- scale-to-zero;
-- integrazioni;
-- automazioni;
-- processing indipendente.
-
-Ma ha trade-off:
-
-- execution model specifico;
-- timeout/limit;
-- cold start a seconda della piattaforma e configurazione;
-- observability distribuita;
-- cost model che cambia con il volume;
-- coupling più forte alle primitive provider;
-- maggiore frammentazione se usato per ogni piccola funzione.
-
-Anche qui il pattern non è:
-
-```text
-serverless = moderno
-```
-
-ma:
-
-```text
-serverless = modello operativo con forze specifiche
-```
-
-## Real case — dacadoo: VM → Kubernetes → serverless
-
-Un caso documentato interessante è quello di dacadoo pubblicato nell'AWS Architecture Blog.
-
-L'azienda descrive un percorso in tre fasi:
-
-1. una singola VM;
-2. più cluster Kubernetes globali;
-3. una soluzione serverless e geo-ridondante.
-
-AWS riporta nel caso una riduzione dei costi cloud del 78% e una drastica riduzione dell'effort infrastrutturale, ma il punto che ci interessa non è il numero in sé.
-
-È il percorso.
-
-L'architettura non è nata “serverless perché serverless è migliore”.
-
-È cambiata perché sono cambiati:
-
-- scala;
-- distribuzione geografica;
-- esigenze operative;
-- automazione;
-- cost structure.
+AWS Architecture Blog ha documentato il percorso di dacadoo da una VM a Kubernetes e successivamente a una soluzione serverless e geo-ridondante. Nel caso AWS riporta anche una forte riduzione di costo ed effort infrastrutturale.
 
 Fonte:
 
 - [AWS Architecture Blog — From virtual machine to Kubernetes to serverless: How dacadoo saved 78% on cloud costs and automated operations](https://aws.amazon.com/blogs/architecture/from-virtual-machine-to-kubernetes-to-serverless-how-dacadoo-saved-78-on-cloud-costs-and-automated-operations/)
 
-È un ottimo esempio del principio:
+Il valore del caso non è trasformare quella sequenza in una roadmap universale. È osservare che la topologia è cambiata insieme a scala, distribuzione geografica, automazione e cost structure. La tecnologia ha seguito il workload.
 
-> **la topologia cloud è una conseguenza del workload, non una identità del team.**
+## Il Compute Fit Test
 
-## Un Compute Fit Test
-
-Prima di scegliere il runtime cloud, possiamo costruire una tabella semplice.
+Quando la decisione merita una comparazione strutturata possiamo usare una matrice, perché qui il confronto è davvero utile:
 
 | Forza | VM | PaaS | Managed Containers | Kubernetes | Serverless |
 |---|---|---|---|---|---|
@@ -259,52 +70,14 @@ Prima di scegliere il runtime cloud, possiamo costruire una tabella semplice.
 | configurabilità | alta | bassa/media | media | molto alta | bassa/media |
 | cognitive load | medio/alto | basso | medio | alto | medio |
 
-Questa tabella non decide.
+La tabella non assegna un vincitore. Rende visibile quale controllo stiamo comprando e quale lavoro ne deriva.
 
-Ci impedisce soltanto di saltare direttamente al logo.
+## ESI: eliminare prima di scegliere
 
-## ESI: perché non scegliamo AKS
+Order Operations ha oggi un’API, un outbox publisher, PostgreSQL, un channel di messaging, un unico workload team e un lifecycle applicativo ancora molto coeso. Non ha decine di servizi, runtime eterogenei, scheduling custom, service mesh, cluster portability come requisito o un team Kubernetes dedicato.
 
-Order Operations ha oggi:
-
-```text
-una API
-un outbox publisher
-PostgreSQL
-un canale messaging
-un team unico
-un lifecycle applicativo condiviso
-```
-
-Non ha:
-
-- decine di servizi;
-- runtime eterogenei;
-- necessità di scheduling custom;
-- bisogno di service mesh;
-- autoscaling indipendente complesso;
-- un requisito di cluster portability;
-- un team dedicato a Kubernetes.
-
-Quindi, per ora:
-
-> **AKS non ha fit sufficiente.**
-
-Non perché AKS sia sbagliato.
-
-Perché comprerebbe molto controllo che il workload non sa ancora usare a proprio vantaggio.
-
-La scelta concreta arriverà nella sezione ESI.
-
-Ma abbiamo già ristretto lo spazio:
-
-```text
-VM         → troppo ownership infrastrutturale
-AKS        → troppo controllo non necessario
-serverless → possibile, ma non serve frammentare il modular monolith
-PaaS       → candidato forte
-```
-
-Questo è il tipo di eliminazione che una buona architettura deve saper fare.
+Questo ci permette di restringere lo spazio senza dogma. Le VM comprerebbero ownership infrastrutturale non necessaria. AKS comprerebbe orchestration e configurabilità che il workload oggi non utilizza. Serverless potrebbe essere utile per componenti futuri, ma frammentare ora il modular monolith non compra una proprietà richiesta. Un PaaS applicativo rimane quindi il candidato più forte.
 
 > **La tecnologia che non scegliamo è parte della decisione tanto quanto quella che scegliamo.**
+
+La sezione ESI tradurrà questo reasoning in una topologia concreta.
