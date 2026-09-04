@@ -1,100 +1,39 @@
 # 20.5 — Usage, rate e FinOps operating model
 
-Quando il costo diventa visibile, la tentazione è reagire con una campagna.
+Quando il costo diventa visibile, la reazione più facile è una campagna: una settimana di rightsizing, un trimestre di cost cutting, una richiesta generalizzata di spegnere ciò che sembra poco utilizzato.
 
-```text
-cost-cutting quarter
-rightsizing week
-stop everything
-```
+Queste iniziative possono produrre risparmi reali. Il problema è che raramente costruiscono una disciplina durevole.
 
-Può produrre risultati rapidi.
-
-Raramente costruisce una disciplina duratura.
-
-Microsoft Well-Architected distingue esplicitamente fra **usage optimization** e **rate optimization** e raccomanda una disciplina continua di cost management invece di interventi tattici isolati.
+Azure Well-Architected distingue esplicitamente **usage optimization** e **rate optimization** e raccomanda un processo continuo di cost management, non interventi isolati.
 
 Fonti:
 
 - [Microsoft Learn — Cost Optimization design principles](https://learn.microsoft.com/en-us/azure/well-architected/cost-optimization/principles)
 - [Microsoft Learn — Architecture strategies for getting the best rates](https://learn.microsoft.com/en-us/azure/well-architected/cost-optimization/get-best-rates)
 
-## Usage optimization
+## Usage e rate sono due leve diverse
 
-Ridurre ciò che consumiamo senza togliere outcome necessario.
+La usage optimization riduce o modifica ciò che consumiamo. Rightsizing, autoscaling, spegnimento di environment inutilizzati, minore retention non necessaria, eliminazione di orphan resource o integrazioni meno chatty appartengono a questa famiglia.
 
-Esempi:
+La rate optimization prova invece a pagare meno per la stessa unità di consumo attraverso commitment, reservation, discount, licensing o pricing model migliori.
 
-```text
-right-size compute
-stop unused environment
-reduce unnecessary retention
-remove orphan resource
-improve cache hit rate
-reduce chatty integration
-compress data
-use autoscaling
-```
+La distinzione è importante perché i due interventi hanno trade-off diversi. Una reservation può non cambiare affatto il comportamento tecnico del workload ma ridurre optionality economica: paghiamo meno in cambio di una previsione più rigida sul futuro. Un rightsizing aggressivo, invece, può cambiare headroom e failure behavior.
 
-Qui stiamo modificando quantità e comportamento.
+Quindi persino una scelta commerciale può diventare rilevante per l'architettura quando riduce la nostra libertà di cambiare.
 
-## Rate optimization
+## Waste e headroom non si distinguono guardando soltanto la CPU
 
-Pagare meno per la stessa unità di consumo.
+Una metrica di utilization bassa è un segnale, non una sentenza.
 
-Esempi:
+`CPU = 40%` non implica automaticamente `60% waste`. Quella capacità potrebbe servire a burst, failover, deployment, recovery o a sostenere il latency target mentre un'istanza è fuori servizio.
 
-```text
-reservation / commitment
-enterprise discount
-license optimization
-cheaper region when requirements allow
-pricing model selection
-```
+Allo stesso tempo, chiamare ogni capacità inutilizzata “headroom per reliability” è un modo comodo per non misurare niente.
 
-Qui, idealmente, non cambiamo la proprietà del workload.
-
-Ma anche una rate decision può ridurre optionality.
-
-Un commitment economico ha infatti una conseguenza:
-
-```text
-lower rate
-↔
-less flexibility
-```
-
-Quindi anche il contratto commerciale può diventare un vincolo architetturale.
-
-## Waste vs headroom
-
-Una delle discussioni FinOps più delicate è distinguere spreco da capacità intenzionale.
-
-```text
-CPU 40%
-```
-
-non significa automaticamente:
-
-```text
-60% waste
-```
-
-Potrebbe esserci headroom necessario per:
-
-- failover;
-- burst;
-- deployment;
-- recovery;
-- latency target.
-
-Dall'altra parte, chiamare tutto “headroom per reliability” può diventare una giustificazione per non misurare nulla.
-
-Quindi la capacità deve essere collegata a:
+La capacità intenzionale deve essere collegata a uno scenario:
 
 ```text
 peak
-failure scenario
+failure scope
 SLO
 recovery target
 scaling latency
@@ -102,45 +41,45 @@ scaling latency
 
 > **Capacity senza scenario è sovrapprovisioning indistinguibile da prudenza.**
 
-## Environment economics
+La stessa evidence che usiamo per giustificare reliability deve quindi aiutare anche il cost review.
 
-Non tutti gli environment devono avere la stessa topologia.
+## Environment economics: pagare fidelity soltanto dove serve
 
-Microsoft Well-Architected suggerisce esplicitamente di trattare differentemente gli ambienti SDLC e, quando possibile, creare pre-production environment on-demand invece di mantenerli sempre attivi.
+Non tutti gli environment devono riprodurre la production topology.
+
+Azure Well-Architected suggerisce di trattare diversamente gli ambienti SDLC e, quando possibile, usare pre-production environment on-demand.
 
 Fonte:
 
 - [Microsoft Learn — Cost Optimization design principles](https://learn.microsoft.com/en-us/azure/well-architected/cost-optimization/principles)
 
-Per ESI questo significa che:
+Questo si collega direttamente alla Testing Strategy del Capitolo 16. Un environment più costoso è giustificato soltanto se dimostra una proprietà che quello più economico non può verificare.
+
+Per ESI il principio diventa:
 
 ```text
-production
-→ zone resilience requirement
+business rule
+→ local / deterministic
 
-integration environment
-→ enough fidelity for PostgreSQL/API contract
+PostgreSQL semantics
+→ real PostgreSQL
 
-security staging
-→ enough fidelity for identity/network verification
+Azure identity / private networking
+→ Azure non-production
 
-local
-→ no need to reproduce Azure
+recovery
+→ environment capace del drill
 ```
 
-Questa è un'applicazione economica della Testing Strategy del Capitolo 16.
+Non è soltanto una strategia di testing. È una strategia economica: **usare l'environment meno costoso che può produrre l'evidence necessaria**.
 
-Il test environment più costoso deve dimostrare qualcosa che quello economico non può dimostrare.
+## Budget come feedback, non come numero magico
 
-## Budget non è architecture limit
+Un budget è utile quando apre una conversazione fra forecast, actual e variance. È molto meno utile quando viene interpretato come “spendi esattamente questa cifra indipendentemente da ciò che cambia nel prodotto”.
 
-Un budget non dovrebbe essere interpretato come:
+Un aumento di costo può essere corretto se accompagna più volume, una nuova geography, un requisito security più forte o reliability più alta. Un calo può essere un brutto segnale se dipende da traffico perso o dalla rimozione di una capability necessaria.
 
-> **spendi esattamente questo.**
-
-È un constraint e un feedback mechanism.
-
-Il processo utile è:
+Il ciclo utile è:
 
 ```text
 forecast
@@ -151,152 +90,77 @@ forecast
 → decision
 ```
 
-La variazione può essere positiva o negativa.
+Il budget non sostituisce la decisione. Rende visibile quando dobbiamo prenderne una.
 
-Un aumento di costo può essere corretto se corrisponde a:
+## Anomaly e trend chiedono reazioni diverse
 
-- più business volume;
-- nuovo requisito security;
-- nuova geography;
-- reliability target più forte.
+Un picco improvviso di telemetry del 400% in un giorno è una anomaly e richiede investigation. Storage che cresce dell'8% ogni mese può invece essere un trend perfettamente regolare ma economicamente insostenibile nel lungo periodo.
 
-Un calo può essere negativo se deriva da perdita di traffico o rimozione di una capability necessaria.
+La prima domanda è “che cosa è successo?”. La seconda è “che cosa succederà se continuiamo così?”.
 
-## Anomaly vs trend
+Questa distinzione ci impedisce di trattare ogni aumento come incidente o, al contrario, di ignorare una curva prevedibile finché non supera il budget.
 
-Dobbiamo distinguere:
+## FinOps non è Engineering contro Finance
 
-### Anomaly
-
-Cambio inatteso e rapido.
-
-```text
-telemetry ingestion +400% in un giorno
-```
-
-### Trend
-
-Crescita progressiva.
-
-```text
-storage +8% mese su mese
-```
-
-L'anomaly richiede spesso investigation.
-
-Il trend richiede forecasting e decisione architetturale.
-
-## Finance non è il gatekeeper tecnico
-
-FinOps funziona male se il modello è:
+Un operating model debole funziona così:
 
 ```text
 Engineering builds
-→ Finance complains later
+→ Finance sees the bill
+→ cost-cutting request
 ```
 
-Ma funziona male anche così:
+Un altro modello ugualmente debole mette Finance davanti a ogni singola decisione tecnica e trasforma il costo in burocrazia.
 
-```text
-Finance approves individual resources
-→ Engineering optimizes for bureaucracy
-```
-
-La FinOps Foundation tratta Architecting & Workload Placement come collaborazione fra Product, Engineering e FinOps, con business case, cost/value comparison e review cadence.
+La FinOps Foundation descrive invece Architecting & Workload Placement come una capability collaborativa fra Product, Engineering e FinOps.
 
 Fonte:
 
 - [FinOps — Architecting & Workload Placement](https://www.finops.org/framework/capabilities/architecting-workload-placement/)
 
-Un operating model sano può essere:
+Product porta value, demand e priorità. Engineering spiega driver, architecture option e quality trade-off. FinOps porta billing evidence, forecast, allocation e rate. Security, Reliability e Platform rendono espliciti i constraint condivisi o non negoziabili.
+
+Nessuno di questi attori può ottimizzare bene il workload da solo.
+
+## Cost guardrail: automatizzare ciò che abbiamo già capito
+
+Alcune property economiche sono abbastanza semplici da diventare guardrail: metadata di allocation richiesti, budget alert, orphan resource, non-prod TTL, retention massima per classi definite o detection di paid capability senza owner.
+
+Ma una regola come `premium SKU forbidden` sarebbe pericolosa. Un tier Premium può essere la conseguenza di un requisito esplicito, come nel caso del private data plane di ESI.
+
+Una forma migliore è:
 
 ```text
-Product
-→ value / demand / priority
-
-Engineering
-→ cost driver / architecture / technical options
-
-FinOps
-→ cost data / forecast / rate / allocation / economics
-
-Security / Reliability / Platform
-→ non-negotiable and shared constraints
+paid premium
+→ property purchased
+→ owner
+→ evidence
+→ review trigger
 ```
 
-Nessuno dei quattro può decidere bene da solo.
+Il guardrail non deve decidere che il premium è sbagliato. Deve impedire che diventi invisibile.
 
-## Cost guardrail
+## Visibility prima della punizione
 
-Come per Architecture Evolution, alcune regole possono essere automatizzate.
+In una organizzazione che sta maturando, showback e trasparenza possono produrre più valore di un chargeback aggressivo. Se un team scopre che observability pesa molto più del previsto o che una parte significativa della spesa viene da non-production sempre acceso, può intervenire prima ancora che Finance sposti formalmente il budget.
 
-Esempi:
+La metrica dovrebbe creare decisione prima di creare paura.
 
-```text
-required allocation metadata
-budget alert
-unapproved premium SKU detection
-orphan resource detection
-telemetry retention maximum by class
-nonprod TTL
-```
+## FinOps come fitness function economica
 
-Ma un guardrail non deve sostituire il judgment.
-
-Per esempio:
-
-```text
-premium SKU forbidden
-```
-
-sarebbe una pessima regola se il threat model richiede una feature disponibile soltanto in quel tier.
-
-Meglio:
-
-```text
-premium SKU
-→ reason / owner / cost model / review trigger
-```
-
-## Showback before punishment
-
-In un'organizzazione che sta iniziando, la visibility può avere più valore del chargeback aggressivo.
-
-Se un team scopre:
-
-```text
-telemetry = 35% del workload cost
-```
-
-può già cambiare comportamento senza che Finance trasferisca formalmente la fattura.
-
-La metrica deve creare decisione prima di creare paura.
-
-## FinOps come feedback loop architetturale
-
-Il ciclo diventa:
+Il ciclo completo è:
 
 ```text
 architecture decision
 → consumption
-→ cost data
+→ cost evidence
 → unit economics
-→ compare with value
-→ optimize / retain / redesign
+→ compare with value and quality
+→ optimize, retain or redesign
 ```
 
-È una fitness function economica.
+Non sempre produce un gate rosso o verde. Spesso produce un trend, un review trigger o una nuova hypothesis da verificare.
 
-Non necessariamente un test booleano.
-
-Può essere un trend.
-
-```text
-cost per OperationalCase handled
-```
-
-se cresce continuamente più del valore o della complessità del case, abbiamo un segnale.
-
-## Regola
+Per Order Operations `cost per OperationalCase handled` diventa utile quando cresce più rapidamente del volume o della complessità del lavoro senza una spiegazione architetturale convincente.
 
 > **FinOps non è il reparto che taglia il cloud. È il feedback loop che permette a Product, Engineering e Finance di capire se la tecnologia sta ancora comprando valore a un prezzo sostenibile.**
