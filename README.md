@@ -42,7 +42,7 @@ Tecnologie, pattern, linguaggi e strumenti servono per rendere concrete le decis
 
 ## Il professionista al timone
 
-Gli strumenti vengono spesso chiamati *Copilot*. La metafora che useremo in questo libro è volutamente diversa:
+Gli strumenti vengono spesso chiamati *Copilot*. La metafora usata in questo libro è volutamente diversa:
 
 > **Sii il pilota, non il copilota.**
 
@@ -56,7 +56,7 @@ Un buon indicatore operativo è questo:
 
 ## L'analisi funzionale è una competenza condivisa
 
-Il libro rifiuta anche il silo secondo cui soltanto l'analista debba conoscere davvero il comportamento del prodotto.
+Il libro rifiuta il silo secondo cui soltanto l'analista debba conoscere davvero il comportamento del prodotto.
 
 Business analyst, product manager e domain expert restano specializzazioni preziose. Ma developer, tech lead e architect che prendono decisioni sul sistema devono avere almeno una visione d'insieme delle funzionalità e devono saper:
 
@@ -69,7 +69,7 @@ Business analyst, product manager e domain expert restano specializzazioni prezi
 
 > **L'analisi può avere uno specialista. La comprensione del prodotto non può avere un unico proprietario.**
 
-Il Capitolo 2 introduce anche il **Functional Scope Map** come artefatto vivo accanto al Problem & Outcome Brief.
+Il Capitolo 2 introduce il **Functional Scope Map** come artefatto vivo accanto al Problem & Outcome Brief.
 
 ## Example Software Industries: il mondo fittizio del libro
 
@@ -99,9 +99,9 @@ ESI non sostituisce i casi reali. I casi reali presenti nel libro vengono dichia
 
 ## Un compromesso per capitolo
 
-Ogni capitolo deve mostrare almeno un compromesso significativo nello scenario ESI.
+Ogni capitolo rende visibile almeno un compromesso significativo nello scenario ESI, quando pertinente.
 
-Il compromesso deve rendere leggibili, quando pertinenti:
+Il compromesso rende leggibili:
 
 ```text
 esigenza
@@ -118,7 +118,7 @@ Il punto non è insegnare a “fare meno qualità”.
 
 > **Un trade-off accetta un costo consapevole per ottenere un beneficio prioritario. Una scorciatoia nasconde un costo e spera che non presenti il conto.**
 
-Per questo distinguiamo sempre fra:
+Per questo distinguiamo fra:
 
 - qualità che vogliamo ottimizzare;
 - qualità che accettiamo di rendere meno ottimali;
@@ -129,11 +129,11 @@ La regola editoriale è:
 
 > **Compromesso sì. Qualità inconsapevolmente degradata no.**
 
-I compromessi già introdotti e quelli futuri sono tracciati in:
+I compromessi del libro sono tracciati in:
 
 - `capstone/example-software-industries/COMPROMISE_LEDGER.md`.
 
-## Order Operations: il capstone che diventa un progetto vero
+## Order Operations: il capstone diventato un progetto vero
 
 Il capstone principale del libro è **Order Operations**, un prodotto simulato della business unit Commerce & Operations di ESI.
 
@@ -143,30 +143,27 @@ Non compare soltanto come esempio nei paragrafi. Ha una directory persistente:
 capstone/example-software-industries/products/order-operations/
 ```
 
-I capitoli raccontano perché cambiano requisiti e decisioni; la directory del capstone conserva lo stato corrente del progetto.
+I capitoli raccontano perché cambiano requisiti e decisioni; la directory del capstone conserva lo stato corrente del progetto e la storia delle decisioni che lo hanno portato lì.
 
-Man mano che il libro prosegue, Order Operations accumulerà:
+Order Operations contiene, tra gli altri:
 
-- analisi funzionale;
-- requisiti;
-- architecture context;
-- ADR;
-- NFR;
-- API contract;
-- data ownership;
-- failure model;
-- threat model;
-- testing strategy;
-- observability;
-- infrastruttura;
-- codice applicativo reale;
-- deployment, rollback e production readiness.
+- analisi funzionale e requisiti;
+- architecture context e ADR;
+- NFR e quality model;
+- API contract e data ownership;
+- failure model e reliability architecture;
+- threat model e security controls;
+- testing e observability architecture;
+- cloud/deployment artifacts;
+- codice applicativo ed executable fitness checks;
+- agent governance e AI feature contract;
+- production-readiness review.
 
 La regola è:
 
-> **Il progetto deve evolvere perché cambia il contesto, non perché il libro deve mostrare una tecnologia.**
+> **Il progetto evolve perché cambia il contesto, non perché il libro deve mostrare una tecnologia.**
 
-Alla fine il lettore dovrà poter aprire il capstone e vedere non soltanto il sistema finale, ma la storia delle decisioni che lo hanno portato lì.
+Il capstone non viene chiuso con un successo narrativo inventato: la Production Readiness Review conserva gli blocker reali dello scenario e resta `NO-GO` finché l'evidence richiesta non è disponibile.
 
 ## Evidenze e fonti
 
@@ -184,15 +181,30 @@ Il libro preferisce:
 - postmortem ed engineering blog dell'organizzazione coinvolta;
 - autori tecnici riconosciuti quando appropriato.
 
-La documentazione dei vendor è una fonte importante, non un oracolo universale. Le raccomandazioni vengono sempre lette dentro requisiti e trade-off del contesto.
+La documentazione dei vendor è una fonte importante, non un oracolo universale. Le raccomandazioni vengono lette dentro requisiti e trade-off del contesto.
 
-Le regole editoriali sono in:
+Le regole e gli audit sono in:
 
 - `reference/SOURCE_POLICY.md`;
 - `reference/RESEARCH_WORKFLOW.md`;
-- `SOURCE_FACTUAL_AUDIT.md`.
+- `SOURCE_FACTUAL_AUDIT.md`;
+- `reference/CHAPTERS_000_008_EVIDENCE.md`;
+- `reference/CHAPTERS_009_024_EVIDENCE.md`;
+- audit dedicati dei capitoli 25–30.
 
-Dal Capitolo 9 in avanti il flusso è esplicitamente **source-first** sui claim che richiedono evidenza. I capitoli 0–8 verranno sottoposti anche a un evidence pass retroattivo prima della release candidata.
+La copertura evidence è stata completata su **tutti i capitoli 0–30** prima della preparazione del release candidate.
+
+## Apparati finali
+
+Il manoscritto include anche un livello reader-facing di riferimento:
+
+- `reference/001_glossario.md` — glossario dei termini ricorrenti;
+- `reference/002_indice_artefatti.md` — mappa degli artefatti operativi del libro;
+- `reference/003_guida_fonti_e_reference.md` — guida alla lettura di standard, documentazione, research, case study ed ESI;
+- indice generato dei casi reali;
+- indice generato delle fonti esterne.
+
+La review editoriale finale è documentata in `EDITORIAL_AUDIT.md`.
 
 ## Un seguito metodologico
 
@@ -238,34 +250,34 @@ software.architecture.today/
 ├── BOOK_MANIFESTO.md
 ├── BOOK_ARCHITECTURE.md
 ├── SOURCE_FACTUAL_AUDIT.md
+├── EDITORIAL_AUDIT.md
 ├── book.yml
 ├── front_matter/
-│   ├── 001_example_software_industries.md
-│   └── 002_tradeoffs_not_shortcuts.md
-├── chapters/
+├── chapters/                 # Capitoli 0–30
 ├── capstone/
 │   └── example-software-industries/
 │       ├── COMPROMISE_LEDGER.md
 │       └── products/
 │           └── order-operations/
 ├── reference/
-├── scripts/
-└── build/
+└── scripts/
 ```
 
-I **Dieci comandamenti della Software Architecture nell'era dell'AI** saranno deliberatamente tenuti per la parte conclusiva del libro. Non devono diventare la struttura portante dei capitoli: arriveranno soltanto alla fine, dopo che i principi saranno stati dimostrati, discussi e messi alla prova. Saranno una sintesi seria nella sostanza e volutamente goliardica nella forma: l'ultima cosa da lasciare al lettore prima di chiudere il libro.
+I **Dieci comandamenti della Software Architecture nell'era dell'AI** costituiscono il Capitolo 30 e chiudono deliberatamente il contenuto principale del libro.
 
 ## Stato
 
-Sono presenti i capitoli da **0 a 9**, dal modello mentale iniziale fino ad API e contratti.
+Il manoscritto è completo nei **31 capitoli, dal Capitolo 0 al Capitolo 30**.
 
-Il prossimo capitolo è:
+Prima della release candidate sono stati completati:
 
-**Capitolo 10 — I dati sono architettura**
+- evidence/source audit su tutto l'arco 0–30;
+- glossario e apparati finali;
+- review editoriale corpus-wide con gate riproducibili;
+- controllo di raggiungibilità delle reference esterne;
+- build e inspection di Markdown, DOCX, PDF ed EPUB;
+- continuità del capstone ESI / Order Operations.
 
-Da questo punto il workflow di scrittura integra sistematicamente:
+La CI deve restare verde sullo stesso commit che viene promosso a release candidate.
 
-- ricerca su fonti autorevoli;
-- compromesso ESI del capitolo;
-- aggiornamento del capstone Order Operations;
-- factual/source audit.
+> **L'AI può scrivere il codice. Il timone resta a noi.**
