@@ -2,231 +2,49 @@
 
 Il refactoring nell'era dell'AI non è diventato meno importante.
 
-È diventato più facile produrre trasformazioni abbastanza grandi da superare la nostra capacità di comprenderle riga per riga.
+È diventato più facile produrre trasformazioni abbastanza ampie da superare la nostra capacità di comprenderle riga per riga.
 
-Per questo la disciplina si sposta sempre di più da:
+Per questo la disciplina si sposta da:
 
 ```text
 scrivere ogni cambiamento
 ```
 
-a:
+verso:
 
 ```text
-definire intent
-limitare blast radius
-costruire evidence
-controllare rollout
-mantenere accountability
+intent
+→ bounded change
+→ evidence
+→ stop / fallback
+→ next step
 ```
 
-## Idee chiave
+La capacità di execution cresce. Il blast radius non deve crescere insieme a lei.
 
-1. **La velocità di trasformazione non riduce automaticamente il rischio della trasformazione.**
-2. Il rischio dipende più da semantic surface, blast radius, reversibility ed evidence che dal numero di righe cambiate.
-3. Small batch significa incremento comprensibile e verificabile, non commit minuscolo senza senso.
-4. Branch by Abstraction introduce un seam; la feature flag può governare il routing. Non sono lo stesso pattern.
-5. Shadow comparison può produrre evidence prima del cutover, ma soltanto se il candidate non genera side effect incontrollati.
-6. Una differenza legacy/candidate può essere intenzionale, ma deve essere autorizzata prima del rollout.
-7. Deployment rollback, behavior fallback e data rollback sono problemi differenti.
-8. Quando entra stato persistente, la migration deve progettare compatibility, reconciliation e point of no return.
-9. Dual write senza reconciliation può aumentare il rischio.
-10. Automated refactoring, codemod e agenti hanno fit diversi a seconda di quanto la trasformazione è meccanica o semantica.
-11. Build verde e test superficiali possono produrre una **Generated Refactoring Illusion**.
-12. Gli agenti devono ricevere scope, invarianti, forbidden change, verification e stop condition.
-13. Un refactoring significativo beneficia di un **Refactoring Safety Plan**.
-14. Characterization test e target test rispondono a domande diverse.
-15. Il cleanup di flag, adapter e comparison path è parte della migration, non lavoro facoltativo successivo.
+Il principio del capitolo è quindi:
 
-## Esercizio 1 — Spezza il big bang
+> **ogni passo della trasformazione deve produrre abbastanza evidence da meritare il passo successivo.**
 
-Hai una issue:
+## Che cosa abbiamo imparato
 
-```text
-Replace the legacy notification subsystem with the new service.
-```
+Un diff grande non è automaticamente più rischioso di uno piccolo. Conta la semantic surface, ciò che può rompersi, quanto il cambiamento è reversibile e quale evidence possediamo.
 
-Proponi almeno sei batch intermedi.
+Small batch non significa spezzare artificialmente il lavoro. Significa costruire unità di cambiamento con scopo, proprietà verificabile e fallback comprensibili.
 
-Per ciascuno indica:
+Branch by Abstraction crea il punto di scelta; una feature flag può governarne il routing. Lo shadow comparison permette di osservare un candidate prima di trasferirgli authority, ma soltanto se il path ombra non produce side effect incontrollati.
 
-```text
-purpose
-evidence
-rollback/fallback
-blast radius
-```
+Zero mismatch non è sempre l'obiettivo. Quando una differenza è stata deliberatamente approvata prima del rollout, quella differenza deve emergere. È per questo che ESI usa `ED-001` e distingue `Match`, `ExpectedDifference` e `UnexpectedDifference`.
 
-Poi elimina ogni batch che non lascia il sistema in uno stato valido.
+Quando entra stato persistente, il problema cambia ancora: artifact rollback, behavior fallback e data rollback sono capability diverse. Una migration può diventare una one-way door molto prima che il codice sembri irreversibile.
 
-## Esercizio 2 — I tre rollback
+Infine, l'AI rende economici refactoring repository-wide, codemod, adapter e test. Questo aumenta il valore di transformation contract, characterization evidence, Safety Plan, stop condition e cleanup. Un build verde non basta a evitare la **Generated Refactoring Illusion**.
 
-Per una migration di datastore descrivi separatamente:
+## Artefatto operativo — Refactoring Safety Plan
 
-- deployment rollback;
-- behavior fallback;
-- data rollback.
+Il nuovo artefatto collega il change alla sua safety envelope.
 
-Spiega perché avere il primo non garantisce gli altri due.
-
-## Esercizio 3 — Disegna un seam
-
-Prendi una funzione legacy che dipende direttamente da:
-
-- database;
-- configuration globale;
-- clock;
-- provider esterno.
-
-Disegna un seam che permetta di sostituire una sola responsabilità senza riscrivere il resto del sistema.
-
-Indica quali dipendenze devono restare fuori dal nuovo domain model.
-
-## Esercizio 4 — Shadow senza side effect
-
-Hai un nuovo algoritmo di fraud scoring.
-
-Vuoi confrontarlo con il vecchio.
-
-Progetta uno shadow mode che non produca:
-
-- doppio blocco dell'ordine;
-- doppio evento;
-- doppio write;
-- modifica del decision path corrente.
-
-Definisci anche le dimensioni minime del comparison event.
-
-## Esercizio 5 — Expected Difference Registry
-
-Costruisci tre esempi:
-
-1. mismatch realmente inatteso;
-2. mismatch intenzionale approvato;
-3. mismatch che sembra intenzionale ma non ha owner/approval.
-
-Spiega quale dei tre deve fermare il rollout.
-
-## Esercizio 6 — AI transformation contract
-
-Scrivi un Agent Delegation Contract per questa richiesta:
-
-```text
-Upgrade all call sites from ClientV1 to ClientV2.
-```
-
-Deve contenere:
-
-```text
-goal
-scope
-preserved behavior
-forbidden changes
-verification
-stop condition
-expected output
-```
-
-Poi confrontalo con il prompt originale di una riga.
-
-## Esercizio 7 — Mechanical o semantic?
-
-Classifica queste attività:
-
-- rename di un metodo;
-- migrazione di namespace;
-- conversione di config XML in JSON;
-- sostituzione di una libreria auth;
-- spostamento di una business rule dal controller al dominio;
-- eliminazione di un fallback legacy;
-- conversione di una query ORM;
-- cambio di retry policy.
-
-Per ogni attività scegli fra:
-
-```text
-language tooling
-codemod
-recipe engine
-agent
-automazione + human semantic review
-manual/domain decision
-```
-
-Non esiste una risposta unica: giustifica il fit.
-
-## Esercizio 8 — Data point of no return
-
-Disegna una migration:
-
-```text
-old_customer_id
-→
-new_global_identity
-```
-
-Individua:
-
-- ultimo checkpoint completamente reversibile;
-- dati necessari alla reconciliation;
-- consumer da migrare;
-- operazione irreversibile;
-- recovery source.
-
-## Esercizio 9 — Operations Desk Classic
-
-Usa la classificazione ESI del capitolo.
-
-Spiega perché sarebbe sbagliato scrivere un test target che richiede:
-
-```text
-Enterprise + age >= 30m → Urgent
-```
-
-anche se il characterization test legacy continua correttamente a proteggerlo.
-
-## Esercizio 10 — Cleanup come acceptance criterion
-
-Per una feature flag di migrazione definisci la `Definition of Done` completa.
-
-Deve includere almeno:
-
-- 100% rollout;
-- stability window;
-- old path unused;
-- flag removal;
-- dead code removal;
-- obsolete test cleanup;
-- migration-only telemetry cleanup;
-- final documentation update.
-
-## Autovalutazione
-
-Dovresti saper rispondere senza rileggere il capitolo.
-
-1. Perché un grande diff non è automaticamente più rischioso di uno piccolo?
-2. Qual è la differenza fra Branch by Abstraction e feature flag?
-3. Che cosa rende utile un seam?
-4. Quando lo shadow mode può essere pericoloso?
-5. Perché zero mismatch non è sempre l'obiettivo corretto?
-6. Che cos'è un Expected Difference Registry?
-7. Qual è la differenza fra deployment rollback e behavior fallback?
-8. Perché una migration dati può trasformare una modifica reversibile in one-way door?
-9. Quando è utile il dual write?
-10. Perché richiede reconciliation?
-11. Quando preferiresti una recipe/codemod deterministica a un agente LLM?
-12. Che cos'è la Generated Refactoring Illusion?
-13. Quali elementi minimi deve avere un Agent Transformation Contract?
-14. Che cosa contiene un Refactoring Safety Plan?
-15. Perché il cleanup fa parte del refactoring?
-
-## Artefatto operativo
-
-Il nuovo artefatto è:
-
-> **Refactoring Safety Plan**
-
-Deve rendere leggibili almeno:
+Deve rendere visibili almeno:
 
 ```text
 goal
@@ -236,8 +54,9 @@ behavior classification
 invariants
 preconditions
 phases
-evidence
+evidence per phase
 stop conditions
+stop authority
 fallback / rollback
 point of no return
 owners
@@ -250,67 +69,280 @@ Per ESI vive in:
 capstone/example-software-industries/products/order-operations/docs/refactoring-safety-plan.md
 ```
 
+Il piano non certifica il change. Dichiara quale evidence deve esistere prima di aumentarne il blast radius.
+
+## Esercizio 1 — Spezzare un big bang
+
+Issue:
+
+```text
+Replace the legacy notification subsystem with the new service.
+```
+
+Proponi almeno sei batch intermedi.
+
+Per ciascuno indica:
+
+```text
+purpose
+claim
+verification
+fallback / rollback
+blast radius
+```
+
+Elimina ogni batch che non lascia il sistema in uno stato valido o che non produce una nuova evidence utile.
+
+## Esercizio 2 — Rollback non è una parola sola
+
+Per una migration di datastore descrivi separatamente:
+
+```text
+deployment rollback
+behavior fallback
+configuration rollback
+data rollback
+contract rollback
+```
+
+Spiega quali sono realmente disponibili e quale one-way door li rende più difficili o impossibili.
+
+## Esercizio 3 — Disegnare un seam
+
+Prendi una capability legacy che dipende direttamente da database, configuration globale, clock e provider esterno.
+
+Disegna un boundary che permetta di sostituire una sola responsabilità.
+
+Indica:
+
+- quale contratto vedono i caller;
+- quali dettagli legacy restano nell'adapter;
+- quali side effect rimangono fuori dal candidate;
+- come effettueresti il fallback.
+
+## Esercizio 4 — Shadow senza doppio effetto
+
+Hai un nuovo algoritmo di fraud scoring.
+
+Vuoi confrontarlo con il vecchio prima di renderlo authoritative.
+
+Progetta uno shadow mode che non produca doppio blocco, doppio evento, doppia write o doppia chiamata con effetto economico.
+
+Definisci poi un comparison event minimo e una stop condition.
+
+## Esercizio 5 — Expected Difference Registry
+
+Costruisci tre casi:
+
+```text
+mismatch inatteso
+mismatch intenzionale approvato prima del rollout
+mismatch dichiarato "intenzionale" soltanto dopo essere apparso
+```
+
+Spiega quale può proseguire, quale deve fermare il rollout e perché l'approvazione temporale è parte dell'evidence.
+
+## Esercizio 6 — Transformation Contract per un agente
+
+Richiesta iniziale:
+
+```text
+Upgrade all call sites from ClientV1 to ClientV2.
+```
+
+Scrivi un contratto con:
+
+```text
+goal
+allowed scope
+must preserve
+intentional changes
+forbidden changes
+verification
+stop condition
+expected Verification Bundle
+```
+
+Poi confrontalo con il prompt originale e identifica quante decisioni prima erano implicite.
+
+## Esercizio 7 — Meccanico o semantico?
+
+Classifica queste trasformazioni:
+
+- rename di un metodo;
+- namespace migration;
+- conversione config XML→JSON;
+- sostituzione auth library;
+- spostamento di una business rule;
+- eliminazione di un fallback legacy;
+- conversione di una query ORM;
+- cambio della retry policy.
+
+Per ciascuna scegli il fit fra:
+
+```text
+language tooling
+search/replace
+AST codemod
+recipe engine
+agent + deterministic verification
+human/domain decision
+```
+
+Giustifica la scelta in base alla semantic surface, non alla moda dello strumento.
+
+## Esercizio 8 — Data point of no return
+
+Disegna una migration:
+
+```text
+old_customer_id
+→
+new_global_identity
+```
+
+Identifica:
+
+```text
+last fully reversible checkpoint
+authoritative source per phase
+reconciliation evidence
+consumers to migrate
+irreversible operation
+recovery source
+```
+
+Poi spiega perché il rollback dell'applicazione potrebbe non essere più sufficiente.
+
+## Esercizio 9 — Characterization e target possono divergere correttamente
+
+Usa Operations Desk Classic.
+
+Spiega perché la legacy suite deve continuare a verificare:
+
+```text
+Enterprise + age >= 30m
+→ Urgent
+```
+
+mentre la target suite deve verificare che la stessa regola **non** esista più.
+
+Quale artefatto rende questa apparente contraddizione una differenza deliberata invece di una regressione?
+
+## Esercizio 10 — Cleanup come Definition of Done
+
+Per una migration flag definisci la chiusura completa:
+
+```text
+candidate stable
+legacy path unused
+fallback window closed intentionally
+flag removed
+adapter removed
+dead code removed
+obsolete tests removed
+migration-only telemetry removed
+docs updated
+```
+
+Se una parte non può ancora essere eliminata, indica quale dependency o evidence manca.
+
+## Autovalutazione
+
+Dovresti saper spiegare senza rileggere il capitolo perché il rischio non sia proporzionale alle linee cambiate; che cosa renda un batch davvero piccolo; la differenza fra Branch by Abstraction e feature flag; quando lo shadow mode sia pericoloso; perché zero mismatch non sia sempre corretto; che cosa renda una Expected Difference realmente attesa; la differenza fra deployment rollback e behavior fallback; perché i dati introducano one-way door; quando il dual write richieda reconciliation; quando preferire codemod/recipe a un agente; che cosa sia la Generated Refactoring Illusion; quali elementi abbia un transformation contract; a che cosa serva il Refactoring Safety Plan; perché una stop condition richieda una stop authority; e perché il cleanup faccia parte della migrazione.
+
+Se una risposta resta vaga, riscrivila nella forma:
+
+```text
+intent
+→ preserved / changed semantics
+→ evidence
+→ stop / fallback
+```
+
 ## Cosa cambia con l'AI
 
-Prima dell'AI il costo di modificare centinaia di file rappresentava spesso un freno naturale.
+Prima dell'AI il costo di modificare centinaia di file rappresentava un freno naturale, anche se accidentale.
 
-Quel freno si sta riducendo.
+Quel freno diminuisce.
 
-Questo è positivo, ma rimuove anche una forma involontaria di prudenza.
+Possiamo produrre rapidamente massive rename, framework upgrade, adapter, migration script, test e documentazione.
 
-Ora possiamo produrre molto rapidamente:
+La nuova scarsità diventa:
 
-- massive rename;
-- framework upgrade;
-- adapter;
-- test;
-- migration script;
-- infrastructure update;
-- documentation rewrite.
+```text
+semantic specification
+scope discipline
+strong verification
+rollback design
+stop authority
+cleanup
+```
 
-Di conseguenza aumenta il valore di:
+Per questo l'AI non rende meno necessario il refactoring disciplinato.
 
-- transformation specification;
-- scope boundary;
-- characterization evidence;
-- small batch;
-- automated verification;
-- stop condition;
-- rollback;
-- cleanup.
+Rende più conveniente essere rigorosi: possiamo usare la velocità per creare seam, adapter e checkpoint invece di comprare un mega-diff indivisibile.
 
-> **Quando il costo del diff scende, il costo di capire il blast radius diventa relativamente più importante.**
+## Stato ESI dopo il Capitolo 18
 
-## Caso reale: trasformare senza big bang
+Il capstone può affermare localmente:
 
-AWS documenta Branch by Abstraction come tecnica per far coesistere implementazioni durante la modernizzazione, mentre Microsoft descrive lo Strangler Fig come approccio di sostituzione incrementale che riduce il rischio rispetto a grandi cambiamenti sistemici.
+```text
+legacy characterization      Verified locally
+PriorityPolicy seam          Codified + Verified locally
+LegacyPriorityAdapter        Codified + Verified locally
+ConfirmedPriorityPolicy      Codified + Verified locally
+shadow comparison            Codified + Verified locally
+ED-001                       documented / encoded
+production shadow rollout    Designed / Not executed
+candidate cutover            Designed / Not authorized
+legacy retirement            Not started
+```
+
+Non abbiamo migrato persistence, eliminato consumer o simulato rollout production inesistenti.
+
+È una fotografia intenzionalmente incompleta e quindi credibile.
+
+## Casi reali: trasformare senza big bang
+
+AWS documenta Branch by Abstraction come tecnica per far convivere implementazioni durante una modernizzazione, mentre Microsoft descrive lo Strangler Fig come sostituzione incrementale per ridurre il rischio del cutover sistemico.
 
 Fonti:
 
 - [AWS Prescriptive Guidance — Branch by abstraction](https://docs.aws.amazon.com/prescriptive-guidance/latest/modernization-decomposing-monoliths/branch-by-abstraction.html)
 - [Microsoft Learn — Strangler Fig pattern](https://learn.microsoft.com/azure/architecture/patterns/strangler-fig)
 
-GitHub documenta in più casi feature flag, rollout progressivi, dual path e rimozione finale del vecchio codice.
+GitHub ha documentato feature flag, rollout progressivi e migrazioni dati in più fasi, inclusa la rimozione finale dei vecchi path.
 
 Fonti:
 
 - [GitHub Engineering — How we ship code faster and safer with feature flags](https://github.blog/engineering/infrastructure/ship-code-faster-safer-feature-flags/)
 - [GitHub Engineering — Moving persistent data out of Redis](https://github.blog/engineering/infrastructure/moving-persistent-data-out-of-redis/)
 
-Il punto comune è più generale delle tecnologie utilizzate:
+Il principio comune è:
 
-> **separare la trasformazione dal momento irreversibile del cutover.**
+> **separare la trasformazione dal momento irreversibile in cui il nuovo path diventa l'unica verità rimasta.**
+
+## Ponte al Capitolo 19 — Architecture Evolution
+
+Il Capitolo 18 ci ha mostrato come governare una trasformazione intenzionale.
+
+Ma un'architettura può degradarsi anche senza grandi refactoring o modernization program.
+
+Può farlo una pull request alla volta: un import temporaneo, una dependency introdotta fuori boundary, una feature flag mai rimossa, una eccezione di layering che diventa precedente.
+
+Il Capitolo 19 cambia quindi prospettiva.
+
+Non chiederà soltanto:
+
+> Come cambiamo in sicurezza?
+
+Chiederà:
+
+> **Come facciamo a sapere, nel tempo, se il modo in cui continuiamo a cambiare sta ancora rispettando l'architettura che abbiamo deciso?**
+
+Entreranno fitness function, architecture test, drift, decision expiry, exception governance e review trigger.
 
 ## Corollario
 
-Nel Capitolo 17 abbiamo detto:
-
-> prima capire, poi cambiare.
-
-Ora possiamo aggiungere:
-
-> **quando cambi, fai in modo che ogni passo produca abbastanza evidence da meritare il passo successivo.**
-
-Il refactoring nell'era dell'AI non è l'arte di produrre enormi trasformazioni più velocemente.
-
-È la capacità di usare una execution molto più potente senza concederle un blast radius altrettanto grande.
+> **La trasformazione è governata quando ogni passo rende più forte l'evidence del passo successivo e non chiude una porta prima di avere deciso consapevolmente che non ci servirà più tornare indietro.**
