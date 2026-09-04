@@ -122,7 +122,7 @@ Spiega anche in quale modo la metrica potrebbe mentire pur restando matematicame
 
 ## Esercizio 5 — Trova il vero driver
 
-Prendi una fattura o una architettura ipotetica e classifica le principali superfici come `fixed`, `variable`, `step`, `shared` o `transition`.
+Prendi una fattura o un'architettura ipotetica e classifica le principali superfici come `fixed`, `variable`, `step`, `shared` o `transition`.
 
 Per ogni costo variabile indica il driver. Per ogni step cost indica la soglia che può far cambiare la curva. Per ogni transition cost indica la removal condition.
 
@@ -130,7 +130,7 @@ Alla fine scegli la voce più grande e chiediti: **è davvero il driver più imp
 
 ## Esercizio 6 — Reliability premium
 
-Confronta una topologia single-region con una alternativa active-active multi-region.
+Confronta una topologia single-region con un'alternativa active-active multi-region.
 
 Prima di scegliere, scrivi business impact del regional failure, RTO, RPO, compliance constraint, operational complexity, premium economico ed evidence che useresti per giustificarlo.
 
