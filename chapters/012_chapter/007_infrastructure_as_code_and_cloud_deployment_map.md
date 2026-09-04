@@ -1,203 +1,52 @@
-## Infrastructure as Code: l'infrastruttura è parte del software
+## Infrastructure as Code: l’infrastruttura è parte del comportamento del workload
 
-Se il workload dipende da:
+Se il sistema dipende da compute, database, messaging, identity, networking, secret store e monitoring, la configurazione di queste capability non può vivere soltanto nella memoria di chi ha cliccato un portale. È parte dello stato intenzionale del software.
 
-- compute;
-- database;
-- messaging;
-- identity;
-- networking;
-- secret store;
-- monitoring;
+Creare manualmente una risorsa non è sempre sbagliato. In esplorazione, laboratorio o troubleshooting può essere il modo più veloce per imparare. Il problema nasce quando quel gesto diventa la source of truth della produzione. Da quel momento diventa difficile sapere che cosa sia configurato, perché, chi l’abbia cambiato, come differiscano gli ambienti e come ricostruire il sistema dopo un failure.
 
-allora la configurazione di queste capability è parte del comportamento del sistema.
+Questa è la forma operativa della configuration drift.
 
-Non può vivere soltanto nella memoria di chi ha cliccato il portale.
+## IaC: rendere reviewable lo stato intenzionale
 
-## ClickOps come stato non riproducibile
-
-Creare una risorsa manualmente non è sempre sbagliato.
-
-Può essere utile per:
-
-- esplorazione;
-- spike;
-- laboratorio;
-- troubleshooting.
-
-Il problema nasce quando la configurazione manuale diventa production source of truth.
-
-In quel momento abbiamo difficoltà a sapere:
-
-- che cosa è stato configurato;
-- perché;
-- chi lo ha cambiato;
-- se dev/test/prod differiscono;
-- come ricostruire l'ambiente;
-- come revieware il cambiamento;
-- come tornare indietro.
-
-Questa è configuration drift.
-
-## IaC come artefatto architetturale
-
-Infrastructure as Code rende la configurazione:
-
-- versionata;
-- reviewable;
-- ripetibile;
-- diffabile;
-- automatizzabile;
-- collegabile alle decisioni.
-
-Microsoft descrive Bicep come linguaggio dichiarativo per definire risorse Azure e distribuire la stessa infrastruttura in modo consistente nel lifecycle.
+Infrastructure as Code porta la configurazione nel normale ciclo di engineering: versioning, diff, review, automazione e ripetibilità. Microsoft descrive Bicep come linguaggio dichiarativo per definire risorse Azure e distribuire infrastruttura coerente lungo il lifecycle.
 
 Fonte:
 
 - [Microsoft Learn — What is Bicep?](https://learn.microsoft.com/azure/azure-resource-manager/bicep/overview)
 
-Il principio è provider-independent.
+Il principio non dipende dallo strumento. Terraform, CloudFormation, CDK, Pulumi o Bicep possono essere scelte diverse per ottenere la stessa proprietà fondamentale:
 
-Possiamo usare:
+> **l’infrastruttura significativa deve essere descritta come stato intenzionale versionato.**
 
-- Bicep;
-- Terraform;
-- CloudFormation;
-- AWS CDK;
-- Pulumi;
-- altri strumenti.
+## Dichiarativo non significa automaticamente sicuro
 
-La scelta dello strumento viene dopo la proprietà desiderata:
+Un template IaC può rendere ripetibile anche una configurazione sbagliata. Restano da governare state, secret, parameter, destructive change, deployment ordering, privilege della pipeline, policy, drift e rollback.
 
-> **l'infrastruttura significativa deve essere descritta come stato intenzionale versionato.**
+Per questo l’IaC segue la stessa disciplina del codice: review, validation, test, promotion fra ambienti e change control proporzionato al rischio. Un `terraform plan` o un `bicep build` riuscito dimostra sintassi e una parte della coerenza, non la correttezza architetturale della topologia.
 
-## IaC non è automazione completa
+## Gli ambienti devono differire intenzionalmente
 
-Avere un file Terraform o Bicep non significa che il workload sia automaticamente operabile.
+Dev, staging e production non hanno bisogno dello stesso costo né della stessa capacità. Development può usare SKU più piccoli, meno redundancy e retention ridotta; production può richiedere più capacity, backup e alerting più severi.
 
-Dobbiamo ancora gestire:
+La proprietà importante è conservare lo stesso **architecture intent** e lo stesso deployment mechanism, rendendo esplicite le differenze attraverso parameter e policy. Environment parity non significa pagare in development la stessa HA della produzione; significa evitare quattro ambienti costruiti manualmente con quattro semantiche diverse.
 
-- secret;
-- state;
-- environment parameter;
-- migration;
-- deployment ordering;
-- rollback;
-- destructive changes;
-- policy;
-- drift;
-- validation;
-- privilege della pipeline.
+## Il cloud non modifica automaticamente il deployment boundary
 
-Un template IaC può automatizzare anche un errore.
-
-Quindi segue le stesse regole del codice:
-
-- review;
-- test;
-- static validation;
-- environment promotion;
-- change control proporzionato al rischio.
-
-## Environment: differenze intenzionali
-
-Dev, test, staging e prod non devono essere necessariamente identici in capacità.
-
-Sarebbe costoso e spesso inutile.
-
-Dev può avere:
-
-- SKU più piccolo;
-- una instance;
-- retention ridotta;
-- meno capacity.
-
-Prod può avere:
-
-- maggiore redundancy;
-- backup più robusto;
-- scaling diverso;
-- alert più severi.
-
-Ma le differenze devono essere **esplicite**.
-
-Quindi:
+Nel Capitolo 8 abbiamo scelto un modular monolith. La disponibilità di container, function e subscription non ci obbliga a trasformare ogni modulo in una risorsa cloud distinta.
 
 ```text
-same architecture intent
-+ environment-specific parameters
+modulo ≠ container ≠ service ≠ subscription
 ```
 
-non:
+Questi boundary rispondono a problemi differenti. Il deployment boundary deve rimanere vicino al lifecycle reale del software finché un requisito non giustifica una separazione più forte.
 
-```text
-quattro ambienti costruiti manualmente in quattro modi diversi
-```
+## Cloud Deployment Map: dove il sistema diventa operabile
 
-## Environment parity non significa cost parity
-
-La proprietà importante è che ciò che testiamo rappresenti abbastanza bene ciò che deployiamo.
-
-Per esempio:
-
-- stesso runtime family;
-- stessa modalità di autenticazione;
-- stessa topologia logica;
-- stesso message contract;
-- stesse migration;
-- stesso deployment mechanism.
-
-Non serve che development paghi la stessa HA di production.
-
-## Deployment unit
-
-Nel Capitolo 8 abbiamo scelto un modular monolith.
-
-Questo ha conseguenze anche sul cloud.
-
-Non dobbiamo trasformare ogni modulo in una risorsa cloud distinta soltanto perché l'infrastruttura lo rende facile.
-
-Il deployment boundary corrente resta vicino al lifecycle reale del software.
-
-Questo è importante perché il cloud tende a spingerci verso una falsa equivalenza:
-
-```text
-modulo
-=
-container
-=
-service
-=
-subscription
-```
-
-Questa equivalenza non esiste.
-
-I boundary hanno granularità diverse.
-
-## Cloud Deployment Map
-
-Introduciamo un nuovo artefatto operativo del libro:
+Introduciamo quindi un nuovo artefatto:
 
 > **Cloud Deployment Map**
 
-Serve a rispondere a:
-
-- dove gira il workload?
-- quali managed service usa?
-- quali failure boundary esistono?
-- quali identity attraversano i boundary?
-- quali dati sono stateful?
-- quale team possiede cosa?
-- come viene deployed?
-- come viene osservato?
-- come viene recuperato?
-
-Non è un inventario completo di risorse.
-
-È una vista decision-oriented.
-
-## Template
+Non è l’inventario completo delle resource ID. È una vista decision-oriented che rende visibili runtime, state, messaging, identity, failure boundary, ownership, recovery e cost driver.
 
 ```markdown
 # Cloud Deployment Map
@@ -235,9 +84,7 @@ Non è un inventario completo di risorse.
 ## Review triggers
 ```
 
-## Una vista grafica
-
-Per esempio:
+Una vista grafica può aiutare:
 
 ```mermaid
 flowchart LR
@@ -252,108 +99,32 @@ flowchart LR
     IaC --> Msg
 ```
 
-Questo diagramma da solo non basta.
+Il diagramma acquista valore quando sappiamo anche chi possiede i componenti, quali identity attraversano i confini, quale stato deve essere recuperato e quale quality attribute giustifica ogni elemento.
 
-Dobbiamo aggiungere almeno:
+## Context Map e Deployment Map raccontano cose diverse
 
-- failure boundary;
-- ownership;
-- identity;
-- recovery;
-- quality attribute che giustificano la topologia.
+L’Architecture Context Map racconta responsabilità e dipendenze del sistema. La Cloud Deployment Map racconta dove e come quelle responsabilità vengono operate. Il dominio può restare stabile mentre cambia il runtime cloud; allo stesso modo una nuova region non crea automaticamente un nuovo bounded context.
 
-## Non confondere Cloud Deployment Map e Architecture Context Map
+Tenere separate le due viste impedisce all’infrastruttura di riscrivere accidentalmente il modello del prodotto.
 
-La Context Map risponde soprattutto a:
+## La topologia deve avere una genealogia decisionale
 
-```text
-chi interagisce con il sistema?
-quali responsabilità e dipendenze esistono?
-```
+Quando compare una nuova region, queue, identity, runtime o database, la Cloud Deployment Map dovrebbe ricondurci a una domanda: **quale requisito o failure mode ha causato questa risorsa?**
 
-La Cloud Deployment Map risponde a:
+È il ponte fra ADR e deployment topology. Se una risorsa non ha una ragione comprensibile, potrebbe essere service sprawl o una decisione ereditata che merita review.
 
-```text
-dove e come quelle responsabilità vengono operate nel cloud?
-```
-
-Lo stesso sistema può avere una Context Map stabile mentre cambia deployment topology.
-
-Questa separazione evita di confondere dominio e infrastruttura.
-
-## Deployment architecture come decision log
-
-Se introduciamo:
-
-- nuova region;
-- nuova queue;
-- nuovo database;
-- nuovo runtime;
-- nuovo private endpoint;
-- nuova identity;
-
-la mappa deve farci chiedere:
-
-> quale requisito o failure mode ha causato questo cambiamento?
-
-Questo è il ponte tra ADR e cloud topology.
-
-## Real case — mission-critical architecture e IaC
-
-La reference architecture Azure mission-critical raccomanda provisioning ripetibile tramite IaC e deployment automatizzati proprio perché consistency e recovery del workload dipendono dalla capacità di ricreare ambienti e scale unit in modo controllato.
+La reference architecture Azure mission-critical insiste sul provisioning ripetibile tramite IaC perché consistency e recovery dipendono dalla capacità di ricreare ambienti e scale unit in modo controllato.
 
 Fonte:
 
 - [Microsoft Learn — Mission-critical architecture on Azure](https://learn.microsoft.com/azure/architecture/reference-architectures/containers/aks-mission-critical/mission-critical-network-architecture)
 
-Non copieremo quella reference architecture per Order Operations.
+Order Operations non copierà quella topologia: non ha lo stesso failure objective. Il principio trasferibile è che **quando la riproducibilità dell’infrastruttura entra nella recovery strategy, diventa una proprietà architetturale**.
 
-Il nostro workload non è mission-critical nello stesso senso.
+## AI e IaC: più veloce da generare, non più semplice da possedere
 
-Usiamo il caso per sostenere il principio:
+Gli agenti possono creare Bicep, Terraform, policy, pipeline e Kubernetes manifest con grande velocità. Possono anche produrre configurazioni sintatticamente perfette che espongono una risorsa pubblicamente, assegnano permission eccessive, dimenticano backup, scelgono SKU sproporzionate o costruiscono una topologia che nessuno sa operare.
 
-> **quando l'infrastruttura diventa parte della strategia di reliability, la sua riproducibilità diventa una proprietà architetturale.**
+La review dell’IaC deve quindi verificare security, reliability, cost, operability, ownership e recovery, non soltanto la validità del template.
 
-## L'AI e l'Infrastructure as Code
-
-Gli agenti possono generare molto velocemente:
-
-- Terraform;
-- Bicep;
-- CloudFormation;
-- Kubernetes manifest;
-- policy;
-- pipeline.
-
-Questo è utile.
-
-Ma aumenta un rischio.
-
-Un agente può produrre infrastruttura sintatticamente valida che:
-
-- espone una risorsa pubblicamente;
-- usa SKU sproporzionate;
-- dimentica backup;
-- crea permission eccessive;
-- apre egress non necessario;
-- abilita retention sbagliata;
-- costruisce una topologia che nessuno sa operare.
-
-La review dell'IaC deve quindi verificare almeno:
-
-```text
-security
-reliability
-cost
-operability
-ownership
-rollback/recovery
-```
-
-non soltanto:
-
-```text
-terraform plan succeeds
-```
-
-> **L'IaC rende l'infrastruttura codice. Non rende il codice automaticamente architettura corretta.**
+> **L’IaC rende l’infrastruttura codice. Non rende il codice automaticamente architettura corretta.**
