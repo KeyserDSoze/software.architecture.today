@@ -1,24 +1,14 @@
 ## AI e boundary design
 
-L'AI può essere estremamente efficace nel proporre strutture di progetto.
+L'AI può proporre strutture di progetto con una velocità impressionante. Chiediamo di “organizzare il repository secondo clean architecture” o di “dividere il monolite in moduli” e in pochi secondi otteniamo cartelle, interfacce, adapter, use case, dependency injection e test.
 
-Chiediamo:
+Il risultato può sembrare molto professionale. La domanda importante, però, è un'altra:
 
-> “Organizza questo repository secondo clean architecture.”
+> **I confini riflettono davvero il problema o soltanto un pattern riconoscibile dal modello?**
 
-oppure:
+## Pattern-shaped architecture
 
-> “Dividi questo monolite in moduli.”
-
-E in pochi secondi possiamo ottenere nuove cartelle, interfacce e adapter, use case e dependency injection, test e diagrammi. Il risultato può apparire molto professionale.
-
-Ma c'è una domanda più importante:
-
-> **i confini riflettono davvero il problema o soltanto un pattern riconoscibile dal modello?**
-
-### Pattern-shaped architecture
-
-Un agente ha visto moltissimi esempi di strutture come:
+Gli agenti hanno visto moltissimi esempi di strutture come:
 
 ```text
 domain/
@@ -35,87 +25,58 @@ services/
 repositories/
 ```
 
-oppure microservizi organizzati per business capability.
+Quando il contesto è povero, è naturale che riempiano i vuoti con configurazioni statisticamente comuni. Il risultato è una **architecture by prior**: il sistema assume la forma degli esempi conosciuti più che delle forze reali del dominio.
 
-Può quindi produrre rapidamente una struttura plausibile.
+La struttura può essere pulita e il boundary sbagliato.
 
-Ma una struttura plausibile non è necessariamente una struttura adatta.
+## Prima diagnosi, poi decomposizione
 
-Se il contesto è povero, l'agente tende a riempire i vuoti con convenzioni statisticamente comuni.
+Prima di chiedere un refactoring repository-wide è spesso più utile separare comprensione e proposta.
 
-Questa è una forma di **architecture by prior**.
+Possiamo chiedere all'agente di identificare le responsabilità presenti, i dati usati, le regole duplicate, i punti di change coupling e le dipendenze che attraversano aree diverse, senza ancora proporre una nuova struttura.
 
-Il sistema assume la forma degli esempi conosciuti invece che delle forze reali del problema.
-
-### Chiedere prima il reasoning surface
-
-Prima di chiedere una ristrutturazione, è spesso più utile chiedere all'agente di produrre una diagnosi.
-
-Per esempio:
-
-> “Identifica le principali responsabilità presenti nel repository. Per ciascuna, indica file coinvolti, dati posseduti, dipendenze, regole duplicate e punti di change coupling. Non proporre ancora una nuova struttura.”
-
-Questa richiesta separa:
+Solo dopo trasformiamo quell'analisi in boundary hypothesis.
 
 ```text
 comprensione
+→ ipotesi di confine
+→ verifica
 → proposta
+→ refactoring
 ```
 
-invece di fondere tutto in un singolo refactoring.
+Questa sequenza riduce il rischio che il pattern scelto decida retroattivamente quale problema stiamo vedendo.
 
-È coerente con il metodo del libro.
+## Boundary hypothesis con evidenza e incertezza
 
-### Boundary discovery con evidenza
+Un agente può cercare import graph, chiamate tra package, tabelle condivise, termini di dominio, history dei file, test end-to-end, CODEOWNERS, API interne, eventi e configurazioni. Il punto è non trasformare automaticamente questi segnali in verità.
 
-Un agente può cercare segnali come:
-
-- import graph;
-- chiamate tra package;
-- tabelle usate da più aree;
-- termini di dominio ricorrenti;
-- history dei file;
-- test che attraversano più componenti;
-- ownership CODEOWNERS;
-- API interne;
-- eventi;
-- feature flag;
-- configurazioni.
-
-Ma ogni boundary hypothesis dovrebbe essere accompagnata da evidenza.
-
-Per esempio:
+Una buona ipotesi dovrebbe mostrare anche l'evidenza:
 
 ```text
 Ipotesi: Orders e Shipping sono responsabilità distinte.
 
 Evidenza:
-- hanno vocabolari differenti;
+- usano vocabolari differenti;
 - cambiano prevalentemente per ragioni differenti;
 - Shipping integra provider esterni specifici;
-- Orders usa solo un sottoinsieme dello stato fulfillment;
-- le regole di cancellazione appartengono a Orders.
+- Orders usa soltanto un sottoinsieme del significato fulfillment;
+- la cancellation policy appartiene a Orders.
 
 Incertezza:
 - alcune query leggono oggi entrambe le tabelle;
-- ownership del team non è documentata.
+- l'ownership organizzativa non è completamente documentata.
 ```
 
-Questa forma è molto più utile di:
+Questa forma è molto più utile di “crea due microservizi”, perché rende contestabile il reasoning prima di renderlo costoso nel codice.
 
-> “Crea due microservizi.”
+## Refactoring ampio non significa refactoring sicuro
 
-### Refactoring repository-wide
+Una volta deciso il boundary, l'AI rende economico spostare centinaia di file, aggiornare import e generare adapter. È una capacità enorme, ma non rende la trasformazione semanticamente sicura.
 
-Una volta deciso il confine, l'AI rende economico spostare molti file.
+Una riorganizzazione può rompere transaction boundary, cambiare dependency injection, alterare serializzazione, lasciare accessi cross-domain nascosti o introdurre adapter che riproducono una regola in più punti.
 
-Questo è potente.
-
-Ed è pericoloso.
-
-Una riorganizzazione può cambiare import e dependency injection, rompere test o modificare transazioni, alterare serializzazione, introdurre adapter incompleti e lasciare accessi cross-boundary nascosti. Per questo il refactoring dei confini deve essere verificato con proprietà strutturali.
-
-Per esempio:
+Per questo le trasformazioni ampie devono essere accompagnate da proprietà verificabili, per esempio:
 
 ```text
 orders/domain non importa adapters
@@ -124,89 +85,53 @@ nessun modulo accede alle tabelle possedute da un altro modulo
 UI non implementa cancellation policy
 ```
 
-Più queste regole sono automatizzabili, più possiamo delegare in sicurezza trasformazioni ampie.
+Più il boundary può essere espresso come test, lint rule o dependency constraint, più possiamo delegare in sicurezza il lavoro meccanico.
 
-### Gli architecture test come confine eseguibile
+## Da architettura documentata a constraint eseguibile
 
-Immaginiamo una regola concettuale:
+Una regola come “il domain layer non dipende dal framework HTTP o dal database” è utile in `architecture.md`, ma rimane facile da violare accidentalmente.
 
-> il domain layer non deve dipendere da framework HTTP o database.
-
-Se rimane soltanto in `architecture.md`, un agente può violarla accidentalmente.
-
-Se possiamo esprimerla come test o lint rule, il repository diventa capace di difendere il confine.
-
-Questa è una trasformazione importante:
+Quando possiamo tradurla in un architecture test, il repository inizia a difendere il proprio design:
 
 ```text
 documented architecture
 → executable architectural constraint
 ```
 
-Non tutte le regole possono essere automatizzate.
+Non tutto può essere automatizzato. Cohesion, significato e ownership richiedono judgment. Molte dependency direction, invece, possono diventare verifiche meccaniche.
 
-La cohesion semantica, per esempio, richiede giudizio.
+Questo è il punto ideale di collaborazione tra decisione umana ed execution automatizzata.
 
-Ma molte dipendenze proibite sì.
+## Boilerplate economico, complessità ancora costosa
 
-### Il rischio dell'abstraction explosion
+Gli agenti abbassano molto il costo di creare interface, factory, adapter, DTO, facade, mediator e handler. Possiamo quindi costruire architetture che un team avrebbe evitato semplicemente perché il boilerplate era troppo costoso da scrivere.
 
-Gli agenti sono molto bravi a generare boilerplate.
+Quel freno economico scompare. Il costo cognitivo no.
 
-Questo abbassa il costo apparente di creare interface e factory, adapter e mapper, DTO, facade, mediator e handler. Di conseguenza possiamo finire con architetture che un team umano avrebbe evitato semplicemente perché troppo costose da scrivere.
-
-L'AI rimuove quel freno economico.
-
-Non rimuove il costo cognitivo.
-
-Ogni astrazione aggiunge un nome e una relazione, un passaggio di navigazione, una regola da capire e una nuova possibilità di divergenza.
+Ogni astrazione aggiunge un nome, una relazione, un punto di navigazione e una nuova possibilità di divergenza.
 
 > **Boilerplate economico non significa complessità gratuita.**
 
-### Chiedere la versione più semplice
+Per questo un prompt avversariale utile è chiedere di ridurre la proposta al minimo che preserva ownership, invarianti e reversibilità. Per ogni interfaccia possiamo chiedere quale decisione stia realmente nascondendo; se non esiste una risposta convincente, forse l'astrazione non serve.
 
-Un buon adversarial prompt può essere:
+## Review in entrambe le direzioni
 
-> “Questa proposta contiene troppi confini o astrazioni? Riducila fino al minimo che preserva ownership, invarianti e reversibilità.”
+Quando un agente propone una decomposizione, una singola review può ancora condividere lo stesso bias. È utile attaccare il boundary da due direzioni opposte.
 
-Oppure:
+Prima chiediamo di dimostrare che abbiamo **separato troppo**, cercando invarianti, transaction boundary, change coupling e latency sensibile che suggeriscano di tenere le parti insieme. Poi chiediamo di dimostrare che abbiamo **separato troppo poco**, cercando ownership, vocabolari, failure domain e ragioni di cambiamento indipendenti.
 
-> “Per ogni interface proposta, spiega quale decisione nasconde. Se non riesci a identificarne una, suggerisci di rimuoverla.”
+La tensione tra le due analisi è più utile del consenso superficiale.
 
-Questo trasforma l'AI da generatore di pattern a critico dell'overengineering.
+## Context containment come segnale di qualità
 
-### Boundary review indipendente
+Un buon boundary riduce la quantità di contesto necessaria per fare una modifica corretta. Se ogni task richiede l'intero repository, abbiamo probabilmente troppa conoscenza globale implicita. Se un modulo sembra completamente autonomo ma le modifiche producono continuamente effetti esterni inattesi, forse abbiamo nascosto dipendenze che dovevano restare visibili.
 
-Quando un agente propone un nuovo confine, possiamo chiedere a un secondo agente:
-
-> “Assumi che questa decomposizione sia sbagliata. Cerca change coupling, transazioni, invarianti o user journey che suggeriscano che questi componenti dovrebbero restare insieme.”
-
-E poi:
-
-> “Assumi invece che il componente sia troppo grande. Cerca responsabilità con ragioni di cambiamento realmente indipendenti.”
-
-Le due review spingono in direzioni opposte.
-
-La decisione resta umana.
-
-### Context containment come metrica qualitativa
-
-Un buon confine riduce la quantità di contesto necessaria per una modifica.
-
-Possiamo quindi usare una domanda pratica:
+La domanda pratica è:
 
 > **Per implementare correttamente questa feature, quanta parte del sistema deve conoscere un engineer o un agente?**
 
-Se ogni task richiede l'intero repository, abbiamo probabilmente molta conoscenza globale implicita.
+Il confine buono contiene il contesto senza mentire sulle relazioni che contano.
 
-Se basta un piccolo modulo ma le modifiche falliscono continuamente perché non considerano effetti esterni, abbiamo forse isolato troppo.
-
-Il confine buono contiene contesto senza nascondere dipendenze essenziali.
-
-### Cosa cambia con l'AI
-
-L'AI non cambia i principi fondamentali di modularità.
-
-Cambia però il costo relativo di alcune azioni: esplorare grandi repository, proporre decomposizioni, generare adapter, applicare refactoring meccanici e produrre molte varianti costa meno. Proprio per questo aumenta il valore di ciò che resta costoso: scegliere il confine giusto, capire il significato, riconoscere il coupling reale, evitare astrazioni inutili e verificare che la trasformazione preservi il comportamento.
+L'AI rende molto più economici exploration, decomposizione e refactoring. Proprio per questo aumenta il valore della parte che rimane difficile: scegliere il boundary corretto, riconoscere il coupling reale e verificare che la nuova struttura preservi il significato.
 
 > **L'AI può spostare diecimila file. Non può rendere corretto un confine che abbiamo capito male.**
