@@ -1,77 +1,71 @@
-# 19.4 — Governance leggera, eccezioni ed expiry
+# 19.4 — Governance leggera: feedback vicino al change, eccezioni visibili
 
-La parola governance fa spesso pensare a un processo separato dallo sviluppo.
+Governance può significare molte cose.
 
-Ticket.
+Nel modello peggiore è un processo esterno al lavoro:
 
-Review board.
+```text
+ticket
+→ board
+→ template
+→ meeting
+→ approval
+```
 
-Template obbligatori.
+Alcune one-way door, decisioni regolamentate o cross-enterprise meritano davvero review forti.
 
-Riunione mensile.
+Ma se ogni change paga lo stesso costo organizzativo, la governance diventa un collo di bottiglia.
 
-Approvazione.
+Quando il costo per rispettarla supera stabilmente il valore percepito, i team iniziano a costruire scorciatoie.
 
-Questo modello può essere necessario per alcune decisioni regolamentate o ad alto rischio.
+La nostra direzione è diversa:
 
-Ma se ogni cambiamento architetturale deve attraversare lo stesso processo, la governance diventa un collo di bottiglia.
+> **portare il feedback il più vicino possibile al punto in cui il drift viene introdotto e lasciare al judgment umano ciò che non è già riducibile a una regola compresa.**
 
-E quando la governance rallenta troppo, i team imparano a lavorarci attorno.
+## Automatizzare il noto
 
-## Governance vicino al cambiamento
-
-La prima domanda dovrebbe essere:
-
-> possiamo rendere questa regola verificabile automaticamente nel normale workflow del team?
-
-Esempi:
+Per molte proprietà la risposta può vivere nel normale workflow:
 
 ```text
 forbidden dependency
-→ test
-
-IaC policy
-→ static/policy check
+→ architecture test
 
 secret committed
 → scanner
 
 public network accidentally enabled
-→ IaC/policy check
+→ IaC / policy check
+
+contract incompatibility
+→ contract test
 
 SLO breach
-→ runtime alert
+→ runtime signal
 ```
 
-Solo dopo arrivano le review umane.
+Microsoft Well-Architected raccomanda automazione dei task ripetitivi e desired-state/policy mechanism per ridurre configuration drift, mantenendo human judgment dove l'automazione non può rappresentare il trade-off.
 
-Microsoft Well-Architected raccomanda automazione dei task ripetitivi e policy/desired-state mechanisms per intercettare configuration drift, mantenendo il judgment umano dove serve.
-
-Riferimento:
+Fonte:
 
 - [Microsoft Learn — Architecture strategies for enabling and implementing automation](https://learn.microsoft.com/en-us/azure/well-architected/operational-excellence/enable-automation)
 
-## Una regola automatica non elimina l'eccezione
+Il beneficio non è soltanto velocità.
+
+Il feedback diventa ripetibile e non dipende dal fatto che il reviewer giusto sia presente in ogni PR.
+
+## Una regola automatica non elimina le eccezioni
 
 Le architetture reali hanno eccezioni.
 
-Il problema non è averle.
+Il problema non è violare temporaneamente una regola.
 
-Il problema è non sapere più:
+È perdere il contesto della violazione.
 
-```text
-why
-who approved
-what risk is accepted
-when it expires
-what removes it
-```
-
-Per ESI una architecture exception deve avere almeno:
+Una architecture exception ESI deve rendere visibili almeno:
 
 ```text
 Exception ID
-Rule violated
+Rule / property affected
 Reason
 Alternative considered
 Risk accepted
@@ -85,146 +79,152 @@ Esempio:
 
 ```text
 AX-004
-Rule: application must not call external SDK directly
-Exception: temporary vendor adapter in application module
-Reason: incident workaround
+Property: application must not call vendor SDK directly
+Exception: temporary adapter remains in application
+Reason: bounded incident workaround
 Owner: Commerce & Operations
 Expiry: 14 days
-Removal: move adapter to integration layer
+Removal: move adapter behind integration boundary
 ```
 
-La differenza fra un'eccezione e il drift è che l'eccezione è **visibile e temporanea**.
+La differenza fra exception e drift è soprattutto questa:
 
-> **Un'eccezione senza expiry è spesso una nuova architettura introdotta senza ammetterlo.**
+```text
+exception
+→ visible + owned + temporary + reviewable
 
-## Waiver debt
+drift
+→ implicit + accumulating + no deliberate exit
+```
 
-Ogni waiver aggiunge debt.
+> **Un'eccezione senza expiry è spesso una nuova decisione architetturale introdotta senza dichiararlo.**
 
-Non soltanto debt tecnica.
+## Una waiver ha carrying cost
 
-Aggiunge debt di governance:
+Ogni eccezione aggiunge lavoro futuro:
 
-- qualcuno deve ricordarla;
 - qualcuno deve riesaminarla;
-- qualcuno deve rimuoverla;
-- il tooling deve distinguerla da una violation nuova.
+- il tooling deve distinguerla da una violation nuova;
+- il rischio deve restare comprensibile;
+- il path temporaneo deve essere rimosso.
 
-Quindi non vogliamo un sistema in cui basta aggiungere:
+Non vogliamo quindi una scorciatoia universale come:
 
 ```text
 // architecture-ignore
 ```
 
-per far passare la pipeline.
+che trasformi il bypass nel percorso più economico.
 
-L'eccezione deve costare abbastanza da restare consapevole, ma non così tanto da incentivare workaround nascosti.
+La waiver deve avere abbastanza attrito da restare consapevole, ma non così tanto da incentivare violazioni nascoste.
 
-## Paved road, non recinto
+## Paved road: ridurre il costo del comportamento corretto
 
-Platform Engineering ha un ruolo importante.
-
-Può offrire:
+Platform Engineering può aiutare offrendo:
 
 - template;
-- policy;
 - baseline security;
-- observability adapter;
 - deployment pipeline;
-- architecture test utilities;
-- service metadata conventions.
+- observability adapter;
+- architecture-test utilities;
+- metadata e ownership convention;
+- policy comuni.
 
-Questo riduce il costo di fare la cosa giusta.
+La paved road è utile quando abbassa il costo di rispettare proprietà condivise.
 
-Ma non deve trasformare la piattaforma in una prigione tecnologica.
+Non deve però diventare una prigione tecnologica.
 
-Il principio `fit before fashion` vale anche per le piattaforme interne.
-
-Se un workload ha un requirement legittimo che la paved road non soddisfa, la risposta non può essere:
-
-> "non si può perché il template non lo prevede".
-
-Deve esistere un percorso esplicito per:
+Se un workload ha un requirement legittimo che la piattaforma non soddisfa, la risposta deve essere:
 
 ```text
 requirement
-→ gap
-→ exception / platform evolution
+→ platform gap
+→ local exception or platform evolution
 → evidence
 → decision
 ```
 
-## Centralizzazione e autonomia
+non:
 
-AWS descrive le cloud fitness function anche come meccanismo per allineare decisioni decentralizzate con obiettivi architetturali comuni, mantenendo l'autonomia dei team.
+```text
+not allowed because template says so
+```
 
-Riferimento:
+`Fit before fashion` vale anche per le piattaforme interne.
+
+## Intent centrale, execution locale
+
+AWS ha descritto le cloud fitness function come un modo per allineare decisioni decentralizzate con obiettivi architetturali comuni senza centralizzare ogni scelta.
+
+Fonte:
 
 - [AWS Architecture Blog — Using Cloud Fitness Functions to Drive Evolutionary Architecture](https://aws.amazon.com/blogs/architecture/using-cloud-fitness-functions-to-drive-evolutionary-architecture/)
 
-Questo è il punto.
-
-Non scegliere fra:
+La relazione che vogliamo è:
 
 ```text
-central control
-OR
-team autonomy
-```
-
-Costruire invece:
-
-```text
-central intent
+central/shared intent
 + local execution
 + automated feedback
-+ explicit exception
++ explicit exception path
 ```
 
-## Governance ESI
+Non dobbiamo scegliere fra autonomia totale e controllo centrale totale.
 
-Per Order Operations adottiamo tre livelli.
+Dobbiamo decidere **quali proprietà meritano di essere comuni** e quali appartengono al workload.
 
-### Livello 1 — automatico
+## Tre livelli ESI
+
+Order Operations adotta una governance proporzionata al blast radius.
+
+### Livello 1 — feedback automatico
 
 ```text
 architecture tests
-security static checks
+static security checks
 IaC validation
 contract checks
 ```
 
+Per proprietà già comprese e verificabili.
+
 ### Livello 2 — team review
 
 ```text
-new dependency
-new architecture exception
-ADR trigger hit
-significant cost change
-new data copy
+new significant dependency
+architecture exception
+ADR review trigger hit
+new derived data copy
+meaningful cost / topology change
 ```
+
+Qui serve judgment locale.
 
 ### Livello 3 — cross-team / enterprise review
 
-Solo quando la decisione attraversa ownership o vincoli più ampi:
+Quando la decisione attraversa ownership o one-way door importanti:
 
 ```text
 Payments semantic change
 public ingress
-new regulated data
-regional topology change
+regulated data
+regional strategy
 shared platform capability
-one-way data migration
+irreversible data ownership migration
 ```
 
-La governance diventa quindi proporzionale al blast radius.
+Una two-way door locale non dovrebbe pagare il costo di una one-way door enterprise.
 
-> **Non tutte le decisioni meritano lo stesso processo. Una two-way door locale non dovrebbe pagare il costo organizzativo di una one-way door enterprise.**
+## Il numero di approvazioni non misura la qualità della governance
 
-## La regola finale
+Possiamo avere dieci firme e una decisione poco compresa.
 
-Governance efficace significa aumentare la probabilità che le decisioni importanti siano intenzionali.
+Possiamo avere zero riunioni e un'ottima governance se intent, evidence, owner, failure action e exception path sono chiari.
 
-Non significa aumentare il numero di persone che devono dire sì.
+La domanda utile è:
 
-> **La governance migliore è quella che rende facile rispettare l'intento, evidente deviare dall'intento e possibile cambiare l'intento quando il contesto lo richiede.**
+> **Il sistema rende facile rispettare l'intento, evidente deviare dall'intento e possibile cambiare l'intento quando il contesto lo richiede?**
+
+Se sì, la governance sta producendo feedback.
+
+Se produce soltanto attesa, probabilmente stiamo governando il processo invece del rischio.
