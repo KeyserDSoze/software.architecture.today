@@ -1,24 +1,16 @@
 ## Information hiding: nascondere decisioni, non soltanto campi
 
-Un modulo non è utile solo perché raggruppa codice.
+Un modulo non è utile soltanto perché raggruppa codice. È utile quando riesce a **nascondere informazioni che il resto del sistema non dovrebbe essere costretto a conoscere**.
 
-È utile perché può **nascondere informazioni che il resto del sistema non dovrebbe conoscere**.
+Questa idea è più profonda dell'incapsulamento dei campi privati. Possiamo avere classi perfettamente incapsulate e un sistema comunque troppo esposto, perché i consumer conoscono schema, provider, convenzioni temporali e dettagli di persistenza che dovrebbero rimanere locali.
 
-Questa idea è più profonda dell'incapsulamento classico dei campi privati.
+## Che cosa vale la pena nascondere
 
-Possiamo avere classi perfettamente incapsulate e un sistema comunque troppo esposto.
+Un buon boundary può nascondere la struttura interna dei dati, la strategia di persistenza, una libreria, un algoritmo o un provider esterno. Può anche rendere locali policy di retry e caching, dettagli di serializzazione e convenzioni operative che potrebbero cambiare senza obbligare tutti i consumer a seguirle.
 
-### Che cosa stiamo davvero nascondendo?
+L'obiettivo non è creare mistero. È impedire che una decisione locale diventi una dipendenza globale.
 
-Un buon confine può nascondere la struttura interna dei dati e la strategia di persistenza, la libreria o l'algoritmo usati, perfino il provider esterno. Può rendere locali policy di retry e caching, ordine interno delle operazioni, dettagli di serializzazione e convenzioni che potrebbero cambiare senza obbligare i consumer a seguirle.
-
-L'obiettivo non è creare mistero.
-
-È impedire che una decisione locale diventi una dipendenza globale.
-
-### Un esempio semplice
-
-Supponiamo che il resto dell'applicazione legga direttamente una tabella:
+Supponiamo che più parti dell'applicazione leggano direttamente:
 
 ```ts
 const rows = await db.query(`
@@ -28,59 +20,31 @@ const rows = await db.query(`
 `, [customerId]);
 ```
 
-Questa query non conosce soltanto dati.
+Il consumer non sta imparando soltanto come ottenere un dato. Sta conoscendo nomi delle colonne, struttura fisica, convenzioni sugli stati, presenza di timestamp specifici e meccanismo di accesso.
 
-Conosce i nomi delle colonne e la struttura fisica, le convenzioni sullo stato, la presenza di timestamp specifici e perfino il database come meccanismo di accesso. Se molte parti del sistema fanno lo stesso, la persistenza non è più un dettaglio del modulo Orders.
+Se questo pattern si diffonde, la persistenza di Orders smette di essere un dettaglio interno. Diventa un'API implicita globale.
 
-È diventata un'API implicita globale.
-
-Una variante potrebbe essere:
+Una chiamata come:
 
 ```ts
 const orders = await ordersReader.listForCustomer(customerId);
 ```
 
-Non è automaticamente migliore.
+non è automaticamente migliore, ma crea almeno un punto esplicito in cui possiamo decidere che cosa il consumer abbia davvero il diritto di sapere.
 
-Dipende da che cosa espone `ordersReader`.
+## Nascondere dettagli senza cancellare il significato
 
-Ma crea almeno un punto in cui possiamo decidere che cosa il consumer ha davvero il diritto di conoscere.
+Un'API piccola non è necessariamente una buona API. `processOrder(orderId)` espone poco testo e pochissimo significato: non sappiamo se “processare” significhi validare, pagare, spedire o orchestrare tutto.
 
-### API piccola non significa buona API
+L'information hiding non deve oscurare il contratto semantico. Deve nascondere **i dettagli che non appartengono al consumer** lasciando invece visibile ciò che serve per usare correttamente la capability.
 
-Possiamo nascondere troppa informazione o quella sbagliata.
+Questa distinzione evita un errore comune: confondere astrazione con vaghezza.
 
-Per esempio:
+## Nascondere la volatilità giusta
 
-```ts
-processOrder(orderId)
-```
+Un criterio potente consiste nel localizzare ciò che ha una ragione plausibile per cambiare indipendentemente. Se un payment provider può essere sostituito o evolvere, non vogliamo che il suo SDK e i suoi payload diventino il linguaggio del dominio.
 
-è un'API piccola ma forse semanticamente opaca.
-
-Che cosa significa “processare”?
-
-Pagare?
-
-Validare?
-
-Spedire?
-
-Tutto insieme?
-
-L'information hiding non deve cancellare il significato.
-
-Deve nascondere **dettagli che non appartengono al consumer**, lasciando visibile il contratto necessario.
-
-### Nascondere volatilità
-
-Un criterio molto potente è nascondere ciò che ha maggiore probabilità di cambiare.
-
-Se sappiamo che un provider di pagamento potrebbe essere sostituito, non vogliamo che il suo SDK appaia in tutto il dominio.
-
-Meglio concentrare la conoscenza del provider dietro una responsabilità esplicita.
-
-Per esempio:
+Possiamo concentrare quella conoscenza dietro un contratto come:
 
 ```ts
 interface PaymentGateway {
@@ -88,23 +52,15 @@ interface PaymentGateway {
 }
 ```
 
-Il dominio può dipendere dal concetto di autorizzazione del pagamento senza dipendere direttamente da classi e payload del vendor.
+Il dominio dipende dalla capacità di autorizzare un pagamento, non dalle classi del vendor.
 
-Attenzione però.
+Questo non significa introdurre un'astrazione davanti a ogni dipendenza “nel caso un giorno cambi”. Anche le astrazioni hanno costo. La domanda deve rimanere concreta: **quale decisione vogliamo rendere locale?**
 
-Non dobbiamo costruire un'astrazione generica per ogni dipendenza “nel caso un giorno cambi”.
+## Quando l'astrazione perde
 
-Il costo dell'astrazione è reale.
+Una leaky abstraction obbliga i consumer a conoscere proprio i dettagli che prometteva di nascondere.
 
-La domanda torna sempre:
-
-> quale decisione vogliamo rendere locale?
-
-### Leaky abstraction
-
-Un'astrazione perde quando i suoi consumer devono comunque conoscere i dettagli che prometteva di nascondere.
-
-Supponiamo di creare:
+Un'interfaccia generica come:
 
 ```ts
 interface Storage {
@@ -112,27 +68,15 @@ interface Storage {
 }
 ```
 
-Sembra astratto.
+può sembrare molto astratta. Ma se ogni consumer deve sapere quali entity possano essere salvate, quale transaction scope venga usato, quali errori siano retryable, quando i dati diventino visibili e come vengano risolti i conflitti, abbiamo nascosto il nome del database e lasciato esposto il suo modello operativo.
 
-Ma se ogni consumer deve sapere quali entity possano essere salvate e quale transaction scope venga usato, quali errori siano retryable, quando i dati diventino visibili e come vengano risolti i conflitti, abbiamo semplicemente nascosto il nome del database, non il suo modello operativo.
+L'astrazione utile riduce davvero la quantità di conoscenza condivisa.
 
-Un'astrazione utile deve nascondere davvero una decisione o almeno ridurre la quantità di conoscenza condivisa.
+## Database condiviso, ownership separata
 
-### Database come confine accidentale
+Molti sistemi usano il database come meccanismo di integrazione interna. All'inizio è efficiente: nessuna API, nessun evento, nessun mapping. Il costo emerge quando diversi moduli leggono e scrivono le stesse tabelle, le migration richiedono coordinamento, la ownership diventa ambigua e le regole vengono duplicate in query diverse.
 
-Molti sistemi finiscono per usare il database come principale meccanismo di integrazione interna.
-
-Diversi moduli leggono e scrivono le stesse tabelle.
-
-All'inizio è molto efficiente.
-
-Non serve creare API, eventi o mapping.
-
-Poi arrivano ownership ambigua e migration difficili, regole duplicate e impossibilità di sapere chi modifichi un dato. Query cross-domain e coupling alla struttura fisica completano il problema. Questo non significa che ogni modulo debba avere immediatamente un database separato.
-
-Un modular monolith può usare lo stesso database fisico e mantenere ownership logica forte.
-
-Per esempio, possiamo decidere che:
+Questo non implica che ogni modulo debba avere subito un database fisico separato. Un modular monolith può usare la stessa istanza PostgreSQL e mantenere ownership logica forte:
 
 ```text
 Orders possiede orders.*
@@ -140,34 +84,20 @@ Billing possiede billing.*
 Shipping possiede shipping.*
 ```
 
-con regole che vietano l'accesso diretto cross-module anche se tutto vive nella stessa istanza PostgreSQL.
+La regola importante è che un boundary logico resti tale anche se l'infrastruttura è condivisa. Il confine concettuale viene prima della topologia fisica.
 
-Il confine logico viene prima della topologia fisica.
+## Information hiding e diffusione automatica dei pattern
 
-### Information hiding come protezione dal copy-paste AI
+Con gli agenti, un dettaglio esposto tende a propagarsi velocemente. Se un coding agent trova tre esempi in cui una feature legge direttamente una tabella, quella pratica diventa il sentiero statisticamente più evidente per la quarta modifica.
 
-Con agenti generativi, un dettaglio esposto tende a diffondersi molto velocemente.
-
-Se un agente trova tre esempi in cui si interroga direttamente una tabella, probabilmente userà lo stesso pattern nella quarta feature.
-
-Questo rende l'information hiding ancora più importante.
-
-Le API pubbliche di un modulo diventano **sentieri preferenziali** per l'execution automatizzata.
-
-Se il percorso corretto è evidente e quello scorretto è difficile, gli agenti hanno più probabilità di produrre modifiche coerenti.
+Le API pubbliche di un modulo diventano quindi **sentieri preferenziali per l'execution automatizzata**. Se il percorso corretto è evidente e quello scorretto richiede di violare un boundary, aumentiamo la probabilità che le modifiche rimangano coerenti.
 
 > **Un buon confine non documenta soltanto come fare la cosa giusta. Rende più difficile fare quella sbagliata.**
 
-### La domanda da usare in review
-
-Quando vediamo una nuova dipendenza, possiamo chiedere:
+In review possiamo usare una domanda semplice:
 
 > **Il consumer sta imparando qualcosa che dovrebbe restare un dettaglio del provider?**
 
-Se sì, forse il contratto espone troppo.
+Se sì, il contratto potrebbe esporre troppo. Se invece non comunica abbastanza semantica da essere usato correttamente, potrebbe nascondere la cosa sbagliata.
 
-Se invece il consumer non riceve abbastanza informazione per usare correttamente il servizio, forse espone troppo poco.
-
-Il buon information hiding non massimizza il segreto.
-
-Massimizza la **località delle decisioni**.
+Il buon information hiding non massimizza il segreto. Massimizza la **località delle decisioni**.
