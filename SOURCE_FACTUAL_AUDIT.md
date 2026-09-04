@@ -1,5 +1,7 @@
 # Source & Factual Audit
 
+**Last review:** 2026-09-04
+
 Questo file governa due revisioni distinte:
 
 1. **Evidence pass** — claim fattuali, standard, proprietà tecnologiche, casi reali e raccomandazioni vengono confrontati con fonti appropriate.
@@ -18,9 +20,10 @@ Altri scenari persistenti:
 ```text
 Operations Desk Classic — brownfield legacy
 Campaign Launchpad — Marketing Technology / small One-Man Project
+Case Explanation Assistant — AI runtime capability
 ```
 
-I casi reali rimangono separati da ESI.
+I casi reali rimangono separati da ESI. I numeri simulati ESI non sono benchmark industriali.
 
 ---
 
@@ -28,15 +31,15 @@ I casi reali rimangono separati da ESI.
 
 | Capitolo | Draft | Evidence pass | ESI compromise pass | Nota |
 |---|---:|---:|---:|---|
-| 0 — Al timone | sì | da fare | sì — draft | autonomy vs accountability |
-| 1 — Il software è cambiato | sì | da fare | sì — draft | velocity vs understanding |
-| 2 — Prima del codice | sì | parziale | sì — draft | analisi funzionale condivisa |
-| 3 — Pensare per sistemi | sì | da fare | sì — draft | completezza/freshness vs simplicity |
-| 4 — Software Architecture | sì | da fare | sì — draft | live lookup vs async read model |
-| 5 — Dalle feature ai confini | sì | da fare | sì — draft | shared infra vs ownership |
-| 6 — Qualità prima della tecnologia | sì | parziale | sì — draft | fit before fashion |
-| 7 — Pattern senza religione | sì | da fare | sì — draft | robustness vs complexity debt |
-| 8 — Il monolite non è il nemico | sì | da fare | sì — draft | isolation vs distribution cost |
+| 0 — Al timone | sì | sì — reviewed 2026-09-04 | sì — draft | OpenAI agent controls + DORA; autonomy vs accountability |
+| 1 — Il software è cambiato | sì | sì — reviewed 2026-09-04 | sì — draft | Microsoft Research/DORA/OpenAI; velocity vs understanding |
+| 2 — Prima del codice | sì | sì — reviewed 2026-09-04 | sì — draft | Microsoft Learn; analisi funzionale condivisa |
+| 3 — Pensare per sistemi | sì | sì — reviewed 2026-09-04 | sì — draft | Microsoft Learn/AWS; failure mode + system trade-off |
+| 4 — Software Architecture | sì | sì — reviewed 2026-09-04 | sì — draft | Microsoft Learn ADR/design principles |
+| 5 — Dalle feature ai confini | sì | sì — reviewed 2026-09-04 | sì — draft | Microsoft Learn domain analysis |
+| 6 — Qualità prima della tecnologia | sì | sì — reviewed 2026-09-04 | sì — draft | Microsoft Learn/AWS; fit before fashion |
+| 7 — Pattern senza religione | sì | sì — reviewed 2026-09-04 | sì — draft | AWS workload fit/Microsoft microservices guidance |
+| 8 — Il monolite non è il nemico | sì | sì — reviewed 2026-09-04 | sì — draft | AWS + Fowler, con fonte opinion esplicitamente classificata |
 | 9 — API e contratti | sì | sì — draft | sì — draft | compatibility/idempotency |
 | 10 — I dati sono architettura | sì | sì — draft | sì — draft | Microsoft/PostgreSQL/Redis/Stripe/GitHub |
 | 11 — Sistemi distribuiti | sì | sì — draft | sì — draft | Microsoft/AWS/Uber |
@@ -57,12 +60,13 @@ I casi reali rimangono separati da ESI.
 | 26 — Production Readiness | sì | sì — draft | sì — draft | AWS ORR/Google SRE/Microsoft/GitHub; dedicated audit |
 | 27 — Casi end-to-end | sì | sì — draft | sì — draft | Microsoft/GitHub/Uber; dedicated audit |
 | 28 — L'architect del 2030 | sì | sì — draft | sì — draft | Microsoft architect role/DORA/Microsoft Research/OpenAI; dedicated audit |
-| 29 — Il timone resta a noi | sì — sezioni 001–008 | sintesi di evidence già auditata | sì — draft | chiusura argomentativa completa; decalogo spostato al Capitolo 30 |
-| 30 — I Dieci comandamenti della Software Architecture nell'era dell'AI | sì — sezione 001 | sintesi di evidence già auditata | n/a — nessuna nuova decisione ESI | capitolo autonomo finale; nessun contenuto principale dopo |
+| 29 — Il timone resta a noi | sì — sezioni 001–008 | sintesi di evidence già auditata | sì — draft | chiusura argomentativa; titolo canonico `Capitolo 29` ripristinato in release review |
+| 30 — I Dieci comandamenti della Software Architecture nell'era dell'AI | sì — sezione 001 | sintesi di evidence già auditata | n/a | capitolo autonomo finale; nessun contenuto principale dopo |
 
 Dedicated audits:
 
 ```text
+reference/CHAPTERS_000_008_EVIDENCE.md
 reference/CHAPTER_025_EVIDENCE.md
 reference/CHAPTER_026_EVIDENCE.md
 reference/CHAPTER_027_EVIDENCE.md
@@ -116,6 +120,55 @@ course/certification/artifact exists
 ≠
 capability Govern/Grow demonstrated
 ```
+
+---
+
+# Chapters 0–8 retroactive evidence pass
+
+Canonical internal evidence map:
+
+```text
+reference/CHAPTERS_000_008_EVIDENCE.md
+```
+
+The pass was completed on 2026-09-04 using a deliberately mixed but classified source set:
+
+- **OpenAI current product/security sources** for concrete coding-agent capabilities, sandboxing, approvals, network boundaries and telemetry;
+- **DORA 2025** for the aggregate finding that AI primarily amplifies the surrounding organizational/engineering system;
+- **Microsoft Research — SPACE of AI** for evidence that developer-perceived benefit varies with task complexity, usage patterns and team adoption;
+- **Microsoft Learn / Azure Architecture Center** for business-first architecture, domain analysis, bounded contexts, ADRs, failure-mode analysis and evolution;
+- **AWS Well-Architected / Prescriptive Guidance** for workload-dependent architecture selection, explicit trade-offs and monolith/decomposition considerations;
+- **Martin Fowler — Monolith First** only as a secondary/opinion source, explicitly not treated as a standard or universal benchmark.
+
+Restrictions retained:
+
+```text
+vendor recommendation
+≠ universal best practice
+
+case study
+≠ benchmark
+
+AI capability
+≠ permission / authorization / autonomy
+
+DDD guidance
+≠ DDD required for every system
+
+microservices guidance
+≠ microservices are the maturity default
+
+Monolith First opinion
+≠ empirical universal law
+```
+
+Outcome of the retroactive pass:
+
+- no external quantitative claim was added merely to strengthen rhetoric;
+- the core principles remain identifiable as the author's synthesis where appropriate;
+- ESI remains fictional/composite;
+- simulated ESI SLO/RTO/RPO and pilot numbers remain requirements/decisions, not industry data;
+- no Order Operations evidence state was promoted.
 
 ---
 
@@ -224,28 +277,15 @@ Uber Agentic-RAG improvement
 
 ESI's three end-to-end cases remain fictional/composite.
 
-Detailed audit:
-
-- `reference/CHAPTER_027_EVIDENCE.md`.
+Detailed audit: `reference/CHAPTER_027_EVIDENCE.md`.
 
 ---
 
 # Chapter 28 evidence policy
 
-Main sources:
-
 ### Microsoft Azure Well-Architected architect-role guidance
 
-Supports:
-
-```text
-business/stakeholder input
-functional + nonfunctional design
-lifecycle involvement
-implementation collaboration
-acceptance/scoping/change review
-validation of high-risk assumptions
-```
+Supports business/stakeholder input, functional + nonfunctional design, lifecycle involvement, implementation collaboration, acceptance/scoping/change review and validation of high-risk assumptions.
 
 Restriction:
 
@@ -289,9 +329,7 @@ OpenAI internal workflow
 ≠ required ESI workflow
 ```
 
-Detailed audit:
-
-- `reference/CHAPTER_028_EVIDENCE.md`.
+Detailed audit: `reference/CHAPTER_028_EVIDENCE.md`.
 
 ---
 
@@ -299,9 +337,7 @@ Detailed audit:
 
 ## Chapter 29 — Il timone resta a noi
 
-Chapter 29 is synthesis-heavy.
-
-It does not introduce new vendor recommendations, benchmark numbers, production claims or new real-company architecture claims.
+Chapter 29 is synthesis-heavy. It does not introduce new vendor recommendations, benchmark numbers, production claims or new real-company architecture claims.
 
 It summarizes concepts already developed and audited across Chapters 0–28, including:
 
@@ -326,15 +362,11 @@ Order Operations PRR
 
 It deliberately does not invent a successful launch for narrative closure.
 
-Detailed audit:
-
-- `reference/CHAPTER_029_EVIDENCE.md`.
+Detailed audit: `reference/CHAPTER_029_EVIDENCE.md`.
 
 ## Chapter 30 — I Dieci comandamenti della Software Architecture nell'era dell'AI
 
-Chapter 30 is a standalone final synthesis.
-
-It contains no new technical recommendation or new ESI claim. The ten principles compress arguments already developed across the manuscript.
+Chapter 30 is a standalone final synthesis. It contains no new technical recommendation or new ESI claim. The ten principles compress arguments already developed across the manuscript.
 
 Canonical manuscript file:
 
@@ -342,9 +374,7 @@ Canonical manuscript file:
 chapters/030_chapter/001_i_dieci_comandamenti.md
 ```
 
-Detailed audit:
-
-- `reference/CHAPTER_030_EVIDENCE.md`.
+Detailed audit: `reference/CHAPTER_030_EVIDENCE.md`.
 
 No main-manuscript content may follow Chapter 30.
 
@@ -519,7 +549,7 @@ outline
 
 Before a release candidate of the book:
 
-- chapters 0–8 must receive the planned retroactive evidence pass;
+- chapters 0–8 retroactive evidence pass must be complete — **PASS 2026-09-04**;
 - no current-source claim should remain knowingly stale;
 - ESI and real cases must stay distinguishable;
 - simulated numbers must not be presented as benchmarks;
