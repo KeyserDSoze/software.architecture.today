@@ -1,65 +1,66 @@
-# 17.4 — Seam, anti-corruption layer e boundary prima dell'estrazione
+# 17.4 — Seam, Anti-Corruption Layer e boundary prima dell'estrazione
 
-Un sistema legacy diventa difficile da cambiare quando non esiste un punto in cui possiamo introdurre comportamento nuovo senza dover modificare tutto insieme.
+Dopo avere osservato il comportamento, la domanda successiva non è ancora:
+
+> Quale servizio estraiamo?
+
+È:
+
+> **Dove possiamo introdurre una scelta fra comportamento vecchio e nuovo senza dover cambiare tutto nello stesso momento?**
 
 Quel punto è un **seam**.
 
-Non serve necessariamente una nuova tecnologia.
+Il seam è ciò che trasforma una modernization da salto irreversibile a transizione governabile.
 
-Serve un posto in cui due comportamenti possano essere separati, osservati e sostituiti con rischio controllato.
+## Un seam è un punto di scelta
 
-## Il seam è una proprietà architetturale
+Può essere un'interfaccia, un adapter, una facade, una route, un proxy, una queue, una view, una feature flag o un boundary di modulo.
 
-Un seam può essere:
+La forma tecnica è secondaria.
 
-- un'interfaccia;
-- una funzione delegata;
-- un adapter;
-- un proxy;
-- una route;
-- una view;
-- una queue;
-- una facade;
-- una tabella di transizione;
-- una feature flag;
-- un boundary di modulo.
-
-La domanda è:
-
-> **possiamo sostituire una parte mantenendo stabile il contratto per il resto del sistema?**
-
-Se la risposta è no, il primo lavoro di modernization potrebbe non essere l'estrazione.
-
-Potrebbe essere creare il seam.
-
-## Branch by abstraction
-
-Quando la capability da cambiare vive in profondità nel monolite e ha molti caller interni, estrarla immediatamente può essere rischioso.
-
-AWS descrive il **Branch by Abstraction** come una tecnica per modernizzare componenti profondi del legacy facendo convivere implementazione vecchia e nuova dietro una stessa astrazione.
-
-Il processo descritto è sostanzialmente:
+La proprietà che ci interessa è:
 
 ```text
-identify legacy component
-→ introduce abstraction
-→ migrate existing callers to abstraction
-→ add new implementation
-→ switch behavior progressively
-→ remove legacy implementation
+same contract
+→ legacy implementation
+or
+→ candidate implementation
 ```
+
+senza obbligare tutti i caller, i consumer e i dati a migrare nello stesso istante.
+
+Se non esiste un punto di scelta, il primo lavoro non è “estrarre”.
+
+È **creare il punto in cui potremo sostituire**.
+
+## Branch by Abstraction: separare la scelta dal deployment
+
+Quando una capability vive in profondità nel monolite e ha molti caller interni, un proxy al perimetro può non bastare.
+
+AWS descrive **Branch by Abstraction** come una tecnica in cui vecchia e nuova implementazione convivono dietro la stessa astrazione, permettendo una migrazione progressiva dei caller e del comportamento.
 
 Fonte:
 
 - [AWS Prescriptive Guidance — Branch by abstraction pattern](https://docs.aws.amazon.com/prescriptive-guidance/latest/modernization-decomposing-monoliths/branch-by-abstraction.html)
 
-Il valore non è l'interfaccia in sé.
+La sequenza concettuale è:
 
-Il valore è creare una **decision point controllabile**.
+```text
+identify capability
+→ introduce abstraction
+→ route existing callers through it
+→ add candidate implementation
+→ compare / switch progressively
+→ remove legacy implementation
+```
 
-## Un'interfaccia non basta
+L'interfaccia non è il valore principale.
 
-Possiamo creare:
+Il valore è avere un **decision point controllabile**.
+
+## Un'interfaccia sintattica non crea automaticamente un boundary
+
+Possiamo scrivere:
 
 ```ts
 interface PriorityCalculator {
@@ -67,35 +68,25 @@ interface PriorityCalculator {
 }
 ```
 
-ma se:
+ma non abbiamo davvero isolato la capability se entrambe le implementazioni continuano a:
 
-- entrambi i calculator scrivono direttamente nella stessa tabella;
-- leggono global state diverso;
-- usano clock differenti;
-- il caller continua a fare query fuori dal boundary;
-- i side effect sono duplicati;
+- scrivere direttamente la stessa tabella;
+- leggere global state differente;
+- produrre side effect duplicati;
+- dipendere da clock o config nascosti;
+- essere circondate da query che bypassano l'interfaccia.
 
-non abbiamo davvero isolato il comportamento.
+Un seam efficace deve racchiudere le dipendenze che determinano la semantica della decisione.
 
-Abbiamo aggiunto una forma sintattica.
+Altrimenti abbiamo soltanto aggiunto una forma elegante sopra il coupling esistente.
 
-Un seam efficace deve includere le dipendenze che determinano la semantica del comportamento.
+## Anti-Corruption Layer: proteggere il nuovo modello
 
-## Anti-Corruption Layer
+Quando il nuovo sistema deve convivere con il legacy, c'è un rischio specifico: importare nel nuovo dominio naming storico, enum incoerenti, null semantic, protocol quirks e data model nati per vincoli che non esistono più.
 
-Quando il nuovo sistema deve convivere con un modello legacy, il rischio è importare nel nuovo dominio:
+L'**Anti-Corruption Layer** crea una traduzione intenzionale fra modelli differenti.
 
-- naming storico;
-- enum inconsistenti;
-- null semantic;
-- protocol quirks;
-- data model denormalizzato;
-- error code poco leggibili;
-- workflow impliciti.
-
-L'**Anti-Corruption Layer** crea un boundary di traduzione.
-
-Microsoft Architecture Center lo descrive come facade/adapter fra subsystem che non condividono la stessa semantica, con l'obiettivo di impedire che il design del nuovo sistema venga limitato dal modello legacy.
+Microsoft lo descrive come facade o adapter tra subsystem con semantiche diverse, per evitare che il nuovo design venga deformato dal modello legacy.
 
 Fonte:
 
@@ -104,192 +95,182 @@ Fonte:
 Esempio:
 
 ```text
-legacy status = "P3-HOLD-X"
+legacy status = P3-HOLD-X
         ↓
-Anti-Corruption Layer
+ACL
         ↓
 Order Operations
 EscalationState = AwaitingManualReview
 ```
 
-Il nuovo sistema non deve sapere che `P3-HOLD-X` esiste.
+Il nuovo dominio non deve imparare `P3-HOLD-X`.
 
-La traduzione deve essere localizzata.
+La conoscenza della compatibilità rimane localizzata nel boundary.
 
-## Ma la traduzione è una responsabilità
+## La traduzione è una responsabilità, non un mapping meccanico
 
-Un ACL non è soltanto mapping di DTO.
-
-Può dover governare:
-
-- semantic mismatch;
-- default;
-- missing field;
-- versioning;
-- retry;
-- timeout;
-- idempotency;
-- security boundary;
-- data validation;
-- observability.
-
-Microsoft raccomanda esplicitamente validation/sanitization e observability al boundary perché i due subsystem possono avere trust level e semantiche differenti.
-
-Un ACL mal progettato può diventare una nuova zona legacy.
-
-## Shared database: il seam più difficile
-
-Un'applicazione può sembrare separabile finché scopriamo che cinque sistemi scrivono nelle stesse tabelle.
-
-In quel caso la vera API è il database.
-
-Il refactoring deve quindi scoprire:
+Un ACL può dover decidere:
 
 ```text
-writer
-reader
-transaction assumption
-stored procedure
-trigger
-reporting consumer
-backup/recovery coupling
-schema migration ownership
+semantic mismatch
+default
+missing field
+versioning
+validation
+retry / timeout
+idempotency
+security context
+freshness
+observability
 ```
 
-Mettere un HTTP endpoint davanti a una tabella condivisa non elimina automaticamente il coupling.
+Se copia dati, deve anche chiarire authority, retention e reconciliation.
 
-Lo sposta.
+Un ACL senza ownership e lifecycle può diventare semplicemente il prossimo layer legacy.
 
-## Temporal seam
+## Il shared database rivela il vero boundary
 
-A volte possiamo creare separazione nel tempo.
+Una capability può sembrare separabile fino a quando scopriamo che più applicazioni scrivono le stesse tabelle.
 
-Esempio:
+A quel punto la vera integration surface non è l'API che vorremmo avere.
+
+È il database esistente.
+
+Dobbiamo quindi capire:
 
 ```text
-legacy writes state
-→ change feed / export
+writers
+readers
+transaction assumptions
+stored procedures
+triggers
+reporting consumers
+schema ownership
+backup/recovery coupling
+```
+
+Mettere un endpoint HTTP davanti alla tabella non elimina automaticamente il coupling.
+
+Può soltanto nasconderlo dietro una nuova URL.
+
+## A volte il seam è temporale
+
+La separazione può avvenire anche nel tempo.
+
+Per esempio:
+
+```text
+legacy writes
+→ export / change feed
 → new system observes
 ```
 
 oppure:
 
 ```text
-new system receives request
-→ writes transition record
+new system records intent
 → legacy job continues processing
 ```
 
-Questo può permettere coexistence.
+Questo può facilitare coexistence e discovery.
 
-Ma introduce:
+Introduce però eventual consistency, reconciliation, ordering e recovery complexity.
 
-- eventual consistency;
-- reconciliation;
-- dual ownership risk;
-- ordering;
-- recovery complexity.
+Un seam temporale ha quindi bisogno dello stesso rigore di un'integrazione distribuita: failure mode, source of truth e stop condition.
 
-Il seam deve quindi avere un Failure Mode Map, non soltanto un diagramma.
+## Shadow execution: confrontare senza cedere authority
 
-## Feature flag come migration control
-
-Una feature flag può essere usata per:
+Quando il comportamento è deterministico e privo di side effect non isolabili, possiamo mantenere il legacy autorevole e calcolare in parallelo il risultato candidato.
 
 ```text
-route 1% to new implementation
-compare
-increase
-rollback
-```
-
-È utile quando il comportamento può essere selezionato per request/tenant/cohort.
-
-Ma la flag non deve diventare permanente.
-
-Ogni migration flag deve avere:
-
-- owner;
-- purpose;
-- default;
-- rollback semantics;
-- removal condition.
-
-Altrimenti la modernization lascia dietro di sé nuovi branch legacy.
-
-## Shadow execution
-
-Per behavior deterministico e senza side effect possiamo talvolta eseguire:
-
-```text
-legacy = authoritative
-new = shadow
-```
-
-poi confrontare output.
-
-Esempio:
-
-```text
-input case
-→ legacy priority
-→ new priority
+input
+→ legacy result   = authoritative
+→ candidate result = shadow
 → compare
-→ new output discarded
+→ discard candidate side effect
 ```
 
 Questo produce evidence preziosa prima del cutover.
 
-Non è applicabile quando la seconda execution produce side effect non isolabili.
+Ma funziona soltanto se la seconda execution può essere resa realmente innocua.
 
-## Double write non è un seam gratuito
+Un “shadow” che scrive, invia email o modifica workflow non è più shadow.
 
-Durante una migrazione può sembrare facile scrivere in vecchio e nuovo datastore.
+È una seconda authority.
 
-Ma introduce subito la domanda:
+## Feature flag come migration control
 
-> **cosa succede se una write riesce e l'altra no?**
+Una migration flag può permettere rollout progressivo e rollback per cohort o tenant.
 
-Se il dual write non è governato con:
+Può essere utilissima.
 
-- order;
-- retry semantics;
-- reconciliation;
-- source of truth;
-- cutover plan;
+Diventa però un nuovo debito se non possiede:
 
-non abbiamo ridotto il rischio.
+```text
+owner
+purpose
+default
+rollback semantics
+removal condition
+```
 
-Lo abbiamo distribuito.
+Una flag temporanea senza removal condition è una candidate legacy branch già nel giorno in cui nasce.
 
-## Boundary di rollback
+## Dual write: il problema della doppia verità
 
-Ogni seam di modernization deve permettere di rispondere:
+Scrivere contemporaneamente vecchio e nuovo datastore sembra una scorciatoia naturale.
 
-- come torniamo indietro?
-- quale stato è stato scritto nel nuovo sistema?
-- è compatibile col vecchio?
-- dobbiamo compensare?
-- possiamo fare rollback per tenant/cohort?
-- qual è il punto di non ritorno?
+La prima domanda dovrebbe però essere:
 
-Una modernization incrementale ha valore proprio perché costruisce **reversibilità durante la transizione**.
+> Che cosa succede se una write riesce e l'altra no?
 
-## Il seam prima del servizio
+Senza una policy per order, retry, reconciliation, authority e cutover, il dual write non riduce il rischio.
 
-È facile pensare:
+Lo trasforma in divergenza di stato.
+
+Per questo una modernization dovrebbe evitare di creare due owner dello stesso business fact senza una transizione esplicita.
+
+## Il rollback boundary
+
+Ogni seam utile deve permettere di rispondere prima del rollout:
+
+```text
+come torniamo indietro?
+quale stato nuovo è già stato scritto?
+il legacy può ancora leggerlo?
+serve compensazione?
+possiamo rollbackare per cohort?
+qual è il point of no return?
+```
+
+La reversibilità non è un dettaglio operativo successivo.
+
+È una proprietà del boundary di modernization.
+
+## Il seam viene prima del microservizio
+
+È facile saltare direttamente a:
 
 ```text
 legacy module
 → extract microservice
 ```
 
-Ma il servizio non è il seam.
+Ma un microservizio è un deployment boundary.
 
-Il seam è il boundary che consente di scegliere quale implementazione governa la capability.
+Non è automaticamente il seam semantico che ci permette di sostituire il comportamento.
 
-Il deployment boundary può arrivare dopo.
+Se il coupling non è ancora compreso, distribuire il modulo può produrre:
 
-Questa distinzione evita di distribuire coupling ancora non compreso.
+```text
+same ambiguity
++ network
++ retries
++ distributed failure
+```
 
-> **Prima di estrarre una capability, crea il punto in cui puoi sostituirla senza dover cambiare contemporaneamente tutti quelli che la usano.**
+Prima separiamo la responsabilità.
+
+Poi decidiamo se quella responsabilità merita anche un deployment indipendente.
+
+> **Prima di estrarre una capability, crea il punto in cui puoi sostituirla, confrontarla e rollbackarla senza obbligare tutto il sistema a cambiare insieme.**
