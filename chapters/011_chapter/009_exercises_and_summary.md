@@ -173,7 +173,7 @@ Disegna una soluzione choreography e una orchestration. Confronta ownership del 
 
 ## Esercizio 11 — Failure Mode Map di un sistema reale
 
-Scegli una integrazione reale che conosci, anche piccola:
+Scegli un’integrazione reale che conosci, anche piccola:
 
 ```text
 app → payment provider
