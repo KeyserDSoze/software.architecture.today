@@ -146,7 +146,7 @@ Il documento che costruiamo nel capstone non sarà un business plan da cento pag
 
 Per ogni superficie importante vogliamo poter riconoscere scope e business outcome, cost owner e Finance counterpart, categorie dirette e condivise, driver, forma del costo, unit metric, assunzioni, premium architetturali, optimization hypothesis, quality risk ed evidence necessaria per una review.
 
-Se una informazione non esiste ancora, il modello deve mostrarlo. `Azure billing data = Pending` è più utile di una cifra inventata.
+Se un'informazione non esiste ancora, il modello deve mostrarlo. `Azure billing data = Pending` è più utile di una cifra inventata.
 
 Il Cost Model non elimina l'incertezza. La rende negoziabile.
 
