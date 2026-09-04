@@ -221,11 +221,14 @@ Execution Work Item
 Agent Delegation Contract
 Agent Verification Bundle
 AI Autonomy Matrix
+AI Feature Contract
 Operational Readiness Review
 Production Readiness Review
 ```
 
 `Repository Map` e `Execution Work Item` entrano durante la parte AI-native: il primo rende navigabile il contesto persistente del repository, il secondo delimita ciò che deve cambiare nel task corrente con scope, acceptance, verification e stop condition.
+
+`AI Feature Contract` entra quando l'AI diventa parte del runtime del prodotto: rende espliciti model authority, context/retrieval, tool permission, output, fallback, evaluation, observability, cost e review trigger.
 
 Il vocabolario verrà raffinato durante la scrittura e validato attraverso i capitoli, non imposto a priori.
 
