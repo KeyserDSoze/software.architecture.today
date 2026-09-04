@@ -1,25 +1,30 @@
 # 18.8 — ESI: il primo refactoring slice di Order Operations
 
-Ora trasformiamo il piano in codice.
+Ora il piano diventa codice.
 
-Ma soltanto fino al punto che possiamo verificare senza fingere evidence production.
+Ma soltanto fino al punto che possiamo verificare senza inventare evidence production.
+
+Questo limite è parte dell'architettura del capstone: **non promuoviamo una claim perché sappiamo come implementarla; la promuoviamo quando abbiamo eseguito il tipo di verifica che quella claim richiede.**
 
 ## Stato iniziale
 
-Abbiamo:
+Operations Desk Classic possiede:
 
 ```text
-Operations Desk Classic
-└── calculatePriority(row, now)
+calculatePriority(row, now)
 ```
 
-con characterization test `LB-01…LB-06`.
+protetto dalla characterization suite `LB-01…LB-06`.
 
-Order Operations non possiede ancora una priority policy.
+Order Operations non possiede ancora una propria priority policy.
 
-## Obiettivo del slice
+Dopo il workshop del paragrafo precedente sappiamo però quali behavior il target deve preservare e quale differenza deve introdurre intenzionalmente.
 
-Introdurre nel nuovo prodotto:
+È abbastanza per il primo slice.
+
+## Scope: separare la decisione senza muovere lo stato
+
+Introduciamo:
 
 ```text
 PriorityPolicy
@@ -28,17 +33,23 @@ ConfirmedPriorityPolicy
 BranchingPriorityPolicy
 ```
 
-senza:
+Non facciamo:
 
-- cancellare il legacy;
-- modificare il database;
-- cambiare API pubbliche;
-- cambiare ownership persistente;
-- dichiarare il candidate production-ready.
+```text
+legacy deletion
+database/schema migration
+public API change
+priority persistence ownership change
+production rollout
+```
 
-## Il nuovo boundary
+Questa scelta mantiene il primo incremento interamente prima della one-way door.
 
-Il nuovo modello usa concetti espliciti:
+Se qualcosa non funziona, possiamo ancora rimuovere il nuovo path senza dover ricostruire dati o consumer.
+
+## Il target model parla il linguaggio di Order Operations
+
+Il boundary usa concetti come:
 
 ```text
 CasePriorityInput
@@ -46,15 +57,15 @@ Priority
 PriorityDecision
 ```
 
-L'input contiene soltanto ciò che la policy deve conoscere.
+Non espone `status_code`, `problem_code` o gli altri nomi della rappresentazione legacy.
 
-Non contiene `status_code` o `problem_code` come naming del dominio target.
+Questa distinzione non è cosmetica.
 
-Questi dettagli appartengono all'adapter legacy.
+Se il nuovo dominio usa direttamente il modello storico, il legacy è stato copiato invece di essere isolato.
 
-## ConfirmedPriorityPolicy
+## ConfirmedPriorityPolicy traduce la decisione funzionale in codice
 
-La policy target implementa la precedence confermata:
+La target policy implementa la precedence confermata:
 
 ```text
 Closed
@@ -70,23 +81,21 @@ otherwise
 → Standard
 ```
 
-Non contiene più:
+Non contiene:
 
 ```text
 Enterprise + age >= 30m
 ```
 
-perché ESI l'ha classificata come behavior da rimuovere esplicitamente.
+perché quella regola è stata esplicitamente ritirata tramite ED-001.
 
-Questo significa che il candidate non è una riscrittura sintattica del legacy.
+Questo è un punto importante: `ConfirmedPriorityPolicy` non è una riscrittura più elegante del legacy calculator.
 
-È una **traduzione del significato confermato**.
+È una implementazione della **semantica confermata**.
 
-## LegacyPriorityAdapter
+## LegacyPriorityAdapter mantiene la compatibilità fuori dal target model
 
-L'adapter deve fare due lavori.
-
-### Tradurre input target → legacy row
+L'adapter converte input target verso la forma richiesta dal legacy:
 
 ```text
 status          → status_code
@@ -97,7 +106,7 @@ customerTier    → customer_tier
 createdAt       → created_at
 ```
 
-### Tradurre output legacy → target
+e converte output legacy verso il vocabolario target:
 
 ```text
 NONE          → NotActionable
@@ -106,67 +115,64 @@ URGENT        → Urgent
 STANDARD      → Standard
 ```
 
-Il target model non importa quindi il vocabolario legacy.
+La traduzione resta confinata nel boundary.
 
-## Perché iniettiamo il legacy calculator
+Il resto di Order Operations non deve conoscere quelle stringhe.
 
-Il TypeScript di Order Operations non importa direttamente il file CommonJS di Operations Desk Classic.
+## Perché il legacy calculator è una dependency esplicita
 
-Espone invece una dependency:
+Il codice TypeScript di Order Operations non importa direttamente come proprio dominio il file CommonJS di Operations Desk Classic.
+
+L'adapter dipende invece da un contratto:
 
 ```text
 LegacyPriorityCalculator
 ```
 
-Questo consente alla composition futura di scegliere come raggiungere il legacy:
+Questo permette alla composition di decidere come raggiungere il legacy durante le diverse fasi.
 
-- chiamata in-process durante una fase iniziale;
-- adapter HTTP;
-- wrapper di compatibility;
-- altro boundary.
+Nel test locale possiamo iniettare la vera `calculatePriority` del capstone legacy.
 
-Nel test locale possiamo iniettare direttamente `calculatePriority` del capstone legacy.
+In una eventuale integrazione futura il boundary potrebbe diventare un wrapper o un altro adapter.
 
-È un esempio concreto di Anti-Corruption Layer.
+La semantica target non cambia.
 
-## BranchingPriorityPolicy
+## BranchingPriorityPolicy rende il rollout una decisione separata
 
-Il routing supporta tre modalità concettuali:
+Il routing possiede tre modalità:
 
-```text
-legacy
-shadow
-candidate
-```
-
-### legacy
+### `legacy`
 
 ```text
 return legacy(input)
 ```
 
-### shadow
+### `shadow`
 
 ```text
 legacyResult = legacy(input)
 candidateResult = candidate(input)
-compare(...)
+compare(legacyResult, candidateResult)
 return legacyResult
 ```
 
-Il candidate non decide ancora il comportamento esterno.
+Il candidate produce evidence ma non authority.
 
-### candidate
+### `candidate`
 
 ```text
 return candidate(input)
 ```
 
-Questa modalità è codificata per rendere il boundary testabile, ma **non equivale a un rollout production già autorizzato**.
+Il fatto che questa modalità esista nel codice significa soltanto che il boundary è testabile.
 
-## Comparison result
+**Non significa che il candidate sia autorizzato in produzione.**
 
-Il comparison distingue:
+Il passaggio da `shadow` a `candidate` richiede il gate runtime definito dal Safety Plan.
+
+## Comparison: la differenza deve avere un nome
+
+Il comparison restituisce:
 
 ```text
 Match
@@ -174,75 +180,74 @@ ExpectedDifference
 UnexpectedDifference
 ```
 
-ED-001 riconosce esclusivamente la differenza approvata:
+ED-001 riconosce soltanto il caso approvato:
 
 ```text
-legacy Urgent
-candidate Standard
-customer tier Enterprise
-age >= 30 minutes
-nessun'altra rule target applicabile
+legacy = Urgent
+candidate = Standard
+Enterprise + age >= 30m
+AND no higher target rule applies
 ```
 
-Non usiamo una regola generica:
+Non esiste una scorciatoia come:
 
 ```text
 legacy != candidate
-→ expected
+→ ExpectedDifference
 ```
 
-perché annullerebbe il valore del comparison.
+perché renderebbe impossibile scoprire regressioni.
 
-## Test nuovi
+Una nuova differenza resta inattesa finché una decisione di dominio non la riclassifica deliberatamente.
 
-Aggiungiamo test per:
+## Le due suite raccontano due verità diverse
 
-1. precedence target;
-2. repeated Payment failure;
-3. assenza della vecchia enterprise timer rule;
-4. mapping del LegacyPriorityAdapter;
-5. shadow restituisce ancora il risultato legacy;
-6. ED-001 viene classificata expected;
-7. una differenza non autorizzata viene classificata unexpected;
-8. candidate mode restituisce la nuova policy.
+Manteniamo la characterization legacy e aggiungiamo target/refactoring test.
 
-Il vecchio characterization test continua a esistere.
-
-Quindi avremo due suite con significati diversi:
+La prima dice:
 
 ```text
 legacy characterization
-→ what the old system does
-
-target tests
-→ what ESI decided the new system must do
+→ what Operations Desk Classic currently does
 ```
 
-Questa distinzione è fondamentale.
+La seconda dice:
 
-## Refactoring Safety Plan persistente
+```text
+target tests
+→ what ESI decided Order Operations must do
+```
 
-Nel capstone entra:
+Quindi è corretto che LB-04 continui a essere verde nella suite legacy e che la target suite verifichi **l'assenza** della stessa enterprise timer rule.
+
+Non sono test in contraddizione.
+
+Proteggono due livelli diversi di conoscenza.
+
+## Evidence locale del slice
+
+I test nuovi coprono almeno:
+
+- precedence della target policy;
+- repeated Payment failure;
+- assenza della Enterprise timer rule;
+- mapping del `LegacyPriorityAdapter`;
+- shadow mode che restituisce ancora il legacy result;
+- ED-001 classificata `ExpectedDifference`;
+- una differenza non autorizzata classificata `UnexpectedDifference`;
+- candidate mode che restituisce la target policy.
+
+Il Safety Plan vive in:
 
 ```text
 docs/refactoring-safety-plan.md
 ```
 
-che contiene:
+ed è parte dell'evidence, non un documento separato dal codice.
 
-- scope;
-- behavior classification;
-- ED-001;
-- phase;
-- evidence;
-- stop condition;
-- fallback;
-- point of no return;
-- cleanup definition.
+## Stato corretto dopo l'esecuzione locale
 
-## Lo stato dopo il capitolo
-
-Se build e test passano, potremo dire:
+Se build e test del capitolo passano, possiamo dichiarare:
 
 ```text
 PriorityPolicy seam
@@ -257,57 +262,76 @@ LegacyPriorityAdapter
 Shadow comparison
 = Codified + Verified locally
 
-production shadow rollout
+Production shadow rollout
 = Designed / Not executed
 
-candidate production cutover
+Candidate production cutover
 = Designed / Not authorized
 
-legacy retirement
+Legacy retirement
 = Not started
 ```
 
-Questo è il livello di precisione che vogliamo.
+Questo linguaggio impedisce di trasformare otto test locali in una claim di production readiness.
 
-## Perché non facciamo subito il cutover
+## Perché ci fermiamo a P4
 
-Perché non abbiamo:
+Non abbiamo ancora:
 
-- telemetry production del comparison;
-- consumer inventory reale;
-- staging/production environment eseguito;
-- evidence sul nightly export;
-- rollback drill.
+- comparison telemetry production;
+- observation window reale;
+- consumer inventory chiuso;
+- evidence definitiva sul nightly export;
+- staging/production rollout;
+- behavior fallback drill.
 
-Potremmo inventarli per far sembrare il capstone più completo.
+Potremmo descrivere come li implementeremmo.
 
-Non lo faremo.
+Non possiamo dichiarare di averli eseguiti.
 
-> **Un progetto didattico credibile non deve fingere evidence che il proprio ambiente non può produrre.**
+> **Un progetto didattico credibile non finge evidence che il proprio ambiente non può produrre.**
 
-## L'AI nel slice
+## Il contratto che riceverebbe un agente
 
-Un agente potrebbe generare gran parte di questo codice molto rapidamente.
+Un agente incaricato di questo slice non riceverebbe soltanto “refactor priority routing”.
 
-Ma riceverebbe un contratto come:
+Riceverebbe:
 
 ```text
-Preserve:
+Preserve
 LB-01, LB-02, LB-03, LB-06 semantics
 
-Intentional difference:
-ED-001 removes enterprise 30m escalation
+Intentional difference
+ED-001 only
 
-Do not change:
-database, API, legacy implementation
+Do not change
+database, public API, legacy implementation, data ownership
 
-Verification:
-old characterization + target policy + adapter + shadow tests
+Verification
+legacy characterization + target policy + adapter + shadow tests
 
-Stop:
+Stop
 any unexplained mismatch
 ```
 
-Questo rappresenta bene il modello che useremo più avanti:
+A quel punto possiamo delegare molta execution senza delegare la decisione semantica.
 
-> **prima sincronizzare il pensiero. Poi parallelizzare l'esecuzione.**
+## Che cosa ha realmente fatto ESI
+
+Il risultato del capitolo non è “legacy migrated”.
+
+È più preciso:
+
+```text
+meaning confirmed
+→ seam codified
+→ compatibility isolated
+→ candidate codified
+→ intentional difference encoded
+→ local comparison verified
+→ production authority still withheld
+```
+
+Questa è la progressione che vogliamo.
+
+> **Il candidate diventa più credibile non quando assomiglia al legacy, ma quando sappiamo dimostrare quali comportamenti preserva, quali cambia intenzionalmente e quali differenze restano ancora inspiegate.**
