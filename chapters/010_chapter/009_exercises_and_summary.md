@@ -1,27 +1,20 @@
-## Idee chiave
+## Sintesi: i dati sono decisioni, non soltanto storage
 
-1. **Il dato non è soltanto storage.** Ha ownership, semantica, lifecycle, access pattern, failure mode e costi.
-2. **Storage ownership e semantic ownership non coincidono necessariamente.** Una copia locale non trasferisce automaticamente autorità.
-3. **Una source of truth è una autorità semantica, non necessariamente l'unico posto fisico in cui il dato appare.**
-4. **Duplicare rappresentazioni può essere utile. Duplicare autorità crea ambiguità.**
-5. **Il modello dati deve partire dagli access pattern e dagli invarianti**, non dalla tecnologia che vogliamo usare.
-6. Relational, document, key-value, graph e store specializzati sono modelli con fit differenti, non livelli di modernità.
-7. **Polyglot persistence paga una tassa operativa.** Ha senso quando access pattern o lifecycle divergono abbastanza da giustificarla.
-8. **Una transazione protegge fatti che devono diventare veri insieme.** Il database non può inventare l'invariante di business.
-9. **Consistency deve essere definita per una decisione o un journey.** “Strong consistency” senza contesto è un requisito incompleto.
-10. Index, partitioning, replica e sharding risolvono problemi differenti e introducono costi differenti.
-11. **Una cache è una copia con una politica di staleness e invalidation.** Non è un acceleratore gratuito.
-12. I dati derivati devono avere source, freshness, rebuild strategy e regola di derivazione comprensibili.
-13. **Schema evolution è architettura.** In produzione le versioni devono spesso convivere durante una migration.
-14. Migrazioni grandi diventano più governabili quando vengono spezzate in fasi osservabili, verificabili e reversibili dove possibile.
-15. Retention, archival e deletion sono decisioni di prodotto, security, compliance e operability, non semplici default del database.
-16. L'AI può accelerare query, migration e backfill, ma non conosce automaticamente workload, lock behavior, consumer nascosti e rischio accettabile.
+Questo capitolo ha costruito una tesi unica da prospettive diverse: un dato porta con sé ownership, semantica, access pattern, consistency, lifecycle, failure mode e costo. Il datastore è una conseguenza di queste proprietà, non il punto da cui partire.
+
+La distinzione più importante è quella tra **storage ownership** e **semantic ownership**. Una copia locale, una replica o una projection possono essere utili senza diventare autorevoli. Una source of truth non deve essere fisicamente unica: deve esserci una autorità chiara quando due rappresentazioni non concordano.
+
+Da qui discendono molte altre scelte. Il modello dati deve seguire workload e invarianti; relational, document, key-value, graph e store specializzati hanno fit differenti e non rappresentano livelli di modernità. Polyglot persistence può essere una capacità, ma ogni nuovo store introduce una tassa operativa che deve essere pagata da un access pattern reale.
+
+Le transazioni proteggono fatti che devono diventare veri insieme, ma il database non può inventare l’invariante di business. Allo stesso modo, “strong consistency” è troppo generico finché non diciamo per quale decisione o journey serva. Index, partitioning, replica e sharding risolvono problemi diversi; una cache introduce staleness e invalidation; un dato derivato richiede source, freshness, rebuild e reconciliation.
+
+Infine, lo schema cambia mentre il sistema vive. Le migration devono quindi essere pensate come transizioni fra stati compatibili, con verification, stop condition e rollback quando possibile. Retention, archival e deletion completano il lifecycle: conservare o cancellare è una decisione di prodotto, security, compliance e operability.
+
+L’AI rende economiche molte attività data-heavy — schema, query, index candidate, migration, backfill, refactoring repository-wide — ma non conosce automaticamente consumer esterni, lock behavior, workload reale, replica lag o rischio accettabile. Più il cambiamento diventa facile da produrre, più devono diventare espliciti ownership, invariants, compatibility e evidence.
 
 ## Artefatto operativo — Data Ownership Map
 
-Il nuovo artefatto del capitolo è la **Data Ownership Map**.
-
-Per ogni dato significativo dovrebbe permettere di rispondere almeno a:
+L’artefatto del capitolo è la **Data Ownership Map**. Non deve diventare un catalogo di colonne: serve per i dati il cui significato, ownership o lifecycle può cambiare una decisione architetturale.
 
 ```text
 Data / concept
@@ -52,84 +45,20 @@ Recovery
 Come viene ripristinato o ricostruito?
 
 Migration
-Quali compatibility rule proteggono l'evoluzione?
+Quali compatibility rule proteggono l’evoluzione?
 ```
 
-La mappa non deve diventare un catalogo di colonne.
-
-Serve per i dati che possono cambiare una decisione architetturale o produrre rischio se interpretati male.
-
-## Cosa cambia con l'AI
-
-L'AI rende particolarmente economiche alcune attività data-heavy:
-
-- generare schema;
-- scrivere migration;
-- suggerire index;
-- convertire ORM model;
-- creare seed e fixture;
-- produrre query;
-- progettare cache layer;
-- generare backfill;
-- modificare centinaia di access path.
-
-Il rischio è che la velocità di trasformazione superi la nostra comprensione del dato.
-
-Un agente può rinominare perfettamente una colonna in tutto il repository e comunque rompere:
-
-- un consumer esterno non presente nel repository;
-- un report manuale;
-- una replica;
-- un data export;
-- una retention policy;
-- un job schedulato;
-- una business rule implicita;
-- una migration in corso.
-
-Quindi il controllo deve spostarsi verso:
-
-```text
-ownership
-contracts
-invariants
-compatibility
-validation queries
-observability
-reconciliation
-rollback / stop conditions
-```
-
-> **Quando modificare i dati diventa più facile, sapere che cosa quei dati significano diventa più importante.**
+Per Order Operations, il punto raggiunto nel Capitolo 10 è semplice: Orders, Payments & Risk e Shipping mantengono l’autorità sui rispettivi fatti di dominio; Order Operations possiede il caso operativo e le proprie classificazioni/assegnazioni; una futura projection potrà duplicare rappresentazioni senza duplicare autorità.
 
 ## Esercizio 1 — Chi possiede davvero il dato?
 
-Un sistema contiene una tabella `customer` usata da:
+Un sistema contiene una tabella `customer` usata da CRM, billing, support, marketing e identity. Ogni sistema modifica almeno un campo.
 
-- CRM;
-- billing;
-- support;
-- marketing;
-- identity.
-
-Ogni sistema modifica almeno un campo.
-
-Costruisci una Data Ownership Map.
-
-Per ogni campo o concetto significativo identifica:
-
-- semantic owner;
-- authoritative source;
-- copie derivate;
-- consumer;
-- conflitti possibili.
-
-Poi rispondi:
-
-> la tabella condivisa rappresenta davvero un unico dominio o sta nascondendo cinque ownership differenti?
+Costruisci una Data Ownership Map. Per ogni concetto significativo identifica semantic owner, authoritative source, copie derivate, consumer e conflitti possibili. Poi chiediti se la tabella condivisa rappresenti davvero un unico dominio o stia nascondendo ownership differenti.
 
 ## Esercizio 2 — Scegli il modello, non il prodotto
 
-Per ciascun workload scegli un modello candidato e motiva i trade-off:
+Per ciascun workload scegli prima un **modello** candidato e motivane i trade-off:
 
 1. order management con transazioni e vincoli;
 2. catalogo prodotti con schede molto variabili;
@@ -138,13 +67,9 @@ Per ciascun workload scegli un modello candidato e motiva i trade-off:
 5. ricerca full-text su milioni di documenti;
 6. telemetria temporale ad alto volume.
 
-Non nominare un vendor nella prima risposta.
+Non nominare un vendor nella prima risposta. Parti da access pattern, consistency, relazioni, lifecycle e scale; solo dopo proponi tecnologie concrete.
 
-Parti da access pattern, consistency, relazioni, lifecycle e scale.
-
-Solo dopo proponi tecnologie concrete.
-
-## Esercizio 3 — L'indice plausibile
+## Esercizio 3 — L’indice plausibile
 
 Hai questa query:
 
@@ -157,101 +82,27 @@ ORDER BY detected_at ASC
 LIMIT 50;
 ```
 
-Proponi due index candidate.
-
-Per ciascuna spiega:
-
-- quale query favorisce;
-- quale overhead introduce;
-- che cosa misureresti con `EXPLAIN`/runtime metrics;
-- quando rimuoveresti l'indice.
-
-L'obiettivo non è indovinare l'indice perfetto.
-
-È trattarlo come una ipotesi verificabile.
+Proponi due index candidate. Per ciascuna spiega quale query favorisce, quale overhead introduce, che cosa misureresti con `EXPLAIN` e runtime metrics e quando la rimuoveresti. L’obiettivo non è indovinare l’indice perfetto, ma trattarlo come una ipotesi verificabile.
 
 ## Esercizio 4 — Consistency per journey
 
-Definisci consistency/freshness per:
-
-- assignment di un caso;
-- dashboard del management;
-- stato pagamento mostrato a Operations;
-- report mensile;
-- fraud signal usato per bloccare una transazione.
-
-Evita parole generiche.
-
-Scrivi comportamenti osservabili.
+Definisci comportamento osservabile e freshness per assignment di un caso, dashboard di management, stato pagamento mostrato a Operations, report mensile e fraud signal usato per bloccare una transazione. Evita formule come “strong consistency” se non specifichi che cosa debba vedere il consumer e quando.
 
 ## Esercizio 5 — Replica
 
-Il team propone una read replica per Order Operations.
-
-Scrivi un mini ADR che consideri:
-
-- obiettivo;
-- replica lag;
-- read-after-write;
-- failover;
-- monitoring;
-- fallback;
-- costo.
-
-Concludi se introdurla ora o no.
+Il team propone una read replica per Order Operations. Scrivi un mini ADR che consideri obiettivo, replica lag, read-after-write, failover, monitoring, fallback e costo. Concludi se introdurla ora oppure no.
 
 ## Esercizio 6 — Cache senza magia
 
-Progetta una cache-aside per un'API di product catalog.
-
-Definisci:
-
-- cache key;
-- TTL;
-- invalidation;
-- comportamento su miss;
-- comportamento se Redis è down;
-- stampede protection;
-- metriche;
-- rischio di tenant/data leakage.
-
-Poi rispondi:
-
-> quale requisito misurato giustifica davvero la cache?
+Progetta una cache-aside per un’API di product catalog. Definisci cache key, TTL, invalidation, miss behavior, comportamento con cache down, stampede protection, metriche e rischio di tenant/data leakage. Poi rispondi alla domanda decisiva: **quale requisito misurato giustifica davvero la cache?**
 
 ## Esercizio 7 — Projection di Order Operations
 
-Supponi che il lookup live inizi a sovraccaricare i domain store.
-
-Progetta una `ProblematicOrderProjection`.
-
-Devi indicare:
-
-- campi copiati;
-- source per ogni campo;
-- freshness target;
-- propagation mechanism candidato;
-- reconciliation;
-- rebuild;
-- failure behavior;
-- cutover dal live lookup.
-
-Non trasferire ownership a Order Operations per errore.
+Supponi che il lookup live inizi a sovraccaricare i domain store. Progetta una `ProblematicOrderProjection` indicando campi copiati, source per ogni campo, freshness target, propagation mechanism candidato, reconciliation, rebuild, failure behavior e cutover dal live lookup. Non trasferire ownership a Order Operations per errore.
 
 ## Esercizio 8 — Online migration
 
-Una tabella contiene 200 milioni di record e vuoi spostare `shipping_address` in una nuova struttura.
-
-Progetta una migration in fasi ispirandoti ai principi discussi nel caso Stripe:
-
-- expand;
-- dual write se appropriato;
-- backfill;
-- compare/read validation;
-- cutover;
-- contract.
-
-Per ogni fase definisci stop condition e rollback possible.
+Una tabella contiene 200 milioni di record e vuoi spostare `shipping_address` in una nuova struttura. Progetta una migration in fasi ispirandoti ai principi discussi nel caso Stripe: expand, eventuale dual write, backfill, compare/read validation, cutover e contract. Per ogni fase definisci stop condition e rollback possibile.
 
 Fonte da leggere:
 
@@ -259,7 +110,7 @@ Fonte da leggere:
 
 ## Esercizio 9 — Retention conflict
 
-Tre stakeholder chiedono:
+Tre stakeholder chiedono cose diverse:
 
 ```text
 Support: teniamo tutto, ci serve per investigare.
@@ -267,72 +118,28 @@ Security: minimizziamo i dati conservati.
 Legal: alcuni audit record vanno conservati più a lungo.
 ```
 
-Costruisci una retention decision separando:
-
-- operational data;
-- audit;
-- PII;
-- analytics;
-- backup.
-
-Mostra il compromesso e il quality floor.
+Costruisci una retention decision separando operational data, audit, PII, analytics e backup. Rendi espliciti compromesso e quality floor.
 
 ## Esercizio 10 — AI migration reviewer
 
-Chiedi a un agente AI di preparare una migration su un repository reale o didattico.
+Chiedi a un agente AI di preparare una migration su un repository reale o didattico. Usa poi un secondo agente come reviewer con il compito di cercare consumer nascosti, destructive change, lock risk, backfill non resumable, rollback impossibile, perdita di dati, incompatibilità fra versioni e mancata observability.
 
-Poi usa un secondo agente come reviewer con il compito di cercare:
-
-- consumer nascosti;
-- destructive change;
-- lock risk;
-- backfill non resumable;
-- rollback impossibile;
-- dati persi;
-- incompatibilità tra versioni;
-- mancata observability.
-
-Il deliverable non è la migration.
-
-È la lista delle assunzioni che richiedono verifica umana o evidenza.
+Il deliverable non è la migration. È la lista delle assunzioni che richiedono verifica umana o evidence.
 
 ## Autovalutazione
 
-Dopo il capitolo dovresti saper rispondere a queste domande senza ricorrere a slogan:
+Prima di chiudere il capitolo dovresti saper spiegare, senza slogan, la differenza tra semantic ownership e storage ownership; perché una source of truth non debba essere fisicamente unica; quando duplicare un dato sia ragionevole; come scegliere un modello partendo dal workload; perché ACID non basti a definire una race condition di business; che cosa distingua index, partitioning, replica e sharding; quali decisioni precedano una cache; perché una migration possa diventare una one-way door; e quali proprietà dei casi Stripe e GitHub siano trasferibili senza copiarne meccanicamente la soluzione.
 
-1. Qual è la differenza tra semantic ownership e storage ownership?
-2. Una source of truth deve essere fisicamente unica?
-3. Quando duplicare un dato è ragionevole?
-4. Che cosa rende una copia derivata governabile?
-5. Come scegli un modello dati partendo dal workload?
-6. Perché “ACID” non basta a risolvere una race condition di business?
-7. Qual è la differenza tra index, partitioning, replica e sharding?
-8. Che cosa deve essere deciso prima di introdurre una cache?
-9. Perché una migration di schema può essere una one-way door?
-10. Quali proprietà hanno reso interessante il caso Stripe senza renderlo una ricetta universale?
-11. Come proteggeresti un backfill generato da AI?
-12. Qual è il compromesso corrente sui dati di Order Operations?
-
-Se alcune risposte sono vaghe, torna alle sezioni corrispondenti.
-
-## Il compromesso ESI in una riga
-
-Order Operations vuole una vista unica e semplice; ESI accetta per ora maggiore coupling runtime verso i dati autorevoli pur di **non introdurre prematuramente una seconda pipeline di verità**, mantenendo ownership, tenant isolation e correctness come quality floor.
+Dovresti anche saper spiegare il compromesso corrente di Order Operations: ESI accetta per ora maggiore coupling runtime verso i dati autorevoli pur di **non introdurre prematuramente una seconda pipeline di verità**, mantenendo ownership, tenant isolation e correctness come quality floor.
 
 ## Corollario
 
-Nel Capitolo 9 abbiamo detto che un'API è una promessa.
-
-Ora possiamo completare il pensiero:
+Nel Capitolo 9 abbiamo detto che un’API è una promessa. Ora possiamo completare il pensiero:
 
 > **Ogni promessa sui dati ha bisogno di sapere chi è autorizzato a dire che è vera.**
 
-Nel prossimo capitolo entreremo nei sistemi distribuiti.
+Nel prossimo capitolo entreremo nei sistemi distribuiti. Quando dati, messaggi e operazioni attraversano processi differenti, failure parziali, retry, ordering ed eventual consistency smettono di essere teoria. Diventano il modo normale in cui il sistema può rompersi.
 
-Quando dati, messaggi e operazioni attraversano processi e nodi differenti, failure parziali, retry, ordering ed eventual consistency smettono di essere concetti teorici.
-
-Diventano il modo normale in cui il sistema può rompersi.
-
-E avremo già una base fondamentale:
+E ci portiamo dietro una base fondamentale:
 
 > **prima di distribuire il dato, dobbiamo sapere chi ne possiede il significato.**
