@@ -2,321 +2,140 @@
 
 Non tutto ciò che costa compare nella cloud bill.
 
-Alcuni dei costi più persistenti vivono nel modo in cui il sistema deve essere capito, modificato e verificato.
+Alcuni dei costi più persistenti vivono nel modo in cui il sistema deve essere capito, modificato, verificato e operato.
 
-## Cognitive load come costo operativo
+La parte difficile è che questi costi arrivano in piccole dosi. Non vediamo una riga “cognitive load” in fattura. Vediamo invece change più lenti, review più lunghe, incidenti che richiedono più persone e tecnologie che nessuno osa aggiornare.
 
-Ogni tecnologia aggiunta richiede almeno una parte di:
+## Cognitive load è recurring cost
 
-```text
-understanding
-configuration
-security model
-failure model
-monitoring
-upgrade
-incident handling
-```
+Ogni tecnologia aggiunta porta con sé almeno configuration, security model, failure behavior, monitoring, upgrade e incident handling.
 
-Se introduciamo:
+Kubernetes, Kafka, Redis, service mesh, GraphQL o un workflow engine possono essere il fit migliore per un problema reale. Ma non sono soltanto capability tecniche: diventano conoscenza che qualcuno deve possedere abbastanza bene da usarla durante un change o sotto pressione.
 
-```text
-Kubernetes
-Kafka
-Redis
-GraphQL
-service mesh
-workflow engine
-```
+`fit before fashion` non ci dice di evitare tecnologie nuove. Ci chiede di pretendere che una nuova capability compri abbastanza valore da giustificare anche il costo di impararla e mantenerla.
 
-non stiamo soltanto aggiungendo capability.
+> **La licenza può essere zero. Il costo cognitivo no.**
 
-Stiamo aggiungendo cose che qualcuno dovrà sapere abbastanza bene da poterle modificare sotto pressione.
+## Alcune architetture hanno un team minimo implicito
 
-Il costo cognitivo non significa che dobbiamo usare sempre tecnologie già note.
+Una topology con molti deployable indipendenti, database separati, streaming, mesh e multi-region può essere tecnicamente valida. Ma se il team reale è composto da poche persone, la domanda diventa economica prima ancora che organizzativa.
 
-Sarebbe l'opposto di **fit before fashion**.
+Ogni runtime, pipeline, dashboard e failure mode consuma budget di attenzione. Quel budget non viene speso su nuove capability, customer issue o miglioramenti del prodotto.
 
-Significa che una nuova tecnologia deve comprare abbastanza valore da giustificare anche il costo di impararla e possederla.
+Per questo team size e ownership devono entrare nel TCO. Una architettura non è economica se richiede un'organizzazione che l'azienda non intende finanziare.
 
-## Team topology e run cost
+## Coordination cost nasce dai boundary sbagliati o poco chiari
 
-Alcune architetture hanno un team minimo implicito.
+Non serve aggiungere infrastruttura per aumentare il costo. Shared ownership, contract ambigui, coupled deploy e data owner incerti possono far crescere handoff, meeting, review latency ed escalation.
 
-```text
-10 deployable indipendenti
-+ 1 database per service
-+ mesh
-+ streaming
-+ multi-region
-```
+Possiamo osservare questi effetti attraverso proxy come lead time, numero di team richiesti per un change, tempo perso a trovare l'owner durante un incident o release coordination necessaria per una modifica apparentemente locale.
 
-possono essere tecnicamente gestibili.
+Non dobbiamo trasformare ogni minuto in euro per riconoscere che la curva esiste.
 
-Ma se il team reale è composto da tre persone, il problema non è soltanto organizzativo.
+> **Ogni dependency organizzativa ricorrente è anche una decisione di costo.**
 
-È economico.
+## Legacy coexistence: premium temporaneo o tassa permanente
 
-Il run cost include il tempo che quelle persone non spendono su altre capability.
+Operations Desk Classic rende il concetto molto concreto.
 
-> **Ogni capability operativa usa anche budget di attenzione.**
+Durante la migrazione ESI paga contemporaneamente vecchio runtime e nuovo runtime, conoscenza legacy e target, characterization, comparison, review e cleanup. Questo premium è intenzionale: compra reversibilità e semantic safety.
 
-## Coordination cost
+Il problema nasce quando la struttura temporanea perde una removal condition. A quel punto il dual run non è più un investimento di migrazione. Diventa recurring cost.
 
-Il costo può crescere anche senza aumentare l'infrastruttura.
+Nel Refactoring Safety Plan abbiamo già stabilito che adapter, comparison e legacy path devono avere un exit. Il Cost Model aggiunge un'altra ragione per farlo: ogni periodo di coexistence deve continuare a giustificare il valore del premium che stiamo pagando.
+
+> **La coesistenza è un investimento soltanto finché esiste un percorso credibile verso la rimozione.**
+
+## Quando generation costa poco, verification può diventare il driver
+
+L'AI rende questo capitolo ancora più importante.
+
+Un agente può produrre rapidamente decine di file, test, migration e pipeline. Il costo di generation può scendere molto. Ma il costo di capire se quel cambiamento è corretto, autorizzato e sicuro non scompare insieme al costo di scrittura.
+
+Una metrica come `cost per generated line` diventa quasi priva di significato. Potremmo generare moltissimo codice a poco prezzo e spendere poi il doppio in review, repair loop e incident response.
+
+Metriche più interessanti saranno, quando avremo dati reali:
 
 ```text
-shared ownership
-→ più meeting
-
-unclear API contract
-→ più negotiation
-
-coupled deploy
-→ più release coordination
-
-unclear data owner
-→ più escalation
-```
-
-Questi costi sono difficili da misurare, ma possono essere osservati attraverso proxy:
-
-```text
-lead time
-handoff count
-change failure
-review latency
-incident ownership delay
-number of teams required for one change
-```
-
-Non dobbiamo monetizzare ogni minuto per riconoscere che esiste una curva.
-
-## Legacy coexistence cost
-
-Operations Desk Classic ci offre un esempio perfetto.
-
-Durante la migrazione ESI paga:
-
-```text
-old runtime
-+ new runtime
-+ old knowledge
-+ new knowledge
-+ characterization
-+ shadow comparison
-+ migration review
-```
-
-Questo costo è intenzionale.
-
-Compra reversibilità e semantic safety.
-
-Ma se la coexistence non ha una removal condition, può diventare permanente.
-
-A quel punto il premium di migrazione si trasforma in recurring cost.
-
-> **La coesistenza è un investimento soltanto se esiste ancora un percorso credibile verso la rimozione.**
-
-## Cost of verification
-
-Nel software tradizionale possiamo essere tentati di considerare i test un puro costo di engineering.
-
-Nell'era AI la verification diventa ancora più centrale.
-
-Se un agente può produrre rapidamente:
-
-```text
-50 file
-200 test
-3 migration
-2 pipeline
-```
-
-il costo di generation può essere basso.
-
-Il costo di verification può invece dominare.
-
-Quindi una metrica come:
-
-```text
-cost per generated line
-```
-
-è praticamente inutile.
-
-Più interessante:
-
-```text
-review time per accepted change
-verification cost per merged task
-rework per AI-generated change
+verification cost per accepted change
+review time per accepted task
+repair loops per delegated task
+post-verification finding rate
 failure rate after acceptance
 ```
 
-## AI cost: token è un meter, non un outcome
+Questo non significa che l'AI sia economicamente svantaggiosa. Significa che **il punto di misura deve spostarsi dalla produzione all'accettazione**.
 
-La FinOps Foundation include il **cost per token** fra gli esempi di resource-efficiency unit metric.
+## Token è un meter, non un outcome
+
+La FinOps Foundation cita `cost per token` come esempio di resource-efficiency unit metric.
 
 Fonte:
 
 - [FinOps Framework — Unit Economics](https://www.finops.org/framework/capabilities/unit-economics/)
 
-È una metrica utile.
+È una metrica utile per capire il consumo. Ma non basta per scegliere un modello o un workflow.
 
-Ma resta una metrica di consumo.
+Un modello con prezzo/token inferiore può richiedere più retry, più context reload e più human review. Un modello più caro può produrre meno rework e un costo complessivo per task più basso.
 
-Una pipeline agentica può avere:
-
-```text
-model A
-cost/token basso
-
-but
-more retries
-more context reload
-more failed tasks
-more human review
-```
-
-mentre:
+Quindi una futura decisione di model routing dovrà guardare almeno due assi:
 
 ```text
-model B
-cost/token più alto
-
-but
-fewer retries
-higher first-pass acceptance
-less human verification
+resource efficiency
++ outcome quality
 ```
 
-Non possiamo concludere quale sia più economico dal solo prezzo per token.
+Il prezzo unitario è soltanto una delle variabili.
 
 ## Cost per useful outcome
 
-Per gli agenti potremmo voler misurare:
+Per un sistema agentico potremmo voler misurare `cost per accepted issue`, `cost per verified refactoring` o `cost per successful support resolution`.
+
+La scelta della unità resta delicata. `cost per merged PR`, per esempio, può migliorare semplicemente aumentando il numero di PR o abbassando il livello di verifica. La metrica economica deve quindi viaggiare con una quality metric che renda difficile questo tipo di gaming.
+
+Una forma generale utile è:
 
 ```text
-cost per accepted issue
-cost per verified refactoring
-cost per merged PR
-cost per incident hypothesis validated
-cost per successful support resolution
+TotalTaskCost =
+    inference
+  + retrieval/context
+  + tool execution
+  + retries
+  + verification
+  + human review
+  + rework
 ```
 
-La definizione deve però essere resistente al gaming.
+Non tutti i termini saranno immediatamente monetizzabili. Ma il modello ci ricorda quali costi stiamo rischiando di spostare fuori dalla metrica principale.
 
-Per esempio:
+## Context engineering ha una dimensione economica
 
-```text
-cost per merged PR
-```
+Un sistema AI paga anche il contesto: repository file, documenti recuperati, log, schema, conversation history e output precedenti.
 
-può premiare PR minuscole senza valore o spingere a merge rischiosi.
+Più contesto può migliorare la decisione. Può anche aumentare token, latency, retrieval complexity, privacy exposure e stale-context risk.
 
-Quindi metriche economiche e quality metric devono essere lette insieme.
+La direzione economica è la stessa usata nel resto del libro:
 
-## Context cost
+> **usare il contesto minimo che preserva la qualità della decisione richiesta.**
 
-Un sistema AI paga anche per il contesto.
+“Mandare tutto sempre” non è una strategia di context engineering. È una rinuncia a modellare il costo e la qualità del contesto.
 
-```text
-repository files
-conversation history
-retrieved documents
-logs
-schema
-previous agent output
-```
+## Caching e routing non sono ottimizzazioni gratuite
 
-Più contesto può migliorare la decisione.
+Caching può ridurre inference ricorrente ma introduce identity, invalidation, staleness e security questions. Model routing può assegnare task semplici a modelli più economici e task ad alto rischio a modelli più forti, ma soltanto se esiste evidence che il routing preservi la qualità richiesta.
 
-Ma può anche aumentare:
-
-- token;
-- latency;
-- retrieval complexity;
-- privacy exposure;
-- stale-context risk.
-
-Quindi **context engineering** ha anche una dimensione economica.
-
-Non vogliamo:
-
-```text
-always send everything
-```
-
-Vogliamo:
-
-```text
-smallest context that preserves decision quality
-```
-
-La stessa logica del resto dell'architettura.
-
-## Caching e model routing
-
-Caching può ridurre recurring inference cost, ma introduce domande:
-
-```text
-what is cache identity?
-what can become stale?
-can sensitive output be reused?
-how do we invalidate?
-```
-
-Model routing può usare modelli differenti per task differenti:
-
-```text
-classification
-→ smaller model
-
-high-risk architecture decision support
-→ stronger model
-```
-
-Ma il routing deve essere guidato da quality/risk e outcome, non soltanto dal prezzo.
-
-Questo tema verrà approfondito quando introdurremo AI dentro l'architettura.
-
-Qui ci basta fissare il principio:
+Questi temi arriveranno più avanti. Nel Capitolo 20 ci basta fissare il criterio economico:
 
 > **Ottimizzare inference cost senza misurare task quality può trasformare un costo visibile in rework invisibile.**
 
-## Human cost e deskilling
+## Il costo differito della competenza
 
-Esiste anche un costo differito difficile da mettere nel budget: perdere competenza.
+Esiste infine un costo che nessun billing dashboard ci mostrerà subito: perdere la capacità interna di capire e verificare il sistema.
 
-Se l'AI esegue sistematicamente:
+Se l'AI esegue sistematicamente debugging, migration reasoning, architecture trade-off e code review senza che il team mantenga capacità di giudicare il risultato, possiamo abbassare il costo immediato dell'execution e aumentare quello futuro di recovery e decision making.
 
-```text
-debugging
-migration reasoning
-architecture tradeoff
-code review
-```
+Questo è lo stesso rischio introdotto nel Capitolo 0: execution più economica non rende automaticamente più economica la responsabilità.
 
-senza che il team mantenga capacità di comprenderne il risultato, possiamo ridurre il costo immediato dell'execution e aumentare il costo futuro di recovery e decision making.
+Per questo il modello economico dell'AI non dovrà fermarsi a `hours saved`. Dovrà guardare anche verification burden, rework, incident impact e competenza che resta nel sistema organizzativo.
 
-È lo stesso rischio discusso nel Capitolo 0.
-
-Il modello economico dell'AI non deve quindi misurare soltanto:
-
-```text
-hours saved
-```
-
-ma anche:
-
-```text
-verification burden
-quality
-incident impact
-knowledge retained
-```
-
-## Regola
-
-> **Nell'era AI il costo di produrre può scendere più rapidamente del costo di capire, verificare e possedere ciò che abbiamo prodotto. Il secondo è quello che dobbiamo imparare a modellare.**
+> **Nell'era AI il costo di produrre può scendere più rapidamente del costo di capire, verificare e possedere ciò che abbiamo prodotto. Il secondo è il costo che l'architettura deve imparare a rendere visibile.**
