@@ -1,34 +1,20 @@
 ## Acceptance criteria: decidere prima come riconosceremo il risultato
 
-Una feature è difficile da delegare quando non sappiamo come valutarla.
+Una feature è difficile da delegare quando non sappiamo come valutarla. Vale tra colleghi e vale ancora di più quando l’execution viene affidata a un agente.
 
-Questo vale per un collega.
-
-Vale ancora di più per un agente.
-
-Gli acceptance criteria trasformano una richiesta generica in un insieme di condizioni osservabili.
-
-Non devono descrivere tutta l'implementazione.
-
-Devono dire che cosa deve essere vero perché possiamo considerare il comportamento accettabile.
+Gli acceptance criteria trasformano una richiesta generica in condizioni osservabili. Non devono descrivere tutta l’implementazione: devono chiarire che cosa deve essere vero perché possiamo considerare il comportamento accettabile.
 
 ### Done non significa compilato
 
 Un agente può produrre codice che compila, passa i test esistenti, rispetta lo stile del repository e sembra coerente con il task. Eppure la feature può non essere “done”.
 
-Per esempio:
+Prendiamo la richiesta “Aggiungi la possibilità di prendere in carico un ordine problematico”. Salvare un `assignedUserId` nel database non basta a definire il comportamento. Dobbiamo sapere che cosa accada se due operatori tentano l’assegnazione contemporaneamente, se l’assegnazione sia auditabile, se il caso possa essere rilasciato o riassegnato, quanto rapidamente il nuovo stato debba diventare visibile e che cosa succeda quando la stessa richiesta viene ripetuta.
 
-> “Aggiungi la possibilità di prendere in carico un ordine problematico.”
-
-Un'implementazione può salvare un `assignedUserId` nel database.
-
-Ma restano domande sul comportamento reale. Due operatori possono prendere in carico lo stesso ordine contemporaneamente, e che cosa vede il secondo? L'assegnazione è auditabile? Un operatore può liberare il caso e un amministratore riassegnarlo? Il nuovo stato deve essere immediatamente visibile e che cosa succede se la stessa richiesta viene ripetuta?
-
-Il codice può esistere senza che il comportamento sia definito.
+Il codice può esistere anche quando la semantica non è ancora definita.
 
 ### Acceptance criteria come esempi
 
-Una forma utile è descrivere scenari.
+Gli scenari sono utili quando rendono evidente il confine tra corretto e non corretto. Per esempio:
 
 ```text
 Dato un ordine non assegnato
@@ -36,7 +22,7 @@ quando un operatore autorizzato lo prende in carico
 allora l'ordine mostra quell'operatore come assegnatario.
 ```
 
-Poi aggiungiamo i casi che cambiano la semantica:
+La semantica cambia quando introduciamo concorrenza:
 
 ```text
 Dato un ordine già assegnato a un altro operatore
@@ -45,155 +31,54 @@ allora il sistema non sovrascrive silenziosamente l'assegnazione
 ed espone lo stato corrente.
 ```
 
-Non dobbiamo trasformare ogni requisito in centinaia di scenari Gherkin.
-
-La forma è meno importante del principio:
-
-> **rendere osservabile il confine tra corretto e non corretto.**
+Non dobbiamo trasformare ogni requisito in centinaia di scenari Gherkin. La forma è meno importante del principio: **rendere osservabile il confine tra corretto e non corretto**.
 
 ### Acceptance criteria e invarianti
 
-Alcune condizioni sono più profonde di uno scenario.
+Alcune condizioni sono più profonde di uno scenario e meritano di essere trattate come invarianti. In Order Operations, per esempio, un ordine appartiene a un solo tenant, un operatore non può leggere ordini di tenant non autorizzati, la presa in carico non deve modificare lo stato commerciale e ogni cambio di assegnatario deve essere ricostruibile dall’audit trail. Anche la concorrenza deve rispettare una proprietà chiara: una richiesta ripetuta o simultanea non può creare due assegnazioni valide incompatibili.
 
-Sono invarianti.
-
-Per Order Operations potremmo avere:
-
-```text
-- un ordine appartiene a un solo tenant;
-- un operatore non può leggere ordini di tenant non autorizzati;
-- la presa in carico non modifica lo stato commerciale dell'ordine;
-- una richiesta ripetuta non deve produrre due assegnazioni concorrenti valide;
-- ogni cambio di assegnatario deve essere ricostruibile dall'audit trail.
-```
-
-Queste condizioni sono preziose perché attraversano UI, API, database e test.
-
-Un agente può cambiare l'implementazione mantenendo gli invarianti.
-
-Questo è esattamente il tipo di libertà che vogliamo.
+Queste condizioni attraversano UI, API, database e test. Un agente può cambiare l’implementazione mantenendo gli invarianti, ed è esattamente il tipo di libertà che vogliamo.
 
 ### Il test prima del codice, senza dogma
 
-Non serve trasformare questo capitolo in una difesa universale del Test-Driven Development.
+Non serve trasformare il capitolo in una difesa universale del Test-Driven Development. Esiste però una domanda estremamente utile da porre prima dell’execution:
 
-Ma esiste una domanda estremamente utile da porre prima dell'execution:
+> **Che evidence ci convincerebbe che questa feature funziona?**
 
-> **Che evidenza ci convincerebbe che questa feature funziona?**
+La risposta può essere un test automatico, una proprietà invariabile, un benchmark, un test manuale guidato, un contract test, una query di verifica, una metrica osservata o una security review. Spesso serve una combinazione di queste forme.
 
-La risposta può essere un test automatico o una proprietà invariabile, un benchmark o un test manuale guidato, un contract test o una query di verifica. In altri casi serve una metrica osservata, una security review o una combinazione di più forme di evidence.
-
-Il punto è evitare di definire la verifica soltanto dopo aver visto la soluzione.
-
-Quando lo facciamo, rischiamo di scegliere test che confermano ciò che abbiamo già costruito.
+Il punto è evitare di definire la verifica soltanto dopo aver visto la soluzione. Se lo facciamo, rischiamo di scegliere controlli che confermano ciò che abbiamo già costruito invece di mettere alla prova ciò che conta.
 
 ### Definition of Done
 
-Gli acceptance criteria descrivono il comportamento.
+Gli acceptance criteria descrivono il comportamento. La Definition of Done può includere anche condizioni di delivery e qualità del cambiamento. In un progetto concreto potrebbe richiedere, oltre agli acceptance criteria, test automatici verdi, assenza di nuovi warning, rollback o migration strategy, telemetry necessaria, documentazione aggiornata e nessuna modifica fuori scope. Se cambia un permission boundary, potrebbe richiedere anche una security review.
 
-La Definition of Done può includere anche condizioni di delivery.
-
-Per esempio:
-
-```text
-Definition of Done
-- acceptance criteria soddisfatti;
-- test automatici aggiunti e verdi;
-- nessun nuovo warning di static analysis;
-- migrazione reversibile o rollback documentato;
-- metriche/log necessari presenti;
-- documentazione del comportamento aggiornata;
-- nessuna modifica fuori scope;
-- security review richiesta se cambia un permission boundary.
-```
-
-Non tutte le feature richiedono tutti questi punti.
-
-La Definition of Done deve essere proporzionata al rischio e alle convenzioni del progetto.
+Non tutte le feature hanno bisogno dello stesso insieme di controlli. La Definition of Done deve essere proporzionata al rischio e alle convenzioni del progetto.
 
 ### Acceptance criteria e stop condition
 
-Gli acceptance criteria dicono quando possiamo dire “successo”.
+Gli acceptance criteria dicono quando possiamo parlare di successo; le stop condition dicono quando non siamo più autorizzati a continuare. Sono due lati dello stesso contratto.
 
-Le stop condition dicono quando dobbiamo dire “fermati”.
+Un task può dichiarare che il comportamento A deve essere osservabile, il caso B deve essere gestito e l’invariante C deve restare vero. Nello stesso tempo può imporre uno stop se serve cambiare il modello di autorizzazione, emerge una migration distruttiva, il requisito confligge con un contratto esistente o non siamo in grado di verificare l’invariante con gli strumenti disponibili.
 
-Sono complementari.
-
-Un task AI-ready potrebbe contenere:
-
-```text
-Acceptance
-- il comportamento A è osservabile;
-- il caso B è gestito;
-- l'invariante C rimane vero.
-
-Stop
-- serve cambiare il modello di autorizzazione;
-- emerge una migration distruttiva;
-- il requisito entra in conflitto con un contratto esistente;
-- non è possibile verificare l'invariante C con gli strumenti disponibili.
-```
-
-L'agente non riceve soltanto una destinazione.
-
-Riceve anche i guardrail del percorso.
+L’agente non riceve soltanto una destinazione. Riceve anche i guardrail del percorso.
 
 ### Criteri troppo prescrittivi
 
-Gli acceptance criteria possono diventare un altro modo per microgestire l'implementazione.
+Gli acceptance criteria possono diventare un altro modo per microgestire l’implementazione. Una frase come “creare una classe `OrderAssignmentManager`, una tabella `OrderAssignments` e un endpoint `POST /api/v2/orders/{id}/assign`” potrebbe descrivere un design ragionevole, ma non descrive il criterio con cui giudicheremo il risultato.
 
-Per esempio:
-
-> “Deve essere creata una classe `OrderAssignmentManager` con metodo `AssignAsync`, una tabella `OrderAssignments` e un endpoint `POST /api/v2/orders/{id}/assign`.”
-
-Forse queste sono decisioni corrette.
-
-Ma non sono acceptance criteria.
-
-Sono design.
-
-Se prescriviamo il design prima di averlo valutato, perdiamo la possibilità di confrontare alternative.
-
-Meglio separare:
-
-```text
-Cosa deve essere vero
-```
-
-da:
-
-```text
-Come scegliamo di renderlo vero
-```
-
-Questa separazione diventerà centrale quando parleremo di ADR.
+Dobbiamo tenere separati **ciò che deve essere vero** e **come scegliamo di renderlo vero**. Questa distinzione diventerà centrale quando parleremo di ADR.
 
 ### Criteri che proteggono dal demo-driven confidence
 
-Nel capitolo precedente abbiamo visto che una demo convincente può creare una fiducia sproporzionata.
+Nel capitolo precedente abbiamo visto quanto una demo convincente possa creare una fiducia sproporzionata. Gli acceptance criteria sono uno degli antidoti. La demo può mostrarci che un operatore prende in carico un ordine; i criteri ci ricordano di controllare anche concorrenza, autorizzazione, audit, idempotenza, comportamento in errore e osservabilità, se questi aspetti appartengono al rischio della feature.
 
-Gli acceptance criteria sono uno degli antidoti.
-
-Una demo può mostrare:
-
-> “Guarda, l'operatore prende in carico l'ordine.”
-
-Gli acceptance criteria ci ricordano di verificare anche concorrenza e autorizzazione, audit e idempotenza, comportamento in errore e osservabilità.
-
-Non perché ogni feature debba essere perfetta.
-
-Perché il significato di “funziona” deve essere deciso prima che l'interfaccia funzionante ci seduca.
+Non perché ogni feature debba essere perfetta, ma perché il significato di “funziona” deve essere deciso prima che l’interfaccia funzionante ci seduca.
 
 ### Una regola pratica
 
-Prima di delegare un task significativo, proviamo a completare:
+Prima di delegare un task significativo, completiamo la frase:
 
 > **Considereremo il task completato quando...**
 
-Se la frase termina con:
-
-> “...il codice è stato scritto”
-
-non abbiamo ancora definito il risultato.
-
-Se termina con condizioni osservabili, abbiamo iniziato a costruire un contratto di execution.
+Se la risposta termina con “il codice è stato scritto”, non abbiamo ancora definito il risultato. Se termina con condizioni osservabili, abbiamo iniziato a costruire un vero contratto di execution.
