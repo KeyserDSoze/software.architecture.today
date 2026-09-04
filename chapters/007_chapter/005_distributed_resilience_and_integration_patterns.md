@@ -1,85 +1,50 @@
 ## Pattern di integrazione, distribuzione e resilienza
 
-Quando usciamo dal singolo processo, il costo dei pattern cresce rapidamente.
+Quando usciamo dal singolo processo, i pattern smettono molto rapidamente di essere soltanto organizzazione del codice. Iniziano a cambiare failure mode, consistency, latency, operabilità e recovery. Per questo il loro costo decisionale è più alto.
 
-Non perché diventino “enterprise”, ma perché iniziano a modificare failure mode, consistenza, operabilità e modello mentale del sistema.
+Una queue, un retry o un circuit breaker non sono “ingredienti cloud”. Una outbox, una saga o CQRS non sono livelli di maturità. Sono risposte a pressioni precise, e ognuna sposta la complessità in un punto diverso del sistema.
 
-Qui la disciplina **fit before fashion** diventa ancora più importante.
+La disciplina **fit before fashion** qui diventa ancora più importante.
 
-### Queue: disaccoppiare nel tempo
+## La prima forza: il tempo
 
-Una queue è utile quando producer e consumer non devono necessariamente essere disponibili nello stesso momento.
+Molti pattern distribuiti nascono da una domanda semplice: producer e consumer devono essere disponibili nello stesso momento?
 
-Una coda può assorbire burst e introdurre buffering, consentire retry e separare la capacità di produzione da quella di consumo. Può anche isolare temporaneamente una dipendenza lenta dal request path.
+Se la risposta è no, una **queue** può disaccoppiarli nel tempo. Il producer deposita lavoro e può proseguire; il consumer lo elabora quando ha capacità. Questo può assorbire burst, ridurre la pressione su una dipendenza lenta e permettere una gestione esplicita del backlog.
 
-In cambio introduce duplicate delivery e ordering non banale, poison message e backlog, retry policy e dead-letter handling. Aggiunge inoltre un nuovo problema di observability e nuove domande sulla consistenza che prima non esistevano.
+Ma il guadagno ha un prezzo. Appena il lavoro entra in coda dobbiamo ragionare su duplicate delivery, ordering, retry, poison message, dead-letter handling e osservabilità del backlog. Dobbiamo anche accettare che il risultato non sia più necessariamente disponibile nel request path.
 
-Se il requisito è soltanto “chiamare un servizio e ottenere una risposta immediata”, una queue potrebbe trasformare un problema semplice in un workflow distribuito.
+Per questo inserire una queue in un journey che richiede risposta immediata non crea automaticamente resilienza. Potrebbe soltanto trasformare un problema sincrono in un workflow asincrono che nessuno aveva richiesto.
 
-### Retry: semplice da scrivere, difficile da governare
+Microsoft descrive la Queue-Based Load Leveling come un pattern per usare una coda come buffer fra task e servizio, in modo da assorbire picchi e proteggere la capacità del consumer. Il punto è il problema di load leveling, non la presenza della coda in sé: [Microsoft Learn — Cloud Design Patterns](https://learn.microsoft.com/azure/architecture/patterns/).
 
-Il retry è uno dei pattern più intuitivi e più pericolosi.
+## La seconda forza: il fallimento remoto
 
-Funziona bene per failure transitori quando:
+Una chiamata di rete può essere lenta, fallire temporaneamente o non dirci con certezza che cosa sia successo dall'altra parte.
 
-- l'operazione è sicura da ripetere;
-- esiste un backoff ragionevole;
-- il numero di tentativi è limitato;
-- il sistema a valle ha possibilità reale di recuperare.
+Il primo strumento è spesso il **timeout**. Ogni dipendenza deve avere un limite temporale coerente con il latency budget del journey complessivo. Se l'intera operazione deve chiudersi in due secondi, una singola chiamata non può attendere cinque secondi senza rendere il requisito impossibile per costruzione.
 
-Se queste condizioni non valgono, il retry può amplificare l'incidente.
+Dopo il timeout arriva spesso la tentazione del **retry**.
 
-Un servizio lento riceve più richieste proprio quando è meno capace di gestirle.
+Il retry ha senso per failure plausibilmente transitori quando ripetere l'operazione è sicuro, il numero di tentativi è limitato e l'attesa tra i tentativi lascia davvero alla dipendenza la possibilità di recuperare. Senza queste condizioni, il retry può amplificare il guasto: un servizio già saturo riceve più traffico proprio perché sta rispondendo male.
 
-Nasce il retry storm.
+Il rischio cresce quando più layer applicano retry indipendentemente. Tre tentativi nel gateway, tre nel servizio e tre nell'SDK possono moltiplicare una singola richiesta in una quantità di chiamate che nessun layer locale vede completamente.
 
-Quindi retry senza idempotenza, timeout e budget non è resilienza.
+La documentazione Microsoft sul Retry pattern insiste proprio sulla necessità di applicare retry dove il contesto dell'operazione è compreso e avverte che layer di retry annidati possono introdurre ritardi e carico eccessivi: [Microsoft Learn — Retry pattern](https://learn.microsoft.com/azure/architecture/patterns/retry).
 
-Può essere moltiplicazione del danno.
+Quando il failure non è più transitorio, continuare a riprovare smette di essere utile. È qui che può entrare un **circuit breaker**: dopo una sequenza significativa di fallimenti, il sistema smette temporaneamente di chiamare la dipendenza e usa un comportamento di fallback o fallisce rapidamente.
 
-### Timeout: una decisione architetturale piccola ma fondamentale
+Il breaker compra protezione contro cascading failure e attese inutili, ma introduce stato, soglie, recovery semantics e nuove metriche. Se nessuno sa quando è `open`, perché lo è diventato o che cosa accade in `half-open`, abbiamo spostato il failure mode invece di governarlo.
 
-Ogni chiamata remota dovrebbe avere un limite temporale coerente con il journey complessivo.
+Lo stesso principio vale per il **bulkhead**: isolare pool, concurrency o risorse può impedire che una parte degradata consumi tutta la capacità condivisa. Ma troppo isolamento riduce elasticità e aumenta configurazione. La domanda deve sempre essere quale failure domain vogliamo contenere.
 
-Un timeout non è “qualche secondo”.
+Questa relazione tra failure inevitabili, retry, circuit breaker e bulkhead è coerente con i design principle di Azure per il self-healing e l'isolamento dei failure: [Microsoft Learn — Design for self-healing](https://learn.microsoft.com/azure/architecture/guide/design-principles/self-healing).
 
-Dipende dal budget di latency end-to-end.
+## La terza forza: una seconda rappresentazione del dato
 
-Se il journey deve terminare in 2 secondi, una singola dipendenza non può avere un timeout di 5 secondi.
+Una **cache** viene spesso introdotta come soluzione di performance. In realtà, dal momento in cui contiene un valore derivato dalla source of truth, diventa una seconda rappresentazione del dato e quindi ci obbliga a definire una politica di coerenza.
 
-Il pattern è semplice.
-
-La parte difficile è allocare il budget.
-
-### Circuit breaker
-
-Un circuit breaker evita di continuare a chiamare una dipendenza che sta fallendo in modo consistente.
-
-Può ridurre latency inutile e proteggere risorse.
-
-Ma deve avere:
-
-- soglie comprensibili;
-- metriche;
-- comportamento di fallback;
-- semantica di recovery;
-- test sullo stato half-open.
-
-Se nessuno osserva quando il breaker apre, abbiamo soltanto spostato il failure mode.
-
-### Bulkhead
-
-Il bulkhead prova a impedire che il sovraccarico di una funzione consumi tutte le risorse condivise.
-
-Può significare pool separati, concurrency limit o isolamento di workload.
-
-È utile quando failure o saturation di una parte non devono compromettere tutto il sistema.
-
-Ma troppo isolamento può ridurre utilizzo efficiente delle risorse e aumentare configurazione operativa.
-
-### Cache-aside
-
-Il pattern cache-aside è frequente:
+Il classico cache-aside:
 
 ```text
 read cache
@@ -88,17 +53,15 @@ read cache
 → populate cache
 ```
 
-La cache sembra semplice finché non chiediamo quanto possa essere stale il dato e come avvenga l'invalidazione, che cosa succeda con update concorrenti o quando la cache è indisponibile. Dobbiamo anche decidere se possiamo servire dati vecchi e se il workload espone il sistema a cache stampede.
+sembra semplice finché non chiediamo quanto possa essere stale il dato, chi invalidi dopo una scrittura, come reagiamo a update concorrenti e che cosa accada durante un cache miss massivo. Dobbiamo anche decidere se una cache indisponibile renda indisponibile il journey oppure soltanto più lento.
 
-La cache non è “performance gratis”.
+La cache non è performance gratis. Compra latency e load reduction pagando freshness, invalidation e un nuovo failure surface.
 
-È una seconda rappresentazione del dato con una politica di coerenza.
+## La quarta forza: coordinare stato e messaggi
 
-### Outbox
+Un problema più profondo emerge quando vogliamo modificare stato locale e pubblicare un messaggio affidabile senza una transazione distribuita tra database e broker.
 
-Il transactional outbox risponde a una tensione importante: vogliamo modificare lo stato locale e pubblicare un messaggio senza avere una transazione distribuita tra database e broker.
-
-La struttura tipica è:
+La **transactional outbox** cambia il problema. Nella stessa transazione locale salviamo sia lo stato del dominio sia l'intenzione di pubblicare:
 
 ```text
 transaction database
@@ -111,58 +74,44 @@ publisher
 → marca record come processato
 ```
 
-Compra atomicità locale tra stato e intenzione di pubblicazione.
+In questo modo non rischiamo che il commit locale riesca mentre l'intenzione di pubblicare venga persa prima ancora di essere registrata.
 
-L'outbox paga la propria affidabilità con duplicati possibili, un meccanismo di polling o CDC, retention e monitoring della tabella e la necessità di consumer idempotenti.
+Ma non otteniamo esattamente-once per magia. La pubblicazione può essere ripetuta, quindi i consumer devono tollerare duplicati. Servono inoltre polling o CDC, retention, monitoring e recovery della pipeline.
 
-È un ottimo pattern quando il problema esiste davvero.
+La outbox è quindi potente quando il problema è **coordinare commit locale e pubblicazione affidabile**. È puro costo quando quella tensione non esiste.
 
-È inutile se non dobbiamo coordinare stato locale e pubblicazione affidabile.
+## La quinta forza: transazioni che attraversano ownership differenti
 
-### Saga
+Quando un workflow attraversa servizi autonomi, una transazione globale può essere impossibile, troppo costosa o indesiderabile. La **saga** accetta questa realtà e modella una sequenza di transazioni locali con progressione e compensazione.
 
-Una saga coordina una sequenza di transazioni locali quando non possiamo o non vogliamo avere una transazione globale.
+Questo significa rendere espliciti stati intermedi, retry, failure permanenti e ownership del workflow. Significa anche capire che una compensazione non è rollback temporale.
 
-Non “rende transazionale” un sistema distribuito.
+Se abbiamo già inviato una email, non possiamo “dis-inviarla”. Possiamo soltanto eseguire un'azione successiva che renda il business coerente con ciò che è accaduto.
 
-Gestisce invece progressione e compensazione.
+Microsoft descrive Saga come un pattern per gestire la consistenza dei dati in scenari di transazioni distribuite tra microservizi. Anche qui la descrizione è utile perché lega il pattern al problema di consistency, non al desiderio di avere un'orchestrazione sofisticata: [Microsoft Learn — Cloud Design Patterns](https://learn.microsoft.com/azure/architecture/patterns/).
 
-Una saga ci obbliga a modellare i passi completati e i retry, le operazioni compensative e i failure permanenti. Lo stato intermedio e l'osservabilità del workflow diventano parte dell'architettura, non dettagli da aggiungere dopo.
+## Separare lettura e scrittura senza saltare subito alla distribuzione
 
-La compensazione non è rollback.
+**CQRS** viene spesso riconosciuto dalla sua implementazione più vistosa: command service, query service, database separati, eventi e proiezioni. Ma il principio è più piccolo.
 
-Se un cliente riceve una email, non possiamo “dis-inviarla”.
+Se il modello necessario per cambiare lo stato e quello necessario per leggerlo hanno responsabilità differenti, possiamo separarli anche dentro lo stesso processo e persino sopra lo stesso datastore. La distribuzione è una scelta successiva.
 
-Possiamo soltanto eseguire un'azione successiva coerente.
+Un read model dedicato diventa interessante quando requisiti di query, latency, availability o scala divergono abbastanza da giustificare nuova sincronizzazione e consistency eventuale.
 
-### CQRS
+Separare semanticamente command e query può costare poco. Duplicare storage e pipeline costa molto di più. Non dobbiamo confondere i due livelli.
 
-CQRS separa il modello di command dal modello di query.
+## Event sourcing cambia la fonte della verità
 
-Può avere senso quando letture e scritture hanno bisogni molto diversi.
+**Event sourcing** ha un peso ancora diverso perché non introduce soltanto un meccanismo di integrazione. Cambia il modello di persistenza: gli eventi diventano la fonte primaria da cui ricostruiamo lo stato.
 
-Non richiede necessariamente due database, due servizi o eventi.
+Questo può offrire storia, audit e ricostruzione molto potenti. Ma ci obbliga a governare evoluzione degli eventi, replay, snapshot, debugging temporale, idempotenza, privacy e cancellazione. Il passato diventa parte attiva del modello operativo del sistema.
 
-Può essere una separazione logica nello stesso processo.
+Non è una persistence “più avanzata”. È una scelta con un costo di inversione elevato e va trattata come tale.
 
-Questo è importante perché spesso il pattern viene confuso con la sua implementazione più distribuita.
+## Il criterio comune
 
-### Event sourcing
+Queue, retry, circuit breaker, bulkhead, cache, outbox, saga, CQRS ed event sourcing fanno cose molto diverse, ma possono essere giudicati con la stessa grammatica.
 
-Event sourcing registra gli eventi come fonte primaria dello stato.
-
-Può offrire storia, audit e capacità di ricostruzione molto potenti.
-
-Event sourcing porta con sé problemi seri di evoluzione degli eventi, privacy e cancellazione, rebuild e snapshot. Aumentano anche il peso del debugging temporale e dell'idempotenza e la necessità di comprendere come il dominio cambia nel tempo.
-
-Non è una forma “più avanzata” di persistence.
-
-È una scelta di modello con conseguenze profonde.
-
-### Il criterio comune
-
-Queue, retry, circuit breaker, outbox, saga, CQRS ed event sourcing non devono essere memorizzati come ingredienti di una modern architecture.
-
-Devono essere collegati alle forze che li rendono necessari.
+Quale failure, coordinamento o quality attribute rende insufficiente la struttura attuale? Quale complessità spostiamo introducendo il pattern? Quale nuova osservabilità diventa necessaria? E soprattutto: quale soluzione più semplice abbiamo escluso?
 
 > **Un pattern distribuito non elimina complessità. Decide dove metterla e quale failure mode preferiamo governare.**
