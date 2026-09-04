@@ -1,29 +1,14 @@
-## Idee chiave
+## Sintesi: distribuire significa progettare l’incertezza
 
-1. La rete introduce **outcome incerti**, non soltanto errori più lenti.
-2. Un timeout significa che il caller smette di aspettare; non dimostra che il downstream non abbia prodotto side effect.
-3. Un retry è una nuova esecuzione potenziale e deve essere progettato insieme a idempotency, budget e stop condition.
-4. Retry annidati possono trasformare un piccolo failure rate in un overload più ampio.
-5. Backoff e jitter riducono la sincronizzazione dei retry; non sostituiscono la classificazione degli errori.
-6. Queue, pub/sub e stream descrivono relazioni differenti fra producer e consumer.
-7. Command ed event hanno semantica differente: il primo esprime un'intenzione, il secondo descrive un fatto.
-8. At-least-once delivery richiede consumer che tollerino redelivery quando il duplicato produce effetti indesiderati.
-9. Exactly-once deve sempre specificare il confine della garanzia.
-10. Ordering globale è costoso e spesso non è il requisito reale; cercare l'ordine minimo necessario.
-11. Una queue assorbe burst trasformandoli in backlog. Non crea capacità.
-12. Backpressure decide dove il sistema rallenta prima di saturare.
-13. Una DLQ senza owner, alert, retention e redrive policy è soltanto un parcheggio di errori.
-14. Transactional outbox rende atomici stato locale e intenzione di pubblicare, non l'intero processo distribuito.
-15. Eventual consistency deve specificare stati intermedi, convergenza, timeout e recovery.
-16. Compensation è una nuova business operation, non un database rollback distribuito.
-17. Saga serve quando esiste davvero un workflow distribuito multi-step con recovery/compensation significative.
-18. Orchestration rende esplicita la progressione; choreography distribuisce le reazioni. Entrambe pagano costi differenti.
-19. Reconciliation è una parte importante della reliability quando acknowledgement e side effect attraversano sistemi diversi.
-20. La Failure Mode Map descrive che cosa succede quando le frecce del diagramma non funzionano come previsto.
+Il filo del capitolo è uno solo: attraversare una rete rende incompleta la nostra conoscenza dell’outcome. Un timeout non dimostra che il downstream non abbia prodotto effetti; un retry non annulla il tentativo precedente; una queue non crea capacità ma trasforma burst in backlog; una delivery guarantee vale soltanto nel perimetro in cui può essere realmente sostenuta.
+
+Per questo retry, idempotency, backoff, jitter, ordering, backpressure, DLQ, outbox e reconciliation non sono ingredienti da aggiungere a una “modern architecture”. Sono risposte a forme specifiche di incertezza. La loro utilità dipende dal failure mode che rendono governabile.
+
+At-least-once delivery, per esempio, accetta redelivery pur di evitare perdita silenziosa. Il sistema deve quindi avere identity stabile e consumer idempotenti. Exactly-once richiede sempre di specificare il boundary della promessa. Transactional outbox chiude il buco tra business commit e publication intent, ma non elimina il possibile duplicate publish. Eventual consistency richiede stati intermedi e una business time policy; compensation è una nuova business operation, non un rollback distribuito; saga e orchestration entrano soltanto quando un workflow multi-step, con recovery significativo, le rende necessarie.
+
+La Failure Mode Map raccoglie queste decisioni partendo dal journey. Il suo scopo è farci vedere che cosa rimane persistito, se l’outcome è known o unknown, chi possiede il retry, quanto tempo possiamo aspettare, quando il lavoro deve uscire dal fast path e chi interviene se la recovery automatica non converge.
 
 ## Operational artifact — Failure Mode Map
-
-Template sintetico:
 
 ```markdown
 # Failure Mode Map
@@ -56,9 +41,7 @@ Template sintetico:
 ## Open questions
 ```
 
-La mappa deve essere proporzionata al rischio.
-
-Un flusso che invia telemetry best-effort non richiede lo stesso livello di dettaglio di un flusso economico.
+La mappa deve essere proporzionata al rischio. Telemetria best-effort e flussi economici non meritano lo stesso livello di dettaglio.
 
 ## Esercizio 1 — Il timeout ambiguo
 
@@ -69,20 +52,9 @@ POST /refund
 client timeout = 2s
 ```
 
-Il client riceve timeout.
+Il client riceve timeout. Scrivi almeno quattro possibili stati reali del downstream e, per ciascuno, indica se un retry sia sicuro, quale informazione manchi, quale idempotency contract introdurresti e come riconcilieresti l’esito.
 
-Scrivi almeno quattro possibili stati reali del downstream.
-
-Per ciascuno specifica:
-
-- se un retry è sicuro;
-- quale informazione manca;
-- quale idempotency contract introdurresti;
-- come riconcilieresti l'esito.
-
-Obiettivo:
-
-capire perché `TimeoutException` non descrive abbastanza il failure mode.
+Obiettivo: capire perché `TimeoutException` non descrive abbastanza il failure mode.
 
 ## Esercizio 2 — Retry storm
 
@@ -95,23 +67,7 @@ Web API
 → Database
 ```
 
-Ogni livello esegue fino a tre tentativi.
-
-Il database entra in degradazione.
-
-Disegna il feedback loop e proponi:
-
-- retry ownership;
-- retry budget;
-- timeout budget;
-- backoff;
-- jitter;
-- stop condition;
-- eventuale degraded mode.
-
-Domanda:
-
-> in quale livello metteresti il retry e perché?
+Ogni livello esegue fino a tre tentativi e il database entra in degradazione. Disegna il feedback loop e proponi retry ownership, retry budget, timeout budget, backoff, jitter, stop condition ed eventuale degraded mode. Spiega in quale livello metteresti il retry e perché.
 
 ## Esercizio 3 — Queue o pub/sub?
 
@@ -121,17 +77,10 @@ Classifica questi casi:
 2. notificare che un ordine è stato confermato a più sistemi interessati;
 3. eseguire una scansione antivirus su un file;
 4. mantenere un log replayable di clickstream;
-5. inviare una command di fulfillment a un solo dominio responsabile;
+5. inviare un command di fulfillment a un solo dominio responsabile;
 6. aggiornare più projection indipendenti dopo un evento di dominio.
 
-Per ogni caso scegli:
-
-- queue;
-- pub/sub;
-- stream;
-- nessuna messaggistica asincrona.
-
-Poi spiega quali proprietà ti servono davvero.
+Per ogni caso scegli queue, pub/sub, stream oppure nessuna messaggistica asincrona e spiega quali proprietà ti servono davvero.
 
 ## Esercizio 4 — At-least-once
 
@@ -144,23 +93,11 @@ Message: InvoiceRequested
 → ack
 ```
 
-Il processo crasha dopo l'invio email ma prima dell'ack.
-
-Progetta una soluzione che distingua:
-
-- identity del messaggio;
-- identity della fattura;
-- identity dell'invio;
-- deduplication;
-- recovery.
-
-Domanda:
-
-> quali side effect devono essere idempotenti e quali possono essere riconciliati?
+Il processo crasha dopo l’invio email ma prima dell’ack. Progetta una soluzione che distingua identity del messaggio, della fattura e dell’invio, oltre a deduplication e recovery. Spiega quali side effect devono essere idempotenti e quali possono essere riconciliati.
 
 ## Esercizio 5 — Ordering minimo
 
-Ricevi eventi:
+Ricevi:
 
 ```text
 OrderCreated
@@ -168,25 +105,7 @@ OrderConfirmed
 OrderCancelled
 ```
 
-per milioni di ordini.
-
-Il requisito iniziale dice:
-
-> “gli eventi devono essere in ordine”.
-
-Riscrivilo in una forma più precisa.
-
-Valuta:
-
-- ordering globale;
-- ordering per tenant;
-- ordering per orderId;
-- version number;
-- stale-event rejection.
-
-Obiettivo:
-
-preservare correctness senza serializzare inutilmente tutto il workload.
+per milioni di ordini. Il requisito iniziale dice “gli eventi devono essere in ordine”. Riscrivilo in una forma più precisa e confronta ordering globale, per tenant, per `orderId`, version number e stale-event rejection. L’obiettivo è proteggere correctness senza serializzare inutilmente tutto il workload.
 
 ## Esercizio 6 — Backpressure
 
@@ -202,19 +121,7 @@ Consumer capacity:
 300 msg/s
 ```
 
-Il burst dura 20 minuti.
-
-Non serve calcolare soltanto il backlog.
-
-Progetta anche:
-
-- metrica di lag;
-- alert threshold;
-- producer throttling;
-- consumer scaling;
-- priority;
-- TTL quando applicabile;
-- comportamento quando il backlog non può essere recuperato nel business window.
+Il burst dura 20 minuti. Non limitarti a calcolare il backlog: definisci anche metrica di lag, alert threshold, producer throttling, consumer scaling, priority, TTL quando applicabile e comportamento quando il backlog non può essere recuperato nel business window.
 
 ## Esercizio 7 — DLQ production-ready
 
@@ -225,59 +132,30 @@ maxDeliveryCount = 10
 on failure → DLQ
 ```
 
-Scrivi tutto ciò che manca per poterla considerare una recovery strategy.
-
-Almeno:
-
-- owner;
-- alert;
-- retention;
-- failure reason;
-- security;
-- redrive;
-- idempotency;
-- business impact;
-- runbook;
-- escalation.
+Completa la recovery strategy con owner, alert, retention, failure reason, security, redrive, idempotency, business impact, runbook ed escalation. Spiega che cosa vede il business mentre il messaggio è in DLQ.
 
 ## Esercizio 8 — Dual write
 
-Hai questo codice:
+Hai:
 
 ```ts
 await repository.save(entity);
 await broker.publish(event);
 ```
 
-Costruisci una Failure Mode Map per:
-
-- DB fail;
-- publish fail;
-- process crash;
-- publish success + lost ack;
-- retry.
-
-Poi ridisegna il flusso con transactional outbox.
-
-Spiega quali failure mode vengono eliminati e quali rimangono.
+Costruisci una Failure Mode Map per DB fail, publish fail, process crash, publish success con lost ack e retry. Ridisegna poi il flusso con transactional outbox e spiega quali failure mode vengono eliminati e quali rimangono.
 
 ## Esercizio 9 — Saga o no?
 
-Per ciascun workflow decidi se una saga è giustificata:
+Per ciascun workflow decidi se una saga sia giustificata:
 
 1. invio email dopo registrazione;
-2. prenotazione viaggio con volo + hotel + pagamento;
+2. prenotazione viaggio con volo, hotel e pagamento;
 3. refresh di una cache;
 4. refund con provider esterno, aggiornamento stato ordine e notifica;
 5. generazione asincrona di thumbnail.
 
-Per quelli che richiedono saga, individua:
-
-- local transactions;
-- compensable steps;
-- pivot;
-- irreversible side effect;
-- human review condition.
+Per i casi che la richiedono individua local transactions, compensable steps, pivot, side effect irreversibili e condizioni di human review.
 
 ## Esercizio 10 — Choreography vs orchestration
 
@@ -291,33 +169,11 @@ OrderConfirmed
 → send confirmation
 ```
 
-Disegna due soluzioni:
-
-- choreography;
-- orchestration.
-
-Confronta:
-
-- ownership del workflow;
-- visibilità dello stato;
-- coupling;
-- schema evolution;
-- observability;
-- recovery;
-- compensation;
-- team autonomy.
-
-Non dichiarare un vincitore universale.
-
-Scegli in base a un contesto esplicito.
+Disegna una soluzione choreography e una orchestration. Confronta ownership del workflow, visibilità dello stato, coupling, schema evolution, observability, recovery, compensation e team autonomy. Non cercare un vincitore universale: scegli in base a un contesto esplicito.
 
 ## Esercizio 11 — Failure Mode Map di un sistema reale
 
-Scegli un'integrazione reale che conosci.
-
-Non serve un grande sistema distribuito.
-
-Può essere:
+Scegli una integrazione reale che conosci, anche piccola:
 
 ```text
 app → payment provider
@@ -326,17 +182,7 @@ worker → object storage
 API → identity provider
 ```
 
-Disegna la mappa.
-
-Evidenzia almeno un punto in cui oggi il team non sa distinguere:
-
-```text
-known failure
-known success
-unknown outcome
-```
-
-Proponi un miglioramento.
+Disegna la mappa ed evidenzia almeno un punto in cui oggi il team non distingue chiaramente `known failure`, `known success` e `unknown outcome`. Proponi un miglioramento.
 
 ## Esercizio 12 — Analisi del caso Uber DLQ
 
@@ -344,17 +190,9 @@ Leggi:
 
 - [Uber Engineering — Building Reliable Reprocessing and Dead Letter Queues with Apache Kafka](https://www.uber.com/blog/reliable-reprocessing/)
 
-Rispondi:
+Ricostruisci quale problema operativo Uber stesse risolvendo, perché il retry inline potesse danneggiare il traffico real-time, quale ruolo avesse la separazione dei retry stream e quali parti della soluzione siano specifiche di Kafka o invece generalizzabili.
 
-1. quale problema operativo stava risolvendo Uber?
-2. perché il retry inline poteva danneggiare il traffico real-time?
-3. quale ruolo aveva la separazione dei retry stream?
-4. quali trade-off introduceva?
-5. quali parti del design sono specifiche di Kafka e quali sono generalizzabili?
-
-Obiettivo:
-
-non copiare la soluzione; estrarre il modello decisionale.
+L’obiettivo non è copiare la topologia, ma estrarre il modello decisionale.
 
 ## Esercizio 13 — Amazon e idempotency
 
@@ -362,100 +200,31 @@ Leggi:
 
 - [Amazon Builders' Library — Making retries safe with idempotent APIs](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/)
 
-Confronta:
-
-```text
-payload hash
-vs
-client request id
-```
-
-Descrivi un caso in cui due payload uguali rappresentano due intenti differenti e un caso in cui due tentativi dello stesso intento possono non essere byte-identical.
+Confronta `payload hash` e `client request id`. Descrivi un caso in cui due payload identici rappresentino intenti differenti e un caso in cui due tentativi dello stesso intento non siano byte-identical.
 
 ## Esercizio 14 — Order Operations
 
-Partendo dalla sezione ESI, progetta il command:
+Progetta il command:
 
 ```http
 POST /api/operational-cases/{caseId}/payment-escalations
 ```
 
-Definisci:
-
-- authentication;
-- authorization;
-- idempotency key;
-- business validation;
-- response semantics;
-- local transaction;
-- outbox entry;
-- event contract;
-- delivery state;
-- retry;
-- DLQ;
-- reconciliation;
-- observability.
-
-Non aggiungere refund o altri side effect economici.
+Definisci authentication, authorization, idempotency key, business validation, response semantics, local transaction, outbox entry, event contract, delivery state, retry, DLQ, reconciliation e observability. Non aggiungere refund o altri side effect economici: il confine funzionale del capitolo è l’escalation.
 
 ## Esercizio 15 — Adversarial review con AI
 
-Fornisci a un agente:
+Fornisci a un agente producer code, outbox schema, publisher, consumer, retry config, DLQ config e API contract. Chiedigli di trovare tutte le finestre in cui crash o timeout possono produrre perdita, duplicazione, ordering violation, retry amplification o stato ambiguo e di proporre un test riproducibile per ogni scenario.
 
-- producer code;
-- outbox schema;
-- publisher;
-- consumer;
-- retry config;
-- DLQ config;
-- API contract.
-
-Chiedi:
-
-> “Trova tutte le finestre in cui un crash o timeout può produrre perdita, duplicazione, ordering violation, retry amplification o stato ambiguo. Per ogni scenario indica evidence nel codice/config e proponi un test riproducibile.”
-
-Poi verifica manualmente ogni scenario.
-
-Obiettivo:
-
-usare l'AI come failure-mode explorer, non come certificatore della reliability.
+Verifica poi manualmente ogni osservazione. L’obiettivo è usare l’AI come failure-mode explorer, non come certificatore della reliability.
 
 ## Autovalutazione
 
-Dovresti saper rispondere senza consultare il capitolo:
+Dovresti saper spiegare senza consultare il testo perché un timeout non dimostri failure remoto; quando un retry peggiori un outage; la differenza tra backoff e jitter; che cosa renda idempotente un consumer; perché exactly-once debba essere delimitato; quando una queue abbia fit migliore del pub/sub; perché queue depth da sola non basti; che cosa renda una DLQ operabile; quale buco chiuda l’outbox e quale duplicate window rimanga; perché eventual consistency richieda una business time policy; perché compensation non sia rollback; quando saga sia overengineering; come differiscano orchestration e choreography; e perché reconciliation continui a servire anche in presenza di retry affidabili.
 
-1. Perché un timeout non dimostra che l'operazione remota sia fallita?
-2. Quando un retry può peggiorare un outage?
-3. Che differenza c'è fra backoff e jitter?
-4. Che cosa rende un consumer idempotente?
-5. Perché exactly-once deve essere delimitato?
-6. Quando useresti una queue invece di pub/sub?
-7. Qual è la differenza semantica fra command ed event?
-8. Perché queue depth da sola non descrive bene il backlog?
-9. Che cosa rende una DLQ operabile?
-10. Che failure window risolve transactional outbox?
-11. Quale failure window rimane dopo l'outbox?
-12. Perché eventual consistency richiede una business time policy?
-13. Perché compensation non è rollback?
-14. Quando una saga è overengineering?
-15. Che differenza c'è fra orchestration e choreography?
-16. Che cosa deve contenere una Failure Mode Map?
-17. Perché reconciliation rimane utile anche con retry affidabili?
+## Cosa cambia con l’AI
 
-## Cosa cambia con l'AI
-
-L'AI rende molto più economico:
-
-- generare producer e consumer;
-- aggiungere retry;
-- configurare broker;
-- generare Terraform per queue/topic;
-- creare schema;
-- costruire workflow;
-- implementare saga;
-- produrre diagrammi event-driven.
-
-Questo aumenta il rischio di introdurre distribuzione prima di avere capito il failure model.
+L’AI abbassa enormemente il costo di generare producer, consumer, retry, broker configuration, Terraform, schema, workflow e perfino saga. Questo è utile, ma rende ancora più facile introdurre distribuzione prima di averne capito il failure model.
 
 Un agente può creare in pochi minuti:
 
@@ -467,24 +236,9 @@ queue
 + dashboard
 ```
 
-ma le domande difficili rimangono:
+ma non risponde automaticamente alle domande che contano: quale side effect sia idempotente, chi possieda il redrive, quando il ritardo diventi incidente, quale stato veda l’utente, quale payload sia sicuro, chi riconcili e che cosa sia irreversibile.
 
-```text
-il messaggio può duplicarsi?
-quale side effect è idempotente?
-chi è owner del redrive?
-quando il ritardo diventa incidente?
-quale stato vede l'utente?
-quale payload è sicuro?
-chi riconcilia?
-che cosa è irreversibile?
-```
-
-Quindi nell'era dell'AI:
-
-> **il costo di costruire un sistema distribuito scende più velocemente del costo di capirne tutti i failure mode.**
-
-Questo rende la disciplina ancora più importante.
+> **Il costo di costruire un sistema distribuito scende più velocemente del costo di capirne tutti i failure mode.**
 
 ## Fonti principali del capitolo
 
@@ -515,78 +269,21 @@ Questo rende la disciplina ancora più importante.
 
 ## Il compromesso ESI
 
-### Esigenza
+Commerce & Operations deve registrare rapidamente una Payment Escalation e Payments & Risk deve riceverla in modo affidabile. Per evitare che availability e latency del downstream diventino parte del request path, scegliamo transazione locale, transactional outbox, delivery asincrona at-least-once e consumer idempotente.
 
-Commerce & Operations deve registrare rapidamente una payment escalation e Payments & Risk deve riceverla in modo affidabile.
+Accettiamo eventual consistency, outbox, publisher, retry, DLQ, reconciliation e observability aggiuntiva. Non accettiamo perdita silenziosa dopo il local commit, side effect duplicato per la stessa `escalationId`, violazioni di tenant isolation o trasferimento accidentale dell’ownership economica a Order Operations.
 
-### Tensione
-
-Availability e latency del request path contro consistency immediata e semplicità sincrona.
-
-### Decisione
-
-Transazione locale + transactional outbox + delivery asincrona at-least-once + consumer idempotente.
-
-### Costo accettato
-
-Eventual consistency, outbox, publisher, retry, DLQ, reconciliation e osservabilità aggiuntiva.
-
-### Quality floor
-
-- nessuna perdita silenziosa dopo local commit;
-- nessun side effect duplicato per la stessa escalation;
-- tenant isolation;
-- payload minimizzato;
-- correlation;
-- failure visibile;
-- Payments & Risk mantiene ownership economica.
-
-### Guardrail
-
-- stable `escalationId` e `messageId`;
-- bounded retry + backoff/jitter;
-- idempotent consumer;
-- DLQ owner;
-- business delivery monitoring;
-- reconciliation;
-- Failure Mode Map.
-
-### Trigger di revisione
-
-- throughput/lag incompatibili col polling publisher;
-- DLQ frequente;
-- nuove esigenze di replay/stream processing;
-- ordering più forte;
-- workflow economici multi-step;
-- business requirement di recovery più severi.
+I guardrail sono identity stabili, retry bounded con backoff/jitter, idempotent consumer, DLQ con owner, business delivery monitoring, reconciliation e Failure Mode Map. Riapriremo la decisione se throughput e lag renderanno insufficiente il polling, se la DLQ diventerà frequente, se nasceranno requisiti di replay/stream processing o ordering più forte, oppure se i workflow economici diventeranno davvero multi-step.
 
 ## Bridge al Capitolo 12
 
-Abbiamo introdotto la prima capability distribuita senza scegliere ancora il prodotto cloud.
+Abbiamo introdotto una capability distribuita senza scegliere ancora il prodotto cloud. È intenzionale: ora disponiamo di requisiti concreti su runtime, messaging, network, identity, secrets, storage, autoscaling e availability.
 
-È intenzionale.
-
-Ora abbiamo requisiti abbastanza concreti per valutare il deployment:
-
-```text
-runtime
-messaging
-network
-identity
-secrets
-storage
-autoscaling
-availability
-infrastructure as code
-```
-
-Nel **Capitolo 12 — Cloud Architecture** faremo la domanda nel verso corretto:
+Nel **Capitolo 12 — Cloud Architecture** faremo quindi la domanda nel verso corretto:
 
 > quali capability cloud hanno il fit migliore con il sistema che abbiamo già compreso?
 
-Non:
-
-> quali servizi cloud possiamo infilare nel diagramma?
+Non: quali servizi cloud possiamo infilare nel diagramma?
 
 ## Corollario
 
