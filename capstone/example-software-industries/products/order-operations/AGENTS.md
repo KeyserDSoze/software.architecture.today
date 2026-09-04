@@ -24,6 +24,7 @@ Common routes:
 - priority behavior / legacy coexistence → `docs/priority-functional-analysis.md`, `docs/legacy-understanding-map.md`, `docs/refactoring-safety-plan.md`
 - Payment Escalation → `docs/api-contract.md`, `docs/events/`, `docs/data-ownership.md`, `docs/failure-mode-map.md`
 - runtime AI / Case Explanation Assistant → `docs/ai-feature-contract.md`, `evals/case-explanation-v1.jsonl`, `docs/threat-model.md`, `docs/observability-contract.md`, `docs/cost-model.md`
+- One-Man Project / continuity / WIP → `docs/one-man-project-operating-model.md`
 - cloud / security / reliability → `docs/cloud-deployment.md`, `docs/threat-model.md`, `docs/security-control-matrix.md`, `docs/reliability-contract.md`, `docs/cost-model.md`
 - architecture policy → `docs/architecture-fitness-checklist.md`
 - testing/evidence → `docs/testing-strategy.md`
@@ -43,7 +44,7 @@ Do not copy inferred behavior into canonical documentation as if it were confirm
 - `database/` — persistence owned by Order Operations only.
 - `evals/` — versioned AI evaluation cases and risk scenarios. Eval presence does not imply model quality was already measured.
 - `infra/` — Azure workload infrastructure. Security, reliability and cost decisions apply.
-- `tests/` — behavioral, architecture, cost, issue-readiness, agent-governance, AI-boundary and repository-context verification.
+- `tests/` — behavioral, architecture, cost, issue-readiness, agent-governance, AI-boundary, One-Man-Project and repository-context verification.
 - `work-items/` — bounded discovery/execution contracts for current or future work; not a second copy of canonical architecture documentation.
 
 Architecture rules are executable in `tests/architecture-fitness.test.mjs`.
@@ -71,6 +72,32 @@ The model is **not** an authority for PaymentStatus, Priority, refund/remediatio
 Do not introduce a provider SDK directly into `src/ai/` semantic contracts merely to accelerate a prototype. A provider adapter requires an explicit implementation change and must be evaluated against the versioned eval set.
 
 Do not claim groundedness, prompt-injection resistance, latency, cost or model quality as `Verified` until a real model configuration has been executed against the corresponding evaluation/runtime gate.
+
+## One-Man Project pilot
+
+The Case Explanation Assistant is the current One-Man Project pilot.
+
+Canonical operating model:
+
+```text
+docs/one-man-project-operating-model.md
+```
+
+Current operating constraints include:
+
+```text
+Max active execution tasks       2
+Max active cross-boundary tasks  1
+Max unresolved semantic gates    1
+```
+
+These limits are ESI pilot decisions, not industry benchmarks.
+
+`OO-001` and `OO-002` may both be Ready. Do not activate both T2 cross-boundary tasks merely because agent execution capacity is available if the accountable lead cannot safely review both.
+
+The Accountable Project Lead does not gain unilateral authority over Product, Payments, Security, Platform or irreversible production decisions.
+
+A Secondary Maintainer and continuity/vacation drill are part of the operating model. The continuity drill is currently **Pending**; do not describe continuity as Verified merely because the documentation exists.
 
 ## Golden verification commands
 
@@ -102,6 +129,8 @@ If changing data ownership or persistence, update Data Ownership Map and migrati
 If changing cloud topology, review Threat Model, Reliability Contract, Cost Model and architecture fitness impact.
 
 If changing runtime AI context, model authority, tool set, retrieval strategy, output schema or fallback, update `docs/ai-feature-contract.md` and review Threat Model, Testing Strategy, Observability Contract, Cost Model and the AI eval set.
+
+If changing the One-Man Project WIP policy, decision rights, specialist triggers, secondary-maintainer requirement or exit criteria, update `docs/one-man-project-operating-model.md` and review whether the project still has fit with the current autonomy/agent-governance model.
 
 If changing a legacy/refactoring behavior, preserve characterization evidence and the expected-difference registry. Do not change legacy characterization tests just to make the target implementation pass.
 
@@ -162,7 +191,8 @@ Stop execution and request an explicit decision if the task requires any of the 
 - adding a runtime AI write/action tool;
 - allowing the model to decide business authority currently owned by deterministic logic or another domain;
 - adding a broad document corpus/retrieval path without reviewing authorization, poisoning/injection, freshness and evaluation;
-- changing model/provider and claiming behavioral equivalence without regression evaluation.
+- changing model/provider and claiming behavioral equivalence without regression evaluation;
+- exceeding the active One-Man Project WIP/decision policy without an explicit operating-model review.
 
 A work item or Agent Delegation Contract may define additional, narrower stop conditions. Those conditions remain part of the execution contract.
 
@@ -199,6 +229,7 @@ For a normal code change:
 7. the final report distinguishes what was verified from what remains designed/pending;
 8. if a work item was used, closure evidence records outcome, checks executed, limitations, `Not verified` and follow-up work;
 9. if an Agent Delegation Contract was used, the result includes the required Agent Verification Bundle and any stop/escalation event;
-10. if a runtime AI behavior changed, the report identifies the model/context/tool boundary affected and which eval/runtime evidence was actually executed.
+10. if a runtime AI behavior changed, the report identifies the model/context/tool boundary affected and which eval/runtime evidence was actually executed;
+11. if the One-Man Project operating boundary changed, the report identifies WIP/decision/continuity impact and whether the operating model still has fit.
 
 > **Do not invent missing business semantics. Do not hide missing evidence.**
