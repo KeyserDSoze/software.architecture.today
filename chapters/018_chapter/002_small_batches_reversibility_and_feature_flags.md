@@ -1,6 +1,6 @@
 # 18.2 — Small batch, reversibilità e feature flag
 
-La modernizzazione diventa pericolosa quando trattiamo il cambiamento come una singola unità indivisibile.
+Una modernization diventa pericolosa quando il cambiamento viene trattato come un'unica unità indivisibile.
 
 ```text
 old system
@@ -8,159 +8,157 @@ old system
 → production switch
 ```
 
-Questa rappresentazione nasconde tutto ciò che ci serve per governare il rischio.
+Questa forma nasconde ciò che ci serve per governare il rischio: quali proprietà cambiano, quale evidence abbiamo dopo ogni passo e dove possiamo ancora tornare indietro.
 
 Un percorso più utile è:
 
 ```text
 understand
 → introduce seam
-→ preserve old behavior
-→ add new implementation
+→ preserve legacy behavior
+→ add candidate inactive
 → compare
-→ route a small slice
+→ route a small cohort
 → expand
 → remove old path
 ```
 
-Ogni freccia è una decisione separata.
+Ogni freccia è una decisione distinta.
 
-Ogni decisione può avere evidence, stop condition e fallback differenti.
+## Small batch significa unità di rischio comprensibile
 
-## Small batch non significa micro-commit senza senso
-
-“Fare cambiamenti piccoli” non significa dividere artificialmente un lavoro in decine di commit che non hanno valore autonomo.
+“Fare cambiamenti piccoli” non significa produrre micro-commit privi di significato.
 
 Un batch è abbastanza piccolo quando:
 
-- ha uno scopo comprensibile;
-- produce una property verificabile;
-- il reviewer può capire il blast radius;
-- il rollback/fallback è definibile;
-- il sistema resta in uno stato valido dopo il merge.
+- ha uno scopo autonomo;
+- lascia il sistema in uno stato valido;
+- modifica una semantic surface comprensibile;
+- ha evidence proporzionata;
+- permette di definire rollback o fallback;
+- rende attribuibile una regressione.
 
-Esempio:
+Per la priority routing ESI potremmo avere:
 
 ```text
 PR 1
 introduce PriorityPolicy seam
-nessun comportamento cambia
+no behavior change
 
 PR 2
-legacy adapter dietro al seam
-characterization ancora green
+route legacy behavior through adapter
+characterization still green
 
 PR 3
-new policy non attiva
-unit test + shadow instrumentation
+add target policy inactive
 
 PR 4
-shadow mode per tenant interni
+add shadow comparison
 
 PR 5
 controlled candidate routing
 
 PR 6
-legacy removal
+remove legacy path
 ```
 
-Questo è diverso da:
+Il valore non è il numero di PR.
 
-```text
-PR 1
-rewrite priority subsystem
-+ schema migration
-+ API changes
-+ rollout
-+ delete legacy
-```
+È il fatto che dopo ciascun passo possiamo rispondere:
 
-## Safe deployment non elimina il rischio
+> Che cosa è diventato vero adesso, e quale nuova evidence possediamo?
 
-Microsoft Azure Well-Architected ricorda che ogni deploy introduce rischio e raccomanda processi di deployment standardizzati, automatizzati e incrementali.
+## Safe deployment non significa zero rischio
 
-Sottolinea inoltre che cambiamenti piccoli e frequenti sono più semplici da diagnosticare e recuperare rispetto a grandi rilasci infrequenti.
+Microsoft Azure Well-Architected raccomanda processi di deployment standardizzati, automatizzati e incrementali e sottolinea che cambiamenti piccoli e frequenti sono generalmente più semplici da diagnosticare e recuperare.
 
 Fonte:
 
 - [Microsoft Learn — Architecture strategies for safe deployment practices](https://learn.microsoft.com/azure/well-architected/operational-excellence/safe-deployments)
 
-Il punto non è ottenere un deploy “senza rischio”.
+L'obiettivo non è un deploy senza rischio.
 
-Il punto è rendere il rischio:
+È un rischio:
 
-- limitato;
-- rilevabile;
-- attribuibile;
-- reversibile quando possibile.
+```text
+bounded
+detectable
+attributable
+reversible when promised
+```
 
-## Feature flag: meccanismo, non strategia
+Una piccola release senza observability o fallback può essere più pericolosa di una trasformazione ampia ma meccanica e fortemente verificata.
 
-Una feature flag può permettere di scegliere a runtime fra due comportamenti.
+## Feature flag: controllo di routing, non strategia completa
 
-Questo è molto potente durante un refactoring.
+Una feature flag può scegliere a runtime fra vecchio e nuovo comportamento.
 
-Ma la flag da sola non ci dice:
+È molto utile perché separa:
 
-- chi viene spostato sul nuovo path;
-- in quale ordine;
+```text
+deployment
+```
+
+da:
+
+```text
+activation
+```
+
+Ma non decide da sola:
+
+- chi entra nel candidate path;
 - quali metriche guardiamo;
-- quale differenza è tollerabile;
-- quando fermiamo il rollout;
-- quando eliminiamo la flag;
-- quale stato è già stato scritto.
+- quale mismatch è accettabile;
+- chi può fermare il rollout;
+- quale stato è già stato scritto;
+- quando il vecchio path può essere rimosso.
 
 Quindi:
 
-> **Una feature flag è un meccanismo di controllo. La strategia di rollout deve esistere sopra di essa.**
+> **Una feature flag è un meccanismo di controllo. Il rollout è una decisione architetturale sopra quel meccanismo.**
 
-GitHub descrive l'uso delle feature flag per ridurre il rischio di deployment, abilitare cambiamenti a percentuali o gruppi limitati e poter disabilitare rapidamente un comportamento senza effettuare un rollback completo del deploy.
-
-La stessa fonte evidenzia anche il costo delle flag una volta completato il rollout: dead code e test duplicati devono essere rimossi.
+GitHub ha descritto l'uso delle feature flag per rollout progressivi, segmentazione e disabilitazione rapida, ma anche il costo del loro cleanup una volta terminata la migrazione.
 
 Fonte:
 
 - [GitHub Engineering — How we ship code faster and safer with feature flags](https://github.blog/engineering/infrastructure/ship-code-faster-safer-feature-flags/)
 
-Questo ci dà una regola importante:
+Ogni migration flag dovrebbe quindi avere già al momento dell'introduzione:
 
 ```text
-flag introduced
-→ owner
-→ purpose
-→ rollout plan
-→ removal condition
-→ removal
+owner
+purpose
+default
+rollout plan
+fallback semantics
+removal condition
 ```
 
-Una feature flag permanente non è più un meccanismo di migrazione.
+Una flag temporanea senza exit condition è un candidate branch legacy.
 
-È diventata architettura.
+## Branch by Abstraction e feature flag fanno lavori diversi
 
-E deve essere trattata come tale.
+**Branch by Abstraction** crea il seam dietro cui possono convivere vecchia e nuova implementazione.
 
-## Branch by Abstraction e feature flag non sono la stessa cosa
+La feature flag può governare quale implementazione venga usata.
 
 AWS distingue esplicitamente i due concetti.
-
-**Branch by Abstraction** introduce un boundary dietro al quale vecchia e nuova implementazione possono coesistere.
-
-Una **feature flag** può poi essere usata per decidere quale implementazione utilizzare.
 
 Fonte:
 
 - [AWS Prescriptive Guidance — Branch by abstraction pattern](https://docs.aws.amazon.com/prescriptive-guidance/latest/modernization-decomposing-monoliths/branch-by-abstraction.html)
 
-Quindi possiamo avere:
+Per ESI:
 
 ```text
 caller
 → PriorityPolicy
-   ├── LegacyPriorityPolicy
+   ├── LegacyPriorityAdapter
    └── ConfirmedPriorityPolicy
 ```
 
-La struttura è il branch by abstraction.
+è il boundary.
 
 La scelta:
 
@@ -170,178 +168,136 @@ shadow
 candidate
 ```
 
-può essere governata da configurazione o feature flag.
+è la policy di routing.
 
-## Shadow mode
+Confondere i due livelli porta spesso a pensare che una flag messa intorno a codice fortemente accoppiato abbia già creato una modernization architecture.
 
-Prima di lasciare che la nuova implementazione produca effetti, possiamo eseguirla in parallelo soltanto per confrontarne il risultato.
+## Shadow mode compra evidence prima dell'authority
+
+Lo shadow mode esegue la candidate policy senza lasciarle ancora decidere il risultato esterno.
 
 ```text
-request
-→ legacy policy → authoritative result
-       |
-       └──────────────→ candidate policy
-                         ↓
-                      comparison
+input
+→ legacy result = authoritative
+→ candidate result = observed only
+→ comparison
 ```
 
-Il candidate path non decide ancora il risultato restituito al caller.
+È potente quando il candidate è deterministicamente confrontabile e non produce side effect.
 
-Produce evidence.
+È pericoloso quando il “path ombra” scrive, invia messaggi, acquisisce lock o chiama un provider con effetti reali.
 
-Questo approccio è utile quando:
+> **Shadow traffic è sicuro soltanto quando il candidate è davvero privo di authority sul mondo esterno.**
 
-- la funzione è deterministica;
-- il candidate non produce side effect;
-- possiamo confrontare output significativi;
-- le differenze sono classificabili.
+## Una differenza non è automaticamente un bug
 
-È pericoloso quando il “secondo path” produce effetti reali.
+Nel caso ESI sappiamo già che una regola legacy verrà rimossa intenzionalmente.
 
-Esempio:
+Quindi:
 
 ```text
-call old payment
-+ call new payment
+legacy = Urgent
+candidate = Standard
 ```
 
-non è shadowing innocuo se entrambi possono addebitare denaro.
+può rappresentare una regressione oppure una differenza approvata.
 
-> **Shadow traffic è sicuro soltanto quando abbiamo compreso gli effetti del path ombra.**
-
-## Differenza non significa bug
-
-Nel nostro caso ESI sappiamo già che alcune regole legacy potrebbero essere eliminate intenzionalmente.
-
-Quindi una comparison del tipo:
+Lo shadow comparison deve poter distinguere almeno:
 
 ```text
-legacy = URGENT
-candidate = STANDARD
-```
-
-non è automaticamente una regressione.
-
-Potrebbe essere:
-
-```text
+Match
+ExpectedDifference
 UnexpectedDifference
 ```
 
-oppure:
+Senza questa semantica, il sistema di comparison produce soltanto rumore.
 
-```text
-ExpectedDifference
-reason = removed obsolete enterprise threshold
-```
+E il rumore porta rapidamente a ignorare i mismatch.
 
-Questo è un passaggio importante.
+## Rollback deve dire esattamente che cosa torna indietro
 
-Se usiamo shadow comparison senza una **difference policy**, produrremo rumore.
-
-E il rumore riduce la fiducia nello strumento di migrazione.
-
-## Rollback non è una parola sola
-
-Durante il rollout dobbiamo distinguere:
+Durante il rollout possiamo avere:
 
 ### Deployment rollback
 
-Torniamo all'artifact precedente.
+```text
+new artifact
+→ previous artifact
+```
 
 ### Behavior fallback
 
-Restiamo sullo stesso artifact ma cambiamo routing:
-
 ```text
-candidate → legacy
+candidate
+→ legacy
 ```
+
+senza cambiare artifact.
 
 ### Configuration rollback
 
-Ripristiniamo una configurazione precedente.
+Ripristino della configurazione precedente.
 
 ### Data rollback
 
-Ripristiniamo o compensiamo lo stato.
+Ripristino o compensazione dello stato.
 
 ### Contract rollback
 
-Torniamo a un contratto precedente, se consumer e producer lo consentono.
+Ritorno a un contratto compatibile precedente, quando ancora possibile.
 
-Questi rollback non hanno la stessa difficoltà.
+Queste capability hanno costi e vincoli diversi.
 
-Per questo ogni migration step deve dire **quale rollback promette realmente**.
+Dire “abbiamo rollback” senza specificare quale significa nascondere la parte più importante della recovery story.
 
-## Il punto di non ritorno
+## Il point of no return divide due fasi della migrazione
 
-Molti refactoring hanno una fase molto reversibile e una fase in cui la reversibilità cala rapidamente.
-
-Esempio:
+Nelle prime fasi possiamo avere:
 
 ```text
-new code inactive
-→ highly reversible
-
-shadow mode
-→ highly reversible
-
-5% candidate routing, no new state format
-→ reversible
-
-candidate becomes authoritative writer
-→ harder
-
-legacy consumer removed
-→ harder
-
-old schema dropped
-→ one-way door
+candidate inactive
+shadow
+small cohort
 ```
 
-Il **point of no return** deve essere esplicito nel Refactoring Safety Plan.
+con fallback immediato.
 
-Non per vietarlo.
+La reversibilità diminuisce quando il candidate inizia a scrivere stato authoritative, quando un consumer legacy viene dismesso o quando lo schema vecchio viene eliminato.
 
-Per sapere quando stiamo attraversando una one-way door.
+Il Safety Plan deve quindi identificare:
 
-## Caso reale: GitHub e feature flag
+```text
+last fully reversible checkpoint
+```
 
-GitHub ha raccontato numerosi rollout in cui la feature flag ha permesso di introdurre cambiamenti gradualmente e disattivarli rapidamente.
+prima di ogni one-way door.
 
-Nel progetto di riscrittura dei server-side hooks, per esempio, la nuova implementazione venne messa dietro feature flag e inizialmente abilitata soltanto su alcuni repository interni prima di estendere il rollout.
+## Casi reali: rollout come parte del design
+
+GitHub ha raccontato la riscrittura dei server-side hook con una nuova implementazione posta dietro feature flag e inizialmente abilitata su repository interni, prima di ampliare progressivamente il rollout.
 
 Fonte:
 
 - [GitHub Engineering — Improving Git push times through faster server side hooks](https://github.blog/engineering/architecture-optimization/improving-git-push-times-through-faster-server-side-hooks/)
 
-In un altro caso, GitHub descrive una query problematica introdotta durante un rollout infrastrutturale: la query fu disabilitata tramite feature flag e successivamente refactorizzata.
+In un availability report GitHub ha anche descritto la disabilitazione tramite feature flag di una query problematica durante un rollout, seguita dal refactoring del path.
 
 Fonte:
 
 - [GitHub Availability Report — April 2023](https://github.blog/news-insights/company-news/github-availability-report-april-2023/)
 
-Il pattern che ci interessa non è “GitHub usa le feature flag”.
+Il principio che ci interessa non è “usare feature flag”.
 
 È:
 
-> **Il rollout è parte della progettazione del cambiamento, non una fase amministrativa dopo che il codice è finito.**
+> **progettare deployment, attivazione, osservazione e fallback come parti della stessa decisione di change.**
 
-## Con l'AI possiamo ridurre il batch, non soltanto il tempo
+## L'AI rende economicamente conveniente essere più prudenti
 
-Un agente può aiutarci a costruire rapidamente:
+Un agente può generare adapter, comparison event, routing switch, test e cleanup PR in poco tempo.
 
-- adapter;
-- call-site migration;
-- comparison event;
-- feature flag wiring;
-- test;
-- cleanup PR.
+Questo rende più economico costruire un percorso incrementale.
 
-Questo rende meno costoso un percorso incrementale.
+Usare la stessa capacità per comprimere tutto in una mega-trasformazione spreca proprio il vantaggio più interessante.
 
-La tentazione opposta è usare quella capacità per comprimere tutto in un unico cambiamento gigantesco.
-
-Il criterio rimane:
-
-> **La velocità di execution dovrebbe ridurre la dimensione del rischio che dobbiamo accettare per ogni passo, non aumentarla.**
+> **Quando l'execution diventa veloce, possiamo permetterci batch più piccoli e checkpoint più frequenti. La velocità non è una scusa per saltarli.**
