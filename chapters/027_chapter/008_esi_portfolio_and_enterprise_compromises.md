@@ -1,398 +1,133 @@
-# 8. ESI come portfolio: il compromesso oltre il singolo prodotto
+# ESI come portfolio — local fit e coerenza enterprise
 
-Finora abbiamo osservato tre prodotti/capability separatamente.
+Finché osserviamo un solo prodotto possiamo chiedere quale decisione abbia il fit migliore per quel workload. Appena guardiamo ESI come azienda, compare un’altra domanda:
 
-Ma ESI non è una collezione di repository indipendenti.
+> **Quale varietà è utile al business e quale varietà stiamo pagando soltanto perché ogni team ha ottimizzato localmente?**
 
-È un'azienda.
+Campaign Launchpad vuole un operating surface piccolo e public delivery semplice. Order Operations vuole private workforce access, reliability, Payments integration e strong operational evidence. Il Case Explanation Assistant aggiunge model evaluation, provider governance e AI observability.
 
-E quindi alcune decisioni cambiano quando passiamo da:
+Non devono avere la stessa topology.
 
-```text
-qual è la scelta migliore per questo team?
-```
+Ma neppure ha senso che ogni prodotto reinventi identity, secrets, CI/CD, cost allocation, telemetry convention e incident ownership.
 
-a:
+## Standardizzare dove la differenza non compra business value
 
-```text
-qual è la scelta sostenibile per l'azienda?
-```
+La paved road enterprise ha più valore quando il costo della varietà è alto e il vantaggio di differenziarsi è basso.
 
-Questa è una delle differenze più importanti fra software design locale e architecture enterprise.
+Enterprise identity, secret management, baseline CI/CD, security scanning, cost-allocation metadata, telemetry convention, ownership interface e landing-zone guardrail sono buoni candidati proprio perché la maggior parte dei workload non trae un vantaggio competitivo dal reinventarli.
 
-## Tre prodotti, tre esigenze
+La standardizzazione compra onboarding più rapido, controlli riusabili, operation condivisa e evidence più comparabile.
 
-Campaign Launchpad vuole:
+Ma il principio non si estende automaticamente a database, compute model, messaging, topology, testing shape o AI architecture. Campaign Launchpad e Order Operations hanno failure model troppo diversi perché l’uniformità sia un valore di per sé.
 
-```text
-speed
-low operational burden
-simple publishing
-public static delivery
-```
+> **Standardizza ciò che non differenzia il business. Mantieni workload-specific ciò che cambia davvero con il problema.**
 
-Order Operations vuole:
+## Anche lo standard deve giustificare il proprio costo
+
+Immaginiamo che Platform supporti soltanto App Service mentre Marketing propone una static-first solution.
+
+Forzare lo standard riduce platform variety ma può introdurre runtime e cost non necessari. Creare una nuova paved road aumenta invece support surface, documentazione e operational burden enterprise.
+
+La decisione deve confrontare entrambe le economie:
 
 ```text
-private workforce access
-reliability
-Payments integration
-legacy coexistence
-strong operational evidence
-```
-
-Case Explanation Assistant vuole:
-
-```text
-model evaluation
-bounded context
-provider governance
-AI observability
-cost per useful outcome
-```
-
-Se ogni team ottimizzasse isolatamente, potremmo ritrovarci con:
-
-```text
-3 identity models
-3 CI/CD approaches
-3 observability stacks
-3 secret-management patterns
-3 ownership models
-3 cost-allocation conventions
-```
-
-Non perché i team siano incompetenti.
-
-Perché l'ottimo locale non è automaticamente l'ottimo di sistema.
-
-## Dove standardizzare
-
-ESI dovrebbe cercare standardizzazione soprattutto dove il business value della differenziazione è basso e il costo della varietà è alto.
-
-Esempi:
-
-```text
-enterprise identity
-secret management
-baseline CI/CD
-security scanning
-cost allocation metadata
-logging/telemetry conventions
-repository ownership
-incident escalation interfaces
-landing-zone guardrails
-```
-
-Queste capability possono essere offerte da Platform/Security come **paved road**.
-
-La standardizzazione compra:
-
-```text
-lower cognitive load
-shared operation
-faster onboarding
-reusable controls
-more comparable evidence
-```
-
-## Dove non standardizzare troppo
-
-Non è invece sano imporre:
-
-```text
-same database
-same compute model
-same messaging technology
-same topology
-same test pyramid
-same AI architecture
-```
-
-solo per uniformità.
-
-Campaign Launchpad e Order Operations hanno esigenze troppo diverse.
-
-Una piattaforma enterprise utile standardizza **guardrail e capability comuni**, non necessariamente ogni decisione applicativa.
-
-> **Standardizza ciò che non differenzia il business. Lascia spazio di decisione dove il contesto del workload cambia davvero.**
-
-## Il conflitto Platform vs product team
-
-Platform può dire:
-
-> Noi supportiamo soltanto App Service.
-
-Marketing può rispondere:
-
-> Ma Campaign Launchpad è prevalentemente statico.
-
-La risposta corretta non è automaticamente una delle due.
-
-Serve valutare:
-
-```text
-extra operational surface of a new platform path
+cost of variety
 vs
-unnecessary runtime/cost/complexity of forcing the existing path
+cost of forcing the existing standard
 ```
 
-Un nuovo standard deve guadagnarsi il proprio costo.
+Lo stesso vale per le eccezioni. Un team non dovrebbe ottenere una nuova technology soltanto perché la preferisce; deve mostrare quale property lo standard corrente non riesce a comprare a un costo ragionevole.
 
-Ma anche un'eccezione deve farlo.
+In questo modo standard ed eccezioni restano decisioni verificabili, non politica organizzativa.
 
-## Il conflitto Security vs Product
+## Security e Product devono discutere di capability, non di slogan
 
-Product può voler ampliare il Case Explanation Assistant con action tool.
+Product può voler rendere il Case Explanation Assistant write-capable. Security può voler mantenere read-only.
 
-Security può voler mantenere read-only.
+La discussione utile non è `innovation vs bureaucracy`. È quale business outcome richiede il nuovo sink, quale tool, permission, confirmation, idempotency, audit, compensation e failure model servono.
 
-La discussione utile non è:
+Forse la decisione finale sarà concedere più potere al modello. Ma il sistema deve sapere che cosa cambia prima di trasformare il desiderio di automation in authority.
 
-```text
-innovation vs bureaucracy
-```
+Questa è enterprise architecture: rendere traducibili prospettive legittime che altrimenti resterebbero slogan incompatibili.
 
-ma:
+## Finance e Reliability parlano della stessa decisione da due lati
 
-```text
-which business outcome requires write capability?
-which tool?
-which permission?
-which confirmation?
-which failure?
-which rollback/compensation?
-which audit?
-```
+Premium tier, multiple instances, staging environment, extra telemetry e coexistence cost possono apparire come spreco dal punto di vista della fattura.
 
-Forse la risposta sarà sì.
+Reliability e Security li leggono invece come blast-radius reduction, recovery, isolation o operational evidence.
 
-Ma il sistema deve prima sapere che cosa significa quel sì.
-
-## Il conflitto Finance vs Reliability
-
-Finance vede:
-
-```text
-Premium tier
-multiple instances
-extra telemetry
-staging environment
-migration coexistence
-```
-
-Reliability e Security vedono:
-
-```text
-blast-radius reduction
-recovery
-private boundary
-operational evidence
-```
-
-Nessuna delle due viste è sufficiente da sola.
-
-Il Cost Model serve proprio a tradurre:
+Il Cost Model permette di tradurre:
 
 ```text
 spesa
 → proprietà comprata
-→ rischio/valore protetto
+→ rischio / valore protetto
 ```
 
-Così Finance può contestare il prezzo senza dover negare la proprietà.
+Finance può contestare il prezzo senza negare la property. Engineering può difendere la property senza trattare ogni costo come intoccabile.
 
-Engineering può difendere la proprietà senza dichiarare ogni costo intoccabile.
+La discussione diventa quindi un trade-off e non un conflitto fra “chi vuole risparmiare” e “chi vuole fare bene il software”.
 
-## Il conflitto Sales/Marketing vs architecture
+## Una richiesta commerciale può cambiare l’architettura prima ancora di diventare ticket
 
-Marketing può chiedere Campaign Launchpad subito.
+Se Sales promette a un cliente una variante personalizzata di Campaign Launchpad, quella promessa può introdurre multi-tenancy, availability, new integration o regulated data.
 
-Sales può promettere una capability personalizzata a un cliente importante.
+Questo è architecture input, non soltanto backlog.
 
-Quella promessa può cambiare:
+È un altro motivo per cui functional understanding non può restare confinato a Product. Developer e architect devono vedere la semantica abbastanza presto da riconoscere quando una richiesta modifica le forze del sistema.
 
-```text
-scope
-availability
-security
-multi-tenancy
-integration
-support
-```
+## Shared capability deve emergere da problemi ripetuti
 
-Quindi una richiesta commerciale non è soltanto backlog.
+Dopo alcuni prodotti ESI potrebbe osservare pattern realmente comuni: private workforce baseline, static-publishing baseline, agent governance, AI eval harness, production-readiness evidence format.
 
-Può essere un **architecture input**.
+A quel punto una platform capability può avere fit.
 
-Questo è un altro motivo per cui developer e architect devono conoscere il prodotto e l'analisi funzionale.
-
-Se la semantica resta confinata in un ruolo, gli altri partecipanti vedono soltanto ticket tecnici già troppo tardi per capire il vero compromesso.
-
-## Enterprise architecture come negoziazione verificabile
-
-Nel libro non vogliamo rappresentare l'architect come la persona che decide dall'alto.
-
-Una decisione enterprise utile assomiglia più a:
-
-```text
-Product
-→ outcome
-
-Domain owner
-→ semantics
-
-Security
-→ risk boundary
-
-Platform
-→ supported operating model
-
-Operations
-→ run/recovery requirement
-
-Finance
-→ cost/value
-
-Engineering
-→ implementation/evolution cost
-
-Architecture
-→ integrate trade-offs + make decision/evidence explicit
-```
-
-L'architect può facilitare, integrare e decidere alcune parti.
-
-Ma non possiede magicamente tutte le authority.
-
-> **L'architecture è spesso il luogo in cui esigenze legittime smettono di essere slogan e diventano trade-off verificabili.**
-
-## Un portfolio crea anche nuove opportunità
-
-Dopo alcuni prodotti, ESI potrebbe scoprire pattern davvero ricorrenti:
-
-```text
-private workforce app baseline
-public static publishing baseline
-agent governance baseline
-AI eval harness
-telemetry conventions
-production-readiness evidence format
-```
-
-A quel punto una capability di piattaforma può avere fit.
-
-Ma la sequenza corretta è:
+La sequenza sana è:
 
 ```text
 repeated problem
-→ repeated evidence
-→ shared capability
+→ repeated local evidence
+→ stable shared need
+→ paved-road capability
 ```
 
 non:
 
 ```text
 platform team can build it
-→ everyone must use it
+→ every workload must use it
 ```
 
-Questo evita **premature platforming**.
+Questo evita premature platforming. La piattaforma nasce perché assorbe una varietà già osservata, non perché anticipa ogni possibile esigenza.
 
-## L'AI amplifica anche il portfolio
+## L’AI rende portfolio governance più importante
 
-Con agenti, ESI può produrre più software.
+Quando creare software diventa più economico, ESI può produrre più repository, internal tool, small service, agent workflow e AI integration.
 
-Questo aumenta il rischio di:
+Il costo marginale di iniziare un sistema diminuisce. Il costo cumulativo di possederlo, aggiornarlo, proteggerlo e dismetterlo non scompare.
 
-```text
-more repositories
-more small services
-more forgotten internal tools
-more dependency/version surfaces
-more AI providers
-more instructions
-more unowned artifacts
-```
+Quindi una nuova domanda acquista peso:
 
-Quindi l'AI non rende meno importante portfolio governance.
+> **Questo sistema merita di esistere come prodotto separato?**
 
-Può renderla più importante.
+L’AI può aumentare software supply più rapidamente della capacità organizzativa di mantenere tutto ciò che viene creato.
 
-> **Quando creare un nuovo sistema diventa più economico, decidere se merita di esistere diventa più importante.**
+Portfolio governance, ownership e retirement diventano quindi ancora più importanti.
 
-## Il compromesso ESI del Capitolo 27
+## Il compromesso ESI
 
-Esigenza:
-
-```text
-massimizzare delivery nei diversi domini ESI
-```
-
-Tensione:
-
-```text
-local fit
-vs
-enterprise coherence
-```
-
-Decisione:
+La direzione del portfolio è:
 
 ```text
 shared enterprise guardrails
-+ workload-specific architecture
-+ explicit exception/review trigger
++
+workload-specific architecture
++
+explicit exception/review trigger
 ```
 
-Costo accettato:
+ESI accetta un certo platform investment, alcuni constraint comuni e alcune eccezioni motivate. Il quality floor enterprise resta identity, security ownership, evidence provenance, operability, cost attribution e functional authority.
 
-```text
-some central platform investment
-some team constraints
-some justified exceptions
-```
+La diversità non deve essere eliminata. Deve essere **intenzionale e governabile**.
 
-Quality floor:
-
-```text
-identity
-security ownership
-evidence provenance
-operability
-cost attribution
-functional authority
-```
-
-Trigger:
-
-```text
-repeated exceptions
-repeated local solutions
-platform friction
-unowned systems
-security divergence
-cost fragmentation
-```
-
-La soluzione non è uniformare tutto.
-
-È rendere la diversità **intenzionale e governabile**.
-
-## La vera architettura della software house
-
-A questo punto ESI comincia finalmente a sembrare la software company che avevamo immaginato all'inizio.
-
-Non perché possiede molti prodotti.
-
-Ma perché può avere:
-
-```text
-un prodotto marketing semplice
-un sistema enterprise brownfield
-una capability AI-native
-```
-
-senza pretendere che debbano avere la stessa forma.
-
-> **Una grande software house non dimostra maturità costruendo tutto nello stesso modo. La dimostra sapendo quali cose devono essere uguali e quali devono restare diverse.**
+> **Una grande software house non dimostra maturità costruendo tutto nello stesso modo. La dimostra sapendo quali differenze comprano valore e quali stanno soltanto moltiplicando il costo di possedere software.**
