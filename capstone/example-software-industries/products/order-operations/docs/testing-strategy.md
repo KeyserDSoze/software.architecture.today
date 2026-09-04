@@ -1,20 +1,14 @@
 # Order Operations — Testing Strategy
 
-> **Scenario fittizio ESI.** Stato corrente dopo il Capitolo 18. La strategy governa quali proprietà vogliamo verificare, a quale layer e con quale evidence.
+> **Scenario fittizio ESI.** Stato corrente dopo il Capitolo 24. La strategy governa quali proprietà vogliamo verificare, a quale layer e con quale evidence.
 
 ## Purpose
 
-Costruire confidence senza trasformare la suite in una collezione di test ridondanti, flaky o incapaci di attraversare il boundary che pretendono di verificare.
+Costruire confidence senza trasformare test ed eval in una collezione di controlli ridondanti, flaky o incapaci di attraversare il boundary che pretendono di verificare.
 
-> **Il numero di test non misura la confidenza. Ogni test deve poter dire quale errore importante dovrebbe riuscire a rilevare.**
+> **Il numero di test non misura la confidenza. Ogni controllo deve poter dire quale errore importante dovrebbe riuscire a rilevare.**
 
-Dal Capitolo 17–18 la strategy copre anche:
-
-- characterization del legacy;
-- target behavior derivato da decisione funzionale;
-- refactoring safety;
-- shadow comparison;
-- intentional difference registry.
+Dal Capitolo 17 in avanti la strategy copre anche legacy/refactoring; dal Capitolo 24 copre inoltre **runtime AI evaluation**.
 
 ## Quality goals
 
@@ -26,9 +20,13 @@ Dal Capitolo 17–18 la strategy copre anche:
 6. reliability/recovery evidence;
 7. telemetry verification;
 8. fast feedback;
-9. costo sostenibile della test estate;
+9. costo sostenibile della test/eval estate;
 10. legacy behavior visibility;
-11. refactoring differences classificabili prima del cutover.
+11. refactoring differences classificabili;
+12. runtime AI authority boundary;
+13. grounded/source-backed AI output;
+14. prompt-injection and cross-tenant safety;
+15. model/configuration regression visibility.
 
 ## Risk sources
 
@@ -37,7 +35,7 @@ docs/functional-analysis.md
 docs/priority-functional-analysis.md
 docs/requirements.md
 docs/api-contract.md
-docs/events/operational-case-payment-escalated-v1.md
+docs/events/
 docs/data-ownership.md
 docs/failure-mode-map.md
 docs/threat-model.md
@@ -46,6 +44,8 @@ docs/reliability-contract.md
 docs/observability-contract.md
 docs/legacy-understanding-map.md
 docs/refactoring-safety-plan.md
+docs/ai-feature-contract.md
+evals/case-explanation-v1.jsonl
 ```
 
 ## Risk-to-Evidence Map
@@ -70,11 +70,20 @@ docs/refactoring-safety-plan.md
 | TST-016 | legacy priority behavior cambia accidentalmente | characterization | shadow/coexistence | PR/migration |
 | TST-017 | behavior legacy promosso a requirement senza conferma | Legacy Map review | Product/Operations confirmation | decision |
 | TST-018 | target priority precedence diverge da PF-01..PF-04 | target policy tests | staged shadow | PR/migration |
-| TST-019 | legacy adapter traduce male naming/codici | adapter vs real legacy calculator | integration/coexistence | PR |
+| TST-019 | legacy adapter traduce male naming/codici | adapter vs legacy calculator | integration/coexistence | PR |
 | TST-020 | ED-001 trattata erroneamente come regression | shadow unit test | runtime comparison | PR/migration |
 | TST-021 | mismatch non approvato viene nascosto come expected | negative comparison test | rollout stop condition | PR/migration |
+| TST-022 | AI semantic contract importa provider SDK | AI boundary fitness | implementation review | PR |
+| TST-023 | AI confirmed fact usa source inesistente | deterministic source-reference validation | provider eval | PR/release |
+| TST-024 | missing evidence viene nascosta | deterministic status guard + eval seed | model eval | release |
+| TST-025 | prompt injection influenza output/tool boundary | no-write-tool architecture + adversarial eval seed | real model security eval/red team | release |
+| TST-026 | cross-tenant data entra nel context | context authorization design | authenticated integration + model context inspection | release |
+| TST-027 | model crea authority su Payment/Priority/refund | AI Feature Contract + eval seed | real model eval + human rubric | release |
+| TST-028 | model/config change degrada critical behavior | versioned eval dataset | regression eval / canary | every model change |
+| TST-029 | model/provider failure rompe core Operational Case view | fallback contract | integration/failure test | release |
+| TST-030 | AI cost/latency cresce senza quality value | budget definitions | runtime metrics + cost/unit | operational review |
 
-## Test layers
+## Test / evaluation layers
 
 ### Layer A — Fast deterministic
 
@@ -82,12 +91,10 @@ docs/refactoring-safety-plan.md
 TypeScript typecheck/build
 application/component tests
 outbox publisher tests
-telemetry classification
-priority target policy
-legacy adapter
-shadow comparison
+priority/refactoring tests
+architecture/cost/context/agent governance fitness
+AI semantic boundary and source-reference validation
 legacy characterization
-schema/serialization checks
 ```
 
 ### Layer B — Integration
@@ -98,10 +105,37 @@ migration chain
 API host
 contract verification
 real serialization adapter
-future legacy/new adapter integration
+AI context-builder authorization/minimization
+provider adapter schema/error handling
 ```
 
-### Layer C — Staging / cloud
+### Layer C — Offline AI eval
+
+```text
+versioned eval dataset
+real model/configuration under test
+groundedness / claim support
+fact-hypothesis separation
+missing-evidence honesty
+prompt-injection cases
+authority-boundary cases
+human review calibration
+latency/cost benchmark
+```
+
+A model eval must identify the tested configuration:
+
+```text
+provider/model route
+model/deployment version
+system instruction version
+context builder version
+output schema version
+tool set
+safety configuration
+```
+
+### Layer D — Staging / cloud
 
 ```text
 Entra auth
@@ -110,11 +144,11 @@ private connectivity
 Service Bus adapter
 managed PostgreSQL
 runtime RBAC negative test
-deployment smoke/synthetic journey
-future priority shadow telemetry
+AI provider/network/privacy configuration
+AI failure/fallback smoke
 ```
 
-### Layer D — Scheduled / readiness
+### Layer E — Scheduled / readiness
 
 ```text
 performance/capacity
@@ -123,168 +157,166 @@ failure injection
 PostgreSQL failover/PITR
 alert drill
 security verification
-migration/shadow comparison review
+AI regression/security eval
+migration/shadow review
 ```
 
-### Layer E — Production continuous verification
+### Layer F — Production continuous verification
 
 ```text
 SLI/SLO
 private synthetic journey
-canary/health evidence
-alerting
-drift detection
-controlled coexistence telemetry
+alerting/drift detection
+controlled legacy coexistence telemetry
+AI unavailable/invalid-output/fallback rate
+AI sampled quality review
+AI cost/latency
+model/configuration drift
 ```
 
-## Executable suite — Order Operations
+## Executable suite — current deterministic surface
+
+Current product test directory includes:
 
 ```text
-tests/payment-escalation.test.mjs
-tests/outbox-publisher.test.mjs
-tests/priority-policy.test.mjs
+payment-escalation.test.mjs
+outbox-publisher.test.mjs
+priority-policy.test.mjs
+architecture-fitness.test.mjs
+cost-fitness.test.mjs
+agent-context-fitness.test.mjs
+issue-readiness-fitness.test.mjs
+agent-governance-fitness.test.mjs
+ai-boundary-fitness.test.mjs
 ```
 
-### Payment Escalation / outbox coverage
+Legacy characterization remains separate under Operations Desk Classic.
 
-- Payment eligibility;
-- tenant mismatch;
-- idempotent replay/conflict;
-- escalation + outbox orchestration;
-- bounded retry;
-- exhausted path;
-- stable message identity;
-- telemetry classification.
+## Runtime AI evaluation
 
-### Priority refactoring coverage
-
-- Closed precedence;
-- ManualReview precedence;
-- repeated Payment failure urgency;
-- target removal of Enterprise 30-minute timer;
-- real legacy calculator through `LegacyPriorityAdapter`;
-- shadow retains legacy result;
-- ED-001 classified ExpectedDifference;
-- unapproved mismatch classified UnexpectedDifference;
-- candidate mode returns target semantics without pretending shadow evidence.
-
-## Legacy characterization suite
-
-Separate system:
+Versioned seed:
 
 ```text
-legacy/operations-desk-classic/tests/priority-routing.characterization.test.mjs
+evals/case-explanation-v1.jsonl
 ```
 
-It protects **what the legacy currently does**, including the retired Enterprise timer.
-
-It does not define what the target must do.
-
-This distinction is intentional:
+Initial classes:
 
 ```text
-characterization
-→ Observed legacy behavior
-
-target policy test
-→ Confirmed ESI requirement
+nominal
+missing-evidence
+conflicting-evidence
+prompt-injection
+cross-tenant
+authority-boundary
+ambiguity
 ```
 
-## Verification evidence — Capitolo 18
+Each eval case should evolve toward explicit:
 
-Repository source was reconstructed locally after the Chapter 18 changes and TypeScript was compiled with the current strict configuration.
+```text
+required behaviors
+forbidden behaviors
+required sources / missing evidence
+severity
+human reference or rationale when needed
+```
 
-Result:
+### Evaluation principles
+
+```text
+schema-valid
+≠
+semantically correct
+```
+
+```text
+citation present
+≠
+claim supported
+```
+
+```text
+average score high
+≠
+critical safety gate passed
+```
+
+Critical failures such as cross-tenant disclosure or unauthorized economic authority block acceptance independently of average quality score.
+
+### LLM-as-a-Judge
+
+Allowed as a measurement tool where useful, but must be calibrated against human/reference evidence and must not be the only authority for critical claims.
+
+Grader/harness/version are part of the evaluation configuration.
+
+## Verification evidence — historical local gates
+
+### Chapter 18
 
 ```text
 tsc -p tsconfig.json
 → PASS
 
-Order Operations node:test suite
-→ 19 tests
-→ 19 pass
-→ 0 fail
+Order Operations
+→ 19/19 PASS
 
 Operations Desk Classic characterization
-→ 6 tests
-→ 6 pass
+→ 6/6 PASS
+```
+
+This evidence belongs to that revision/layer and is not a perpetual statement about every later commit.
+
+### Chapter 24 — new AI boundary gate
+
+A local reconstruction of the new provider-neutral AI slice was compiled and the dedicated fitness gate executed:
+
+```text
+tsc
+→ PASS
+
+node --test tests/ai-boundary-fitness.test.mjs
+→ 5 tests
+→ 5 pass
 → 0 fail
 ```
 
-Of the 19 Order Operations tests:
+This verifies:
 
 ```text
-11 = previously existing application/outbox/telemetry tests
-8  = new priority/refactoring tests
+AI Feature Contract/model boundary/eval seed exist
+provider-neutral semantic source
+read-only/no-RAG v1 constraints are present
+known source-reference validation works
+missing-evidence deterministic guard works
+eval seed includes required risk classes
 ```
 
-This evidence verifies only the local deterministic layer.
+It does **not** verify:
 
-It does **not** prove:
+```text
+real model groundedness
+real prompt-injection resistance
+provider privacy/network configuration
+operator usefulness
+latency
+cost
+production behavior
+```
 
-- production shadow comparison;
-- PostgreSQL semantics;
-- API host/authentication;
-- Payments consumer contract;
-- Azure networking/RBAC;
-- performance;
-- recovery;
-- legacy consumer retirement.
-
-## Contract testing
+## Contract / data / migration testing
 
 API/event contract testing remains `Designed/Pending` until the actual HTTP host and Payments & Risk consumer are implemented.
 
-Pact remains a candidate capability, not an architectural requirement.
-
-Reference:
-
-- [Pact Docs](https://docs.pact.io/)
-
-## Data / migration testing
-
-Pending real PostgreSQL environment.
-
-Required scenarios:
-
-1. empty DB → migration 001 → 002;
-2. existing schema/data → migration 002;
-3. escalation + outbox transaction atomicity;
-4. uniqueness/concurrency;
-5. rollback on second write failure;
-6. future priority persistence migration only after ownership decision.
+Real PostgreSQL remains required for TST-005/TST-015. `OO-001` is the current execution work item for the PaymentEscalation + Outbox atomicity gap.
 
 A fake repository is not evidence of PostgreSQL semantics.
 
-## Refactoring verification policy
+## Refactoring / shadow policy
 
-A refactoring slice must state:
+Characterization protects observed legacy behavior; target tests protect confirmed ESI behavior.
 
-```text
-what must stay identical
-what may intentionally change
-what is unknown
-what layer proves each claim
-```
-
-For priority:
-
-```text
-Preserve:
-Closed / ManualReview / Payment repeated failure / Standard default
-
-Intentional change:
-ED-001 Enterprise timer removed
-
-Unknown / future:
-priority persistence
-nightly export consumers
-manual override workflow
-```
-
-## Shadow comparison policy
-
-Comparison class:
+Comparison classes:
 
 ```text
 Match
@@ -292,17 +324,11 @@ ExpectedDifference
 UnexpectedDifference
 ```
 
-Rules:
-
-1. `ExpectedDifference` requires a pre-approved registry entry.
-2. A difference cannot be reclassified as expected merely to keep rollout moving.
-3. Any new unexpected semantic mismatch blocks candidate rollout until explained.
-4. Shadow candidate must not create external side effects.
-5. Runtime comparison signal must respect telemetry cardinality/data-minimization rules.
+`ExpectedDifference` requires pre-authorization; a mismatch cannot become “expected” merely to keep rollout moving.
 
 ## Security testing
 
-Minimum remains:
+Minimum traditional controls remain:
 
 ```text
 unauthenticated denied
@@ -316,9 +342,23 @@ telemetry redaction
 public access disabled in production baseline
 ```
 
-Reference:
+AI-specific additions:
+
+```text
+authorization before AI context
+untrusted text treated as data
+prompt-injection eval
+cross-tenant context negative cases
+no write/action tool in Case Explanation v1
+source-reference validation
+safe output rendering
+model/provider privacy configuration review
+```
+
+References:
 
 - [OWASP ASVS](https://owasp.org/www-project-application-security-verification-standard/)
+- [OWASP — LLM Prompt Injection Prevention](https://cheatsheetseries.owasp.org/cheatsheets/LLM_Prompt_Injection_Prevention_Cheat_Sheet.html)
 
 ## Reliability / recovery testing
 
@@ -331,47 +371,33 @@ Required drills remain:
 5. private DNS failure;
 6. bad deployment rollback.
 
-Each drill must produce actual RTO/RPO and unexpected behavior.
+AI adds:
 
-## Infrastructure testing
-
-For `infra/main.bicep`:
-
-```text
-build/lint
-policy/static validation
-deployment validation
-private connectivity
-RBAC negative tests
-application smoke
-zone/recovery exercise
-```
-
-Template compilation is not workload verification.
+7. model/provider timeout/outage;
+8. invalid structured output after bounded repair;
+9. context source partial outage;
+10. disable AI feature while preserving core case view;
+11. model/config rollback.
 
 ## Test environment policy
 
 Use the cheapest environment that can demonstrate the property:
 
 ```text
-business rule            → process-local
-legacy behavior          → characterization
-adapter translation      → real local legacy calculator
-PostgreSQL semantics     → real PostgreSQL
-Azure identity/network   → Azure non-production
-recovery                 → environment capable of the drill
+business rule                  → process-local
+legacy behavior                → characterization
+PostgreSQL semantics           → real PostgreSQL
+AI deterministic boundary      → local deterministic test
+AI model behavior              → real tested model/config
+Azure identity/network         → Azure non-production
+recovery                       → environment capable of the drill
 ```
 
-## Flakiness policy
-
-```text
-detected
-→ issue + owner
-→ quarantine only when necessary and still visible
-→ fix or remove
-```
+## Flakiness / evaluation instability
 
 `retry-until-green` is not success.
+
+For stochastic evals, store configuration and run enough samples for the claim being made. Do not hide variance by selecting the nicest run.
 
 ## Coverage / mutation policy
 
@@ -380,25 +406,30 @@ coverage = diagnostic signal
 coverage != proof of correctness
 ```
 
-Mutation remains selective on high-risk logic such as tenant check, idempotency and priority precedence.
+Mutation remains selective on high-risk deterministic logic.
 
-References:
+For AI, dataset coverage is similarly diagnostic:
 
-- [Microsoft Learn — Mutation testing](https://learn.microsoft.com/en-us/dotnet/core/testing/mutation-testing)
-- [Engineering at Meta — mutation-guided LLM testing](https://engineering.fb.com/2025/09/30/security/llms-are-the-key-to-mutation-testing-and-better-compliance/)
+```text
+more eval prompts
+≠
+more assurance
+```
 
-## AI-generated-test policy
+Risk-class coverage and critical failure detection matter more than prompt count.
 
-Agents may propose tests from requirements, invariants, threat and failures.
+## AI-generated-test/eval policy
 
-Every merged test needs review of:
+Agents may propose tests/evals from requirements, invariants, threat and failures.
+
+Every merged test/eval needs review of:
 
 ```text
 risk/source
-fault detected
-assertion strength
+fault or failure detected
+assertion/rubric strength
 layer fit
-determinism
+determinism/variance
 data safety
 redundancy
 maintenance cost
@@ -409,21 +440,22 @@ maintenance cost
 ## Evidence status
 
 ```text
-Testing Strategy                 = Designed + documented
-TypeScript build                 = Verified locally
-Order Operations fast suite      = Codified + Verified locally (19/19)
-Legacy characterization          = Codified + Verified locally (6/6)
-Priority seam/candidate/adapter   = Codified + Verified locally
-Shadow classification logic      = Codified + Verified locally
-Production shadow telemetry      = Designed / Pending
-PostgreSQL integration           = Designed / Pending
-Payments contract                = Designed / Pending
-Azure security integration       = Designed / Pending
-Performance/recovery             = Pending
-Production synthetic journey     = Designed / Pending
+Testing Strategy                         Codified/documented
+Historical fast local suite              previously Verified at recorded revisions
+Legacy characterization                  Verified 6/6
+PostgreSQL integration                    Designed / Pending via OO-001
+Azure security integration               Designed / Pending
+Performance/recovery                     Pending
+AI Feature Contract                       Codified
+AI provider-neutral semantic boundary     Codified + locally compiled
+AI boundary fitness                       locally exercised 5/5
+AI eval dataset seed                      Codified
+Real model/provider adapter               Pending
+Real model eval                           Pending
+Production AI monitoring                  Pending
 ```
 
-## Test debt register
+## Test / eval debt register
 
 Open:
 
@@ -435,14 +467,21 @@ Open:
 - recovery drills;
 - production synthetic runner;
 - runtime priority shadow telemetry;
-- consumer evidence for Operations Desk Classic retirement.
+- consumer evidence for Operations Desk Classic retirement;
+- Case Explanation context builder;
+- model/provider adapter;
+- structured-output provider integration;
+- human-calibrated AI eval baseline;
+- prompt-injection red-team run;
+- production AI latency/cost/quality telemetry.
 
 ## Sources
 
 - [Microsoft Learn — Architecture strategies for testing](https://learn.microsoft.com/en-us/azure/well-architected/operational-excellence/testing)
-- [Microsoft Learn — Safe deployment practices](https://learn.microsoft.com/azure/well-architected/operational-excellence/safe-deployments)
+- [Microsoft Learn — RAG LLM evaluation phase](https://learn.microsoft.com/en-us/azure/architecture/ai-ml/guide/rag/rag-llm-evaluation-phase)
+- [Microsoft Foundry — Built-in evaluators](https://learn.microsoft.com/en-us/azure/foundry/concepts/built-in-evaluators)
+- [OpenAI — A shared playbook for trustworthy third party evaluations](https://openai.com/index/trustworthy-third-party-evaluations-foundations/)
+- [Uber Engineering — Enhanced Agentic-RAG](https://www.uber.com/au/en/blog/enhanced-agentic-rag/)
 - [Google Testing Blog — Just Say No to More End-to-End Tests](https://testing.googleblog.com/2015/04/just-say-no-to-more-end-to-end-tests.html)
-- [Engineering at Meta — Probabilistic flakiness](https://engineering.fb.com/2020/12/10/developer-tools/probabilistic-flakiness/)
-- [AWS Prescriptive Guidance — Branch by abstraction](https://docs.aws.amazon.com/prescriptive-guidance/latest/modernization-decomposing-monoliths/branch-by-abstraction.html)
 
-> **Il refactoring è verificato abbastanza per il passo successivo soltanto quando la evidence dimostra proprio la property che quel passo metterà a rischio.**
+> **Il controllo giusto è quello che attraversa il boundary capace di falsificare la claim. Per l'AI, questo significa testare non soltanto il codice, ma la configurazione completa che produce il comportamento.**
