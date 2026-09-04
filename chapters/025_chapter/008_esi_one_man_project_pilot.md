@@ -1,383 +1,129 @@
 # ESI — Il pilot One-Man Project
 
-ESI decide di sperimentare il modello sul **Case Explanation Assistant** introdotto nel Capitolo 24.
+ESI sceglie il **Case Explanation Assistant** come primo esperimento del One-Man Project Operating Model.
 
-È una scelta intenzionale.
+La scelta è intenzionale. Non parte da Payments ledger, production identity o disaster recovery. Parte da una capability interna, read-only, advisory, con source provenance, fallback e nessun write tool.
 
-Non partiamo da:
+Questo non rende il pilot banale. Lo rende **governabile abbastanza da poter studiare il leverage senza confonderlo con un blast radius eccessivo**.
 
-```text
-Payments ledger
-production identity platform
-regional disaster recovery
-```
+## Il mandato del lead
 
-Partiamo da una capability:
+Un singolo **Accountable Project Lead** governa il control plane tecnico del pilot. Mantiene direzione, prepara work item, orchestra agenti, integra evidence, controlla WIP e mantiene sincronizzato il repository context.
 
-- interna;
-- read-only;
-- advisory;
-- con output verificabile contro source reference;
-- senza write tool;
-- con fallback deterministico;
-- con model/provider ancora sostituibile.
+La sua authority termina però dove iniziano decisioni che appartengono ad altri owner. Non può ridefinire payment truth, approvare security exception, cambiare tenant isolation, introdurre una customer-facing AI action o concedere production write permission al modello.
 
-Questa forma rende il rischio più governabile.
+Questa separazione rende possibile concentrare execution senza concentrare tutta l’autorità.
 
-## Il mandato
+## Il Secondary Maintainer è parte del design
 
-ESI assegna a un singolo **Accountable Project Lead** il control plane tecnico del pilot.
+Il pilot richiede anche un **Secondary Maintainer**. Non è un secondo implementer permanente e non duplica il lead su ogni task.
 
-Il ruolo non è legato a una persona nominata nel libro.
+Deve però poter entrare da `AGENTS.md`, usare la Repository Map, capire l’AI Feature Contract, eseguire i golden command, ricostruire work item e distinguere evidence `Designed`, `Codified`, `Verified` e `Monitored`.
 
-Responsabilità:
+Il ruolo esiste già nell’Operating Model; la prova della continuità no. Il continuity drill resta Pending finché non viene realmente eseguito.
+
+## Il work portfolio
+
+Nel repository esiste già `OO-001`, dedicato alla PostgreSQL atomicity di Payment Escalation + Outbox. Il Capitolo 24 ha inoltre lasciato intenzionalmente aperta la scelta del model/provider per il Case Explanation Assistant.
+
+Per questo ESI introduce `OO-002`:
 
 ```text
-maintain project direction
-prepare work items
-orchestrate agents
-integrate evidence
-keep canonical context synchronized
-manage WIP
-stop when decision boundary is crossed
-prepare Product/Security/Platform gates
-```
-
-Non-authority:
-
-```text
-cannot redefine payment truth
-cannot approve security exception
-cannot change tenant isolation alone
-cannot introduce customer-facing AI action without Product decision
-cannot grant production AI tool permissions
-cannot approve irreversible production migration alone
-```
-
-## Secondary maintainer
-
-ESI assegna anche un **Secondary Maintainer**.
-
-Non lavora quotidianamente sul pilot.
-
-Deve però poter:
-
-1. entrare nel repository da `AGENTS.md`;
-2. usare la Repository Map;
-3. capire il current AI Feature Contract;
-4. eseguire i golden command;
-5. ricostruire lo stato dei work item;
-6. distinguere evidence Verified da Pending;
-7. conoscere gli escalation path.
-
-Il secondary maintainer è parte del continuity design.
-
-Non è un secondo implementer permanente.
-
-## Current project portfolio
-
-Nel repository esiste già:
-
-```text
-OO-001
-Verify PostgreSQL atomicity
-for Payment Escalation + Outbox
-```
-
-Il Capitolo 24 ha inoltre lasciato aperta una decisione:
-
-```text
-Case Explanation model/provider
-= Pending eval comparison
-```
-
-ESI introduce quindi un secondo work item:
-
-```text
-OO-002
 Evaluate Case Explanation model/provider candidates
 against the same eval suite
 ```
 
-OO-002 non deve scegliere il modello “migliore in assoluto”.
+Il task non deve trovare “il modello migliore in assoluto”. Deve produrre evidence comparabile rispetto all’AI Feature Contract: groundedness, source attribution, missing-evidence behavior, prompt-injection e authority-boundary case, latency, cost e provider constraint.
 
-Deve produrre evidence comparabile su:
+La decisione finale resta una decisione di fit.
 
-```text
-groundedness
-source attribution
-missing-evidence behavior
-prompt-injection cases
-authority violation cases
-latency
-cost per evaluated request
-operational/provider constraints
-```
+## Non saturiamo la task queue
 
-Il modello selezionato deve avere il fit migliore con il **AI Feature Contract**.
-
-## WIP policy del pilot
-
-ESI parte con:
+Il pilot parte con una policy semplice:
 
 ```text
-Max active execution task      2
-Max active cross-boundary task 1
-Max unresolved semantic gate   1
+Max active execution tasks       2
+Max active cross-boundary tasks  1
+Max unresolved semantic gates    1
 ```
 
-Quindi OO-001 e OO-002 possono essere entrambi `Ready`, ma non devono necessariamente essere eseguiti contemporaneamente se entrambi consumano la stessa capacità di review cross-boundary.
+`OO-001` e `OO-002` possono quindi essere entrambi Ready senza essere necessariamente Active nello stesso momento.
 
-Il lead può lasciare un task pronto senza lanciarlo.
+Questo è un comportamento importante da rendere esplicito: l’esistenza di agent capacity non crea un obbligo a usarla.
 
-> **La task queue è una capacità. Non un obbligo a saturarla.**
+> **Una queue di lavoro pronto è una riserva di capacità, non un target di saturazione.**
 
-## Agent portfolio
+## L’agent portfolio serve la verification chain
 
-### Explorer
+Per `OO-002` ESI può usare un Explorer read-only per ricostruire capability e constraint dei provider, un Eval Implementer per costruire adapter candidati fuori dal semantic core e un Adversarial Verifier per rieseguire i case critici e cercare authority violation.
 
-Responsabilità:
+Il Documentation Synchronizer entra solo dopo una decisione approvata, per aggiornare AI Feature Contract, Cost Model o Testing Strategy senza inventare rationale.
 
-- leggere documentazione provider;
-- ricostruire capability/constraint;
-- produrre candidate matrix;
-- citare source primarie.
+La topologia segue il lavoro, non il desiderio di avere molti agenti.
 
-Permission:
-
-```text
-read-only
-```
-
-### Eval Implementer
-
-Responsabilità:
-
-- costruire adapter candidato fuori dal semantic core;
-- eseguire eval sul seed versionato;
-- raccogliere raw result/evidence;
-- non cambiare il dataset per migliorare il proprio score.
-
-Permission:
-
-```text
-bounded code/test/eval environment
-no production data
-```
-
-### Adversarial Verifier
-
-Responsabilità:
-
-- rieseguire casi critici;
-- controllare source reference;
-- cercare authority violation;
-- controllare limitation del risultato.
-
-Permission:
-
-```text
-read + eval/test
-no model-selection authority
-```
-
-### Documentation Synchronizer
-
-Responsabilità:
-
-- aggiornare AI Feature Contract / Cost Model / Testing Strategy quando la decisione viene presa;
-- non inventare rationale mancante.
-
-## Human gate
-
-### Product / Operations
-
-Deve valutare:
-
-```text
-is the explanation actually useful?
-are uncertainty/fallback understandable?
-```
-
-### Security
-
-Gate se cambiano:
-
-```text
-provider data boundary
-new tool
-new external retrieval
-sensitive context
-logging/retention
-```
-
-### Platform
-
-Gate se il pilot richiede:
-
-```text
-shared AI gateway
-new network path
-enterprise provider integration
-new production identity
-```
-
-Finance/FinOps partecipa quando emergono cost curve reali.
-
-## Work flow
-
-Il pilot usa:
+Il flow del pilot è quindi:
 
 ```text
 Human Lead
-    ↓
-OO-002 execution contract
-    ↓
-Explorer
-    ↓
-candidate matrix
-    ↓
-Eval Implementer
-    ↓
-raw eval evidence
-    ↓
-Adversarial Verifier
-    ↓
-Verification Bundle
-    ↓
-Human Lead integrates
-    ↓
-Product/Security gates if triggered
-    ↓
-ADR / AI Feature Contract update
+→ OO-002 execution contract
+→ candidate research
+→ bounded eval execution
+→ primary evidence
+→ adversarial verification
+→ human integration
+→ specialist gates if triggered
+→ decision / ADR / contract update
 ```
 
-La scelta finale non viene delegata al model evaluator.
+La scelta finale del provider non viene delegata al grader. Il modello influenza qualità, security posture, cost, latency, provider dependency e operational model: proprietà che devono essere integrate insieme.
 
-Perché il modello candidato non è soltanto una funzione tecnica.
+## I gate restano trigger-based
 
-Può modificare:
+Product/Operations deve valutare se le explanation sono realmente utili e se uncertainty/fallback sono comprensibili.
 
-- qualità;
-- security posture;
-- cost;
-- latency;
-- provider dependency;
-- operational model.
+Security entra quando cambia provider data boundary, logging/retention, tool set o sensitive context. Platform entra se compare una shared gateway capability, una nuova network path o production identity. FinOps entra quando esistono cost curve reali da confrontare.
 
-## Continuity Test
+Non sono gate rituali su ogni experiment. Proteggono boundary specifici quando vengono attraversati.
 
-Prima di dichiarare il pilot maturo, ESI prevede:
+## Continuity drill
+
+Prima di considerare maturo il pilot, il Secondary Maintainer deve affrontare un drill con il lead indisponibile.
+
+Usando soltanto repository e strumenti autorizzati deve riuscire a spiegare purpose e current state, individuare decisioni Pending, eseguire i golden command, trovare eval suite e AI Feature Contract, riconoscere cosa il modello non può decidere e individuare almeno un work item safe da portare avanti.
+
+Se non riesce, non concludiamo automaticamente che “il backup non è abbastanza bravo”. Cerchiamo quale context era mancante, stale o tribale.
+
+## Come misureremo il pilot
+
+Il pilot non viene valutato da numero di agent task, righe generate o PR.
+
+Le metriche interessanti sono verified outcome throughput, review backlog, rework, repair/retry, lead attention cost, specialist-gate quality, continuity drill result, business usefulness e cost per verified outcome.
+
+Nel capstone questi valori sono ancora `Designed/Pending`. Non li inventiamo.
+
+## Stato reale del pilot
+
+A fine Capitolo 25 ESI può affermare:
 
 ```text
-Secondary Maintainer Drill
+One-Man Project Operating Model  Codified
+WIP / decision rights            Codified
+Secondary Maintainer role        Designed
+OO-002 work definition           Codified/Ready when repository says so
+Continuity drill                 Pending
+Provider/model evaluation        Pending execution
+Real leverage metrics            Pending
+Production support fit           Pending
 ```
 
-Scenario:
+Questa è una posizione molto più utile di una demo “one developer built everything”. Il progetto ha abbastanza struttura per iniziare l’esperimento; non abbastanza evidence per dichiararlo riuscito.
 
-> il lead non è disponibile.
+## Il compromesso
 
-Il secondary maintainer deve, usando soltanto repository ed enterprise system autorizzati:
+ESI accetta di lasciare parte del parallelismo inutilizzato, mantenere specialist gate e investire in continuity. In cambio ottiene un pilot in cui una persona può governare molta più execution senza diventare proprietaria di tutte le decisioni o unico punto di recovery.
 
-1. spiegare lo scopo del Case Explanation Assistant;
-2. indicare quali decisioni sono ancora Pending;
-3. eseguire `npm run typecheck` e i relevant test;
-4. trovare eval suite e AI Feature Contract;
-5. spiegare che cosa il modello non può decidere;
-6. capire quale work item è safe da eseguire;
-7. trovare specialist gate e stop conditions.
+Il modello verrà riaperto se support/on-call cresce, review backlog diventa persistente, specialist gate diventano quotidiani, aumentano external consumer o one-way door, oppure l’AI runtime diventa write-capable o business-critical.
 
-Se non riesce, la failure non viene attribuita al secondary maintainer per default.
+In quel momento creare un team stabile può essere la decisione migliore.
 
-Prima chiediamo:
-
-> **quale conoscenza non abbiamo esternalizzato abbastanza bene?**
-
-## Success criteria
-
-Il pilot non è valutato da:
-
-```text
-number of agent tasks
-number of generated lines
-number of PR
-```
-
-Ma da:
-
-```text
-verified outcome throughput
-review backlog
-unexpected rework
-agent repair/retry
-lead attention cost
-specialist gate quality
-continuity drill result
-business usefulness
-cost per verified outcome
-```
-
-Molte di queste metriche sono ancora `Designed/Pending` nel capstone.
-
-Non inventiamo valori.
-
-## Il compromesso ESI
-
-### Esigenza
-
-Aumentare il leverage individuale su una capability interna e accelerare exploration/eval senza creare un team dedicato prematuramente.
-
-### Tensione
-
-```text
-Finance / Engineering
-→ lower coordination cost + faster iteration
-
-Product / Security / Platform
-→ no loss of domain authority, control or continuity
-```
-
-### Decisione
-
-One-Man Project pilot sul Case Explanation Assistant con:
-
-```text
-one accountable lead
-+ bounded agent portfolio
-+ WIP limit
-+ secondary maintainer
-+ specialist triggers
-+ independent verification
-```
-
-### Costo accettato
-
-- review e specialist gate non spariscono;
-- knowledge externalization richiede lavoro;
-- parte del parallelismo possibile resta volontariamente inutilizzato;
-- continuity drill richiede tempo.
-
-### Quality floor
-
-```text
-model remains advisory
-security/data boundary preserved
-functional truth not delegated
-verified != generated
-project survives lead absence
-```
-
-### Trigger di uscita
-
-Il modello viene rivalutato se:
-
-- on-call/support cresce oltre la capacità del lead;
-- review backlog diventa persistente;
-- più specialist gate diventano quotidiani;
-- nuovi consumer esterni aumentano il contract surface;
-- AI runtime diventa business-critical/write-capable;
-- secondary maintainer non riesce più a mantenere familiarità sufficiente.
-
-In quel momento la scelta più matura può essere creare un team.
-
-> **La vittoria del One-Man Project non è rimanere one-man per sempre. È massimizzare leverage finché quel modello conserva fit, e riconoscere presto quando non lo conserva più.**
+> **La vittoria del One-Man Project non è restare one-man. È usare il leverage finché conserva fit e riconoscere abbastanza presto quando il sistema ha bisogno di un control plane più ampio.**
