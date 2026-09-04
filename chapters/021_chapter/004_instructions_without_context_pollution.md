@@ -1,76 +1,30 @@
-# Istruzioni persistenti senza context pollution
+# 21.4 — Istruzioni persistenti senza context pollution
 
-L'idea di aggiungere istruzioni al repository è semplice.
+Aggiungere istruzioni al repository è facile. Mantenerle piccole, autorevoli e utili è molto più difficile.
 
-La parte difficile è capire **che cosa non mettere nelle istruzioni**.
+Un file operativo nasce spesso con poche righe su build e test. Poi assorbe convenzioni di stile, architecture rule, business glossary, workaround di incidenti, deployment manual e note temporanee. Dopo qualche mese nessuno sa più quali parti siano ancora valide e nessuno osa rimuoverle perché “forse servono all'agente”.
 
-Un file di istruzioni cresce facilmente così:
+Abbiamo così ricreato una wiki monolitica dentro il context window.
 
-```text
-Settimana 1
-→ build commands
+Il problema non è soltanto estetico. Più informazioni carichiamo sempre, più aumentano costo, rumore, conflitto e probabilità che una regola importante venga nascosta da altre venti irrilevanti.
 
-Settimana 2
-→ coding style
+> **Always-on context deve meritare di essere always-on.**
 
-Settimana 3
-→ architecture rules
+## Che cosa merita il livello globale
 
-Settimana 4
-→ business glossary
+Una informazione globale ha senso quando si applica a molte classi di task, una sua violazione ha costo elevato, non è ovvia dal codice e resta abbastanza stabile da giustificare manutenzione continua.
 
-Settimana 6
-→ incident workaround
+Per Order Operations appartengono a questo livello il purpose del prodotto, il fatto che Payments & Risk possieda gli effetti economici, i golden command, il divieto di inventare una seconda authority per dati esterni, il routing verso la Repository Map e poche stop condition ad alto impatto.
 
-Settimana 8
-→ cloud deployment manual
+Non appartengono normalmente al livello globale lo schema completo del database, ogni endpoint, l'intera Functional Analysis, la storia degli incidenti o tutti gli esempi di codice. Queste informazioni devono essere scopribili quando il task le tocca, non pagate da ogni task.
 
-Settimana 12
-→ 900 righe che nessuno osa più modificare
-```
+Il criterio non è “potrebbe essere utile?”. Quasi tutto potrebbe esserlo. La domanda è:
 
-A quel punto abbiamo ricreato la wiki monolitica dentro il prompt context.
+> **quanto spesso questa informazione cambia una decisione e quanto costa averla sempre nel contesto?**
 
-## Always-on context deve meritare di esserlo
+## Scope: specifico non significa più autorevole
 
-Un'informazione dovrebbe essere always-on quando:
-
-- si applica alla maggior parte dei task;
-- una violazione ha costo elevato;
-- non è facilmente deducibile dal codice;
-- è stabile abbastanza da giustificare il costo di manutenzione.
-
-Esempi validi:
-
-```text
-This repository is Order Operations.
-Payments & Risk owns economic effects.
-Run npm test before completing a code change.
-Core semantic layers must not import Azure SDKs.
-Do not change production topology without updating the relevant ADR/threat/reliability/cost docs.
-```
-
-Esempi dubbi:
-
-```text
-Every detail of every API endpoint
-Full database schema
-Complete incident history
-Entire functional specification
-All coding examples
-```
-
-Questi contenuti possono essere linkati e letti quando necessari.
-
-## Scope
-
-Le istruzioni devono avere uno scope.
-
-Una regola per `infra/` non dovrebbe inquinare ogni modifica a `src/priority/`.
-
-Una regola per una migration non deve essere sempre caricata per un change puramente UI.
-
-I meccanismi moderni di custom instructions supportano proprio scope repository-wide e path-specific. GitHub documenta sia istruzioni globali al repository sia file specifici per path; `AGENTS.md` supporta inoltre nesting per directory in diversi agenti.
+Le instruction moderne possono avere scope repository-wide o locale a path e sottoprogetti. GitHub documenta istruzioni globali e specifiche per percorso; `AGENTS.md` può essere annidato in directory diverse in vari workflow agentici.
 
 Fonti:
 
@@ -78,126 +32,78 @@ Fonti:
 - [GitHub Docs — Support for different types of custom instructions](https://docs.github.com/en/copilot/reference/custom-instructions-support)
 - [AGENTS.md](https://agents.md/)
 
-La capability è utile, ma la decisione architetturale resta nostra:
+Questa capability permette di mantenere vicino alla capability ciò che la riguarda. Ma introduce una distinzione importante: **specificity e authority non sono la stessa cosa**.
 
-> quale informazione merita uno scope globale e quale deve restare locale?
+Una issue molto specifica può dire come cambiare una feature. Non può rendere lecito violare tenant isolation soltanto perché è più vicina al task. Una instruction dentro `infra/` può aggiungere dettagli di deployment, ma non può annullare una security policy enterprise.
+
+Possiamo pensare alla gerarchia in due dimensioni:
+
+```text
+more specific context
+→ better local guidance
+
+higher authority
+→ stronger decision boundary
+```
+
+Confondere le due crea il rischio che il testo più vicino al file diventi accidentalmente più potente della governance che dovrebbe rispettare.
 
 ## Tool-neutral first
 
-ESI usa più strumenti.
+ESI non vuole riscrivere la propria architettura per ogni vendor di coding agent.
 
-Non vogliamo mantenere la stessa architettura riscritta per ogni vendor.
+Il contesto stabile deve quindi vivere prima di tutto in artifact tool-neutral: documenti canonical, `AGENTS.md`, Repository Map e verification script. Un file specifico per un prodotto può esistere quando il tool richiede davvero una convenzione particolare, ma dovrebbe comportarsi come un adapter verso la stessa source of truth.
 
-Per questo il contesto stabile dovrebbe essere il più possibile tool-neutral:
+Questo evita una frammentazione del tipo:
 
 ```text
+copilot instructions
+CLAUDE.md
+GEMINI.md
 AGENTS.md
-canonical docs
-verification scripts
+custom prompt
 ```
 
-Un file tool-specific può essere aggiunto quando esiste un comportamento realmente specifico del tool.
+ognuno con una versione leggermente diversa delle stesse regole.
 
-Non deve diventare una seconda source of truth.
+Il design non è “supportare meno tool”. È rendere il costo di cambiare tool indipendente dal costo di riscrivere il sapere del prodotto.
 
-GitHub stessa oggi supporta `AGENTS.md` oltre alle proprie instruction files in diverse superfici Copilot. Questo rende praticabile un nucleo condiviso senza obbligarci a scegliere un solo agente per tutto il repository.
+## Le negative instruction definiscono il blast radius
 
-## Instruction hierarchy
+Dire che cosa fare non basta sempre. In un repository maturo esistono scorciatoie tecnicamente plausibili che sono state scartate intenzionalmente.
 
-Quando esistono più livelli, dobbiamo rendere prevedibile la precedenza.
+Per questo alcune negative instruction hanno alto valore. ESI può rendere esplicito che un task non deve introdurre write dirette nello stato Payments, riscrivere characterization test per farli coincidere con la target policy, aprire Internet ingress senza decisione o indebolire una fitness rule soltanto per ottenere verde.
 
-Esempio concettuale:
+Queste frasi non sono un catalogo di divieti arbitrari. Rendono visibili boundary che il codice da solo potrebbe far sembrare facili da attraversare.
+
+La negative instruction migliore, però, collega il divieto alla route corretta:
 
 ```text
-organization constraints
-↓
-repository constraints
-↓
-component/path constraints
-↓
-task-specific requirement
+Do not weaken AF-005 to make the task pass.
+If AF-005 no longer fits, reopen the architecture decision.
 ```
 
-Più vicino al task significa normalmente più specifico, non più potente.
+In questo modo il file operativo non fossilizza l'architettura. Distingue drift da evoluzione intenzionale.
 
-Una issue non dovrebbe poter dire:
+## Stop condition: quando l'execution deve diventare decisione
 
-```text
-ignore tenant isolation
-```
+Un instruction file realmente utile non dice soltanto come procedere. Dice anche quando **non** procedere.
 
-solo perché è più specifica.
+Per Order Operations una stop condition scatta se il task richiede una nuova semantica economica, una nuova authoritative data ownership, public ingress, una migration irreversibile, un indebolimento della tenant isolation o un conflitto fra acceptance criteria e Functional Analysis confermata.
 
-Esistono constraint che appartengono a un livello di governance superiore.
+In questi casi non manca codice. Manca una decisione.
 
-Quindi dobbiamo distinguere:
+L'agente non dovrebbe scegliere silenziosamente quale fonte “vince” o trasformare un'incertezza di prodotto in una soluzione tecnica.
 
-```text
-specificity
-vs
-authority
-```
+> **Una stop condition è il punto in cui il repository dichiara che execution e authority non coincidono più.**
 
-Questo tema tornerà quando parleremo di autonomia degli agenti.
+Questa distinzione prepara i capitoli successivi sull'autonomia, ma nel Capitolo 21 ci serve già per rendere il contesto onesto.
 
-## Negative instructions
+## Context non significa credential
 
-Le istruzioni positive dicono cosa fare.
+Un instruction file può spiegare come ottenere una credenziale tramite il flow approvato. Non deve contenerla.
 
-Le negative instructions definiscono spesso il vero blast radius.
-
-Esempio:
-
-```text
-Do not:
-- add direct writes to Payments state
-- change legacy characterization to match target behavior
-- introduce public ingress
-- add secrets to source or instructions
-- weaken architecture tests to make a change pass
-```
-
-Sono particolarmente utili quando il repository contiene una soluzione apparentemente più semplice che violerebbe una decisione intenzionale.
-
-## Stop conditions
-
-Una instruction realmente utile deve dire anche quando non procedere.
-
-Per esempio:
-
-```text
-Stop and request a decision if:
-- business semantics are ambiguous;
-- a change requires a new authoritative data owner;
-- a public ingress is introduced;
-- a one-way migration is required;
-- a failing architecture rule appears obsolete rather than violated;
-- a test expectation conflicts with confirmed functional analysis.
-```
-
-Questa è una forma di progettazione dell'autonomia.
-
-Un agente capace di produrre codice non è automaticamente autorizzato a risolvere una ambiguità di prodotto.
-
-## Secrets e informazioni sensibili
-
-Un repository instruction file non è un secret store.
-
-Non dobbiamo inserire:
-
-```text
-API keys
-password
-private tokens
-production credentials
-sensitive customer examples
-```
-
-Le istruzioni possono spiegare **come ottenere** una credenziale attraverso il meccanismo approvato.
-
-Non devono contenerla.
-
-In altre parole:
+Secret, password, private token, production credential e customer data reale non appartengono a `AGENTS.md`, README, prompt, fixture o example config versionati.
 
 ```text
 context
@@ -205,89 +111,44 @@ context
 credential
 ```
 
-## Instruction debt
+Questa regola era già secure engineering. Con agenti che possono leggere porzioni più ampie del repository e usare tool esterni, il valore della data minimization cresce.
 
-Le istruzioni possono diventare debito.
+## Instruction debt è technical debt del context layer
 
-Segnali:
+Le istruzioni invecchiano.
 
-- regole contraddittorie;
-- comandi che non funzionano più;
-- path rinominati;
-- workaround per incidenti risolti anni fa;
-- constraint che proteggono una decisione superata;
-- pagine copiate in file diversi;
-- agenti che spendono più tempo a interpretare istruzioni che a esplorare il codice.
+Un path viene rinominato. Un workaround non serve più. Una decisione viene riaperta. Un comando cambia. Una regola che proteggeva un vecchio boundary resta nel file per inerzia.
 
-Dobbiamo quindi trattarle come codice operativo:
+Il risultato è **instruction drift**: il testo continua a sembrare autorevole mentre descrive un sistema che non esiste più.
 
-```text
-owner
-review
-change with system
-remove when obsolete
-```
+Per questo il context layer deve avere la stessa disciplina del codice operativo: owner, review trigger, aggiornamento insieme al sistema e rimozione delle parti obsolete.
 
-## Non usare prose dove basta una regola eseguibile
+Il segnale più pericoloso non è la lunghezza in sé. È quando nessuno sa più dire quale sezione sia source of truth e quale sia soltanto una copia.
 
-Se scriviamo:
+## Non duplicare in prose ciò che il repository sa già verificare
 
-```text
-Never import Azure SDK from application layer.
-```
+Se AF-005 impedisce gli Azure SDK nel core semantic layer, `AGENTS.md` non deve copiare tutta la regola con ogni eccezione. Può dire che l'architecture policy è eseguibile nel relativo fitness test e che non va indebolita per far passare il task.
 
-ma abbiamo già AF-005, la instruction può semplicemente dire:
+Questo sposta la parte meccanica verso feedback deterministico e lascia alle istruzioni ciò che fanno meglio: routing, authority e stop condition.
+
+Vale anche il contrario. Non dobbiamo inventare un linter per decidere se una nuova capability appartenga davvero a Order Operations o se un SLO valga ancora il proprio costo. Quelle sono decisioni semantiche e di trade-off; richiedono context e judgment.
+
+La maturità non sta nell'automatizzare tutto. Sta nel distinguere **quale tipo di conoscenza stiamo governando**.
+
+## La forma ESI
+
+Il file operativo che vogliamo ha quindi una funzione molto precisa:
 
 ```text
-Architecture rules are executable in tests/architecture-fitness.test.mjs.
-Do not weaken them to make a task pass; if a rule no longer fits, reopen the architectural decision.
+entry point
+→ route to canonical knowledge
+→ expose golden verification
+→ name critical boundaries
+→ define stop conditions
 ```
 
-Questo riduce duplicazione e rende la regola verificabile.
+Non prova a contenere il prodotto.
 
-## Non usare una regola eseguibile dove serve judgment
+Il documento canonical spiega. Il test verifica. L'instruction indirizza e delimita l'autorità.
 
-L'opposto è altrettanto importante.
-
-Non possiamo trasformare facilmente in lint:
-
-```text
-questa nuova capability appartiene davvero a Order Operations?
-```
-
-oppure:
-
-```text
-questo SLO vale ancora il suo costo?
-```
-
-Qui serve decision context e review.
-
-La maturità sta nel sapere cosa automatizzare.
-
-## L'istruzione come route, non enciclopedia
-
-La forma che cerchiamo è:
-
-```text
-If touching business behavior
-→ read functional analysis + requirements
-
-If touching payment escalation
-→ read API contract + event contract + data ownership
-
-If touching infra
-→ read cloud + threat + reliability + cost model
-
-Run
-→ npm run typecheck
-→ npm test
-```
-
-L'istruzione indirizza.
-
-Il documento canonical spiega.
-
-Il test verifica.
-
-> **Un buon file di istruzioni non prova a contenere il repository. Insegna all'agente come attraversarlo.**
+> **Un buon file di istruzioni non insegna all'agente tutto il repository. Gli insegna come attraversarlo senza confondere ciò che può eseguire con ciò che può decidere.**
