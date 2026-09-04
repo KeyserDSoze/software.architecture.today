@@ -1,32 +1,14 @@
 ## Scope e vincoli: decidere anche cosa non costruire
 
-Un progetto diventa più comprensibile quando non descrive soltanto ciò che contiene.
+Un progetto diventa più comprensibile quando non descrive soltanto ciò che contiene, ma anche ciò che **non** contiene. Lo scope non è un elenco di feature: è un confine decisionale che impedisce a ogni nuova idea, dipendenza o opportunità di essere assorbita automaticamente nel lavoro in corso.
 
-Descrive anche ciò che **non** contiene.
-
-Lo scope non è un elenco di feature.
-
-È un confine decisionale.
-
-Serve a impedire che ogni nuova idea, dipendenza o opportunità venga assorbita automaticamente nel lavoro in corso.
-
-Con agenti capaci di produrre rapidamente codice, questo confine diventa ancora più importante.
-
-Quando il costo marginale di “provare ad aggiungere anche questo” sembra basso, lo scope tende ad allargarsi senza una vera decisione.
+Con agenti capaci di produrre rapidamente codice, questo confine diventa ancora più importante. Quando il costo marginale di “provare ad aggiungere anche questo” sembra basso, lo scope tende ad allargarsi senza una vera decisione.
 
 ### Scope creep a costo quasi zero
 
-Immaginiamo un task iniziale:
+Immaginiamo un task semplice: permettere al cliente di scaricare la ricevuta di un ordine. Durante l’implementazione emergono rapidamente altre possibilità: inviarla anche via email, personalizzare il template, supportare più lingue, aggiungere un QR code, conservare i PDF, introdurre una pagina amministrativa, permettere rigenerazione, firma digitale o export massivo.
 
-> “Permetti al cliente di scaricare la ricevuta di un ordine.”
-
-Durante l'implementazione emergono facilmente nuove possibilità: inviare il risultato anche via email, personalizzare il template, supportare più lingue o aggiungere un QR code. Poi arrivano l'archiviazione dei PDF, una pagina amministrativa, la rigenerazione, le firme digitali e l'export mensile. Ognuna sembra piccola quando viene guardata da sola.
-
-Un agente può implementare alcune di queste estensioni in poco tempo.
-
-Ma il costo di sviluppo non è l'unico costo.
-
-Ogni capacità aggiunta allarga la superficie di test e i dati da gestire, porta nuovi casi limite, autorizzazioni e dipendenze e può richiedere storage. Crea inoltre compatibilità futura, documentazione e supporto operativo; in alcuni domini introduce perfino responsabilità legali o fiscali.
+Un agente può implementare molte di queste estensioni in poco tempo, ma il costo di sviluppo non è l’unico costo. Ogni capacità aggiunta allarga la superficie di test e di autorizzazione, introduce dati, casi limite, dipendenze, storage, compatibilità futura, documentazione e supporto operativo. In alcuni domini porta con sé perfino responsabilità legali o fiscali.
 
 Il fatto che il codice sia economico non rende economica la capacità nel suo ciclo di vita.
 
@@ -34,7 +16,7 @@ Il fatto che il codice sia economico non rende economica la capacità nel suo ci
 
 ### In scope / out of scope
 
-Per molte iniziative basta una distinzione molto semplice.
+Per molte iniziative basta una distinzione molto semplice, che qui ha senso mantenere strutturata perché è un artefatto operativo:
 
 ```text
 In scope
@@ -50,134 +32,39 @@ Out of scope
 - export massivo.
 ```
 
-L'out of scope non significa “mai”.
-
-Significa:
-
-> **non fa parte della decisione che stiamo prendendo adesso.**
-
-Questa frase protegge il progetto da due errori opposti.
-
-Il primo è l'espansione continua.
-
-Il secondo è costruire un'architettura enormemente generalizzata per supportare ipotesi future non ancora richieste.
+Out of scope non significa “mai”. Significa **non fa parte della decisione che stiamo prendendo adesso**. Questa distinzione protegge sia dallo scope creep sia dall’errore opposto: costruire un’architettura enormemente generalizzata per supportare possibilità future che nessuno ha ancora richiesto.
 
 ### YAGNI non significa non pensare al futuro
 
-“You Aren't Gonna Need It” è spesso interpretato male.
+“You Aren’t Gonna Need It” viene spesso interpretato come un invito a ignorare l’evoluzione. È un fraintendimento. Il principio utile è evitare di pagare oggi il costo completo di capacità future puramente speculative.
 
-Non significa ignorare l'evoluzione.
+Possiamo preservare una possibilità senza implementarla in anticipo. Evitare di codificare il template di una ricevuta in dieci punti diversi migliora l’evolvibilità anche se oggi esiste un solo formato. Non significa però costruire subito un motore di templating multi-tenant con plugin, marketplace e versioning.
 
-Significa evitare di pagare oggi il costo completo di capacità future puramente speculative.
-
-Possiamo progettare un confine che lasci spazio al cambiamento senza implementare già tutte le varianti.
-
-Per esempio, possiamo evitare di codificare il template della ricevuta in dieci punti diversi anche se oggi ne esiste uno solo.
-
-Questo migliora l'evolvibilità.
-
-Non significa costruire subito un motore di templating multi-tenant con plugin, marketplace e versioning.
-
-La differenza è tra:
-
-- **preservare una possibilità**;
-- **implementare anticipatamente una possibilità**.
+La differenza è tra **preservare una possibilità** e **implementare anticipatamente una possibilità**.
 
 ### I vincoli non sono fastidi
 
-Un constraint viene spesso percepito come qualcosa che limita l'architettura ideale.
+Budget, deadline, tecnologie esistenti, regolamentazione, skill del team, contratti con fornitori, legacy, deployment target, data residency e compatibilità vengono spesso vissuti come ostacoli rispetto a una soluzione ideale. In realtà un’architettura senza vincoli è quasi priva di significato, perché la qualità di una decisione esiste sempre rispetto a un contesto.
 
-Budget.
+Dire “PostgreSQL è la scelta migliore” non è una decisione architetturale utile. Dire che, per un determinato workload transazionale, con un team che già opera PostgreSQL, requisiti di consistenza forte e una scala prevista entro certi limiti, lo preferiamo alle alternative considerate è una decisione contestualizzata.
 
-Deadline.
-
-Tecnologia esistente.
-
-Regolamentazione.
-
-Skill del team.
-
-Contratti con fornitori.
-
-Sistemi legacy.
-
-Deployment target.
-
-Residency dei dati.
-
-Compatibilità.
-
-In realtà un'architettura senza vincoli è quasi priva di significato.
-
-La qualità di una decisione esiste sempre rispetto a un contesto.
-
-Dire:
-
-> “PostgreSQL è la scelta migliore.”
-
-non è una decisione architetturale utile.
-
-Dire:
-
-> “Per questo workload transazionale, con un team che già opera PostgreSQL, requisiti di consistenza forte e scala prevista entro questi limiti, preferiamo PostgreSQL rispetto alle alternative considerate.”
-
-è già una decisione contestualizzata.
-
-I vincoli non sono rumore intorno alla soluzione.
-
-Sono parte del problema.
+I vincoli non sono rumore intorno alla soluzione. Sono parte del problema.
 
 ### Hard constraint e soft constraint
 
-Non tutti i vincoli hanno la stessa natura.
+Non tutti i vincoli hanno la stessa natura. Un **hard constraint** non può essere violato nel perimetro corrente: una normativa, un limite contrattuale, una regione obbligatoria o una compatibilità minima possono rientrare in questa categoria. Un **soft constraint** può invece essere negoziato, ma la negoziazione ha un costo: preferire una tecnologia già nota al team, evitare una nuova piattaforma operativa o puntare a una certa data di delivery sono esempi tipici.
 
-Possiamo distinguere almeno:
-
-**Hard constraint** — non può essere violato nel perimetro corrente.
-
-Una normativa, un'API esterna che non supporta un certo comportamento, un deployment obbligatorio in una determinata regione, la compatibilità con una versione minima o un limite contrattuale sono esempi di hard constraint.
-
-**Soft constraint** — può essere negoziato, ma ha un costo.
-
-Preferire una tecnologia già nota al team, evitare una nuova piattaforma operativa, puntare a una certa data di delivery o a un certo budget e rispettare uno standard interno modificabile sono invece esempi di soft constraint.
-
-Questa distinzione evita che una preferenza diventi accidentalmente una legge.
-
-“Usiamo sempre.NET” può essere una convenzione utile.
-
-Non è una legge della fisica.
-
-“Il dato non può lasciare l'Unione Europea” può invece essere un vincolo non negoziabile per uno specifico sistema.
+La distinzione evita che una preferenza diventi accidentalmente una legge. “Usiamo sempre .NET” può essere una convenzione organizzativa utile; “il dato non può lasciare l’Unione Europea” può invece essere un vincolo non negoziabile per uno specifico sistema.
 
 ### Vincoli dichiarati e vincoli scoperti
 
-Alcuni constraint sono noti all'inizio.
+Alcuni constraint sono noti all’inizio, altri emergono durante il lavoro. È normale: la foundation non è un documento congelato, ma un modello del contesto che deve essere aggiornato quando impariamo qualcosa.
 
-Altri emergono durante il lavoro.
-
-Questo è normale.
-
-La foundation non è un documento congelato.
-
-È un modello del contesto che deve essere aggiornato quando impariamo qualcosa.
-
-Il punto di controllo è:
-
-> **Il nuovo vincolo invalida una decisione presa in precedenza?**
-
-Se sì, non dobbiamo soltanto adattare il codice.
-
-Dobbiamo rivalutare la decisione.
-
-Un agente che scopre un hard constraint nuovo dovrebbe spesso fermarsi e segnalarlo invece di “far funzionare comunque” la soluzione.
+La domanda importante è se il nuovo vincolo invalidi una decisione precedente. Se la risposta è sì, non basta adattare il codice: bisogna rivalutare la decisione. Un agente che scopre un nuovo hard constraint dovrebbe spesso fermarsi e segnalarlo invece di “far funzionare comunque” la soluzione.
 
 ### Order Operations: restringere prima di espandere
 
-Torniamo ad Order Operations.
-
-Immaginiamo che il team voglia “migliorare la gestione degli ordini problematici”.
-
-La frase potrebbe esplodere rapidamente in una dashboard, un workflow e nuovi alert, poi in automazioni, chatbot, una coda operativa, nuove API, analytics e notifiche al cliente. Prima di progettare, restringiamo.
+Torniamo a Order Operations. La frase “migliorare la gestione degli ordini problematici” potrebbe espandersi rapidamente in dashboard, workflow, alert, automazioni, chatbot, nuove API, analytics e comunicazioni al cliente. Prima di progettare restringiamo il perimetro.
 
 ```text
 In scope della prima iterazione
@@ -194,48 +81,18 @@ Out of scope
 - modifica dei processi di pagamento o fulfillment.
 ```
 
-Vincoli iniziali:
+Anche i vincoli iniziali meritano una forma leggibile e riutilizzabile: riutilizzare l’autenticazione esistente, non introdurre una nuova piattaforma infrastrutturale nella prima iterazione, non esporre dettagli tecnici sensibili al browser, mantenere la feature disattivabile senza migration distruttive e conservare il sistema ordini come source of truth dello stato commerciale.
 
-```text
-- riutilizzare l'autenticazione esistente;
-- nessuna nuova piattaforma infrastrutturale nella prima iterazione;
-- nessuna esposizione di dettagli tecnici sensibili al browser;
-- la feature deve poter essere disabilitata senza migration distruttive;
-- il sistema ordini rimane source of truth dello stato dell'ordine.
-```
-
-Ora abbiamo meno possibilità.
-
-Ed è una cosa positiva.
-
-L'architettura può iniziare a diventare una decisione invece che un'esplorazione infinita.
+Ora abbiamo meno possibilità. Ed è una cosa positiva: l’architettura può iniziare a diventare una decisione invece che un’esplorazione infinita.
 
 ### Il limite come strumento creativo
 
-La parola “vincolo” ha una connotazione negativa.
+I vincoli spesso migliorano il design. Se non possiamo introdurre nuova infrastruttura siamo costretti a capire meglio quella esistente; se dobbiamo mantenere compatibilità dobbiamo progettare evoluzione e versioning; se il budget è stretto dobbiamo distinguere valore e sofisticazione; se abbiamo due settimane dobbiamo riconoscere il percorso critico.
 
-Ma i vincoli spesso migliorano il design.
-
-Se non possiamo introdurre nuova infrastruttura, siamo costretti a capire che cosa può fare bene quella esistente.
-
-Se dobbiamo mantenere compatibilità, siamo costretti a progettare evoluzione e versioning.
-
-Se abbiamo un budget stretto, dobbiamo distinguere ciò che produce valore da ciò che è soltanto sofisticato.
-
-Se dobbiamo consegnare una prima versione in due settimane, dobbiamo identificare il percorso critico.
-
-Un buon architect non cerca un mondo senza vincoli.
-
-Cerca la soluzione più adatta **dentro** i vincoli reali, e sa riconoscere quando un vincolo deve essere contestato perché rende impossibile l'outcome.
+Un buon architect non cerca un mondo senza vincoli. Cerca la soluzione più adatta **dentro** i vincoli reali e sa riconoscere quando un vincolo deve essere contestato perché rende impossibile l’outcome.
 
 ### Domanda di controllo
 
-Prima di iniziare una feature significativa, dovremmo riuscire a rispondere a due domande:
+Prima di iniziare una feature significativa dovremmo saper rispondere a due domande: **che cosa stiamo deliberatamente non costruendo?** E **quali vincoli, se cambiassero, potrebbero cambiare la nostra soluzione?**
 
-> **Che cosa stiamo deliberatamente non costruendo?**
-
-E:
-
-> **Quali vincoli, se cambiassero, potrebbero cambiare la nostra soluzione?**
-
-Queste due risposte valgono spesso più di una lunga lista di requisiti.
+Queste due risposte valgono spesso più di una lunga lista di desideri.
