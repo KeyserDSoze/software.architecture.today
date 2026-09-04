@@ -1,31 +1,47 @@
-# 19.9 — Esercizi e sintesi
+# 19.9 — Esercizi, autovalutazione e sintesi
 
-Architecture Evolution non significa progettare un sistema capace di cambiare in qualunque direzione.
+Architecture Evolution non significa costruire un sistema capace di cambiare in qualunque direzione.
 
-Significa sapere **quali proprietà vogliamo proteggere mentre il sistema cambia**, quali decisioni devono poter essere riaperte e quale evidence ci dice che stiamo ancora andando nella direzione scelta.
+Significa rendere esplicito:
 
-## Idee chiave
+```text
+che cosa vogliamo proteggere
+→ come riceviamo evidence
+→ come riconosciamo il drift
+→ quando ammettiamo un'eccezione
+→ quando riapriamo la decisione stessa
+```
 
-1. L'architecture drift può avvenire una piccola decisione alla volta.
-2. Implementation drift e context drift sono problemi diversi.
-3. Una decisione può essere ancora ben implementata ma aver perso fit.
-4. Gli ADR hanno più valore quando dichiarano review trigger.
-5. Le fitness function trasformano alcune proprietà architetturali in feedback ripetibile.
-6. Non tutte le fitness function sono test statici: possono usare runtime metric, policy, cost data o drill.
-7. Una fitness function deve proteggere una proprietà, non fossilizzare una tecnologia.
-8. Le eccezioni devono essere visibili, possedute e temporanee.
-9. Technical debt è più utile se espresso come rischio, carrying cost e trigger.
-10. La governance deve essere proporzionale al blast radius.
-11. L'AI aumenta il valore di constraint ed evidence eseguibili.
-12. Un guardrail deve bloccare il drift, non impedire l'evoluzione intenzionale.
+Il capitolo ha quindi trasformato la governance da controllo esterno a **feedback loop sul cambiamento**.
 
-## Esercizio 1 — Trova il drift
+Le fitness function proteggono proprietà già comprese. Gli ADR spiegano perché quelle proprietà hanno fit e quando riesaminarle. Le exception rendono visibili deviazioni temporanee. Runtime evidence e assessment periodici ci dicono quando il problema non è più l'implementazione, ma il contesto che ha reso obsoleta una vecchia scelta.
 
-Prendi una codebase reale o un progetto personale.
+> **L'obiettivo non è avere sempre verde. È sapere che cosa significa quel verde, che cosa significa un rosso e quando è la regola stessa a meritare una nuova decisione.**
 
-Trova tre casi in cui l'implementazione sembra non rispettare più l'intento dichiarato.
+## Artefatto operativo — Architecture Fitness Checklist
 
-Per ciascuno classifica:
+La checklist collega:
+
+```text
+Property
+Risk
+Mechanism
+Evidence
+Failure action
+Owner
+Status
+Review trigger
+```
+
+Non è una collezione di best practice enterprise.
+
+È il portfolio vivo delle proprietà che il workload ha deciso di proteggere.
+
+Per Order Operations parte da AF-001…AF-005 e dalle altre property già emerse nei capitoli precedenti. Il file vivo continuerà a crescere più avanti; nel Capitolo 19 conserviamo soltanto la baseline raggiunta qui.
+
+## Esercizio 1 — Drift o contesto cambiato?
+
+Prendi tre anomalie architetturali di una codebase reale e classificane ciascuna:
 
 ```text
 Implementation drift
@@ -33,11 +49,19 @@ Context drift
 Unknown
 ```
 
-Poi indica quale evidence servirebbe per uscire da `Unknown`.
+Per ogni `Unknown`, indica quale evidence ti permetterebbe di scegliere.
 
-## Esercizio 2 — Da principio a fitness function
+Poi scrivi l'azione corretta:
 
-Trasforma questi principi vaghi in possibili fitness function:
+```text
+fix implementation
+temporary exception
+reopen architectural decision
+```
+
+## Esercizio 2 — Da principio a proprietà verificabile
+
+Parti da quattro frasi:
 
 ```text
 The system should be maintainable.
@@ -46,84 +70,91 @@ The API should be stable.
 The platform should be cost effective.
 ```
 
-Non serve trovare una singola misura.
+Per ognuna identifica almeno due proprietà concrete e un possibile evidence mechanism.
 
-L'obiettivo è capire quali proprietà concrete stanno sotto ogni frase.
+Non cercare una metrica universale: separa ciò che può essere un gate da ciò che richiede trend, runtime evidence o review.
 
-## Esercizio 3 — Test sbagliato
+## Esercizio 3 — Fitness o technology lock?
 
-Valuta questa regola:
+Valuta:
 
 ```text
 All services must use Kubernetes.
 ```
 
-Chiediti:
+Rispondi:
 
-1. quale proprietà sta cercando di proteggere?
-2. possiamo riscriverla in modo technology-independent?
-3. quando Kubernetes potrebbe comunque essere la risposta con fit migliore?
-4. quando la regola diventerebbe fashion-driven governance?
+1. quale property potrebbe cercare di proteggere?
+2. puoi riscriverla senza nominare Kubernetes?
+3. in quale contesto Kubernetes potrebbe comunque risultare il fit migliore?
+4. quale review trigger renderebbe legittimo cambiare tecnologia?
 
-## Esercizio 4 — ADR expiry
+L'obiettivo è evitare che una fitness function congeli un prodotto invece di proteggere una caratteristica.
 
-Scegli un ADR del tuo sistema.
+## Esercizio 4 — ADR con scadenza di contesto
 
-Aggiungi:
+Prendi un ADR reale e aggiungi:
 
 ```text
 Assumptions
 Review triggers
 Evidence to collect
-Conditions that invalidate the decision
+Conditions that invalidate fit
 ```
 
-Se non trovi nessun trigger, chiediti se la decisione è davvero irreversibile o se abbiamo semplicemente smesso di pensarci.
+Poi immagina due cambiamenti:
 
-## Esercizio 5 — Debt portfolio
+```text
+implementation violates ADR
+business context invalidates ADR
+```
 
-Prendi cinque technical-debt item.
+Spiega perché richiedono azioni diverse.
 
-Riscrivili con:
+## Esercizio 5 — Technical debt come portfolio di rischio
+
+Prendi cinque debt item e riscrivili con:
 
 ```text
 Constraint created
-Failure/change risk
+Failure / change risk
 Carrying cost
 Owner
 Repayment trigger
 ```
 
-Ordina poi il portfolio non per quanto il codice è brutto, ma per rischio e costo futuro.
+Ordinali per rischio futuro, non per quanto il codice ti sembra brutto.
 
-## Esercizio 6 — Architecture exception
+Identifica infine almeno un possibile `unknown debt` che nessun backlog sta ancora rappresentando.
 
-Immagina di dover violare temporaneamente AF-005 e usare un SDK cloud in un layer vietato.
+## Esercizio 6 — Exception con expiry
+
+Devi violare temporaneamente AF-005 e usare un SDK cloud in un layer vietato.
 
 Scrivi:
 
 ```text
 reason
-risk
+alternatives considered
+risk accepted
 owner
-expiry
+evidence
+expiry / review date
 removal condition
-alternative rejected
 ```
 
-Poi chiediti se l'eccezione è davvero meno costosa della soluzione corretta.
+Poi confronta il carrying cost dell'exception con il costo della soluzione strutturalmente corretta.
 
-## Esercizio 7 — Agent red team
+## Esercizio 7 — Context engineering per un agente
 
-Dai a un agente una feature request locale senza mostrargli le architecture rule.
+Dai a un agente una feature request senza architecture context e osserva la soluzione.
 
-Osserva la soluzione.
-
-Poi ripeti fornendo:
+Poi ripeti includendo:
 
 - ADR rilevanti;
 - fitness function;
 - forbidden boundary;
+- owner/data constraints;
 - acceptance evidence.
 
 Confronta:
@@ -131,149 +162,174 @@ Confronta:
 ```text
 functional correctness
 architectural drift
-number of revisions
-explanation quality
+number of repair iterations
+quality of explanation
 ```
 
-Lo scopo non è dimostrare che l'AI "sbaglia".
+Lo scopo non è dimostrare che l'AI fallisce.
 
-È misurare quanto il sistema di context engineering influenza la qualità globale della modifica.
+È verificare quanto la qualità del sistema di feedback modifica il risultato globale.
 
-## Esercizio 8 — Fitness portfolio review
+## Esercizio 8 — Portfolio review
 
-Per ogni fitness function di un sistema chiedi:
+Per ogni fitness function chiedi:
 
 ```text
 What risk does it protect?
-Has it caught anything useful?
+Has it caught useful drift?
 Is it noisy?
-Can it be bypassed?
-Is the protected decision still valid?
-Should it be automatic or review-based?
+Can it be bypassed anonymously?
+Is the underlying decision still valid?
+Should it remain automatic?
+Can it be removed?
 ```
 
 Elimina almeno una regola che non giustifica più il proprio costo.
 
-## Esercizio 9 — ESI
+La governance deve poter perdere complessità, non soltanto accumularla.
 
-Partendo da Order Operations, immagina questo nuovo requisito:
+## Esercizio 9 — ESI: nuovo public ingress
+
+Nuovo requirement simulato:
 
 > Un cliente enterprise richiede accesso partner via Internet alla operational view.
 
 Non implementare.
 
-Elenca soltanto quali artefatti e decisioni devono essere riaperti.
+Elenca quali decisioni devono essere riaperte.
 
-Una buona risposta dovrebbe includere almeno:
+Una risposta forte include almeno:
 
-- Functional Analysis;
-- API Contract;
-- NFR;
-- Threat Model;
-- Security Control Matrix;
-- Cloud Deployment Map;
-- Observability Contract;
-- Testing Strategy;
-- ADR relativi a ingress e topology;
-- cost impact.
+```text
+Functional Analysis
+API Contract
+NFR
+Threat Model
+Security Control Matrix
+Cloud Deployment Map
+Observability Contract
+Testing Strategy
+relevant ADR
+cost impact
+```
 
-L'esercizio mostra la differenza fra "una nuova endpoint" e "un cambio di contesto architetturale".
+La differenza da capire è fra:
 
-## Esercizio 10 — Guardrail o burocrazia?
+```text
+aggiungere un endpoint
+```
 
-Per ciascun controllo classificare:
+e:
+
+```text
+cambiare il contesto architetturale del workload
+```
+
+## Esercizio 10 — Governance proporzionale
+
+Classifica questi change come:
 
 ```text
 Automatic gate
 Warning / trend
 Team review
 Enterprise review
-Remove
+Remove / no governance needed
 ```
 
-Controlli:
+Change:
 
 - forbidden module dependency;
-- aumento del 5% del cloud cost;
-- nuovo region deployment;
-- nuovo package npm;
+- cloud cost +5%;
+- new region deployment;
+- new npm package;
 - public ingress;
-- modifica CSS;
-- nuova data copy;
-- rename interno;
-- RTO non rispettato durante un drill.
+- CSS change;
+- new derived data copy;
+- internal rename;
+- RTO miss during recovery drill.
 
-La risposta dipende dal contesto.
+Non esiste una risposta universale.
 
-## Self-assessment
+Per ciascuna scelta indica il blast radius che giustifica il livello di governance.
 
-Dopo questo capitolo dovremmo saper rispondere:
+## Autovalutazione
 
-1. Che differenza c'è fra architecture drift ed evolution?
-2. Che differenza c'è fra implementation drift e context drift?
-3. Che cos'è una fitness function?
-4. Perché una fitness function non deve proteggere necessariamente una tecnologia?
-5. Quando un architecture test è il meccanismo giusto?
-6. Quando serve runtime evidence?
-7. Perché un ADR dovrebbe avere review trigger?
-8. Come trattiamo un'architecture exception?
-9. Perché un waiver senza expiry è pericoloso?
-10. Come possiamo trattare technical debt come portfolio di rischio?
-11. Perché la governance deve essere proporzionale al blast radius?
-12. In che modo l'AI può accelerare architecture drift?
-13. Perché un agente non dovrebbe poter modificare autonomamente anche le policy che lo verificano?
-14. Che differenza c'è fra bloccare drift e bloccare evoluzione?
-15. Come colleghiamo fitness function, ADR ed evidence?
+Dovresti riuscire a spiegare senza consultare il capitolo la differenza fra architecture evolution e drift; implementation drift e context drift; che cosa sia una fitness function; perché una fitness non debba proteggere necessariamente una tecnologia; quando un architecture test sia il meccanismo giusto; quando serva runtime evidence; perché un ADR abbia bisogno di review trigger; come si governa un'architecture exception; perché una waiver senza expiry sia pericolosa; come trattare technical debt come portfolio; perché la governance debba essere proporzionale al blast radius; come l'AI possa amplificare pattern di drift già presenti; perché un agente non debba approvare il proprio bypass; e come fitness, ADR ed evidence si colleghino nello stesso feedback loop.
 
-## Artefatto operativo
-
-Il nuovo artefatto principale è:
-
-> **Architecture Fitness Checklist**
-
-Deve contenere almeno:
+Se una risposta resta vaga, riducila a:
 
 ```text
-Property
-Risk
-Mechanism
-Evidence
-Owner
-Failure action
-Status
-Review trigger
+intent
+→ property
+→ evidence
+→ action when evidence changes
 ```
-
-Non è un catalogo enterprise di best practice.
-
-È la rappresentazione viva delle caratteristiche che un workload ha deciso di proteggere.
 
 ## Cosa cambia con l'AI
 
-Prima potevamo affidare una quota maggiore di architectural consistency alla memoria del team e alla code review.
+Con agenti capaci di modificare rapidamente il repository, scala peggio affidare l'architectural consistency soltanto alla memoria e alla lettura manuale del diff.
 
-Con agenti che possono modificare il repository a velocità molto maggiore, questa strategia scala peggio.
-
-Quindi aumenta il valore di:
+Aumenta quindi il valore di:
 
 ```text
 machine-readable intent
 executable boundaries
 automated feedback
 explicit exceptions
-human approval for semantic/one-way decisions
+human approval for semantic / one-way changes
 ```
 
-Non perché l'AI elimini gli architect.
+Questo non riduce il ruolo dell'architect.
 
-Perché rende troppo costoso usare l'architect come parser umano di ogni singolo diff.
+Lo sposta dal controllo riga per riga verso la progettazione e manutenzione del sistema di decisioni e feedback.
+
+La domanda diventa:
+
+> **Quale parte del nostro judgment è già abbastanza compresa da essere trasformata in un guardrail, e quale deve restare una decisione umana perché il contesto può ancora cambiarne il significato?**
+
+## Stato ESI dopo il Capitolo 19
+
+Order Operations possiede ora:
+
+```text
+AF-001…AF-005 executable architecture rules
+Architecture Fitness Checklist
+architecture exception direction
+ADR review-trigger model
+technical-debt risk framing
+```
+
+Le regole locali possono essere `Codified + locally Verified` quando il test architetturale passa.
+
+Questo non promuove automaticamente security, cloud, recovery o runtime property a `Verified`: ognuna mantiene il proprio evidence boundary.
+
+## Ponte al Capitolo 20 — Il costo come proprietà architetturale
+
+Il feedback loop architetturale ora sa proteggere dependency, ownership, security, reliability e migration discipline.
+
+Ma ogni proprietà che compriamo ha anche un costo.
+
+Zone redundancy, premium broker tier, observability retention, headroom, recovery environment e managed capability non esistono gratuitamente.
+
+Il Capitolo 20 porterà quindi il costo dentro lo stesso modello:
+
+```text
+architecture decision
+→ cost driver
+→ unit economics
+→ quality value
+→ review trigger
+```
+
+Non chiederemo soltanto:
+
+> Quanto costa Azure?
+
+Chiederemo:
+
+> **Quale proprietà stiamo comprando con questo costo, quale outcome la giustifica e quale decisione riapriremmo se la curva cambiasse?**
 
 ## Corollario
 
-> **Un'architettura evolutiva non è un'architettura che accetta qualsiasi cambiamento. È un'architettura che rende chiaro quali cambiamenti può assorbire, quali proprietà deve proteggere e quando le sue vecchie decisioni meritano di essere riaperte.**
-
-Nel prossimo capitolo entreremo in un'altra dimensione del cambiamento: **il costo**.
-
-Order Operations ha ormai abbastanza infrastruttura, reliability, security, observability e governance da rendere possibile una domanda molto più seria di "quanto costa Azure?":
-
-> **Quale costo stiamo comprando con ogni proprietà architetturale e quale valore sta pagando quel costo?**
+> **Un'architettura evolutiva non protegge ogni decisione per sempre. Protegge le proprietà che hanno ancora fit, rende visibile quando l'implementazione devia e conserva abbastanza contesto da sapere quando una vecchia decisione merita di essere presa di nuovo.**
