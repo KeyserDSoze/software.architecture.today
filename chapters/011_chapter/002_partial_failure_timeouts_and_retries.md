@@ -1,114 +1,40 @@
-## Partial failure: il problema che il codice locale non ci prepara a vedere
+## Partial failure: quando “la chiamata è fallita” non basta più
 
-In un singolo processo possiamo comunque avere errori complessi.
+Dentro un singolo processo possiamo avere errori complessi, ma condividiamo comunque runtime, memoria e una nozione abbastanza coerente di chiamata e risultato. Attraversando una rete perdiamo parte di questa certezza.
 
-Ma abbiamo un vantaggio enorme: condividiamo una nozione relativamente coerente di tempo, memoria, chiamata e risultato.
+Per questo la frase “la chiamata è fallita” è spesso troppo vaga. Prima di decidere che cosa fare dobbiamo capire se la richiesta non sia mai arrivata, se il server la stia ancora eseguendo, se abbia prodotto il side effect ma perso la risposta, se il client abbia semplicemente smesso di aspettare o se il downstream sia sovraccarico.
 
-Quando attraversiamo una rete, quel vantaggio si riduce.
+Queste non sono varianti dello stesso errore. Producono recovery differenti.
 
-La frase:
+## Timeout: smettere di aspettare non annulla il remoto
 
-> “la chiamata è fallita”
+Un timeout significa prima di tutto che il caller non è più disposto ad aspettare. Non dimostra che il downstream non abbia fatto nulla.
 
-è spesso troppo vaga per essere utile.
+Immaginiamo che Order Operations invii una richiesta a Payments con timeout di due secondi. Payments registra l’escalation dopo 800 ms, prepara la risposta dopo 900 ms, ma la connessione viene chiusa o la risposta si perde prima di arrivare al caller. Order Operations vede un timeout; il business ha già visto un side effect riuscito.
 
-Dobbiamo chiedere:
+È precisamente qui che un retry ingenuo può creare duplicati. Timeout e idempotency devono quindi essere progettati insieme.
 
-```text
-è fallita prima di raggiungere il server?
-è arrivata ma il server non l'ha eseguita?
-è stata eseguita ma la risposta si è persa?
-il server sta ancora lavorando?
-il client ha smesso di aspettare?
-il downstream è sovraccarico?
-la rete è partizionata o soltanto lenta?
-```
-
-Queste possibilità producono decisioni differenti.
-
-## Timeout: smettere di aspettare non annulla il lavoro remoto
-
-Un timeout è prima di tutto una decisione del caller:
-
-> non siamo più disposti ad aspettare oltre.
-
-Non significa necessariamente:
-
-> il downstream non ha eseguito nulla.
-
-Questo punto è essenziale.
-
-Immaginiamo:
-
-```text
-Order Operations
-  → POST /payment-escalations
-```
-
-Il caller imposta timeout a 2 secondi.
-
-Timeline:
-
-```text
-0 ms     richiesta inviata
-800 ms   Payments registra l'escalation
-900 ms   Payments prepara la risposta
-2000 ms  Order Operations scade il timeout
-2100 ms  risposta persa / connessione chiusa
-```
-
-Dal punto di vista del client abbiamo un timeout.
-
-Dal punto di vista del business abbiamo già un side effect riuscito.
-
-Se il client ripete ingenuamente la richiesta, può produrre un duplicato.
-
-Questo è il motivo per cui timeout e idempotency devono essere progettati insieme.
-
-AWS Well-Architected raccomanda timeout espliciti sulle chiamate remote e avverte che valori troppo alti trattengono risorse inutilmente, mentre valori troppo bassi possono aumentare retry, traffico e latency fino a contribuire a outage più ampi.
+AWS Well-Architected raccomanda timeout espliciti sulle chiamate remote e ricorda che valori troppo alti trattengono risorse inutilmente, mentre valori troppo bassi possono aumentare retry, traffico e latency fino a contribuire a outage più ampi.
 
 Fonte:
 
 - [AWS Well-Architected — Set client timeouts](https://docs.aws.amazon.com/wellarchitected/latest/framework/rel_mitigate_interaction_failure_client_timeouts.html)
 
-## Retry: una nuova richiesta, non una macchina del tempo
+## Retry: una nuova esecuzione potenziale
 
-Un retry non corregge la richiesta precedente.
+Un retry non corregge la richiesta precedente e non riavvolge il sistema. È un nuovo tentativo in un mondo che potrebbe essere già cambiato.
 
-Produce una nuova osservazione del sistema e, spesso, una nuova richiesta.
+Prima di introdurlo dobbiamo quindi sapere se l’errore sia probabilmente transitorio, se l’operazione sia idempotente o deduplicabile, se esista ancora budget temporale, quale livello debba possedere il retry e quando sia necessario smettere.
 
-Quindi prima di fare retry dobbiamo sapere almeno:
-
-1. l'errore è probabilmente transitorio?
-2. l'operazione è idempotente o deduplicabile?
-3. il nuovo tentativo rientra ancora nel latency budget?
-4. chi è il livello giusto per fare retry?
-5. quante altre richieste stanno facendo la stessa cosa?
-6. quando dobbiamo smettere?
-
-Microsoft Azure Architecture Center raccomanda di applicare retry soltanto quando il contesto dell'operazione è compreso e di considerare esplicitamente idempotency, tipo di errore e consistenza della transazione.
+Microsoft Azure Architecture Center raccomanda retry contestuali, legati al tipo di errore, all’idempotency e alla semantica dell’operazione.
 
 Fonte:
 
 - [Microsoft Learn — Retry pattern](https://learn.microsoft.com/azure/architecture/patterns/retry)
 
-## Retry annidati: il moltiplicatore invisibile
+## Il problema dei retry annidati
 
-Supponiamo questa catena:
-
-```text
-A → B → C → D
-```
-
-Ogni livello esegue fino a tre tentativi.
-
-Nel caso peggiore, una singola richiesta A può produrre molti più tentativi verso D di quanto il team immagini guardando soltanto una policy locale.
-
-Non serve nemmeno raggiungere il massimo teorico perché la situazione diventi pericolosa.
-
-Durante una degradazione, migliaia di richieste concorrenti che applicano ognuna piccoli retry possono trasformare una dipendenza lenta in una dipendenza sommersa.
-
-È il classico feedback loop:
+Una catena `A → B → C → D` può sembrare innocua se ogni servizio dichiara “massimo tre retry”. Guardando il sistema end-to-end, però, i tentativi si moltiplicano. Durante una degradazione, migliaia di richieste che eseguono piccoli retry locali possono produrre un feedback loop:
 
 ```text
 failure
@@ -116,175 +42,61 @@ failure
 → più carico
 → latency maggiore
 → più timeout
-→ più retry
+→ altri retry
 ```
 
-Microsoft propone anche il concetto di **retry budget**: oltre al limite per singola richiesta, si limita il volume aggregato di retry che un processo o servizio può generare in un intervallo.
+Per questo la ownership del retry deve essere esplicita. Microsoft descrive anche il concetto di **retry budget**, che limita non soltanto i tentativi per richiesta ma il volume aggregato di retry che un servizio può generare.
 
 Fonte:
 
 - [Microsoft Learn — Transient fault handling](https://learn.microsoft.com/azure/architecture/best-practices/transient-faults)
 
-## Backoff e jitter
+## Backoff e jitter: distribuire il recovery nel tempo
 
-Se una dipendenza torna disponibile dopo un problema e tutti i client riprovano nello stesso istante, la recovery stessa può diventare un nuovo picco di carico.
+Se tutti i client riprovano nello stesso momento in cui una dipendenza torna disponibile, la recovery può creare un nuovo picco di carico. L’exponential backoff allunga progressivamente l’attesa; il jitter aggiunge casualità controllata per evitare che client sincronizzati ritentino insieme.
 
-Per questo un retry robusto non è:
-
-```text
-fallisce
-→ aspetta 100 ms
-→ riprova
-→ aspetta 100 ms
-→ riprova
-```
-
-Una strategia comune usa **exponential backoff**:
-
-```text
-100 ms
-200 ms
-400 ms
-800 ms
-...
-```
-
-ma anche il backoff può sincronizzare client partiti nello stesso momento.
-
-Il **jitter** aggiunge casualità controllata all'attesa per distribuire i tentativi nel tempo.
-
-AWS documenta backoff e jitter come strumenti centrali per evitare contention e retry sincronizzati; gli SDK AWS moderni li includono nelle proprie strategie standard/adaptive.
+AWS documenta backoff e jitter come strumenti centrali per ridurre contention e retry sincronizzati.
 
 Fonti:
 
 - [AWS Architecture Blog — Exponential Backoff And Jitter](https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/)
 - [AWS Well-Architected — Control and limit retry calls](https://docs.aws.amazon.com/wellarchitected/latest/framework/rel_mitigate_interaction_failure_limit_retries.html)
 
-## Retryable non significa sempre utile
+Questi meccanismi, però, non trasformano qualsiasi errore in un buon candidato al retry. Un `503` da un downstream saturo può richiedere attesa e riduzione del carico; una validation error non cambierà al secondo tentativo; un timeout dopo un possibile side effect richiede prima di tutto identità dell’intento.
 
-Un errore può essere tecnicamente temporaneo e comunque non meritare retry immediato.
+Una policy matura distingue quindi business error, transient transport failure, overload/rate limit, failure persistente e unknown outcome. Non serve codificare una tassonomia infinita: serve sapere quale recovery abbia senso per ogni classe.
 
-Esempio:
+## Idempotency: riconoscere la stessa intenzione
 
-```text
-503 downstream overloaded
-```
+Per i sistemi distribuiti è utile pensare all’idempotency così: **ripetere la stessa intenzione non deve produrre side effect aggiuntivi indesiderati**.
 
-Se il downstream è già al limite, altri tentativi possono peggiorare la situazione.
+La parola “intenzione” è importante. Un hash del payload non sempre basta: due payload uguali possono rappresentare due intenti diversi e lo stesso intento può essere ritentato con differenze non rilevanti a livello byte.
 
-Al contrario:
-
-```text
-connection reset su una GET idempotente
-```
-
-può essere un buon candidato per un nuovo tentativo, se il budget lo consente.
-
-Per questo la policy dovrebbe classificare almeno:
-
-```text
-validation/business error
-→ non retryable
-
-transient transport error
-→ retry candidate
-
-rate limited / overloaded
-→ backoff, rispetto Retry-After se presente
-
-persistent dependency failure
-→ stop / circuit breaker / degraded mode
-
-unknown side-effect outcome
-→ retry solo con idempotency semantics
-```
-
-## Idempotency: stessa intenzione, non stesso payload
-
-Una definizione utile di idempotency per sistemi distribuiti è:
-
-> ripetere la stessa intenzione non deve produrre side effect aggiuntivi indesiderati.
-
-La parte importante è **stessa intenzione**.
-
-Un hash del payload non sempre basta.
-
-Due richieste identiche possono rappresentare due intenti differenti.
-
-Due payload leggermente diversi possono rappresentare lo stesso intento ritentato dopo un timeout.
-
-AWS Builders' Library descrive l'uso di un client request ID esplicito per riconoscere una richiesta ritentata e distinguere meglio equivalenza semantica e nuovi intenti.
+AWS Builders’ Library descrive l’uso di un client request identifier esplicito proprio per distinguere un nuovo intento da un retry della stessa operazione.
 
 Fonte:
 
 - [Amazon Builders' Library — Making retries safe with idempotent APIs](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/)
 
-Per Order Operations potremmo avere:
+Per Order Operations, un `escalationId` stabile può rappresentare l’intenzione business. Tutti i tentativi di consegna della stessa escalation conservano quella identity; Payments & Risk può quindi riconoscere la redelivery e impedire la creazione di un secondo workflow.
 
-```text
-escalationId = esc_01J...
-```
+## Consumer idempotente: la redelivery è normale, non eccezionale
 
-che rimane stabile per tutti i tentativi di consegna della stessa escalation.
+In un sistema at-least-once il consumer deve aspettarsi che un messaggio arrivi di nuovo. Il caso tipico è semplice: il consumer riceve, scrive nel database e crasha prima dell’ack. Il broker non vede conferma e ridelivera.
 
-Payments & Risk può quindi registrare:
+Se la seconda elaborazione crea un nuovo record o ripete un side effect non sicuro, il problema non è “il broker che duplica”. È un contratto consumer che non tollera la delivery semantic scelta.
 
-```text
-processed escalationId
-```
-
-e rifiutare o rendere innocua una seconda elaborazione.
-
-## Idempotent consumer
-
-Nei sistemi di messaging at-least-once, il consumer deve aspettarsi redelivery.
-
-Un caso classico è:
-
-```text
-consumer riceve messaggio
-↓
-scrive nel database
-↓
-crash prima dell'ack
-↓
-broker non vede ack
-↓
-redelivery
-```
-
-Se la seconda elaborazione crea un nuovo record, invia una seconda email o addebita una seconda volta, il problema non è il broker.
-
-È il contratto del consumer.
-
-Microsoft descrive esplicitamente questo scenario nell'Idempotent Consumer pattern.
+Microsoft descrive esplicitamente questo scenario nell’Idempotent Consumer pattern.
 
 Fonte:
 
 - [Microsoft Learn — Idempotent Consumer pattern](https://learn.microsoft.com/azure/architecture/patterns/idempotent-consumer)
 
-## Exactly-once: attenzione al confine della promessa
+## Exactly-once: specificare sempre il confine
 
-La frase:
+Dire che un broker “supporta exactly-once” non basta per dichiarare exactly-once un business process. La garanzia può fermarsi al broker, all’offset o alla pipeline controllata dal framework; un side effect verso un payment provider o un database esterno rimane fuori da quel confine.
 
-> “il broker supporta exactly-once”
-
-non è ancora sufficiente per dichiarare:
-
-> “il nostro business process è exactly-once”.
-
-La garanzia può valere soltanto dentro il perimetro controllato dal broker o dal framework.
-
-Un consumer può comunque:
-
-1. ricevere una sola volta logicamente un record;
-2. chiamare un payment provider;
-3. ottenere successo;
-4. perdere il proprio commit locale.
-
-L'effetto esterno è già avvenuto.
-
-Per questo è più sano ragionare in termini di:
+Per questo è spesso più sano descrivere ciò che sappiamo realmente garantire:
 
 ```text
 at-least-once delivery
@@ -294,42 +106,12 @@ at-least-once delivery
 + reconciliation
 ```
 
-Quando queste proprietà producono un effetto business osservabile una sola volta, possiamo parlare di **effective exactly-once** nel perimetro che abbiamo realmente progettato.
+Quando queste proprietà producono un solo effetto business osservabile, possiamo parlare di **effective exactly-once** nel perimetro che abbiamo davvero progettato, non come formula magica end-to-end.
 
-Non di magia distribuita.
+La Builders’ Library usa il provisioning EC2 come esempio: un client token stabile consente di ritentare un’operazione costosa senza creare involontariamente più risorse per la stessa intenzione. La forma del problema è la stessa di una escalation ESI: side effect significativo, risposta incerta e retry desiderabile richiedono identity stabile.
 
-## Il caso Amazon EC2
+## La domanda prima di `retry()`
 
-La Builders' Library usa come esempio il provisioning di una EC2 instance: l'operazione coinvolge diversi servizi interni e può fallire in punti intermedi. Un client token esplicito permette di ripetere una richiesta senza creare involontariamente più risorse per la stessa intenzione.
+Prima di aggiungere una policy di retry a una chiamata remota dobbiamo riuscire a spiegare che cosa significhi successo, che cosa possa nascondere un timeout, se il primo tentativo possa avere già prodotto effetto, come riconosciamo la stessa intenzione, chi deduplica, quanto carico aggiunge il retry, quando smettiamo e come lo osserviamo.
 
-Il valore didattico è importante per ESI.
-
-Non importa che Order Operations non crei VM.
-
-La struttura del problema è identica:
-
-```text
-side effect costoso
-+ risposta incerta
-+ retry desiderabile
-= serve identità stabile dell'intenzione
-```
-
-## Una regola operativa
-
-Prima di aggiungere `retry()` a una chiamata, rispondi a queste domande:
-
-```text
-che cosa significa successo?
-che cosa significa timeout?
-la prima richiesta potrebbe avere già prodotto effetto?
-come riconosciamo la stessa intenzione?
-chi deduplica?
-quanto carico aggiunge il retry?
-quando smettiamo?
-come osserviamo i retry?
-```
-
-Se non conosciamo le risposte, il retry non è resilienza.
-
-È **amplificazione di incertezza**.
+Se queste risposte mancano, il retry non sta riducendo l’incertezza. La sta amplificando.
