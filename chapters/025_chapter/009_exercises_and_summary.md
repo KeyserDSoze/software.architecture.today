@@ -1,21 +1,14 @@
 # Esercizi e sintesi
 
-## Idee chiave
+Il One-Man Project non nasce dalla fantasia che una persona possa sostituire ogni funzione. Nasce dal fatto che l’execution può diventare molto più abbondante della capacità umana di produrla direttamente.
 
-1. **One-Man Project non significa hero developer.** È un operating model in cui una singola persona governa più execution grazie ad agenti, automazione e piattaforme.
-2. **Execution concentration e knowledge concentration sono problemi differenti.** Possiamo concentrare molta execution senza rendere una persona l'unica memoria del sistema.
-3. **Il collo di bottiglia si sposta.** Quando gli agenti aumentano il data plane dell'execution, attention, judgment, decision throughput e verification bandwidth diventano risorse più scarse.
-4. **Più agenti non significano più leverage.** Se review e decision backlog crescono, altri agenti aumentano soltanto WIP cognitivo.
-5. **Giocare fuori ruolo non significa fingere competenza.** L'AI riduce il costo di esplorare aree diverse; non trasferisce automaticamente authority o responsabilità specialistica.
-6. **Functional literacy diventa ancora più importante.** Chi governa agenti deve capire bene il comportamento del prodotto, non soltanto l'implementazione.
-7. **Platform Engineering rende possibile molta autonomia locale.** Un progetto apparentemente gestito da una persona poggia spesso su identity, cloud, CI/CD, security e observability costruiti da molti altri.
-8. **La continuity deve essere progettata.** Secondary maintainer, repository context e continuity drill impediscono che il leverage individuale diventi single point of failure umano.
-9. **Il One-Man Project deve avere exit trigger.** Restare one-man quando il prodotto ha superato quel modello non è disciplina: è inerzia.
-10. **La metrica giusta non è quanta execution produciamo.** È quanto outcome verificato riusciamo a governare mantenendo qualità, comprensione, continuità e costo sostenibile.
+Questo sposta il problema. Il lead non deve più soltanto “fare il lavoro”: deve governare WIP, riconoscere authority boundary, selezionare evidence, proteggere deep work, mantenere la conoscenza esterna alla propria memoria e capire quando l’operating model non ha più fit.
 
----
+La domanda finale del capitolo è quindi:
 
-# Esercizio 1 — Hero developer o leverage?
+> **Quanto leverage possiamo concentrare prima che attention, authority e continuity diventino il vero single point of failure?**
+
+## Esercizio 1 — Hero developer o leverage?
 
 Considera questo scenario:
 
@@ -28,17 +21,9 @@ un senior engineer
 + incidenti sempre gestiti dallo stesso engineer
 ```
 
-Rispondi:
+Individua quali elementi rappresentano leverage reale e quali aumentano continuity risk. Poi descrivi che cosa dovrebbe diventare repository context e quale segnale useresti per capire se il review backlog sta superando il decision throughput.
 
-1. quali parti sono leverage reale?
-2. quali parti aumentano il bus/continuity risk?
-3. quali informazioni devono diventare repository context?
-4. quale activity metric potrebbe ingannare il management?
-5. che cosa cambieresti prima di aumentare ancora il numero di agenti?
-
----
-
-# Esercizio 2 — Attention budget
+## Esercizio 2 — Attention budget
 
 Hai cinque task pronti:
 
@@ -50,131 +35,39 @@ D. nuova pagina read-only
 E. nuovo endpoint refund
 ```
 
-Classificali come:
+Classificali come T0 Mechanical, T1 Local behavioral, T2 Cross-boundary o T3 Decision-changing. Scegli quali eseguiresti in parallelo con un solo accountable lead e giustifica la scelta in termini di decision surface, verification, specialist gate e blast radius.
+
+## Esercizio 3 — Giocare fuori ruolo
+
+Scegli una capability fuori dalla tua specializzazione principale — security, cloud, frontend, data, observability o product analysis — e usa un agente per costruire una prima proposta.
+
+Prima di accettarla, rispondi a quattro domande: quali failure mode riconosci personalmente? Dove vive la source of truth? Quale decisione non sei autorizzato a prendere da solo? Quale evidence ti permetterebbe di capire se la proposta è abbastanza buona?
+
+Lo scopo è distinguere role elasticity da competence laundering.
+
+## Esercizio 4 — Continuity Test
+
+Immagina di essere offline per due settimane. Un collega competente riceve soltanto repository, ticket system e strumenti enterprise autorizzati.
+
+Deve riuscire a ricostruire product purpose, current architecture, owner dei dati, golden command, task aperti, decisioni Pending, deployment/recovery route ed escalation path.
+
+Ogni risposta che richiede “deve chiedere a me” è un candidate knowledge debt. Scegli poi una piccola operazione che il collega dovrebbe riuscire realmente a eseguire: il test deve verificare la trasferibilità della conoscenza, non la presenza dei file.
+
+## Esercizio 5 — Fit Review
+
+Confronta tre sistemi:
 
 ```text
-T0 Mechanical
-T1 Local behavioral
-T2 Cross-boundary
-T3 Decision-changing
+A. tool interno read-only usato da 50 engineer
+B. servizio payment multi-paese con side effect economici
+C. migration utility con target architecture e verification già definiti
 ```
 
-Poi scegli quali eseguiresti in parallelo con un solo accountable lead.
+Per ciascuno valuta decision density, one-way-door density, operational burden, authority esterne, platform support e continuity. Non cercare un sì/no universale: descrivi quale operating model avrebbe fit oggi e quale evento potrebbe invalidarlo.
 
-Spiega il ragionamento in termini di:
+## Esercizio 6 — WIP agentico
 
-- decision surface;
-- verification;
-- specialist gate;
-- blast radius;
-- review capacity.
-
----
-
-# Esercizio 3 — Giocare fuori ruolo
-
-Scegli una capability fuori dalla tua specializzazione principale:
-
-```text
-security
-cloud
-frontend
-data
-observability
-product analysis
-```
-
-Usa un agente per costruire una prima proposta.
-
-Poi, senza accettarla subito, rispondi:
-
-1. quali failure mode sei in grado di riconoscere personalmente?
-2. quale source of truth devi consultare?
-3. quale decisione non ti senti autorizzato a prendere da solo?
-4. quale specialist trigger definiresti?
-5. quale parte del lavoro puoi comunque portare avanti prima della review specialistica?
-
-Scopo:
-
-> distinguere role elasticity da competence illusion.
-
----
-
-# Esercizio 4 — Continuity Test
-
-Prendi un repository che conosci bene.
-
-Immagina:
-
-```text
-sei offline per due settimane
-```
-
-Un collega competente riceve soltanto:
-
-- repository;
-- ticket system;
-- strumenti enterprise autorizzati.
-
-Può capire:
-
-- product purpose?
-- current architecture?
-- build/test command?
-- owner dei dati?
-- deployment/recovery route?
-- task aperti?
-- decisioni ancora pending?
-- escalation path?
-
-Ogni risposta che richiede:
-
-> “deve chiedere a me”
-
-va registrata come **knowledge/continuity debt candidate**.
-
----
-
-# Esercizio 5 — One-Man Project Fit Review
-
-Valuta tre sistemi:
-
-### Sistema A
-
-Tool interno read-only usato da 50 engineer.
-
-### Sistema B
-
-Servizio payment che autorizza movimenti economici e gestisce più paesi.
-
-### Sistema C
-
-Pipeline di migrazione temporanea con target architecture e verification già definiti.
-
-Per ciascuno valuta:
-
-```text
-business criticality
-decision density
-one-way-door density
-external consumer
-platform support
-specialist gate
-operational burden
-continuity
-```
-
-Non rispondere soltanto `sì/no`.
-
-Spiega quale operating model avrebbe fit e quali condizioni potrebbero modificarlo.
-
----
-
-# Esercizio 6 — WIP agentico
-
-Supponi che un lead possa lanciare 10 agent task contemporaneamente.
-
-Nell'ultima settimana osservi:
+Hai osservato questa settimana:
 
 ```text
 10 task launched
@@ -186,111 +79,41 @@ review backlog = 7
 2 semantic questions unresolved for 4 days
 ```
 
-Domande:
+Decidi se execution è davvero il collo di bottiglia. Proponi un nuovo WIP limit e specifica quale metrica vuoi osservare la settimana successiva per capire se la modifica ha migliorato flow e decision throughput.
 
-1. la capacità di execution è il collo di bottiglia?
-2. aumenteresti il numero di agenti?
-3. quale WIP limit proveresti?
-4. quale metrica vuoi osservare nella settimana successiva?
-5. quale task class probabilmente richiede migliore preparation?
+## Esercizio 7 — Specialist gate
 
----
+Costruisci per il tuo progetto una tabella minima:
 
-# Esercizio 7 — Specialist gate
-
-Progetta una tabella per il tuo progetto:
-
-| Trigger | Lead può procedere? | Specialist | Evidence richiesta |
-|---|---:|---|---|
+| Trigger | Lead authority | Specialist gate | Evidence richiesta |
+|---|---|---|---|
 | nuova business rule | | | |
-| nuova tabella | | | |
 | public ingress | | | |
 | nuovo payment side effect | | | |
 | nuovo model provider | | | |
-| dependency patch | | | |
+| destructive migration | | | |
 
-L'obiettivo non è aumentare i gate.
+L’obiettivo non è moltiplicare le approvazioni. È rendere visibili le decisioni che non devono dipendere dalla capacità dell’agente di produrre una risposta convincente.
 
-È capire quali decisioni **non devono dipendere dalla capacità dell'agente di produrre una risposta convincente**.
+## Esercizio 8 — Outcome scorecard
 
----
+Un manager propone di misurare il pilot usando soltanto `agent task / week`, `PR / week` e `lines changed`.
 
-# Esercizio 8 — Activity vs outcome
+Costruisci una scorecard alternativa che includa verified outcome, lead time, rework, review backlog, quality signal, agent cost, human review effort, continuity e business outcome. Distingui outcome, leading indicator, diagnostic signal e guardrail.
 
-Un manager propone di misurare il pilot One-Man Project con:
+## Esercizio 9 — ESI diventa write-capable
 
-```text
-agent task / week
-PR / week
-lines changed
-```
+Product chiede di permettere al Case Explanation Assistant di eseguire automaticamente un refund.
 
-Costruisci una scorecard alternativa che includa almeno:
+Spiega quale authority boundary cambia, quale task class cambia, quali artifact devono essere riaperti e quali specialist gate scattano. Poi valuta se il One-Man Project conserva ancora lo stesso fit.
 
-```text
-verified outcome
-lead time
-rework
-review backlog
-quality signal
-agent cost
-human review effort
-continuity
-business outcome
-```
+Non basta “aumentare l’autonomia del modello”: il nuovo sink cambia security, economic authority, verification e operational burden.
 
-Spiega quali metriche useresti come:
+## Esercizio 10 — Exit trigger
 
-```text
-outcome
-leading indicator
-diagnostic signal
-guardrail
-```
+Definisci cinque segnali che ti farebbero passare da `one accountable lead` a uno stable multi-maintainer team. Per ogni segnale specifica evidence, rischio e risposta organizzativa.
 
----
-
-# Esercizio 9 — ESI Case Explanation Assistant
-
-Partendo dal pilot descritto nel capitolo, immagina che Product chieda:
-
-> “Facciamo anche eseguire automaticamente il refund all'assistant. Così il One-Man Project diventa ancora più efficiente.”
-
-Descrivi:
-
-1. quale boundary cambia;
-2. quale task class cambia;
-3. quali artifact devono essere riaperti;
-4. quali specialist gate scattano;
-5. perché non basta aumentare l'autonomia dell'agente;
-6. se il One-Man Project mantiene ancora lo stesso fit.
-
----
-
-# Esercizio 10 — Exit trigger
-
-Scrivi cinque segnali che ti farebbero passare da:
-
-```text
-one accountable lead
-```
-
-ad almeno:
-
-```text
-stable multi-maintainer team
-```
-
-Per ogni segnale specifica:
-
-```text
-signal
-evidence
-risk
-organizational response
-```
-
-Esempio:
+Un esempio:
 
 ```text
 Signal
@@ -303,115 +126,29 @@ Risk
 human SPOF + delayed recovery
 
 Response
-create shared on-call/maintainer rotation
+shared on-call / maintainer rotation
 ```
 
----
+## Artefatto operativo
 
-# Autovalutazione
+Il capitolo introduce l’**One-Man Project Operating Model**. La sua struttura minima deve rendere espliciti mission, accountable lead, non-authorities, Secondary Maintainer, agent portfolio, WIP policy, decision rights, verification model, specialist trigger, continuity plan, operating cadence, metrics ed exit criteria.
 
-Alla fine del capitolo dovresti saper rispondere:
+Non tutti questi campi devono produrre pagine di testo. Devono però impedire che il control plane reale esista soltanto come abitudine personale del lead.
 
-1. Che cosa intendiamo davvero per One-Man Project?
-2. Perché non è sinonimo di hero developer?
-3. Qual è la differenza fra execution throughput e decision throughput?
-4. Perché troppi agenti possono ridurre il leverage?
-5. Che cos'è un attention budget?
-6. Che cosa significa giocare fuori ruolo senza fingere competenza?
-7. Perché functional literacy diventa più importante con gli agenti?
-8. Quando serve uno specialist gate?
-9. Perché una piattaforma enterprise è parte invisibile del leverage individuale?
-10. Che cosa deve dimostrare un Continuity Test?
-11. Perché un secondary maintainer non annulla il concetto di One-Man Project?
-12. Quali project shape hanno fit migliore?
-13. Perché one-way-door density conta?
-14. Quali metriche non useresti da sole per misurare successo?
-15. Quali exit trigger possono invalidare il modello?
+## Che cosa cambia con l’AI
 
----
+Senza agenti, la quantità di execution producibile da una singola persona imponeva un limite relativamente evidente. Con gli agenti quel limite può spostarsi rapidamente.
 
-# Artefatto operativo
+Questo rende possibile più scope individuale, parallel execution ed exploration. Rende anche più facili knowledge concentration, review collapse, attention fragmentation, synthetic seniority e organizational fragility.
 
-Il capitolo introduce:
+Il professionista deve quindi imparare non soltanto a fare più cose, ma a **governare il proprio leverage**.
 
-> **One-Man Project Operating Model**
+Il quality floor resta semplice: functional understanding, security boundary, data ownership, external contract, verification independence quando necessaria, recovery e continuity non diventano negoziabili perché una persona è diventata più produttiva.
 
-Struttura minima:
-
-```text
-Mission
-Accountable lead
-Explicit non-authorities
-Secondary maintainer
-Agent portfolio
-WIP policy
-Decision rights
-Verification model
-Specialist triggers
-Continuity plan
-Operating cadence
-Metrics
-Exit criteria
-```
-
----
-
-# Cosa cambia con l'AI
-
-Senza agenti, la quantità di execution producibile da una singola persona imponeva un limite relativamente evidente.
-
-Con gli agenti, quel limite può spostarsi rapidamente.
-
-Questo rende possibile:
-
-```text
-broader individual scope
-more parallel execution
-faster exploration
-more automation
-```
-
-ma rende anche più facili:
-
-```text
-knowledge concentration
-review collapse
-attention fragmentation
-synthetic seniority
-self-certification
-organizational fragility
-```
-
-Il professionista deve quindi imparare non soltanto a fare più cose.
-
-Deve imparare a **governare il proprio leverage**.
-
----
-
-# Corollario
-
-> **La vera promessa del One-Man Project non è che una persona possa fare tutto. È che una persona possa governare molto più lavoro senza dover produrre tutto personalmente.**
-
-Ma perché il modello sia sostenibile, dobbiamo poter aggiungere subito:
-
-> **e il progetto deve continuare a sapere che cosa fare anche quando quella persona non è disponibile.**
+> **La vera promessa del One-Man Project non è che una persona possa fare tutto. È che possa governare molto più lavoro senza produrre tutto personalmente — e che il progetto continui a sapere che cosa fare anche quando quella persona non è disponibile.**
 
 Con questo si chiude la Parte VI — AI-native software engineering.
 
-Abbiamo costruito:
-
-```text
-AI-ready repository
-→ issue-driven execution
-→ agent governance
-→ AI runtime boundary
-→ individual leverage operating model
-```
-
-Il passo successivo è diverso.
-
-Non basta più sapere costruire e governare il sistema.
-
-Dobbiamo decidere se il sistema è **pronto per essere affidato al mondo reale**.
+Il passo successivo cambia prospettiva. Non basta più sapere costruire, delegare e governare il sistema. Dobbiamo decidere se ciò che abbiamo costruito è abbastanza dimostrato per essere affidato al mondo reale.
 
 È il **Capitolo 26 — Production Readiness**.
