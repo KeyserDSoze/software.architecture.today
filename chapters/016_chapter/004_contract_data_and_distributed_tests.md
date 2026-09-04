@@ -1,8 +1,6 @@
-# 16.4 — Contratti, dati e failure distribuiti
+## Contratti, dati e failure distribuiti
 
-I bug più costosi non vivono sempre dentro una funzione.
-
-Molti vivono **fra** due cose che prese singolarmente funzionano.
+Molti bug costosi non vivono dentro una funzione. Vivono nel punto in cui due modelli di realtà devono restare compatibili mentre cambiano indipendentemente.
 
 ```text
 consumer ↔ provider
@@ -13,426 +11,274 @@ retry ↔ idempotency
 commit ↔ publication
 ```
 
-Questi boundary richiedono test specifici.
+Questi boundary meritano una Testing Architecture specifica perché un componente può essere corretto isolatamente e produrre comunque un sistema sbagliato quando incontra l’altro lato.
 
-## Contract testing: il messaggio prima dell'ambiente
+## Contract testing: falsificare la compatibilità prima dell’ambiente completo
 
-Quando due sistemi evolvono con release indipendenti, affidarsi soltanto a un ambiente E2E condiviso crea una forma di coupling operativo.
+Order Operations e Payments & Risk non dovrebbero dover essere distribuiti insieme in un grande environment soltanto per scoprire che non condividono più la stessa comprensione di un messaggio.
 
-Per sapere se:
+Un contract test restringe la claim:
 
-```text
-Order Operations
-```
+> **Il consumer e il provider continuano a concordare sull’interazione necessaria?**
 
-può ancora parlare con:
-
-```text
-Payments & Risk
-```
-
-non dovrebbe essere sempre necessario deployare entrambi nello stesso environment e sperare che tutte le dipendenze collaterali siano sane.
-
-Un contract test restringe il problema:
-
-> **consumer e provider condividono ancora la stessa comprensione dell'interazione?**
-
-Pact formalizza proprio questo obiettivo e distingue i contract test dai functional test del provider.
+Pact formalizza questo obiettivo e distingue i contract test dai functional test del provider.
 
 Fonti:
 
 - [Pact — Introduction](https://docs.pact.io/)
 - [Pact — Contract Tests vs Functional Tests](https://docs.pact.io/consumer/contract_tests_not_functional_tests)
 
-## Schema compatibility non è semantic compatibility
+Per `OperationalCasePaymentEscalatedV1` possiamo verificare shape, field necessari e expectation usate dal consumer. Ma un contract verde non dimostra che Payments & Risk attribuisca lo stesso significato business a `reasonCode` o che deduplichi correttamente `EscalationId`.
 
-Consideriamo:
-
-```json
-{
-  "schemaVersion": 1,
-  "escalationId": "esc-123",
-  "reasonCode": "PaymentInvestigationRequired"
-}
-```
-
-Il messaggio può essere JSON valido.
-
-Può rispettare lo schema.
-
-E può comunque essere semanticamente sbagliato.
-
-Per esempio:
-
-- `escalationId` viene rigenerato a ogni retry;
-- `reasonCode` assume un significato diverso nel consumer;
-- `tenantRef` non viene usato per il corretto boundary downstream;
-- il consumer interpreta redelivery come nuovo intent.
-
-Quindi distinguiamo almeno:
+Distinguiamo quindi:
 
 ```text
-serialization/schema test
-contract compatibility test
-business semantic test
+serialization/schema conformance
+→ il messaggio ha la forma consentita
+
+consumer/provider compatibility
+→ l’interazione richiesta continua a essere supportata
+
+business semantic behavior
+→ il consumer produce l’effetto corretto
 ```
 
-Nessuno sostituisce automaticamente gli altri.
+La differenza è essenziale perché un JSON può essere perfettamente valido e semanticamente sbagliato.
 
-## Contract by specification e contract by example
+## Un contract troppo preciso può creare coupling inutile
 
-Un OpenAPI o AsyncAPI document può descrivere il contratto possibile.
+La verification deve proteggere ciò che il consumer usa, non congelare accidentalmente tutta l’implementazione del provider.
 
-Un consumer-driven contract può descrivere interazioni concrete realmente usate.
+Se il consumer pretende esattamente diciassette field, ordine irrilevante e valori che non legge, il contract smette di difendere compatibility e inizia a bloccare evoluzioni innocue.
 
-Pact definisce il proprio approccio come contract-by-example prodotto dai consumer test e verificato sul provider.
-
-Fonte:
-
-- [Pact — Introduction](https://docs.pact.io/)
-
-Non dobbiamo scegliere ideologicamente uno dei due.
-
-Possono rispondere a domande diverse.
-
-Per Order Operations:
-
-```text
-API specification
-→ public/shared shape e semantics dichiarate
-
-consumer/provider contract
-→ expectation effettivamente usata da Payments & Risk
-```
-
-## Un contract test non deve congelare tutto
-
-Un pessimo contract test può essere più dannoso di nessun contract test.
-
-Se il consumer pretende:
-
-```text
-esattamente questi 17 field
-nello stesso ordine
-con valori irrilevanti esatti
-```
-
-stiamo trasformando dettagli non significativi in coupling.
-
-Pact raccomanda consumer test abbastanza permissivi da consentire al provider di evolvere ciò che non rompe l'aspettativa del consumer.
+Pact raccomanda consumer expectation sufficientemente precise da esprimere ciò che conta e sufficientemente permissive da non vincolare dettagli non necessari.
 
 Fonte:
 
 - [Pact — Writing Consumer Tests](https://docs.pact.io/consumer)
 
-La property da proteggere è la compatibility necessaria, non l'identità byte-for-byte dell'implementazione corrente.
+Lo stesso principio vale per OpenAPI/AsyncAPI e altri contract by specification: lo schema documenta ciò che è ammesso; il test deve conservare la compatibility policy, non trasformare ogni dettaglio corrente in una one-way door.
 
-## Database test: non fingere PostgreSQL con una Map
+## Database: quando la tecnologia è la property
 
-Per testare business logic, un fake repository può essere perfetto.
+Un fake repository è perfetto per verificare business orchestration quando non vogliamo pagare il costo del database. È una pessima fonte di evidence quando la claim riguarda PostgreSQL.
 
-Per testare PostgreSQL, no.
-
-Una struttura in-memory non replica necessariamente:
-
-- transaction isolation;
-- unique constraint;
-- foreign key;
-- collation;
-- timestamp semantics;
-- locking;
-- query planner;
-- index;
-- JSON operator;
-- migration behavior;
-- concurrent transaction.
-
-Quindi una regola importante è:
-
-> **fake the boundary when testing your logic; use the real technology when testing the boundary itself.**
-
-Per Order Operations la transaction:
+Una `Map` non replica necessariamente:
 
 ```text
-PaymentEscalation
-+ OutboxMessage
+transaction isolation
+unique/foreign-key constraint
+collation
+timestamp semantics
+locking
+concurrency
+migration behavior
+query/index semantics
 ```
 
-ha una property critica:
+Per Order Operations la property critica:
 
 ```text
-both commit
-OR
-neither commits
+PaymentEscalation + OutboxMessage
+→ both commit OR neither commits
 ```
 
-La business orchestration può essere testata con una fake transaction.
+può avere un’application test che verifica la richiesta di una stessa unit of work. Ma la claim “PostgreSQL rende atomiche le due write” richiede un vero transaction test.
 
-Ma prima della production readiness serve anche evidence che la vera implementazione PostgreSQL rispetti quella atomicità.
+> **Quando testiamo la nostra logica possiamo controllare il boundary. Quando testiamo il boundary, dobbiamo usare una rappresentazione abbastanza fedele del boundary stesso.**
 
-## Migration test
+## Concurrency: il bug che non appare in sequenza
 
-Le migration sono codice di produzione.
+Una regola può sembrare perfetta in esecuzione sequenziale e rompersi appena due request competono.
 
-Devono essere trattate come tali.
+```text
+A: no escalation found
+B: no escalation found
+A: insert
+B: insert
+```
 
-Una strategia minima può verificare:
+Se la protezione reale è una unique constraint o una transaction policy, la suite deve riuscire a dimostrare almeno un caso di concorrenza sulla tecnologia reale.
+
+Il mock sequenziale può provare l’intenzione del use case. Non prova race handling.
+
+## Migration: verificare il passaggio, non soltanto lo schema finale
+
+Una migration è codice di produzione perché modifica lo stato che la nuova versione dell’applicazione deve comprendere.
+
+Il test minimo:
 
 ```text
 empty DB
 → apply all migrations
-→ schema valid
+→ expected schema
 ```
 
-ma non basta sempre.
+è utile ma incompleto per un sistema evolutivo.
 
-Per sistemi evolutivi servono anche scenari:
+Serve anche la transizione:
 
 ```text
-previous supported schema
-→ apply next migration
-→ existing representative data preserved
+previous supported schema + representative data
+→ next migration
+→ existing state preserved
+→ new constraint valid
 ```
 
-ed eventualmente:
+Quando il rollout richiede convivenza fra versioni, entrano inoltre compatibility di old app/new schema e strategia roll-forward/rollback.
 
-```text
-old app + new schema coexistence
-new app + transition schema
-rollback/roll-forward policy
-```
+Il Capitolo 10 ha già mostrato, attraverso i casi Stripe e GitHub citati lì, che schema change è un problema operativo oltre che DDL. La Testing Architecture deve conservare la stessa realtà.
 
-Il Capitolo 10 ha già mostrato con casi reali Stripe e GitHub che schema migration in produzione è un problema operativo e non soltanto DDL.
+## Distributed failure: successo, fallimento e outcome ignoto
 
-Il testing deve rifletterlo.
-
-## Concurrency test
-
-Molti invariant sembrano corretti in esecuzione sequenziale e falliscono sotto concorrenza.
-
-Esempio:
-
-```text
-Request A: no active escalation found
-Request B: no active escalation found
-A inserts
-B inserts
-```
-
-Un mock repository sequenziale potrebbe non vedere mai il problema.
-
-Una unique constraint o una transaction policy reale può diventare parte del guardrail.
-
-Ma anche il guardrail deve essere testato.
-
-Quindi per invariant concurrency-sensitive vogliamo almeno una prova che faccia realmente competere due operation.
-
-## Distributed testing: unknown outcome
-
-Nel Capitolo 11 abbiamo insistito su un caso fondamentale:
+Nel Capitolo 11 abbiamo introdotto uno dei punti più importanti dei sistemi distribuiti:
 
 ```text
 publish succeeds
-acknowledgement lost
+acknowledgement is lost
 ```
 
-Il producer non sa se il broker abbia accettato il messaggio.
+Dal punto di vista del caller osserviamo failure o timeout. Dal punto di vista del broker il side effect potrebbe essere già avvenuto.
 
-La strategia non può testare soltanto:
+Una suite che modella soltanto:
 
 ```text
 publish returns success
-publish throws failure
+publish throws before side effect
 ```
 
-Deve includere il terzo caso concettuale:
+non sta testando il failure più interessante.
+
+Dobbiamo includere l’**unknown outcome** e verificare le proprietà che lo rendono sicuro:
 
 ```text
-side effect may have happened
-but caller observes failure/timeout
+same messageId preserved
+same EscalationId preserved
+retry bounded
+consumer duplicate tolerance
+reconciliation possible
 ```
 
-È qui che idempotency e stable message identity diventano testabili.
+Questa è la differenza fra testare una exception e testare il failure model.
 
-## Il test di redelivery
+## Redelivery: contare le chiamate è la metrica sbagliata
 
-Per il consumer Payments & Risk una property essenziale è:
+La property downstream non è:
+
+```text
+consumer called twice
+```
+
+ma:
 
 ```text
 same EscalationId delivered twice
 → one business workflow
 ```
 
-Il test corretto non è:
+Per dimostrarlo il consumer può aver bisogno della propria persistence reale del dedup state. L’at-least-once delivery non viene verificata contando method invocation; viene verificata osservando l’effetto business.
 
-```text
-consumer method called twice
-```
+Questa property appartiene principalmente a Payments & Risk. Order Operations può codificare il contract e testare le proprie identity semantics, ma non dichiarare `Verified` un comportamento downstream che non possiede.
 
-È:
+## Retry: verificare la policy, non una magia numerica
 
-```text
-duplicate technical delivery
-→ no duplicate business effect
-```
-
-Questo può richiedere persistence reale del dedup state downstream.
-
-La semantica at-least-once non si valida contando le chiamate.
-
-Si valida osservando gli effetti.
-
-## Retry test
-
-Un retry test utile deve distinguere almeno:
+Un buon retry test distingue:
 
 ```text
 transient failure
-→ retry allowed
+→ retry candidate
 
-permanent validation failure
-→ retry forbidden
+permanent validation/semantic rejection
+→ no blind retry
 
 unknown outcome
-→ retry with stable identity
+→ retry only with stable identity
 ```
 
-Se il test dice soltanto:
+La policy deve inoltre essere bounded e applicare il backoff previsto. Il numero esatto di tentativi può essere un configuration contract quando serve, ma il test principale protegge classification, stable identity e stop condition.
 
-```text
-should retry 3 times
-```
+`should retry exactly 3 times` può essere corretto. Non è automaticamente la property importante.
 
-sta proteggendo una configurazione.
+## Tempo controllato: evitare che il test aspetti la realtà
 
-Non necessariamente la policy.
+Retry, TTL, delivery budget e reconciliation threshold dipendono dal tempo. Un `sleep()` nei test piccoli introduce latency e flakiness invece di evidence.
 
-Meglio testare:
-
-```text
-bounded
-classified
-backoff applied
-stable operation identity preserved
-```
-
-Il numero esatto può essere testato dove costituisce requirement/configuration contract.
-
-## Time test
-
-Distributed system code spesso dipende dal tempo:
-
-- retry schedule;
-- timeout;
-- delivery budget;
-- TTL;
-- lock expiry;
-- reconciliation threshold.
-
-Usare `sleep()` nei test piccoli è quasi sempre un segnale che non stiamo controllando il clock.
-
-Order Operations ha già un `OutboxPublisherClock`.
-
-Questo consente di testare:
+Order Operations possiede già `OutboxPublisherClock`, quindi possiamo verificare:
 
 ```text
 now = T0
-failure
-nextAttemptAt = T0 + delay
+publish failure
+→ nextAttemptAt = T0 + policy delay
 ```
 
-senza aspettare realmente.
-
-I test più realistici potranno poi verificare il comportamento temporale del broker/runtime vero.
-
-## Testare DLQ e reconciliation
-
-Una DLQ non è una feature completa finché non sappiamo verificare:
-
-- quando un messaggio ci finisce;
-- quale evidence conserva;
-- chi viene avvisato;
-- come viene redriveato;
-- se il redrive è idempotente;
-- se una reconciliation trova divergenze.
-
-Per Order Operations il Failure Mode Map richiede:
+oppure:
 
 ```text
-PaymentEscalation Requested
-AND DeliveryState != Delivered
-AND age > business threshold
+Requested + age > business threshold
 → reconciliation candidate
 ```
 
-Questa rule deve avere test deterministici a clock controllato.
+senza aspettare realmente minuti.
 
-Poi servirà un operational test sul vero path.
+I test di integrazione/operational potranno poi verificare il behavior temporale del runtime reale dove serve.
 
-## Event versioning test
+## DLQ e reconciliation: provare anche la strada dopo il failure
 
-Quando arriverà `OperationalCasePaymentEscalatedV2`, la domanda non sarà soltanto:
-
-> il nuovo schema è valido?
-
-ma:
-
-> **i consumer che conoscono ancora v1 continuano a funzionare secondo la compatibility policy?**
-
-Possibili strategie:
-
-- backward-compatible additive change;
-- dual publication temporanea;
-- versioned endpoint/topic;
-- consumer migration window.
-
-Qualunque strategia scegliamo deve produrre test compatibili con la policy.
-
-## Il test dell'assenza
-
-Alcune properties sono negative:
+Una DLQ non è una recovery capability soltanto perché un messaggio può finirci. La suite deve sapere falsificare almeno queste claim:
 
 ```text
-non deve pubblicare
-non deve scrivere
-non deve attraversare tenant
-non deve fare retry
-non deve loggare secret
+entry condition corretta
+evidence utile preservata
+alert/owner raggiungibile
+redrive non cambia business identity
+redrive idempotente
+reconciliation trova la divergence
 ```
 
-I test generati automaticamente tendono facilmente a concentrarsi sul happy path visibile.
+La Failure Mode Map diventa quindi una sorgente diretta di test.
 
-Una Testing Strategy risk-driven rende esplicite anche le cose che **non devono accadere**.
+## Versioning: la nuova versione deve essere testata contro la policy, non contro l’ottimismo
 
-Per esempio:
+Quando arriverà `OperationalCasePaymentEscalatedV2`, non basta chiedere se il nuovo schema sia valido. Dobbiamo sapere quale compatibility policy abbiamo scelto e verificare il comportamento dei consumer ancora su v1.
+
+Additive backward-compatible change, dual publication, versioned channel o migration window sono strategie differenti. Ognuna crea una diversa evidence chain.
+
+## Il test dell’assenza
+
+Alcune delle property più importanti descrivono cose che **non devono accadere**:
 
 ```text
 wrong tenant
+→ no read/write
+
+wrong role
 → no escalation
-→ no outbox message
-→ no telemetry containing foreign tenant data
+
+permanent failure
+→ no blind retry
+
+sensitive value
+→ no telemetry leakage
+
+same intent replay
+→ no duplicate business effect
 ```
 
-Questo è più forte di verificare soltanto una `403`.
+I test AI-generated tendono facilmente verso l’happy path visibile nel codice. La Risk-to-Evidence Map deve rendere espliciti anche questi non-eventi.
 
-## Cross-boundary evidence
+Per un cross-tenant denial non basta una `403`: vogliamo anche `no PaymentEscalation`, `no OutboxMessage` e nessuna disclosure non autorizzata.
 
-Per ogni boundary significativo possiamo compilare una mini tabella:
+## Cross-boundary evidence map
 
-| Boundary | Property | Cheap test | Real-boundary test |
+| Boundary | Claim | Cheap evidence | Boundary evidence |
 |---|---|---|---|
-| API | idempotency semantic | application test | HTTP + DB integration |
-| DB | atomicity | fake UoW | PostgreSQL transaction test |
-| event | compatible shape | serialization | provider/consumer contract |
-| broker | duplicate possible | publisher unit | Service Bus integration |
-| consumer | no duplicate effect | consumer component | real dedup persistence |
-| recovery | reconciliation rule | clock-controlled | operational drill |
+| API | idempotency semantics | application | HTTP + PostgreSQL |
+| DB | atomicity | fake UoW orchestration | PostgreSQL transaction |
+| event | compatible shape | serialization | consumer/provider contract |
+| broker | redelivery possible/safe publish | publisher test | Service Bus integration |
+| consumer | no duplicate effect | component | real dedup persistence |
+| recovery | reconciliation | controlled clock | operational drill |
 
-Questo impedisce due errori opposti:
+Questa mappa evita due estremi: mockare tutto e chiamarlo integrato, oppure mettere tutta la confidence in E2E lenti e fragili.
 
-1. mockare tutto e dichiarare integrato il sistema;
-2. mettere tutto in E2E e ottenere una suite lenta e fragile.
-
-## Corollario
-
-> **I boundary non vanno testati perché sono “integrazioni”. Vanno testati perché è lì che due modelli di realtà devono continuare a essere compatibili mentre evolvono indipendentemente.**
+> **I boundary non vanno testati perché si chiamano “integrazioni”. Vanno testati perché è lì che due modelli di realtà devono continuare a concordare mentre evolvono indipendentemente.**
