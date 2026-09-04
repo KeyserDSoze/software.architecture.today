@@ -329,7 +329,7 @@ Il Capitolo 18 ci ha mostrato come governare una trasformazione intenzionale.
 
 Ma un'architettura può degradarsi anche senza grandi refactoring o modernization program.
 
-Può farlo una pull request alla volta: un import temporaneo, una dependency introdotta fuori boundary, una feature flag mai rimossa, una eccezione di layering che diventa precedente.
+Può farlo una pull request alla volta: un import temporaneo, una dependency introdotta fuori boundary, una feature flag mai rimossa, un'eccezione di layering che diventa precedente.
 
 Il Capitolo 19 cambia quindi prospettiva.
 
