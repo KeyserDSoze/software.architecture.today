@@ -1,410 +1,98 @@
 # 28.3 — Profondità tecnica senza culto dell'implementazione
 
-C'è un'altra caricatura dell'architect che dobbiamo evitare.
+C'è una caricatura dell'architect che dobbiamo evitare: la persona che non apre un repository da anni ma continua a prendere decisioni molto dettagliate su framework, runtime, schema, networking, queue o AI SDK basandosi soltanto su diagrammi e slide.
 
-Quella della persona che non apre più un repository da anni ma continua a prendere decisioni dettagliate su:
+L'estremo opposto non è migliore: l'architect come developer più senior che misura il proprio valore dal numero di commit.
 
-```text
-framework
-runtime
-threading
-ORM
-queue
-schema
-networking
-AI SDK
-```
-
-basandosi su diagrammi e slide.
-
-L'estremo opposto non è migliore:
-
-```text
-architect
-= developer più senior
-che scrive più codice degli altri
-```
-
-L'architect del 2030 deve restare **tecnicamente credibile**, ma la sua profondità non si misura soltanto dal numero di commit.
-
-Si misura dalla capacità di scendere abbastanza in profondità da capire se un'astrazione, una proposta o un output AI reggono davvero.
+La profondità tecnica utile sta altrove. Serve a scendere abbastanza in profondità da capire se l'astrazione con cui stiamo decidendo coincide ancora con la realtà.
 
 > **Non devi implementare tutto. Devi saper riconoscere quando l'implementazione invalida il modello mentale con cui stai decidendo.**
 
----
+## Code literacy come accesso alla realtà
 
-## Code literacy
+Un architect dovrebbe saper seguire un critical flow, trovare dove vive una business rule, leggere un test e capire quale property protegge, riconoscere provider coupling, capire una migration e verificare dove vengono applicati authentication e authorization.
 
-Un architect dovrebbe saper leggere codice con sufficiente fluidità da:
+Non deve essere il contributor più veloce. Deve però essere in grado di attraversare il repository quando una decisione importante dipende da ciò che il codice fa davvero.
 
-- seguire un critical flow;
-- trovare dove vive una business rule;
-- riconoscere una dipendenza nascosta;
-- capire se un boundary documentato esiste davvero;
-- leggere un test e capire quale property protegge;
-- distinguere orchestration da domain logic;
-- leggere una migration;
-- capire dove vengono applicati auth e authorization;
-- individuare provider coupling;
-- verificare se l'AI ha introdotto accidental complexity.
+Nel capstone non basta sapere che Order Operations usa un outbox. Serve poter verificare, direttamente o attraverso evidence adeguata, che `PaymentEscalation` e `OutboxMessage` condividano davvero la transaction boundary che stiamo promettendo, che l'identità del messaggio sia stabile e che retry e republish abbiano un failure model compreso.
 
-Questo non richiede essere il contributor più veloce del repository.
+La code literacy impedisce che la parola `outbox`, `hexagonal`, `clean architecture` o `AI boundary` venga accettata come prova di una proprietà che nessuno ha verificato.
 
-Richiede non delegare completamente la realtà del sistema a chi produce il codice.
+## Il runtime può smentire un buon diagramma
 
-Nel nostro capstone, per esempio, un architect non dovrebbe limitarsi a sapere che esiste un outbox.
+La realtà tecnica non finisce nel repository. Un architect deve saper interrogare SLI, trace, log strutturati, backlog, connection pool, query plan, retry rate, error-budget burn e costi reali abbastanza da capire se le assunzioni architetturali stanno reggendo.
 
-Dovrebbe poter leggere abbastanza codice e migration da capire:
+Se abbiamo deciso che una queue assorbe i burst, la domanda non è se la queue esiste. È quanto cresce il backlog, quanto tempo impiega a drenare e quando il burst diventa overload persistente.
 
-```text
-PaymentEscalation
-+ OutboxMessage
-→ stessa transaction boundary?
+Se una cache dovrebbe ridurre latency, contano hit ratio, staleness, invalidation, stampede e costo, non la presenza della cache nel diagramma.
 
-publisher
-→ stable message identity?
+> **Un'architettura credibile deve poter essere falsificata dal runtime.**
 
-retry
-→ bounded?
+## Intent, mechanism, evidence
 
-failure after broker publish
-→ possible republish understood?
-```
-
-Se non può farlo direttamente, deve almeno sapere costruire una verifica che lo dimostri.
-
----
-
-## Runtime literacy
-
-Il codice non è l'unica realtà tecnica.
-
-L'architect deve saper interrogare anche il runtime.
-
-Per esempio:
+L'AI rende molto economico generare IaC. Questo aumenta il valore di saper distinguere tre livelli:
 
 ```text
-SLI
-trace
-log strutturato
-queue depth
-connection pool
-CPU/memory saturation
-DB query plan
-retry rate
-error-budget burn
-cloud bill
+Intent
+→ quale proprietà vogliamo ottenere
+
+Mechanism
+→ come la piattaforma la esprime oggi
+
+Evidence
+→ come verifichiamo che quel mechanism produca davvero l'intent
 ```
 
-Non deve essere l'on-call engineer più esperto.
+Un template Bicep può dichiarare private access e restare ancora soltanto `Codified`. La property diventa `Verified` quando deployment, DNS, network path e negative test dimostrano il boundary nel sistema reale.
 
-Ma deve sapere quali segnali possono falsificare le assunzioni dell'architettura.
+Lo stesso vale per data e distributed systems. Parole come `eventually consistent` o `shared database` sono troppo povere se non sappiamo quale fatto può essere stale, per chi, per quanto tempo e chi mantiene l'authority sul dato.
 
-Se abbiamo deciso:
+Un architect non deve diventare DBA, network engineer e cloud specialist contemporaneamente. Deve però sapere quando l'astrazione è troppo generica per decidere.
 
-```text
-queue
-→ assorbe burst
-```
+## AI literacy senza buzzword literacy
 
-l'architect deve sapere chiedere:
+Nel runtime AI, la profondità utile riguarda model boundary, context, retrieval, tool permission, prompt injection, structured output, eval, latency, cost, drift e fallback.
 
-```text
-quanto cresce il backlog?
-quanto tempo impiega a drenare?
-quale consumer throughput osserviamo?
-quando il burst diventa overload persistente?
-```
+Non serve addestrare un foundation model per riconoscere che `valid JSON` non equivale a `correct answer`, che un benchmark migliore non dimostra il workload e che RAG è un meccanismo di retrieval, non un requisito universale.
 
-Se abbiamo deciso:
+Nel Case Explanation Assistant questa literacy ci ha permesso di evitare un vector database nel primo slice perché il contesto necessario era già bounded e strutturato. Il criterio non era essere moderni o minimalisti. Era usare abbastanza tecnologia per la property reale.
 
-```text
-cache
-→ riduce latency
-```
+## Hands-on dove riduce incertezza
 
-dobbiamo anche chiederci:
+Scrivere codice resta uno dei modi migliori per mantenere technical depth, ma l'attività hands-on dovrebbe essere scelta per il suo valore informativo.
 
-```text
-hit ratio?
-staleness?
-invalidazioni?
-stampede?
-costo?
-```
+Uno spike su una dependency rischiosa, un architecture fitness test, una migration rehearsal, un failure injection, un security negative test o un AI eval harness possono valere più di implementare una decina di feature che non cambiano nessuna decisione architetturale.
 
-La capacità di interrogare queste evidenze impedisce che l'architecture resti una teoria non falsificabile.
-
----
-
-## Infrastructure literacy
-
-Cloud Architecture ha reso più facile creare risorse.
-
-L'AI rende ancora più facile generare IaC.
-
-Per questo l'architect deve essere in grado almeno di leggere:
-
-```text
-Terraform / Bicep / CloudFormation
-IAM / RBAC
-network boundary
-load balancer / ingress
-DNS
-secret reference
-resource sizing
-HA configuration
-backup/recovery setting
-```
-
-Non deve ricordare ogni property di ogni provider.
-
-Anzi, non dovrebbe fidarsi della memoria per dettagli volatili.
-
-Deve invece saper distinguere:
-
-```text
-intent
-→ ciò che vogliamo ottenere
-
-mechanism
-→ come il provider lo esprime oggi
-
-evidence
-→ come verifichiamo che il mechanism produca davvero l'intent
-```
-
-Questa distinzione diventa essenziale quando un agente genera template plausibili ma non ancora validati.
-
----
-
-## Data literacy
-
-Molte decisioni architetturali falliscono perché si parla di componenti senza capire i dati.
-
-Un architect deve saper ragionare almeno su:
-
-```text
-schema
-ownership
-invariant
-transaction
-isolation
-index
-query/access pattern
-replication
-partitioning
-migration
-retention
-lineage
-```
-
-Non serve essere DBA per riconoscere che:
-
-```text
-shared database
-```
-
-non significa automaticamente:
-
-```text
-shared ownership
-```
-
-oppure che:
-
-```text
-eventually consistent
-```
-
-non è una property abbastanza precisa finché non sappiamo **quale fatto può essere stale, per chi e per quanto**.
-
----
-
-## AI literacy
-
-Nel 2030 sarà difficile essere tecnicamente credibili ignorando il comportamento dei sistemi AI.
-
-Ma anche qui dobbiamo distinguere capacità utile da catalogo di buzzword.
-
-Un architect dovrebbe capire almeno:
-
-```text
-model boundary
-context window
-retrieval / grounding
-structured output
-tool permission
-prompt injection
-model/provider drift
-evaluation
-latency distribution
-cost driver
-fallback
-```
-
-Non deve addestrare un foundation model.
-
-Deve saper decidere, per esempio, se:
-
-```text
-RAG
-```
-
-risolve davvero il problema o se stiamo aggiungendo retrieval infrastructure senza un corpus che lo richieda.
-
-Deve sapere che:
-
-```text
-valid JSON
-≠
-correct answer
-```
-
-E che:
-
-```text
-model benchmark improved
-≠
-workload eval passed
-```
-
-Questa è technical literacy applicata al rischio reale del sistema.
-
----
-
-## Essere hands-on, ma con intenzione
-
-Scrivere codice resta uno dei modi migliori per mantenere technical depth.
-
-Ma l'obiettivo non è accumulare commit.
-
-L'architect dovrebbe scegliere attività hands-on ad alto learning value.
-
-Per esempio:
-
-```text
-spike su componente rischioso
-prototype di un boundary
-architecture fitness test
-migration rehearsal
-failure injection
-performance experiment
-security negative test
-AI eval harness
-```
-
-Microsoft Well-Architected raccomanda esplicitamente di validare le assunzioni critiche con POC e codice funzionante prima di finalizzare design ad alto rischio.
+Microsoft Well-Architected raccomanda di validare assunzioni critiche con POC e codice funzionante prima di finalizzare design ad alto rischio.
 
 Fonte:
 
-- Microsoft Learn — *Solution Architect's Responsibilities and Guiding Principles*: https://learn.microsoft.com/en-us/azure/well-architected/architect-role/fundamentals
+- [Microsoft Learn — Solution Architect's Responsibilities and Guiding Principles](https://learn.microsoft.com/en-us/azure/well-architected/architect-role/fundamentals)
 
-Questo è diverso da dire:
+La domanda utile non è quindi:
 
-> “L'architect deve implementare tutte le feature importanti.”
-
-La domanda è:
-
-> **Dove un esperimento tecnico riduce abbastanza incertezza da cambiare la qualità della decisione?**
-
----
-
-## Il rischio del deskilling tecnico
-
-L'AI può produrre rapidamente:
-
-```text
-SQL
-regex
-Bicep
-Kubernetes YAML
-API client
-unit test
-```
-
-Se accettiamo continuamente questi output senza comprenderli, la nostra capacità di giudizio può diminuire proprio mentre aumenta la nostra capacità di produrre.
-
-Questo è particolarmente pericoloso per un architect.
-
-Perché il suo valore dipende dal riconoscere:
-
-- coupling;
-- failure mode;
-- assumption nascosta;
-- security boundary;
-- cost implication;
-- semantic mismatch.
-
-Quindi alcune attività devono essere deliberatamente svolte per mantenere skill.
-
-Per esempio:
-
-```text
-prima spiegare il problema
-poi chiedere all'AI una soluzione
-
-prima fare una previsione
-poi confrontarla con l'output
-
-prima leggere una parte del codice
-poi usare l'AI per accelerare la discovery
-
-prima definire l'invariant
-poi generare test
-```
-
-Non perché dobbiamo fare tutto più lentamente.
-
-Perché:
-
-> **Se deleghiamo anche la capacità di riconoscere gli errori, perdiamo il diritto di delegare l'esecuzione.**
-
----
-
-## Profondità a T, ma dinamica
-
-La metafora della T-shaped skill resta utile, ma va aggiornata.
-
-L'architect del 2030 può essere pensato come:
-
-```text
-ampiezza
-business / functional / systems / cloud / security / operations / economics / AI
-
-+
-
-1–2 aree di profondità forte
-
-+
-
-capacità di scendere temporaneamente più in profondità
-quando una decisione lo richiede
-```
-
-La profondità non è necessariamente permanente nello stesso stack.
-
-Può cambiare nel tempo.
-
-Un architect può avere una base forte in backend/distributed systems e sviluppare temporaneamente maggiore depth in AI evaluation perché il portfolio lo richiede.
-
-Oppure in security.
-
-Oppure in data platform.
-
-La regola ESI non è:
-
-```text
-architect deve sapere tutto
-```
+> Quanto codice deve scrivere l'architect?
 
 È:
 
-```text
-architect deve sapere abbastanza
-per riconoscere dove non sa abbastanza
-```
+> **Dove un esperimento tecnico riduce abbastanza incertezza da migliorare materialmente la decisione?**
 
-Questa è una forma di competenza molto più difficile da automatizzare di quanto sembri.
+## Il deskilling diventa un rischio architetturale
+
+L'AI può produrre SQL, regex, IaC, API client, test e configurazioni in pochi secondi. Se accettiamo continuamente questi output senza comprenderli, la nostra capacità di giudizio può diminuire proprio mentre aumenta la capacità di produrre.
+
+Per un architect è particolarmente pericoloso, perché il valore professionale dipende dal riconoscere coupling, failure mode, assumption nascosta, security boundary, cost implication e semantic mismatch.
+
+Una pratica semplice è mantenere il primo passo umano nelle aree che vogliamo davvero saper governare: prima formulare l'invariant, poi generare i test; prima fare una previsione, poi chiedere all'AI; prima leggere una parte del codice, poi usare l'AI per accelerare la discovery.
+
+> **Se deleghiamo anche la capacità di riconoscere gli errori, perdiamo il diritto di delegare l'esecuzione.**
+
+## Profondità dinamica
+
+La metafora T-shaped resta utile se non diventa una fotografia permanente. L'architect ha bisogno di ampiezza su business, functional, systems, cloud, security, operations, economics e AI; di una o due aree di profondità forte; e della capacità di scendere temporaneamente più in profondità quando una decisione lo richiede.
+
+La depth può spostarsi nel tempo. Un architect con radici backend può approfondire AI evaluation per un periodo, poi security o data platform quando cambia il portfolio.
+
+La baseline ESI non è "sapere tutto". È sapere abbastanza da riconoscere quando non si sa abbastanza e trasformare quel limite in un specialist trigger o in un esperimento.
 
 > **La profondità tecnica dell'architect non serve a vincere una gara di implementazione. Serve a mantenere il judgment ancorato alla realtà.**
