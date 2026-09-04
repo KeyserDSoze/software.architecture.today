@@ -1,66 +1,65 @@
 ## HTTP: usare la semantica che esiste già
 
-HTTP non è soltanto un trasporto per JSON.
+HTTP non è soltanto un tubo dentro cui trasportare JSON.
 
-Metodi, status code, header, caching e conditional request portano semantica condivisa da client, proxy, gateway, browser e librerie.
+Metodi, status code, header, caching e conditional request portano una semantica condivisa da browser, proxy, gateway, librerie e client. Quando la ignoriamo, spesso finiamo per inventare un secondo protocollo dentro il primo.
 
-Ignorarla significa spesso reinventare un protocollo dentro HTTP.
+La domanda non è quindi come rendere un'API “RESTful abbastanza”.
 
-### Safe e idempotent non sono sinonimi
+È capire quali proprietà HTTP corrispondano davvero all'intento del consumer e quali conseguenze abbiano su retry, side effect e intermediari.
 
-RFC 9110 definisce un metodo **idempotente** quando l'effetto intenzionale sul server di più richieste identiche è lo stesso dell'effetto di una singola richiesta.
+## Safe e idempotent descrivono proprietà diverse
 
-Tra i metodi standard, `PUT`, `DELETE` e i metodi safe sono idempotenti.
+RFC 9110 definisce un metodo **safe** quando il client non richiede un cambiamento di stato sul server come parte della semantica della richiesta. Definisce invece **idempotente** un metodo quando più richieste identiche hanno lo stesso effetto intenzionale di una singola richiesta. Fra i metodi standard, `PUT`, `DELETE` e i metodi safe sono idempotenti: [RFC 9110 — HTTP Semantics](https://www.rfc-editor.org/rfc/rfc9110.html).
 
-Fonte primaria:
+Queste proprietà diventano concrete quando la rete è incerta.
 
-- [RFC 9110 — HTTP Semantics](https://www.rfc-editor.org/rfc/rfc9110.html)
-
-Questa proprietà è importante soprattutto quando una risposta si perde.
-
-Il client può trovarsi in questa situazione:
+Immaginiamo:
 
 ```text
-request inviata
+client invia richiesta
 → server applica l'operazione
-→ connessione cade
-→ client non sa se l'operazione è avvenuta
+→ la connessione cade prima della response
+→ il client non sa che cosa sia successo
 ```
 
-Se l'operazione è idempotente, il retry può essere molto più sicuro.
+Il problema non è più soltanto quale status code restituire.
 
-### GET non deve nascondere comandi
+Il client deve decidere se possa ripetere l'intento senza produrre un secondo effetto business.
 
-Questo endpoint è problematico:
+L'idempotenza riduce questa ambiguità.
+
+## Un GET non deve nascondere un comando
+
+Consideriamo:
 
 ```http
 GET /orders/42?do=refund
 ```
 
-`GET` viene trattato dall'ecosistema HTTP come metodo safe.
+Il server potrebbe implementarlo correttamente nel proprio codice. Il problema è il contratto con l'ecosistema HTTP.
 
-Crawler, prefetch, cache e tooling possono invocarlo senza aspettarsi side effect.
+Crawler, prefetch, cache e altri intermediari trattano `GET` come un metodo safe. Non si aspettano che leggere un URI produca un rimborso.
 
-RFC 9110 richiama esplicitamente il rischio di inserire azioni unsafe dentro URI raggiungibili con metodi safe.
+RFC 9110 richiama esplicitamente il rischio di inserire azioni unsafe in target raggiungibili tramite metodi safe.
 
-Il contratto deve rispettare la semantica del protocollo oppure dichiarare consapevolmente perché la deviazione è necessaria.
+Usare la semantica del protocollo significa quindi proteggere il sistema anche da consumer che non conoscono la nostra convenzione privata.
 
-### PUT e POST non sono intercambiabili
+## PUT e POST sono scelte sul significato, non preferenze stilistiche
 
-Una semplificazione utile:
+Una semplificazione utile è pensare a `PUT` come all'intento di creare o sostituire lo stato di una risorsa a un URI noto al client, mentre `POST` consegna una rappresentazione a una risorsa perché venga processata secondo la semantica del server.
 
-- `PUT` tende a rappresentare creazione/sostituzione di una risorsa a un URI noto al client;
-- `POST` tende a consegnare una rappresentazione a una risorsa perché questa la processi secondo la propria semantica.
+Non è una formula che risolve ogni API.
 
-Non dobbiamo trasformare questa distinzione in religione.
+Ci aiuta però a fare emergere la proprietà che ci interessa.
 
-Dobbiamo però capire quale proprietà ci serve.
+Se il client conosce l'identifier della risorsa e ripetere la stessa richiesta deve portare allo stesso stato desiderato, `PUT` può essere naturale.
 
-Se il client può scegliere un identifier stabile e ripetere la stessa richiesta senza creare duplicati, `PUT` può essere un fit naturale.
+Se invece stiamo esprimendo un comando che crea un nuovo effetto business, `POST` può avere più fit, ma dobbiamo progettare esplicitamente che cosa accada quando il client non sa se la prima richiesta sia riuscita.
 
-Se l'operazione rappresenta un comando non naturalmente idempotente, possiamo aver bisogno di un meccanismo applicativo.
+La scelta del verbo arriva dopo l'intento.
 
-### Idempotency key
+## L'idempotenza business non dipende soltanto dal metodo
 
 Operazioni come:
 
@@ -70,48 +69,56 @@ CreateRefund
 SubmitOrder
 ```
 
-possono produrre danni seri se un retry crea una seconda operazione business.
+possono essere non idempotenti dal punto di vista del business anche se viaggiano su un protocollo che permette retry.
 
-Una strategia comune è associare alla richiesta una chiave idempotente e conservare abbastanza stato da riconoscere richieste duplicate.
+Se una response si perde, non vogliamo che il secondo tentativo diventi un secondo addebito o un secondo rimborso.
 
-Il punto architetturale non è l'header specifico.
+Una strategia comune consiste nell'associare alla richiesta una **idempotency key** e conservare abbastanza stato da riconoscere il medesimo intento.
+
+La parte importante non è il nome dell'header.
 
 È l'invariante:
 
-> **lo stesso intento business non deve diventare due effetti business soltanto perché la rete è incerta.**
+> **lo stesso intento business non deve trasformarsi in due effetti business soltanto perché il client non ha ricevuto la prima risposta.**
 
-Azure Architecture Center raccomanda di identificare se un'operazione sia naturalmente idempotente e, quando non lo è, gestire esplicitamente i duplicati.
+Azure Architecture Center raccomanda di identificare se un'operazione sia naturalmente idempotente e, quando non lo è, di gestire esplicitamente la possibilità di richieste duplicate: [Microsoft Learn — Web API implementation](https://learn.microsoft.com/azure/architecture/best-practices/api-implementation).
 
-Fonte:
+Questo significa anche definire che cosa rappresenti “lo stesso intento”. Una key riutilizzata con payload incompatibile non dovrebbe essere trattata ciecamente come un retry valido. La retention della key deve coprire una finestra di retry coerente con il business, non un numero scelto a caso dalla libreria.
 
-- [Microsoft Learn — Web API implementation](https://learn.microsoft.com/azure/architecture/best-practices/api-implementation)
+## Idempotenza non significa risposta identica
 
-### Idempotenza non significa stessa risposta
+Due richieste:
 
-Due `DELETE` possono produrre:
+```text
+DELETE /orders/42
+```
+
+potrebbero produrre:
 
 ```text
 prima richiesta  → 204
 seconda richiesta → 404
 ```
 
-ed essere comunque idempotenti, perché lo stato finale desiderato è lo stesso: la risorsa non esiste.
+ed essere comunque idempotenti nel senso HTTP, perché lo stato finale desiderato rimane lo stesso: la risorsa non esiste.
 
-Confondere idempotenza con “stesso response body” porta a contratti sbagliati.
+Confondere idempotenza con “stesso body e stesso status code” sposta l'attenzione dalla proprietà che conta — l'effetto — alla forma della response.
 
-### Retry è una decisione end-to-end
+## Retry è una policy end-to-end
 
-Sapere che un metodo è idempotente non autorizza retry illimitati.
+L'idempotenza rende alcuni retry più sicuri.
 
-Un retry va letto insieme al timeout e al budget totale di latency, al backoff e al jitter, al carico prodotto sulla dipendenza e ai suoi rate limit. Conta anche la failure correlation: durante un outage, molti retry indipendenti possono trasformarsi in un amplificatore comune.
+Non rende i retry gratuiti.
 
-Un retry localmente ragionevole può diventare parte di una retry storm.
+Dobbiamo leggerli insieme al timeout, al budget di latency del journey, al backoff e al jitter, ai rate limit e alla capacità del sistema a valle. Dobbiamo inoltre sapere chi possieda il retry.
 
-Questo tema tornerà nel capitolo sui sistemi distribuiti.
+Se gateway, client applicativo e SDK riprovano tutti indipendentemente, un singolo intento può moltiplicarsi proprio quando il servizio downstream è più fragile.
 
-### Il contratto non deve esporre il database
+Questo è il legame fra API contract e resilience pattern del Capitolo 7: il contratto deve dire abbastanza da permettere al consumer di capire **se**, **quando** e **come** un'operazione possa essere ritentata.
 
-Consideriamo:
+## La semantica del dominio viene prima del payload
+
+Un endpoint come:
 
 ```http
 PATCH /orders/42
@@ -121,28 +128,16 @@ PATCH /orders/42
 }
 ```
 
-Che cosa significa `7`?
+non diventa un buon contratto perché usa un metodo HTTP plausibile.
 
-Il consumer sta modificando un ordine o un dettaglio dello storage?
+Che cosa significa `7`? Chi possiede quella transizione? Il consumer sta esprimendo un intento di dominio o sta modificando un dettaglio dello storage?
 
-Chi garantisce che quella transizione sia valida?
+Microsoft raccomanda di evitare API che riflettono direttamente lo schema interno e di modellare invece il dominio nel contratto: [Microsoft Learn — API design](https://learn.microsoft.com/azure/architecture/microservices/design/api-design).
 
-un'API orientata al dominio potrebbe invece esporre un'operazione con significato esplicito oppure una rappresentazione di stato comprensibile.
+Questo riporta tutto alla domanda iniziale:
 
-Microsoft raccomanda di evitare il mirroring dello schema interno e di modellare il dominio nel contratto.
+> **Quale intento del consumer stiamo modellando, e quale effetto promettiamo se la richiesta viene ripetuta?**
 
-Fonte:
+Se non sappiamo rispondere, discutere `POST`, `PUT` o `PATCH` è prematuro.
 
-- [Microsoft Learn — API design](https://learn.microsoft.com/azure/architecture/microservices/design/api-design)
-
-### La domanda prima del verbo
-
-Prima di discutere `POST` vs `PUT`, chiediamo:
-
-> “Quale intento del consumer stiamo modellando?”
-
-Se non sappiamo rispondere, la scelta del metodo HTTP è prematura.
-
-L'API non diventa semantica perché usiamo il verbo corretto.
-
-Il verbo corretto diventa utile quando la semantica è già chiara.
+> **HTTP ci offre semantica condivisa. Il nostro compito è usarla per rendere più chiaro il contratto, non per nascondere una semantica di dominio ancora indefinita.**
