@@ -1,12 +1,14 @@
 ## Order Operations — il primo contratto API
 
-Nei capitoli precedenti abbiamo volutamente evitato di anticipare troppo la soluzione.
+Nei capitoli precedenti abbiamo volutamente evitato di esporre una public surface prima di capire il problema.
 
-Ora abbiamo abbastanza contesto per prendere una decisione concreta.
+Ora abbiamo abbastanza contesto per fare una scelta concreta.
 
-Order Operations ha bisogno di un'interfaccia tra la UI operativa e le capability backend.
+Order Operations ha bisogno di un contratto fra la UI operativa e le capability backend. Ma il fatto che il framework possa generare controller in pochi minuti non significa che ogni azione immaginabile sia già pronta per diventare una promessa.
 
-### Partiamo dal journey
+Il contratto deve seguire l'analisi funzionale.
+
+## Partiamo dal journey, non dagli endpoint
 
 Il journey corrente è:
 
@@ -19,58 +21,56 @@ operatore
 → decide Action / Wait / Escalation
 ```
 
-Le capability già definite sono soprattutto di lettura.
+A questo punto della narrazione, ciò che abbiamo definito abbastanza bene riguarda soprattutto la **lettura**.
 
-Non abbiamo ancora definito abbastanza bene la semantica di refund, retry payment e retry shipment, force transition, assignment persistente ed escalation persistente. Esporre endpoint prima di aver deciso queste regole trasformerebbe l'API in una fonte accidentale di business semantics.
+Sappiamo come distinguere `OrderStatus`, `PaymentStatus` e `ShipmentStatus`. Sappiamo che Order Operations può produrre una classificazione operativa derivata senza diventare source of truth dei domini sottostanti. Sappiamo anche che authorization e tenant isolation sono quality floor.
 
-Questo dettaglio è importante.
+Non abbiamo ancora definito abbastanza bene refund, payment retry, shipment retry, force transition o altre remediation con side effect.
 
-Un framework potrebbe permetterci di generare immediatamente:
+Un generatore potrebbe comunque produrre:
 
 ```http
 POST /orders/{id}/refund
 POST /orders/{id}/retry-payment
 ```
 
-Ma sarebbe **execution davanti all'analisi funzionale**.
+Il codice potrebbe compilare.
 
-Non sappiamo ancora abbastanza per promettere quei contratti.
+Il contratto sarebbe prematuro.
 
-### Entra il contrasto aziendale
+Non sappiamo ancora quali stati permettano l'azione, quale team ne possieda la semantica, come funzioni l'idempotenza economica, quale audit serva e quale comportamento sia corretto quando il provider risponde in modo incerto.
 
-Product e Operations vorrebbero ridurre il numero di passaggi manuali.
+Pubblicare l'endpoint adesso significherebbe **execution davanti all'analisi funzionale**.
 
-Payments & Risk ricorda che refund e retry possono avere conseguenze economiche e che la semantica non può essere decisa soltanto dal team della console.
+## Una richiesta apparentemente locale attraversa ESI
 
-Security vuole sapere chi può eseguire le azioni.
+Product e Operations vogliono ridurre il lavoro manuale.
 
-Legal/Compliance potrebbe richiedere audit o retention specifici.
+Payments & Risk ricorda che refund e retry possono produrre conseguenze economiche e non possono essere definiti unilateralmente dal team della console. Security deve stabilire chi abbia autorità per eseguire una action. Legal e Compliance possono imporre audit o retention. Platform Engineering vuole evitare che ogni prodotto inventi error model, retry e correlation convention incompatibili.
 
-Platform Engineering vuole evitare che ogni team inventi un modello di errori e retry incompatibile con il resto dell'azienda.
+“Aggiungiamo due endpoint” si rivela quindi per ciò che è: una decisione cross-domain che deve aspettare semantica condivisa.
 
-La richiesta “aggiungiamo due endpoint” è diventata una decisione che attraversa più parti di ESI.
+La capacità di dire **non ancora** è parte del contract design.
 
-### Interaction style
+## Interaction style: semplice perché il journey è semplice
 
-Per la prima versione scegliamo HTTP request/response con JSON.
+Per la prima baseline scegliamo HTTP request/response con JSON.
 
 Non perché REST sia il default universale.
 
-Il journey attuale è interattivo, read-oriented e browser-based; non richiede streaming continuo né temporal decoupling per le letture. Per questo una normale API request/response ha oggi un fit migliore di tecnologie più complesse.
+Il consumer è una web UI, il journey è interattivo e read-oriented e non richiede push continuo né temporal decoupling per ottenere la vista. GraphQL, gRPC, WebSocket o messaging non comprano oggi una proprietà abbastanza importante da giustificarne il costo.
 
-Non introduciamo quindi GraphQL, gRPC, WebSocket o messaging soltanto per dimostrare che li conosciamo.
+Fit before fashion continua quindi a valere anche al boundary API.
 
-Fit before fashion continua a valere anche per i protocolli.
+## Capability 1 — individuare gli ordini problematici
 
-### Lista ordini problematici
-
-Prima operazione:
+La prima operation è:
 
 ```http
 GET /api/problematic-orders
 ```
 
-Possibile risposta:
+Una response possibile è:
 
 ```json
 {
@@ -88,85 +88,51 @@ Possibile risposta:
 }
 ```
 
-Notiamo alcune scelte.
+Il contratto non espone `payment_state_code`, `shipment_tbl_status` o flag di persistenza. Espone concetti che il consumer deve comprendere.
 
-Non esponiamo:
+È coerente con la raccomandazione di Azure Architecture Center di modellare l'API sul dominio e non sullo schema interno: [Microsoft Learn — API design](https://learn.microsoft.com/azure/architecture/microservices/design/api-design).
 
-```text
-payment_state_code
-shipment_tbl_status
-is_problematic_bit
-```
-
-Esporremmo dettagli dell'implementazione.
-
-Microsoft Azure Architecture Center raccomanda che un'API modelli il dominio e non il database interno.
-
-Fonte:
-
-- [Microsoft Learn — API design](https://learn.microsoft.com/azure/architecture/microservices/design/api-design)
-
-### Tre stati, non uno
-
-La risposta mantiene separati:
-
-```text
-orderStatus
-paymentStatus
-shipmentStatus
-```
-
-Questo deriva direttamente dall'analisi funzionale.
-
-Se avessimo creato un singolo:
+La scelta di mantenere tre stati distinti è altrettanto intenzionale. Un singolo:
 
 ```json
 {"status":"Problem"}
 ```
 
-la UI sarebbe più semplice nel brevissimo periodo, ma avremmo perso informazione di dominio necessaria all'investigazione.
+sarebbe più semplice da renderizzare, ma distruggerebbe informazione necessaria all'investigazione. Il frontend non deve ricostruire il dominio, ma il backend non deve nemmeno appiattirlo fino a renderlo inutile.
 
-L'API Contract non nasce dal controller.
+## Capability 2 — leggere una vista operativa, non “l'Order universale”
 
-Nasce dalla Functional Scope Map e dalla responsibility map.
-
-### Detail view
-
-Seconda operazione:
+La seconda operation è:
 
 ```http
 GET /api/orders/{orderId}/operational-view
 ```
 
-La parola `operational-view` è deliberata.
+`operational-view` non è un dettaglio cosmetico.
 
-Non stiamo dichiarando che questa rappresentazione sia l'`Order` universale di tutta ESI.
+Dichiara che la rappresentazione appartiene a un consumer e a un journey precisi. Non stiamo creando un `OrderDto` globale destinato a diventare il modello comune di tutta ESI.
 
-È una vista costruita per un consumer preciso e un journey preciso.
+Questa scelta protegge gli altri contesti dal coupling a una rappresentazione costruita per Operations e permette alla vista di evolvere senza fingere che ogni campo descriva il concetto universale di ordine.
 
-Questo evita di creare un mega-schema `OrderDto` destinato a diventare contratto implicito di tutto il sistema.
+## La collection ha già un contratto di navigazione
 
-### Pagination
-
-La lista userà una forma cursor-based.
+Per la lista scegliamo inizialmente cursor pagination:
 
 ```http
 GET /api/problematic-orders?cursor=...&limit=50
 ```
 
-Non perché il cursor sia sempre superiore all'offset.
+Il cursor rimane opaco al consumer.
 
-Perché una collection di ordini problematici può cambiare mentre l'operatore la attraversa e vogliamo preservare libertà di implementazione sul dataset.
+La scelta nasce dal fatto che la collection può cambiare mentre l'operatore la attraversa e vogliamo mantenere libertà sulla strategia di query e sull'ordering interno.
 
-Il cursor resta opaco al consumer.
+Non è una dichiarazione che cursor sia sempre superiore all'offset. Se evidence futura mostrasse che la complessità non compra stabilità utile, potremmo rivalutarlo.
 
-Se le misurazioni future mostrassero che questa scelta complica inutilmente il sistema, potremmo rivalutarla.
+## Gli errori devono distinguere azioni diverse
 
-### Error contract
+Per errori HTTP che richiedono dettaglio applicativo useremo Problem Details, coerentemente con RFC 9457: [RFC 9457 — Problem Details for HTTP APIs](https://www.rfc-editor.org/rfc/rfc9457.html).
 
-Per errori HTTP che richiedono dettaglio applicativo useremo Problem Details.
-
-Esempio:
+Per esempio:
 
 ```json
 {
@@ -177,115 +143,58 @@ Esempio:
 }
 ```
 
-L'URN è un identificatore documentale dell'esempio, non un endpoint reale.
+La parte importante non è il formato.
 
-Fonte primaria:
+È impedire che condizioni diverse collassino in un unico “errore”: non autenticato, non autorizzato, ordine non trovato, input invalido e dipendenza indisponibile richiedono comportamenti differenti da parte del consumer.
 
-- [RFC 9457 — Problem Details for HTTP APIs](https://www.rfc-editor.org/rfc/rfc9457.html)
+## Il failure behavior rimane aperto dove la semantica è ancora aperta
 
-La parte interessante non è il formato JSON.
+Supponiamo che Payments sia indisponibile mentre l'operatore apre la vista.
 
-È distinguere semanticamente:
+Possiamo fallire tutta la response, restituire dati parziali marcati come tali oppure mostrare l'ultimo dato noto con freshness esplicita.
 
-```text
-non autenticato
-≠ non autorizzato
-≠ ordine inesistente
-≠ dipendenza indisponibile
-≠ input invalido
-```
+Non scegliamo qui per comodità implementativa.
 
-### Un 200 con dati sbagliati è peggio di un 503
+La decisione dipende dal rischio di indurre l'operatore ad agire su informazioni incomplete. Finché Product, Operations e i domini coinvolti non definiscono quale comportamento degradato sia accettabile, il contratto mantiene la decisione esplicitamente aperta.
 
-Supponiamo che Payments sia indisponibile.
+Questo è un segno di completezza del reasoning, non una lacuna da nascondere.
 
-Abbiamo almeno tre opzioni:
+Un contratto maturo sa dire anche:
 
-1. fallire tutta la vista;
-2. mostrare dati parziali marcati come tali;
-3. mostrare l'ultimo dato noto.
+> **questa promessa non è ancora stata definita.**
 
-Non possiamo scegliere soltanto nel catch block.
+## Il compromesso del capitolo
 
-È una decisione funzionale e di quality attribute.
+L'esigenza è dare alla UI un boundary stabile e ridurre progressivamente il lavoro manuale.
 
-Per alcune investigazioni, dati parziali potrebbero essere utili.
+La tensione è fra velocità di esposizione di nuove action e costo di promettere una semantica non ancora governata su authorization, audit, idempotenza, failure e ownership economica.
 
-Per altre potrebbero indurre un operatore ad agire in modo errato.
+La decisione è quindi pubblicare nella baseline del Capitolo 9 le capability read-oriented e rinviare le remediation con side effect finché l'analisi funzionale cross-domain non le renda contract-ready.
 
-La prima versione del contratto mantiene questa decisione aperta finché non definiamo meglio il failure behavior.
+Accettiamo di automatizzare meno di quanto il framework renderebbe tecnicamente possibile.
 
-Questo è un esempio di documentazione utile: **non nasconde una decisione mancante dietro una risposta inventata**.
+Non accettiamo invece di esporre operazioni economiche o customer-facing senza precondizioni, authorization, idempotency reasoning, ownership, audit quando necessario e failure semantics definite.
 
-### Il compromesso del capitolo
+Il guardrail è l'API Contract versionato, insieme a review cross-domain, contract test e stop condition per gli agenti che implementano endpoint.
 
-**Esigenza**
+## Baseline del capitolo e capstone vivo
 
-Dare alla UI un contratto stabile e iniziare a ridurre il lavoro manuale.
+Il capstone è cumulativo: i capitoli successivi fanno evolvere lo stesso prodotto.
 
-**Tensione**
-
-Velocità di esposizione di nuove action API contro semantica, authorization, audit, idempotenza e ownership economica.
-
-**Decisione**
-
-Pubblicare inizialmente soltanto capability read-oriented e rinviare i command con side effect finché i domini coinvolti non hanno definito il comportamento.
-
-**Costo accettato**
-
-Il prodotto automatizza meno di quanto sarebbe tecnicamente possibile.
-
-**Quality floor**
-
-Nessuna operazione economica o customer-facing viene esposta senza:
-
-- precondizioni;
-- authorization;
-- idempotency reasoning;
-- audit quando richiesto;
-- ownership;
-- failure semantics.
-
-**Guardrail**
-
-API Contract versionato, review cross-domain, contract test e stop condition per gli agenti che implementano endpoint.
-
-Questo è un compromesso di time-to-market.
-
-Non è una rinuncia alla qualità.
-
-### Perché non aggiungiamo subito i comandi
-
-Il lettore potrebbe aspettarsi che, una volta aperto un ordine, l'operatore possa fare qualcosa.
-
-Probabilmente accadrà.
-
-Ma non sappiamo ancora:
-
-- quali azioni;
-- con quali permission;
-- su quali stati;
-- con quale audit;
-- con quale idempotenza;
-- con quale relazione verso sistemi esterni;
-- quali decisioni appartengono a Commerce & Operations e quali a Payments & Risk.
-
-Quindi il contratto corrente dichiara esplicitamente:
-
-> **non ancora.**
-
-La capacità di non pubblicare un endpoint prematuro è parte dell'API design.
-
-### Il capstone è stato aggiornato
-
-Lo snapshot vivo del contratto è in:
+Il file vivo è:
 
 ```text
 capstone/example-software-industries/products/order-operations/docs/api-contract.md
 ```
 
-Da questo momento, quando il libro farà evolvere Order Operations, dovremo modificare anche quel contratto quando cambiano semantica, consumer o compatibility.
+Nel repository corrente quel documento può contenere capability introdotte **dopo** questo capitolo — per esempio la Payment Escalation che verrà modellata nel Capitolo 11.
 
-Il manoscritto spiega la decisione.
+Questa sezione descrive invece la **baseline contract-ready raggiunta al Capitolo 9**: lista e vista operativa, con le remediation economiche ancora fuori scope.
 
-Il capstone conserva il risultato corrente.
+La distinzione è importante. Non vogliamo congelare il capstone a ogni capitolo; vogliamo vedere la stessa promessa evolvere quando nuove analisi, pattern e failure semantics rendono sicuro aggiungere capability.
+
+Il manoscritto conserva il reasoning nel momento in cui la decisione viene presa.
+
+Il file del capstone conserva lo stato cumulativo più recente.
+
+> **Un endpoint è facile da aggiungere. La disciplina è pubblicarlo soltanto quando sappiamo quale promessa siamo pronti a mantenere.**
