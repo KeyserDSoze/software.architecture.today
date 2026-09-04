@@ -1,43 +1,29 @@
 # 18.7 — ESI: classificare prima di migrare
 
-La Legacy Understanding Map del Capitolo 17 conteneva sei behavior osservati.
+La Legacy Understanding Map del Capitolo 17 ci ha lasciato sei behavior `Observed`.
 
-Fino a questo momento avevano tutti una caratteristica comune:
+Ora dobbiamo compiere un passaggio che nessun refactoring automatico può decidere da solo:
 
-```text
-Observed
-```
+> **quali di quei behavior meritano di diventare semantica target?**
 
-ma non necessariamente:
+ESI svolge quindi un workshop simulato con Operations, Product, Payments & Risk, Sales e Order Operations.
 
-```text
-Confirmed requirement
-```
+Lo scopo non è disegnare una classe TypeScript.
 
-Ora ESI svolge un workshop simulato con:
+È separare ciò che il legacy **fa** da ciò che il nuovo prodotto **deve fare**.
 
-- Operations;
-- Product;
-- Payments & Risk;
-- Sales;
-- Order Operations team.
+> **La classificazione seguente appartiene allo scenario fittizio ESI.**
 
-Lo scopo non è disegnare la nuova classe TypeScript.
+## LB-01 — Closed case
 
-È decidere **quale significato merita di sopravvivere**.
-
-> **La seguente classificazione è parte dello scenario fittizio ESI, non un caso reale.**
-
-## LB-01 — Closed case → NONE
-
-Behavior osservato:
+Legacy osservato:
 
 ```text
 status_code = CLOSED
 → NONE
 ```
 
-Operations conferma che un case già chiuso non deve essere rimesso nella coda di priorità operativa.
+Operations conferma che un case chiuso non deve rientrare nella coda operativa.
 
 Classificazione:
 
@@ -45,46 +31,44 @@ Classificazione:
 Required
 ```
 
-Target semantics:
+Semantica target:
 
 ```text
 Closed
 → NotActionable
 ```
 
-Notiamo già una cosa.
+Preserviamo il significato, non la stringa legacy `NONE`.
 
-Confermiamo **il significato**, non necessariamente il codice stringa `NONE`.
+## LB-02 — Manual hold
 
-## LB-02 — Manual hold → MANUAL_REVIEW
-
-Behavior osservato:
+Legacy osservato:
 
 ```text
 manual_hold = 1
 → MANUAL_REVIEW
 ```
 
-Operations spiega che il flag viene usato quando un caso non deve proseguire nel normale routing automatico e richiede attenzione umana.
+Operations conferma che il flag rappresenta una sospensione del routing automatico che richiede attenzione umana.
 
 Classificazione:
 
 ```text
 Required behavior
-Compatibility naming
+Compatibility naming only
 ```
 
-Il target può usare un termine più chiaro:
+Nel target diventa:
 
 ```text
 ManualReview
 ```
 
-ma durante la coexistence dobbiamo mantenere mapping verso `MANUAL_REVIEW` dove il legacy contract lo richiede.
+Durante la coexistence l'adapter continuerà a conoscere `MANUAL_REVIEW` dove il legacy contract lo richiede.
 
-## LB-03 — Payment + failed attempts >= 3 → URGENT
+## LB-03 — Repeated payment failure
 
-Behavior osservato:
+Legacy osservato:
 
 ```text
 problem_code = PAY
@@ -92,7 +76,7 @@ failed_attempts >= 3
 → URGENT
 ```
 
-Payments & Risk conferma, nello scenario, che ripetuti failure di pagamento rappresentano un segnale operativo sufficientemente forte da richiedere priorità alta.
+Payments & Risk conferma, nello scenario ESI, che ripetuti failure di pagamento rappresentano una condizione operativa ad alta priorità.
 
 Classificazione:
 
@@ -100,72 +84,88 @@ Classificazione:
 Required
 ```
 
-Ma emerge una domanda:
+Semantica target:
 
-> `3` deve rimanere una costante hard-coded?
+```text
+Payment
++ failedAttempts >= 3
+→ Urgent
+```
 
-La risposta è no.
+La soglia `3` resta una policy simulata corrente, ma deve diventare leggibile e testabile invece di rimanere un magic number disperso.
 
-La soglia è confermata come policy corrente, ma deve diventare una decisione leggibile e testabile, non un magic number disperso.
+## LB-04 — Enterprise timer
 
-## LB-04 — Enterprise + age >= 30 minuti → URGENT
-
-Questo è il behavior più interessante.
-
-Nel legacy:
+Legacy osservato:
 
 ```text
 customer_tier = ENTERPRISE
-age >= 30m
+AND age >= 30m
 → URGENT
 ```
 
-Durante il workshop simulato, Sales ricostruisce l'origine della regola: era legata a una vecchia gestione operativa dei clienti enterprise e non rappresenta più un impegno contrattuale attuale.
+Questo era l'unknown più importante del Capitolo 17.
 
-Operations conferma inoltre che la priority corrente viene già influenzata da segnali più specifici.
+Nel workshop simulato Sales ricostruisce l'origine della regola e Product/Operations decidono che non rappresenta più un impegno o una policy che il target debba mantenere.
 
 Classificazione:
 
 ```text
-Removed by explicit product decision
+Removed by explicit ESI product decision
 ```
 
-Questa è una **differenza intenzionale**.
+Questa non è una regressione da correggere.
 
-La nuova policy dovrà quindi produrre:
+È una **differenza intenzionale**.
+
+Il candidate deve quindi poter produrre:
 
 ```text
-legacy = URGENT
-candidate = STANDARD
+legacy = Urgent
+candidate = Standard
 ```
 
-per questi casi, e lo shadow comparison dovrà registrarla come:
+quando nessun'altra regola confermata si applica.
+
+La differenza viene registrata **prima** dello shadow rollout come:
 
 ```text
 ExpectedDifference
 ID = ED-001
 ```
 
-Non dobbiamo “aggiustare” il candidate per raggiungere zero mismatch.
+Zero mismatch, in questo caso, sarebbe il risultato sbagliato: significherebbe che abbiamo accidentalmente conservato proprio il comportamento che ESI ha deciso di rimuovere.
 
-Zero mismatch sarebbe sbagliato.
+## LB-05 — Enterprise prima del threshold
 
-## LB-05 — Enterprise prima dei 30 minuti → STANDARD
+Legacy osservato:
 
-Questo behavior è una conseguenza della vecchia regola LB-04.
+```text
+Enterprise before 30m
+→ STANDARD
+```
 
-Una volta rimossa la specializzazione enterprise, il comportamento target diventa semplicemente quello della default policy salvo altre regole applicabili.
+Una volta eliminata la specializzazione LB-04, questo non è un requirement autonomo.
 
 Classificazione:
 
 ```text
 Compatibility observation
-not an independent requirement
+not an independent target rule
 ```
 
-## LB-06 — Ordinary open case → STANDARD
+Il target ricade semplicemente nella default policy, salvo altre condizioni più forti.
 
-Product e Operations confermano che un case aperto senza condizioni speciali resta nella priorità standard.
+## LB-06 — Ordinary open case
+
+Legacy osservato:
+
+```text
+ordinary open case
+→ STANDARD
+```
+
+Product e Operations confermano che un case aperto senza condizioni speciali rimane nella priorità standard.
 
 Classificazione:
 
@@ -173,11 +173,18 @@ Classificazione:
 Required default
 ```
 
-## Precedence confermata
+Semantica target:
 
-Il legacy conteneva una precedence implicita nell'ordine degli `if`.
+```text
+otherwise
+→ Standard
+```
 
-Il workshop la rende esplicita per i behavior che restano:
+## La precedence smette di essere un accidente del codice
+
+Nel legacy la precedence era incorporata nell'ordine degli `if`.
+
+Dopo il workshop ESI la rende esplicita:
 
 ```text
 Closed
@@ -186,15 +193,11 @@ Closed
 > Standard
 ```
 
-La vecchia regola enterprise esce dalla precedence.
+La vecchia Enterprise timer rule esce dal modello.
 
-Questo è un miglioramento importante.
+Questa è una trasformazione importante: ciò che prima era una proprietà accidentale dell'implementazione diventa una decisione leggibile del dominio.
 
-La precedence non è più una proprietà accidentale dell'ordine del codice.
-
-Diventa una decisione del modello.
-
-## Nuovo vocabolario target
+## Il target possiede un proprio vocabolario
 
 Operations Desk Classic usa:
 
@@ -205,7 +208,7 @@ URGENT
 STANDARD
 ```
 
-Order Operations può adottare:
+Order Operations usa:
 
 ```text
 NotActionable
@@ -214,118 +217,123 @@ Urgent
 Standard
 ```
 
-Il mapping legacy rimane responsabilità dell'adapter.
+Il `LegacyPriorityAdapter` possiede il mapping.
 
-Questo impedisce al nuovo dominio di ereditare automaticamente naming storico.
+Questo impedisce alla compatibility surface di diventare il linguaggio permanente del nuovo dominio.
 
-## Expected Difference ED-001
+## ED-001 viene autorizzata prima della comparison
 
-Registriamo prima del rollout:
-
-```text
-ID: ED-001
-Legacy:
-  Enterprise + age >= 30m → URGENT
-Target:
-  no enterprise-only priority escalation
-Expected candidate result:
-  STANDARD, unless another confirmed rule applies
-Owner:
-  Product + Operations
-Reason:
-  legacy enterprise timer explicitly retired in ESI scenario
-Removal condition:
-  legacy priority path retired
-```
-
-La comparison telemetry può quindi distinguere:
+Il registry contiene:
 
 ```text
-match
-expected mismatch ED-001
-unexpected mismatch
+ID
+ED-001
+
+Legacy
+Enterprise + age >= 30m → Urgent
+
+Target
+customer tier alone does not raise priority
+→ Standard unless another confirmed rule applies
+
+Owner
+Product + Operations
+
+Reason
+historical enterprise timer retired in ESI scenario
+
+Cleanup
+remove when legacy priority path and comparison are retired
 ```
 
-## Cosa non abbiamo ancora deciso
+La comparison runtime potrà quindi distinguere:
 
-Nonostante il workshop, alcuni temi restano fuori dal slice.
+```text
+Match
+ExpectedDifference ED-001
+UnexpectedDifference
+```
+
+Se un mismatch non corrisponde esattamente a ED-001, resta inatteso finché qualcuno non prende una nuova decisione.
+
+## Ciò che resta deliberatamente fuori scope
+
+Avere finalmente semantica target confermata non significa dover risolvere l'intero legacy nello stesso slice.
+
+Restano fuori:
 
 ### Priority persistence
 
-Non decidiamo ancora se Order Operations deve persistere il risultato della policy.
+Non decidiamo ancora se Order Operations debba persistere la priority o derivarla on demand.
 
 ### Nightly export
 
-Non abbiamo ancora sostituito il consumer legacy ipotizzato.
+Il consumer legacy ipotizzato non viene ancora sostituito.
 
-### Manual override workflow
+### Manual override command
 
-Abbiamo confermato il significato del manual hold, ma non abbiamo ancora progettato un nuovo command/API per modificarlo.
+Abbiamo confermato il significato di `manual hold`, non progettato la capability target per modificarlo.
 
 ### Shared database retirement
 
-Fuori scope.
+Resta fuori dal Capitolo 18.
 
-Questo è importante.
+Questa disciplina evita che un workshop di semantica diventi il pretesto per una migration dati e contract non ancora necessaria.
 
-Una buona discovery non obbliga a risolvere tutto nel primo refactoring.
+## Il piano di migrazione
 
-## Il piano ESI
-
-La migration slice diventa:
+Con le decisioni confermate, la sequenza diventa:
 
 ```text
-P0  characterization complete
-P1  PriorityPolicy seam
-P2  LegacyPriorityAdapter
-P3  ConfirmedPriorityPolicy inactive
-P4  ShadowPriorityPolicy
-P5  comparison evidence
-P6  candidate routing in controlled cohort
-P7  candidate default
-P8  legacy caller cleanup
-P9  remove migration structure
+P0 — characterization complete
+P1 — PriorityPolicy seam
+P2 — LegacyPriorityAdapter
+P3 — ConfirmedPriorityPolicy inactive
+P4 — shadow comparison
+P5 — controlled candidate routing
+P6 — candidate default
+P7 — legacy caller cleanup
+P8 — legacy path retirement
+P9 — migration architecture cleanup
 ```
 
-Nel Capitolo 18 implementiamo fino a:
+Nel Capitolo 18 arriviamo localmente fino a **P4**.
 
-```text
-P4
-```
+Non simuleremo P5–P9 come se possedessimo runtime production, consumer inventory e rollout evidence che il capstone non ha eseguito.
 
-più test/evidence locale.
+## Gate futuro da shadow ad authority
 
-Non simuleremo un rollout production che non possiamo osservare davvero.
-
-## Quality floor del cutover futuro
-
-Per passare da shadow a candidate authoritative richiediamo almeno:
+Prima che il candidate diventi authoritative richiederemo almeno:
 
 ```text
 all Required behaviors verified
-ED-001 only known semantic mismatch
+ED-001 is the only known intentional mismatch
 no unexplained mismatch class
-no new side effect in shadow path
-rollback to legacy routing available
+candidate shadow creates no external side effect
+legacy behavior fallback available
 consumer inventory reviewed
 ```
 
-## Una lezione importante
+Il gate non promette perfezione.
 
-Abbiamo appena fatto qualcosa che un refactoring puramente tecnico non avrebbe potuto fare.
+Impedisce però che una differenza sconosciuta venga trasformata in produzione soltanto perché il candidate è tecnicamente pronto.
 
-Abbiamo deciso che:
+## La lezione della classificazione
 
-```text
-one old behavior must be preserved
-```
-
-e contemporaneamente che:
+La characterization suite ci ha detto:
 
 ```text
-another old behavior must disappear
+what the old system does
 ```
 
-Nessun test legacy, da solo, avrebbe potuto dirci quale dei due.
+Il workshop ESI ci dice:
 
-> **Il characterization test protegge la conoscenza. Il domain decision decide che cosa farne.**
+```text
+what the target system is allowed to mean
+```
+
+Sono due forme di evidence differenti.
+
+Una modernization sicura ha bisogno di entrambe.
+
+> **Il characterization test protegge la conoscenza del passato. La decisione di dominio stabilisce quale parte di quel passato merita di diventare futuro.**
