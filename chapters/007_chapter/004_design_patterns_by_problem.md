@@ -1,50 +1,57 @@
-## Design pattern: partire dalla variazione, non dal nome
+## Design pattern: partire dalla pressione, non dal nome
 
-I pattern classici di design restano utili perché molti problemi locali non sono cambiati.
+I design pattern classici restano utili perché molte pressioni locali non sono cambiate. Cambiano linguaggi, framework e strumenti, ma continuiamo ad avere comportamenti che variano, dipendenze esterne da tradurre, costruzioni non banali, responsabilità trasversali da comporre e cambiamenti che più parti del sistema devono osservare.
 
-Cambiano linguaggi, framework e strumenti, ma continuiamo ad avere bisogno di variare comportamento e comporre responsabilità, isolare dipendenze e notificare cambiamenti, tradurre contratti e controllare l'accesso alle risorse. È questa continuità dei problemi, non la longevità dei nomi, a rendere alcuni pattern ancora utili.
+Il valore del pattern sta nella continuità di questi problemi, non nella longevità del nome.
 
-Il modo più utile di studiarli è partire da queste esigenze.
+Studiare i pattern partendo dalla forma porta facilmente a chiedersi dove inserire una `Strategy`, una `Factory` o un `Observer`. Partire dalla pressione produce una domanda migliore:
 
-### Quando varia il comportamento
+> **Che cosa sta diventando difficile da cambiare, capire o proteggere?**
 
-Se una parte del comportamento cambia indipendentemente dal resto, possiamo volerla rendere esplicita.
+Se la risposta è concreta, il nome del pattern può aiutarci a riconoscere una struttura già sperimentata. Se la risposta manca, il pattern rischia di essere soltanto decorazione.
 
-La **Strategy** è utile quando esistono davvero più politiche intercambiabili.
+## Quando il comportamento inizia a variare
 
-Per esempio, Order Operations potrebbe in futuro avere regole di calcolo della data di consegna diverse per mercato o corriere.
+Supponiamo che una regola possa cambiare indipendentemente dal resto del caso d'uso. Finché esiste una sola variante semplice, un `if` ben posizionato può essere la soluzione più leggibile. Quando le varianti diventano reali, hanno ownership o cicli di cambiamento distinti e iniziano a rendere fragile il chiamante, la variazione merita un nome e un confine.
 
-Se oggi esiste una sola regola semplice, introdurre subito una gerarchia di strategy potrebbe non comprare nulla.
+È la pressione che spesso porta a una **Strategy**.
 
-Quando una seconda o terza variante reale compare, il pattern può diventare naturale.
+In Order Operations potremmo, per esempio, avere in futuro politiche differenti per stimare una data di consegna in base a mercato o carrier. Se oggi la regola è una sola, una gerarchia di strategy potrebbe comprare soltanto indirezione. Se domani tre politiche cambiano indipendentemente e vengono testate con scenari differenti, rendere quella variabilità esplicita diventa naturale.
 
-Il punto non è anticipare ogni possibile variazione.
+In TypeScript la soluzione potrebbe essere anche una semplice funzione:
 
-È riconoscere quando una variazione ha già iniziato a esercitare pressione sul design.
+```ts
+export type DeliveryEstimatePolicy = (
+  shipment: Shipment,
+  context: DeliveryContext
+) => EstimatedDelivery;
+```
 
-### Quando varia la costruzione
+Il pattern non dipende dalla gerarchia di classi. Dipende dal fatto che abbiamo isolato una dimensione di variazione significativa.
 
-Factory, Builder e Abstract Factory rispondono a forme diverse dello stesso problema: la costruzione di un oggetto o di una famiglia di oggetti è abbastanza complessa da meritare una responsabilità separata.
+## Quando costruire diventa una responsabilità
 
-Se creare un oggetto significa semplicemente:
+Lo stesso ragionamento vale per **Factory**, **Builder** e forme più elaborate di creazione.
+
+Se costruire un oggetto significa:
 
 ```ts
 const order = new Order(id, customerId);
 ```
 
-una factory dedicata potrebbe essere rumore.
+spostare quella riga in `OrderFactory` non protegge necessariamente alcuna decisione.
 
-Se la costruzione richiede invarianti, selezione di subtype, configurazioni multiple o sequenze non banali, centralizzarla può ridurre errori.
+La costruzione diventa invece una responsabilità quando deve garantire invarianti, selezionare una variante concreta, coordinare configurazioni o impedire stati intermedi non validi. In quel momento centralizzarla può ridurre il numero di punti che devono conoscere quelle regole.
 
-Il pattern emerge dalla complessità della costruzione, non dal desiderio di evitare `new`.
+La factory non serve quindi a nascondere `new`.
 
-### Quando dobbiamo tradurre un mondo in un altro
+Serve a contenere conoscenza di costruzione che ha acquisito abbastanza peso da non appartenere più al consumer.
 
-Adapter è uno dei pattern più utili nei sistemi reali.
+## Quando due mondi parlano lingue diverse
 
-Non perché “disaccoppia” genericamente, ma perché protegge un confine semantico.
+Una delle pressioni più frequenti nei sistemi reali nasce ai confini esterni.
 
-Supponiamo che un provider esterno restituisca:
+Un carrier potrebbe restituire:
 
 ```json
 {
@@ -53,7 +60,7 @@ Supponiamo che un provider esterno restituisca:
 }
 ```
 
-Il nostro dominio potrebbe voler lavorare con:
+mentre il nostro dominio vuole lavorare con:
 
 ```ts
 interface ShipmentStatus {
@@ -62,68 +69,56 @@ interface ShipmentStatus {
 }
 ```
 
-L'Adapter non è soltanto conversione di formato.
+Qui un **Adapter** ha un lavoro molto concreto. Non converte soltanto un formato: decide come il linguaggio esterno entra nel nostro modello. Può concentrare mapping degli stati, normalizzazione degli errori, differenze sugli identificatori e parte della semantica operativa che non vogliamo far trapelare.
 
-È il punto in cui decidiamo come il linguaggio esterno entra nel nostro sistema.
+L'adapter paga il proprio valore con un modello in più e con un ulteriore punto di tracing. Se diventa un pass-through che replica esattamente il provider senza proteggere nessuna decisione, il pattern ha perso il proprio lavoro.
 
-Qui possiamo normalizzare errori, semantica, timeout e capability.
+## Quando una responsabilità attraversa il comportamento
 
-### Quando vogliamo aggiungere comportamento senza modificare il nucleo
+Logging, tracing, authorization, caching e altre responsabilità trasversali possono spingere verso **Decorator**, middleware o pipeline compositive.
 
-Decorator e middleware possono essere utili per responsabilità trasversali come logging, caching, tracing o authorization.
+La composizione è utile quando evita di mescolare la policy principale con meccanismi ortogonali. Ma ogni livello che rende il flusso più implicito aumenta il costo del debugging.
 
-Ma anche qui bisogna osservare il costo.
+Una pipeline di dodici middleware può essere formalmente elegante e operativamente opaca. Per essere sana deve rimanere possibile capire in quale ordine avvengano le trasformazioni, quali layer possano interrompere il flusso e dove vengano introdotti side effect.
 
-Una pipeline di dodici middleware può rendere impossibile capire dove venga modificata una request.
+La forza non è “separare tutto”. È separare ciò che cambia e viene governato per ragioni realmente differenti senza rendere invisibile il comportamento complessivo.
 
-Composizione non significa invisibilità.
+## Quando il cambiamento deve propagarsi
 
-Dovremmo poter ricostruire l'ordine e le responsabilità della pipeline.
+Un'altra pressione compare quando un fatto deve essere osservato da più parti senza costringere chi lo produce a conoscerle tutte.
 
-### Quando molti oggetti devono reagire a un cambiamento
+È il territorio di **Observer**, callback, event emitter, reactive stream e domain event.
 
-Observer è un'idea semplice che appare in moltissime forme: callback, event emitter, reactive stream, domain event.
-
-Il vantaggio è ridurre coupling diretto tra chi produce un cambiamento e chi reagisce.
-
-Il costo è che il flusso diventa meno lineare.
-
-Quando leggiamo:
+Un fatto come:
 
 ```text
 OrderConfirmed
 ```
 
-potrebbero reagire inventory, email, analytics e shipping.
+può interessare inventory, notifiche, analytics o shipping. Disaccoppiare producer e consumer riduce conoscenza diretta, ma sposta parte del costo sulla discoverability: leggendo il producer non vediamo più necessariamente tutto ciò che accade dopo.
 
-La sorgente non necessariamente conosce tutti i consumer.
+Quindi il vantaggio del pattern cresce insieme al bisogno di observability, naming disciplinato e ownership dei consumer.
 
-Questo è utile, ma aumenta la necessità di discoverability e observability.
+Questa conseguenza diventerà ancora più importante quando l'evento attraverserà processi e reti.
 
-### Quando centralizziamo accesso a un oggetto o servizio
+## Quando la trasparenza diventa pericolosa
 
-Proxy può introdurre lazy loading, remote access, caching, authorization o instrumentation.
+Pattern come **Proxy** possono centralizzare authorization, instrumentation, lazy loading, caching o remote access. Ma la trasparenza è utile soltanto finché non nasconde differenze che il consumer deve comprendere.
 
-Ma un proxy trasparente può nascondere differenze operative importanti.
+Una chiamata locale e una chiamata remota non hanno lo stesso costo e non falliscono allo stesso modo. Se un proxy fa sembrare la rete una normale invocazione in-memory, può cancellare dal modello mentale proprio latency, timeout e partial failure che dovrebbero influenzare il design.
 
-Una chiamata locale e una chiamata remota non hanno le stesse failure mode.
+Information hiding non significa nascondere conseguenze essenziali.
 
-Se il proxy rende invisibile la rete, può rendere invisibili anche latency, timeout e partial failure.
+## Il nome viene alla fine
 
-### Pattern come linguaggio, non come struttura obbligatoria
+Strategy, Factory, Adapter, Decorator, Observer e Proxy non sono caselle da riempire. Sono nomi che ci permettono di discutere rapidamente strutture già note quando riconosciamo la pressione che le rende utili.
 
-Due team possono risolvere lo stesso problema con implementazioni diverse senza che uno dei due sia “meno corretto”.
+Due team possono risolvere la stessa forza con forme idiomatiche diverse. Una Strategy può essere una classe, una funzione o una tabella di policy. Un Adapter può vivere come oggetto dedicato o come translation boundary molto piccolo. Il pattern sopravvive perché descrive una relazione tra responsabilità, non una sintassi obbligatoria.
 
-In TypeScript una Strategy può essere una semplice funzione:
+La domanda finale resta sempre la stessa:
 
-```ts
-export type PricingPolicy = (order: Order) => Money;
-```
+> **Quale cambiamento o rischio diventa più locale grazie a questa struttura, e quale complessità stiamo aggiungendo in cambio?**
 
-Non serve necessariamente una gerarchia di classi.
+Se sappiamo rispondere, il pattern ha un lavoro.
 
-Il pattern descrive la relazione tra responsabilità.
-
-Il linguaggio decide come esprimerla nel modo più idiomatico.
-
-> **Conoscere il pattern significa riconoscere la forza che lo rende utile, non riprodurne la forma scolastica.**
+> **Conoscere un pattern significa riconoscere la pressione che lo rende utile, non riprodurne la forma scolastica.**
