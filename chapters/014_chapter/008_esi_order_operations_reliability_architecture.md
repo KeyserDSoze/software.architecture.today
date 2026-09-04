@@ -1,12 +1,8 @@
-# ESI — Reliability Architecture di Order Operations
+## ESI — Reliability Architecture di Order Operations
 
-A questo punto possiamo trasformare i principi del capitolo in una decisione completa.
+A questo punto possiamo trasformare il capitolo in una decisione completa sul capstone. Non partiamo dalle feature Azure: partiamo dai tre critical flow che il prodotto deve proteggere.
 
-Non partiamo dalle feature Azure.
-
-Partiamo dal critical flow.
-
-## Critical flow 1 — Investigation
+## CF-01 — Investigation
 
 ```text
 Operations Operator
@@ -17,19 +13,11 @@ Operations Operator
 → operational view
 ```
 
-### Business intent
+Il business intent è permettere all’operatore di capire rapidamente che cosa richiede attenzione e quale dominio possiede il dato autorevole.
 
-L'operatore deve poter capire rapidamente che cosa richiede attenzione e quale dominio possiede il dato autorevole.
+Il flow può degradare quando una dependency live non è disponibile, ma soltanto a condizioni precise: il prodotto non deve presentare dati stale come current truth, deve distinguere ciò che è locale da ciò che non è verificabile e deve bloccare azioni che richiedono facts autorevoli mancanti.
 
-### Failure tolerance
-
-Il flow può degradare quando una dependency live non è disponibile, purché:
-
-- non mostri dati stale come se fossero correnti;
-- distingua ciò che è locale da ciò che non è verificabile;
-- blocchi azioni che richiedono informazioni autorevoli mancanti.
-
-## Critical flow 2 — Payment Escalation acceptance
+## CF-02 — Payment Escalation acceptance
 
 ```text
 Operator
@@ -41,11 +29,7 @@ Operator
 → 202 Accepted
 ```
 
-### Business intent
-
-Una richiesta valida deve avere outcome locale deterministico.
-
-### Quality floor
+Qui il quality floor è la determinazione dell’outcome locale:
 
 ```text
 committed escalation
@@ -53,9 +37,9 @@ committed escalation
 committed publication intent
 ```
 
-Nessun partial commit.
+Nessun partial commit, nessuna “forse accettata” nel normale failure applicativo.
 
-## Critical flow 3 — Payment Escalation delivery
+## CF-03 — Payment Escalation delivery
 
 ```text
 Outbox
@@ -64,108 +48,57 @@ Outbox
 → Payments & Risk
 ```
 
-### Business intent
+La delivery può essere asincrona, ma non invisibilmente infinita. Stable identity, bounded retry, downstream idempotency, DLQ ownership, business-delay visibility e reconciliation restano parte del contratto.
 
-La delivery può essere asincrona, ma non invisibilmente infinita.
+Questi tre flow rendono leggibile la reliability perché separano ciò che deve restare disponibile da ciò che può degradare senza perdere significato.
 
-### Quality floor
+## Target iniziali ESI
 
-- stable message identity;
-- bounded retry;
-- idempotent consumer;
-- DLQ ownership;
-- business delay visibility;
-- reconciliation.
+I numeri seguenti sono **requisiti simulati del capstone**, non benchmark o raccomandazioni universali.
 
-## SLO iniziali
-
-Come definito nella sezione precedente, ESI introduce come **target simulati iniziali**:
-
-### Core operator journey
+Per il core operator journey:
 
 ```text
 SLO = 99.9% good events
 window = rolling 28 days
 ```
 
-Il good-event model verrà raffinato nel Capitolo 15 con telemetry e synthetic journey.
-
-### Payment Escalation delivery
+Per la publication della Payment Escalation:
 
 ```text
 99% delle escalation accepted
 → published to broker within 5 minutes
 ```
 
-Il downstream business processing di Payments avrà propri target, non viene inglobato arbitrariamente nello SLO di Order Operations.
+Il processing business downstream di Payments & Risk non viene inglobato arbitrariamente nello SLO di Order Operations. Ogni dominio mantiene i target delle capability che possiede.
 
-## RTO/RPO
-
-### Intra-region
+Per i failure intra-region:
 
 ```text
 RTO core journey <= 15 min
 RPO = 0 per committed local OperationalCase / PaymentEscalation state
 ```
 
-### Region-wide disaster
+Per un region-wide disaster:
 
 ```text
 RTO <= 8 h
 RPO <= 1 h
 ```
 
-Questi target sono requisiti simulati ESI.
-
-Non sono benchmark consigliati.
+L’asimmetria è intenzionale: ESI vuole assorbire rapidamente i failure più ordinari di instance/zone, ma non finanzia ancora una topologia active-active regionale per un prodotto interno con un recovery target di ore.
 
 ## Health model
 
-### Healthy
+Order Operations è `Healthy` quando il core investigation flow è dentro SLO, l’escalation acceptance rimane deterministicamente durable e backlog/age della delivery restano nel normale envelope operativo.
 
-```text
-Investigation meets SLO
-AND escalation acceptance meets SLO
-AND delivery backlog inside normal envelope
-```
+È `Degraded` quando una parte della promessa si riduce ma il prodotto sa ancora operare in modo sicuro. Esempi sono una authoritative read dependency unavailable con case locale ancora consultabile, oppure Service Bus/Payments consumer degradati mentre l’acceptance locale continua.
 
-### Degraded
+È `Unhealthy` quando il core journey non è utilizzabile, PostgreSQL resta indisponibile oltre il recovery window o una escalation valida non può più avere un outcome durable deterministico.
 
-Esempi:
+Il punto è che questi stati derivano dai critical flow, non da una media dei resource health signal.
 
-```text
-una authoritative read dependency unavailable
-ma local case investigation ancora utilizzabile
-```
-
-oppure:
-
-```text
-Service Bus / Payments consumer degraded
-ma escalation acceptance locale funzionante
-```
-
-### Unhealthy
-
-Esempi:
-
-```text
-operator cannot authenticate/use core journey
-```
-
-oppure:
-
-```text
-PostgreSQL unavailable oltre tolerated failover window
-```
-
-oppure:
-
-```text
-accepted escalation cannot be durably represented
-```
-
-## Decisione infrastrutturale — production
+## Topologia production decisa nel Capitolo 14
 
 ### App Service
 
@@ -174,6 +107,8 @@ Premium v3
 capacity >= 2
 zoneRedundant = true
 ```
+
+La scelta compra instance redundancy e resilience zonale. Non compra regional resilience né protegge da bad deployment.
 
 ### PostgreSQL
 
@@ -184,13 +119,17 @@ backup / PITR
 private access
 ```
 
+La HA protegge node/zone failure; PITR resta necessario per logical corruption e destructive data error.
+
 ### Service Bus
 
 ```text
 Premium
 private endpoint
-zone redundancy provided by service in supported region
+regional zone resilience
 ```
+
+Non introduciamo ancora cross-region replication perché i target regionali correnti non richiedono immediate continuity.
 
 ### Region
 
@@ -198,208 +137,101 @@ zone redundancy provided by service in supported region
 single region
 ```
 
-Nessun active-active cross-region nella prima fase.
+La decisione verrà riaperta se contractual commitment, criticality, geografia, RTO/RPO o recovery evidence renderanno insufficiente questa scelta.
 
-## Perché non multi-region
+## La reliability matrix di ESI
 
-**Esigenza:** ridurre outage da instance/zone failure e avere recovery documentato.
-
-**Tensione:** higher availability vs cost, operational complexity, replication semantics e test burden.
-
-**Decisione:** spendere prima su resilience intra-region e recovery evidence.
-
-**Costo accettato:** un region outage può richiedere recovery manuale e alcune ore.
-
-**Quality floor:** RTO/RPO regionale espliciti, backup, IaC, recovery source, owner e restore drill.
-
-**Guardrail:** Reliability Contract, Failure Mode Map, Cloud Deployment Map, restore exercise, SLO review ed error budget.
-
-**Trigger:** RTO/RPO regionali più severi, contractual commitment, geographic expansion, regulatory requirement o recovery exercise che dimostri che la strategia corrente non è sufficiente.
-
-## Compromesso App Service
-
-Zone redundancy richiede almeno due istanze e un piano compatibile.
-
-Paghiamo quindi più capacity anche durante periodi tranquilli.
-
-In cambio compriamo:
-
-```text
-failure domain più piccolo
-+ instance redundancy
-+ zone resilience
-```
-
-Non compriamo automaticamente:
-
-```text
-region resilience
-```
-
-## Compromesso PostgreSQL
-
-Zone-redundant HA aumenta il costo database.
-
-È giustificato perché il database possiede lo stato locale necessario a:
-
-- operator workflow;
-- escalation acceptance;
-- transactional outbox.
-
-La standby non sostituisce backup/PITR.
-
-## Failure matrix aggiornata
-
-| Failure | Product state | Automatic behavior | Manual/recovery behavior |
+| Failure | Stato prodotto atteso | Comportamento automatico | Recovery/azione umana |
 |---|---|---|---|
-| App instance failure | healthy/degraded breve | routing su altra istanza | investigate if SLO burn |
-| App zone failure | expected resilient | zone-redundant instances | capacity observation |
-| PostgreSQL primary failure | degraded breve | managed failover | verify RTO/state |
-| PostgreSQL logical corruption | unhealthy | no automatic magic | PITR/restore procedure |
-| Service Bus transient outage | delivery degraded | outbox retry | reconcile if prolonged |
-| Payments consumer down | delivery degraded | broker buffers | Payments recovery / DLQ |
-| Entra outage | user flow degraded/unhealthy | valid-token behavior depends on session | identity incident coordination |
-| Private DNS failure | likely unhealthy/degraded | none guaranteed | config rollback/Platform response |
-| bad application deploy | potentially unhealthy | depends deployment strategy | rollback known-good artifact |
-| region outage | unhealthy | no cross-region active service | regional recovery runbook |
+| App instance failure | Healthy o breve Degraded | routing su istanza superstite | verificare SLO burn/headroom |
+| App zone failure | Healthy/Degraded entro target | zone-redundant capacity | verificare capacity residua |
+| PostgreSQL primary failure | breve Degraded | managed failover | validare reconnect, RTO e stato |
+| PostgreSQL logical corruption | Unhealthy | nessun failover utile | PITR/restore + validation + cutover |
+| Service Bus transient outage | delivery Degraded | outbox retry bounded | reconciliation se prolungato |
+| Payments consumer down | delivery Degraded | broker/backlog buffering | recovery Payments / DLQ handling |
+| Entra incident | user flow Degraded/Unhealthy | dipende da token/session state | identity incident coordination; no bypass |
+| Private DNS failure | Degraded/Unhealthy | nessuna garanzia automatica | config rollback / Platform response |
+| Bad application deploy | potenzialmente Unhealthy | dipende dalla strategy | rollback known-good artifact |
+| Region outage | Unhealthy | nessuna active secondary region | regional recovery runbook |
 
-## Recovery ownership
+La tabella non sostituisce la Failure Mode Map. Ne sintetizza la parte più importante per la decisione del capitolo: quale behavior ci aspettiamo quando il failure attraversa il prodotto.
 
-### Workload team
+## Ownership di recovery
 
-- application rollback;
-- outbox recovery;
-- reconciliation;
-- critical-flow validation;
-- SLO evidence;
-- restore validation;
-- runbook upkeep.
+Il workload team possiede application rollback, outbox recovery, reconciliation, critical-flow validation, SLO evidence, restore validation e aggiornamento dei runbook.
 
-### Platform Engineering
+Platform Engineering possiede le capability condivise della landing zone: network/DNS foundation, policy, privileged cloud recovery path e monitoring platform.
 
-- landing-zone network recovery;
-- platform DNS capability;
-- privileged cloud recovery path;
-- Azure policy/baseline;
-- shared monitoring foundation.
+Payments & Risk possiede consumer recovery, downstream idempotency e stato del payment workflow. Security governa privileged identity, break-glass e incident boundary.
 
-### Payments & Risk
+Finance non esegue il recovery, ma deve poter vedere il costo che le reliability decision aggiungono al workload e il target business che giustifica quella spesa.
 
-- consumer recovery;
-- downstream dedup;
-- payment workflow state;
-- DLQ business resolution where applicable.
+Questa ownership è parte dell’architettura. Durante un incidente, “pensavo lo facesse Platform” è un failure mode organizzativo.
 
-### Security
+## Reliability Contract e Failure Mode Map diventano artefatti vivi
 
-- security incident boundary;
-- privileged identity recovery;
-- break-glass governance.
-
-### Finance / FinOps
-
-Non esegue recovery, ma deve conoscere il costo delle reliability decision che proteggono business target.
-
-## Reliability Contract
-
-Il capstone introduce un nuovo artefatto persistente:
+Il capitolo introduce stabilmente:
 
 ```text
 docs/reliability-contract.md
 ```
 
-Contiene:
+che raccoglie critical flow, SLI/SLO, health state, degraded mode, RTO/RPO, recovery source, ownership, drill ed evidence level.
+
+La `Failure Mode Map`, nata nel Capitolo 11 sul flusso asincrono, viene estesa ora a instance/zone failure, PostgreSQL failover, logical corruption, identity incident, private DNS, bad deployment e region failure.
+
+Questo mostra una proprietà importante del capstone:
+
+> **Il failure model cresce insieme alla topologia e alle capability del prodotto.**
+
+## Designed, Codified, Verified, Monitored
+
+Il Capitolo 14 non deve trasformare automaticamente ogni decisione in una claim di affidabilità verificata.
+
+Nel repository distinguiamo:
 
 ```text
-critical flows
-SLI/SLO
-error budget direction
-health states
-degraded modes
-RTO/RPO
-failure ownership
-recovery source
-drill backlog
-review triggers
+Designed
+→ target/control documentato
+
+Codified
+→ rappresentato in code/IaC/config
+
+Verified
+→ test o failure drill ha prodotto evidence
+
+Monitored
+→ drift/SLO/failure è osservabile nel runtime
 ```
 
-## Update del Failure Mode Map
+La capacity minima e la zone redundancy di App Service vengono codificate nell’IaC. PostgreSQL HA rimane una decisione progettata finché il modulo relativo non viene completato. Restore drill, synthetic journey, burn-rate alert e regional recovery restano evidence da produrre.
 
-La Failure Mode Map non sarà più limitata al messaging flow.
+Questa distinzione è essenziale per non confondere `abbiamo scritto la configurazione` con `sappiamo che il sistema regge il failure`.
 
-Aggiungeremo anche:
+## Costo e trade-off
 
-- App instance/zone failure;
-- PostgreSQL failover;
-- logical corruption;
-- identity failure;
-- private DNS failure;
-- bad deployment;
-- region failure.
+ESI paga più compute e più database capacity per ridurre il failure domain intra-region. In cambio non compra ancora multi-region active-active, global routing o immediate broker continuity cross-region.
 
-Questo mostra un punto importante:
+La scelta può essere riassunta così:
 
-> **Un failure model cresce insieme alla topologia.**
+**Esigenza:** mantenere il core operator journey utilizzabile durante failure comuni e rendere recuperabili failure più ampi.
 
-## IaC
+**Tensione:** availability e recovery più forti contro costo, operational complexity e test burden.
 
-Il Capitolo 13 ha introdotto il primo `main.bicep`.
+**Decisione:** resilience intra-region + recovery evidence prima di multi-region.
 
-Il Capitolo 14 gli aggiunge almeno la parte di reliability che possiamo codificare in modo coerente con le decisioni prese:
+**Costo accettato:** region outage con recovery manuale nell’ordine delle ore.
 
-```text
-App Service capacity >= 2
-zoneRedundant = true
-```
+**Quality floor:** committed local state preservato nei failure HA coperti, recovery source nota, security boundary mai bypassato per availability, restore e reconciliation con owner.
 
-La configurazione PostgreSQL HA dovrà essere codificata insieme al modulo PostgreSQL quando il resource design verrà completato e verificato.
+**Guardrail:** Reliability Contract, Failure Mode Map, error budget, IaC, restore drill, game day e review trigger.
 
-Non dichiareremo `Verified` finché il template non sarà realmente buildato/deployato e sottoposto a failure test.
+## Casi reali come controllo di plausibilità
 
-## Real case connection
+I casi GitHub e Cloudflare del capitolo mostrano categorie ricorrenti: shared failure point, capacity saturation, configuration propagation, hidden dependency e recovery complexity.
 
-I casi GitHub e Cloudflare citati nel capitolo mostrano più volte gli stessi temi:
+ESI non copia le loro architetture. Usa quei casi per controllare che le categorie di failure considerate non siano soltanto invenzioni narrative.
 
-```text
-shared failure point
-capacity saturation
-configuration propagation
-hidden dependency
-recovery complexity
-```
+Lo stesso vale per l’AI: possiamo chiedere a un agente quale failure domain stiamo aggiungendo, quale retry amplification è possibile, quale degraded mode manca o quale recovery source stiamo assumendo. Il risultato rimane una hypothesis list da verificare.
 
-ESI non copia le loro architetture.
-
-Usa i casi per verificare che le categorie di failure considerate non siano invenzioni narrative.
-
-## AI come reliability reviewer
-
-Prima di chiudere una change significativa possiamo chiedere a uno o più agenti:
-
-```text
-quale failure domain stiamo aggiungendo?
-quale retry amplification è possibile?
-quale dependency è ora critical?
-quale degraded mode manca?
-quale recovery source stiamo assumendo?
-quale SLO può peggiorare?
-quale restore non abbiamo mai provato?
-```
-
-Il risultato deve essere una hypothesis list, non una certificazione.
-
-## Decisione finale del capitolo
-
-ESI non compra la massima reliability disponibile.
-
-Compra un livello di resilienza coerente con:
-
-- criticality attuale;
-- target di business;
-- costo accettabile;
-- capacità operativa del team;
-- failure mode già conosciuti.
-
-E lascia trigger per evolvere.
-
-> **La reliability migliore non è quella con più ridondanza. È quella che mantiene il contratto giusto contro i failure che abbiamo deciso di governare.**
+> **La reliability migliore non è quella con più ridondanza. È quella che mantiene il contratto giusto contro i failure che abbiamo deciso di governare, e sa mostrare l’evidence che lo dimostra.**
