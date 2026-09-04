@@ -1,138 +1,39 @@
 ## ESI — Order Operations introduce la prima integrazione asincrona
 
-Applichiamo il capitolo al capstone.
+Applichiamo ora il capitolo al capstone. Non partiamo dalla queue, dal broker o dall’outbox. Partiamo dal cambiamento funzionale.
 
-Non partiamo dalla queue.
+Operations e Payments & Risk concordano una nuova capability: un operatore autorizzato può **escalare a Payments & Risk** un `OperationalCase` classificato come `Payment` quando l’investigazione richiede l’intervento del dominio economico.
 
-Partiamo dal cambiamento funzionale.
+L’escalation non esegue refund, capture, retry del provider, modifica del payment status o chargeback. Trasferisce una richiesta di attenzione. Payments & Risk rimane owner delle decisioni economiche e del proprio workflow interno.
 
-## Nuova esigenza
+Questa distinzione è il confine che rende sensato tutto il design successivo.
 
-Operations e Payments & Risk concordano una nuova capability:
+## Payment Escalation: un nuovo concetto di dominio
 
-> un operatore autorizzato può **escalare a Payments & Risk** un `OperationalCase` classificato come `Payment` quando l'investigazione richiede l'intervento del dominio economico.
+Introduciamo `PaymentEscalation` come intenzione esplicita dell’operatore. Possiede `EscalationId`, `OperationalCaseId`, tenant reference, `RequestedBy`, `RequestedAt`, `ReasonCode` e lo stato necessario a rappresentarne il lifecycle locale e la delivery.
 
-Questa azione non esegue:
+Non possiede `PaymentStatus`, `RefundStatus`, provider state o decisioni economiche. Questi restano di Payments & Risk.
 
-- refund;
-- capture;
-- retry del payment provider;
-- modifica del payment status;
-- chargeback;
-- altra operazione economica.
+Le precondizioni iniziali sono semplici ma importanti: il caso deve esistere, essere visibile all’operatore e avere categoria `Payment`; l’utente deve essere autorizzato; non deve esistere un’intenzione incompatibile già attiva; un retry tecnico della stessa richiesta deve conservare la stessa identity. La business rule potrà evolvere in futuro, ma non viene inventata dal protocollo.
 
-L'escalation trasferisce una richiesta di attenzione.
+## Business state e integration state restano separati
 
-Payments & Risk decide il proprio workflow interno.
-
-Questa distinzione protegge il confine definito nei capitoli precedenti.
-
-## Semantica funzionale
-
-Introduciamo un nuovo concetto:
-
-### Payment Escalation
-
-Rappresenta l'intenzione esplicita di un operatore di richiedere a Payments & Risk la presa in carico di un problema operativo collegato a un caso.
-
-Possiede:
+Quando l’operatore invia l’escalation, il sistema può conoscere con certezza il fatto locale prima della consegna downstream. Per questo modelliamo separatamente:
 
 ```text
-EscalationId
-OperationalCaseId
-TenantId / tenant reference
-Category
-RequestedBy
-RequestedAt
-ReasonCode
-DeliveryState
+PaymentEscalation.status = Requested
+IntegrationDelivery.state = Pending
 ```
 
-Non possiede:
+Poi la delivery potrà diventare `Delivered`, `Delayed` o, nei failure terminali, `DeadLettered`. Un broker outage non annulla retroattivamente il fatto che Order Operations abbia accettato l’intenzione.
 
-```text
-PaymentStatus
-RefundStatus
-PaymentProviderState
-EconomicDecision
-```
+Questa distinzione permette alla UI di dire la verità: “escalation accepted” non significa ancora “Payments ha iniziato a lavorarla”.
 
-Questi restano di Payments & Risk.
+## Perché il request path non chiama Payments
 
-## Precondizioni iniziali
+Una chiamata sincrona sarebbe più semplice da disegnare, ma legherebbe l’azione dell’operatore a availability, latency, timeout e retry ambiguity di Payments. Il requirement invece ci dice che l’intenzione locale deve poter essere registrata anche quando il downstream è degradato, purché la consegna affidabile continui in background.
 
-Per questa iterazione:
-
-1. il caso deve esistere;
-2. l'operatore deve essere autorizzato sul tenant;
-3. il caso deve avere `ProblemClassification = Payment`;
-4. deve esistere al massimo una escalation attiva per lo stesso caso e stesso intento;
-5. un retry tecnico della stessa richiesta deve conservare lo stesso `EscalationId`;
-6. l'escalation non modifica il payment status.
-
-La regola 4 verrà raffinata se in futuro il business permetterà escalation successive dopo una chiusura o una rejection.
-
-## Stati distinti
-
-Separiamo il business state dell'escalation dal delivery state.
-
-Esempio:
-
-```text
-PaymentEscalation
-  status = Requested
-
-IntegrationDelivery
-  state = Pending
-```
-
-Poi:
-
-```text
-PaymentEscalation
-  status = Requested
-
-IntegrationDelivery
-  state = Delivered
-```
-
-Oppure:
-
-```text
-PaymentEscalation
-  status = Requested
-
-IntegrationDelivery
-  state = Delayed
-```
-
-Questo evita che un problema tecnico del broker cambi retroattivamente il fatto che l'operatore abbia richiesto l'escalation.
-
-## Perché non facciamo una chiamata sincrona
-
-Commerce & Operations vorrebbe un'interazione rapida.
-
-Payments & Risk vuole delivery affidabile.
-
-La disponibilità runtime di Payments non deve diventare requisito per registrare l'intenzione locale.
-
-Quindi non scegliamo:
-
-```text
-POST Order Operations
-  → commit locale
-  → HTTP Payments
-  → response all'operator
-```
-
-perché il request path diventerebbe dipendente da:
-
-- availability Payments;
-- network latency;
-- timeout policy;
-- retry ambiguity.
-
-Scegliamo:
+Scegliamo quindi:
 
 ```text
 Operator
@@ -153,60 +54,21 @@ Enterprise messaging capability
 Payments & Risk consumer
 ```
 
-Il prodotto può così distinguere:
+Il nuovo costo — outbox, publisher, retry, backlog, DLQ e reconciliation — compra una proprietà precisa: **indipendenza temporale tra l’azione dell’operatore e la disponibilità runtime del downstream**.
 
-```text
-accepted locally
-≠
-delivered downstream
-```
+## Il broker resta una decisione successiva
 
-## Non scegliamo ancora il broker
+Platform Engineering offre una capability aziendale di messaging, ma in questo capitolo non fissiamo ancora un prodotto. Il contract richiesto è più importante del vendor: durable publication, at-least-once delivery, dead-letter capability, consumer concurrency controls, message identity e observability.
 
-Platform Engineering offre una capability di messaging aziendale.
+Kafka, Azure Service Bus, SQS/SNS, Pub/Sub o RabbitMQ rappresentano implementazioni possibili con trade-off differenti. Il cloud context del Capitolo 12 ci darà più informazioni per scegliere.
 
-Nel manoscritto non fissiamo ancora un prodotto concreto.
+Fit before fashion vale anche qui.
 
-Potrebbe essere implementata con un managed queue/topic service nel cloud che sceglieremo nel Capitolo 12.
+## Transaction boundary e schema locale
 
-Questa scelta è intenzionale.
+La stessa transazione PostgreSQL salva `PaymentEscalation` e `OutboxMessage`. Non salva direttamente alcuno stato economico di Payments.
 
-Il contract che ci serve oggi è:
-
-```text
-durable publication
-at-least-once delivery
-dead-letter capability
-consumer concurrency controls
-message identity
-observability
-```
-
-Non:
-
-```text
-Kafka
-Service Bus
-SQS/SNS
-Pub/Sub
-RabbitMQ
-```
-
-Il prodotto concreto verrà scelto quando avremo cloud context e operational constraints sufficienti.
-
-## Transaction boundary
-
-Nella stessa transazione PostgreSQL salviamo:
-
-```text
-payment escalation
-+
-outbox message
-```
-
-Non salviamo direttamente lo stato Payments.
-
-Schema concettuale:
+Concettualmente:
 
 ```text
 operations.payment_escalation
@@ -231,15 +93,11 @@ operations.outbox_message
 - last_error nullable
 ```
 
-`delivery_state` è utile al prodotto.
+`PaymentEscalation` appartiene al prodotto. `OutboxMessage` appartiene al meccanismo di reliability. È importante non confondere business state e integration mechanism anche quando vivono nella stessa transazione.
 
-`outbox_message` è un meccanismo di integration reliability.
+## Event contract: minimizzare il significato condiviso
 
-Non confondiamo i due.
-
-## Event contract
-
-Prima versione:
+La prima versione del messaggio contiene soltanto ciò che Payments & Risk deve conoscere per ricevere l’intenzione in modo affidabile:
 
 ```json
 {
@@ -255,52 +113,25 @@ Prima versione:
 }
 ```
 
-### Perché non includiamo tutto l'ordine
+Non includiamo address, customer email, shipment detail, note libere, ORM representation, stack trace o provider credential. Il consumer può recuperare altro contesto tramite contract autorizzati se davvero necessario.
 
-Payments & Risk non ha bisogno di:
+La minimizzazione riduce data exposure, coupling e blast radius dell’evoluzione dello schema.
 
-- address;
-- customer email;
-- shipment details;
-- note libere dell'operatore;
-- ORM representation;
-- stack trace;
-- payment provider credentials.
+## La promessa del producer
 
-Il consumer può usare gli identifier e i contract autorizzati per recuperare ciò che gli serve.
-
-Questo riduce:
-
-- data exposure;
-- schema coupling;
-- payload size;
-- accidental ownership.
-
-## Producer semantics
-
-Order Operations promette:
+Order Operations promette una cosa molto precisa:
 
 ```text
-se l'escalation viene accettata localmente
-allora esiste durablemente anche l'intenzione di pubblicare
+escalation accettata localmente
+→ publication intent durevole nella stessa transazione
 ```
 
-Non promette:
-
-```text
-Payments l'ha già ricevuta quando la UI vede 200/202
-```
-
-Il contratto HTTP dovrà riflettere questa distinzione quando aggiungeremo il command endpoint.
-
-Una risposta plausibile potrebbe essere:
+Non promette che Payments l’abbia già ricevuta quando l’API risponde. Per questo il command HTTP può restituire uno stato simile a:
 
 ```http
 POST /api/operational-cases/{caseId}/payment-escalations
-Idempotency-Key: esc_456
+Idempotency-Key: <escalation-id>
 ```
-
-con:
 
 ```json
 {
@@ -310,86 +141,27 @@ con:
 }
 ```
 
-Non implementiamo ancora l'endpoint completo nel capitolo API perché questa semantica nasce adesso.
+Questa semantica aggiorna il contratto API del capstone: il Capitolo 9 aveva volutamente fermato i command con side effect finché l’analisi funzionale non fosse abbastanza chiara. Ora abbiamo quella chiarezza per **escalare**, non per fare remediation economica.
 
-Aggiorniamo però il capstone contract.
+## La promessa del consumer
 
-## Consumer semantics
+Payments & Risk deve trattare `escalationId` come identity dell’intenzione. Una redelivery della stessa identity non deve creare un secondo workflow business.
 
-Payments & Risk deve trattare `escalationId` come identity dell'intenzione.
+L’implementazione concreta può usare inbox/deduplication storage o un’altra strategia compatibile con il proprio boundary. Il requisito architetturale è indipendente dal dettaglio:
 
-Pseudo-logic:
+> **la stessa escalation consegnata più volte produce un solo effetto business osservabile.**
 
-```ts
-if (await processedEscalations.exists(message.escalationId)) {
-  return Ack.success();
-}
+## Retry, ordering e business timeout
 
-await db.transaction(async (tx) => {
-  await tx.paymentEscalationInbox.insertIfAbsent({
-    escalationId: message.escalationId,
-    caseId: message.caseId,
-  });
+Publisher e consumer useranno retry bounded per failure transitori, con backoff e jitter dove appropriato. Deterministic validation failure non verrà martellata ciecamente; dopo l’esaurimento della recovery automatica il messaggio entrerà nel percorso dead-letter.
 
-  await tx.workflow.createFromEscalation(...);
-});
-```
+Non fissiamo numeri universali prima di avere baseline e commitment. Separiamo inoltre il retry budget tecnico dal business delivery target: un messaggio può avere ancora retry disponibili ma aver già superato la soglia oltre la quale Operations deve vedere `Delayed`.
 
-Il dettaglio reale dipenderà dall'implementazione Payments & Risk, che non è il capstone principale.
+Non chiediamo ordering globale. Per questo primo messaggio identity e idempotency sono sufficienti. Se in futuro più eventi dello stesso case avranno dipendenze d’ordine, introdurremo key/version soltanto sulla granularità necessaria.
 
-Ci interessa la promessa:
+## Failure Mode Map del nuovo flusso
 
-> **la redelivery dello stesso `escalationId` non crea un secondo workflow business.**
-
-## Retry policy
-
-Non fissiamo numeri come standard universali.
-
-Per lo scenario ESI definiamo una policy iniziale da validare:
-
-```text
-publisher
-- retry bounded
-- exponential backoff + jitter
-- same messageId
-
-consumer
-- retry transient failure
-- deterministic validation failure → no blind retry
-- retries exhausted → DLQ
-
-business delivery target
-- definito separatamente dal numero di retry
-```
-
-Il target di delivery verrà misurato dopo l'implementazione.
-
-Non inventiamo un SLA numerico senza baseline o commitment business.
-
-## Ordering
-
-Non chiediamo ordering globale.
-
-Per questa singola escalation:
-
-```text
-message identity + idempotency
-```
-
-è sufficiente.
-
-Se in futuro pubblicheremo più eventi sullo stesso `OperationalCase`, introdurremo:
-
-```text
-caseId partition/order key
-caseVersion
-```
-
-soltanto se il consumer richiede davvero di applicarli in sequenza.
-
-## Failure Mode Map — prima versione
-
-### Flow
+Il flow è:
 
 ```text
 Operator
@@ -401,89 +173,22 @@ Operator
 → Payments local state
 ```
 
-### Failure principali
+I failure che guidano il design sono quelli già discussi: validation o transaction failure prima del commit; broker unavailable con outbox pending; ack publish perso con possibile redelivery; Payments DB unavailable; consumer crash dopo il commit; schema incompatibile; retry esauriti e DLQ.
 
-| Failure | Stato Order Operations | Impatto | Recovery |
-|---|---|---|---|
-| validation fallisce | nessuna escalation | operatore riceve rejection | correggere input/condizione |
-| DB transaction fallisce | nessuna escalation/outbox | action non accettata | retry sicuro con stesso intent |
-| broker unavailable | escalation + outbox pending | delivery ritardata | publisher retry |
-| ack publish perso | outbox forse pending, broker può avere msg | possibile duplicate | same messageId + idempotent consumer |
-| Payments DB unavailable | msg redeliverable | delivery lag | retry bounded |
-| consumer crash dopo commit | Payments può avere già workflow | redelivery | dedup escalationId |
-| schema non supportato | message non processato | integration failure | DLQ + alert |
-| retry esauriti | DLQ | escalation non consegnata | operator/owner visibility + controlled redrive |
+Il punto più importante è che ciascuno lascia uno stato diverso e richiede un recovery diverso. Una Failure Mode Map dedicata nel capstone conserva questo reasoning operativo.
 
-## Reconciliation
+## Reconciliation e quality floor
 
-Introduciamo anche un controllo fuori banda:
+Order Operations deve poter trovare escalation `Requested` che non risultano consegnate oltre la soglia prevista. Quando esisterà un acknowledgement applicativo downstream, potremo confrontare identity accettate localmente e identity osservate da Payments.
 
-```text
-Order Operations escalation Requested
-AND delivery not confirmed beyond threshold
-→ reconciliation candidate
-```
+Non negoziamo tenant isolation, stable escalation identity, atomicità fra escalation e publication intent, consumer idempotente, payload minimizzato, correlation end-to-end, DLQ con owner e visibilità sul delivery lag. E soprattutto Order Operations non acquisisce alcuna autorità economica soltanto perché ha introdotto un flusso verso Payments.
 
-Quando avremo un acknowledgement applicativo da Payments, potremo confrontare:
-
-```text
-escalationId requested
-vs
-escalationId observed downstream
-```
-
-Il protocollo concreto sarà definito insieme al consumer.
-
-## Quality floor
-
-Non negoziamo:
-
-- tenant isolation;
-- stable escalation identity;
-- nessuna perdita tra local commit e publication intent;
-- nessun side effect downstream duplicato per la stessa intenzione;
-- payload minimizzato;
-- correlation end-to-end;
-- DLQ con owner;
-- possibilità di sapere che la delivery è in ritardo;
-- nessuna modifica economica diretta da parte di Order Operations.
-
-## Costo accettato
-
-Accettiamo:
-
-- eventual consistency;
-- nuova tabella outbox;
-- publisher worker;
-- stato di delivery;
-- monitoraggio backlog;
-- gestione DLQ;
-- reconciliation.
-
-È più complesso di una chiamata HTTP.
-
-Ma questa volta la complessità ha un lavoro preciso.
+Accettiamo invece eventual consistency, outbox, publisher, delivery state, backlog monitoring e reconciliation. È più complesso di una chiamata HTTP, ma la complessità svolge un lavoro preciso.
 
 > **Stiamo pagando asincronia per comprare indipendenza temporale e delivery affidabile, non per rendere il diagramma più moderno.**
 
-## Trigger di revisione
+## Il capstone evolve davvero
 
-Rivalutare la soluzione se:
+Da questo capitolo lo snapshot vivo di Order Operations contiene il nuovo contratto API, la Data Ownership Map aggiornata, l’event contract, il modello outbox e la Failure Mode Map. I capitoli successivi potranno quindi ragionare su un progetto che ha già un vero flusso distribuito, non su un esempio ripetuto da zero.
 
-- il volume rende inefficiente il polling publisher;
-- più producer richiedono una piattaforma event-driven condivisa più ricca;
-- servono replay e retention di lungo periodo;
-- ordering per entity diventa significativo;
-- il broker scelto non soddisfa i recovery requirement;
-- il workflow Payments diventa multi-step e richiede stato/compensation espliciti;
-- il delivery lag supera ripetutamente il business target;
-- la DLQ richiede interventi frequenti;
-- la reconciliation trova mismatch non occasionali.
-
-## Il passo importante
-
-Order Operations non è diventato “event-driven”.
-
-Ha introdotto **un flusso asincrono dove il contesto lo richiede**.
-
-Questa è una distinzione che vale la pena conservare per tutto il libro.
+Order Operations non è diventato “event-driven”. Ha introdotto **un flusso asincrono nel punto in cui il contesto lo giustifica**. Questa distinzione resta importante.
