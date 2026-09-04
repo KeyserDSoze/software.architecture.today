@@ -1,131 +1,104 @@
 # 17.2 — Ricostruire il sistema che esiste davvero
 
-Prima di modernizzare un sistema legacy dobbiamo costruire una rappresentazione affidabile del suo stato corrente.
+La modernization sicura comincia con una rappresentazione abbastanza affidabile dello stato corrente.
 
 Non una presentazione elegante.
 
-Una rappresentazione utile a prendere decisioni.
+Non un diagramma che sembra plausibile.
 
-## Inventory prima di intent
+Una mappa che permetta di distinguere ciò che esiste, ciò che deduciamo e ciò che dobbiamo ancora verificare.
+
+## Inventory prima del target
 
 Il primo passo è un inventory.
 
 Non chiediamo ancora:
 
-> “Come dovrebbe essere?”
+> Come dovrebbe essere il sistema?
 
 Chiediamo:
 
-> **“Che cosa esiste, chi lo usa e da che cosa dipende?”**
+> **Che cosa esiste, chi lo usa, da che cosa dipende e quale evidence sostiene ciascuna risposta?**
 
-Microsoft mette l'inventory alla base dell'assessment di modernizzazione e tratta code, configuration, dependency e infrastructure come input della decisione, non come dettagli da scoprire dopo avere già scelto il target.
+Microsoft mette l'inventory alla base dell'assessment di modernization e tratta code, configuration, dependency e infrastructure come input della decisione, non come dettagli da scoprire dopo avere già scelto il target.
 
 Riferimenti:
 
 - [Microsoft Learn — Assess your application modernization needs](https://learn.microsoft.com/en-us/azure/app-modernization-guidance/assess/)
 - [Microsoft Learn — GitHub Copilot modernization](https://learn.microsoft.com/en-us/azure/developer/github-copilot-app-modernization/overview)
 
-Un inventory minimo dovrebbe includere:
+Un inventory minimo può includere:
 
 ```text
 entry points
-runtime/deployable
-module/package
-persistent store
-scheduled job
-message endpoint
-external API
+runtime / deployable
+modules / packages
+persistent stores
+scheduled jobs
+message endpoints
+external APIs
 identity
-configuration source
-feature flag
-manual procedure
-owner/team
-known consumer
+configuration sources
+feature flags
+manual procedures
+owners
+known consumers
 ```
 
-## Partire da un journey
+L'elenco da solo non basta.
 
-Un errore frequente della code archaeology è esplorare il sistema per directory.
+Ogni elemento deve avere provenance e un grado di confidence.
 
-```text
-controllers/
-services/
-repositories/
-models/
-utils/
-```
+## Seguire un journey, non una directory
 
-può essere utile per orientarsi.
+Esplorare `controllers/`, `services/`, `repositories/` e `utils/` può aiutare a orientarsi.
 
-Ma il sistema produce valore attraverso journey.
+Ma la struttura delle cartelle non è il comportamento del prodotto.
+
+Per comprendere una capability conviene partire da un journey concreto.
 
 Per esempio:
 
 ```text
 operator opens case
-→ application loads customer/order/payment facts
+→ application loads facts
 → priority is calculated
 → case is assigned
 → notification is emitted
-→ nightly report includes the case
+→ nightly export includes the result
 ```
 
-Seguire questo percorso ci permette di vedere insieme:
+Seguire il journey ci costringe a vedere insieme codice, dati, side effect, temporal coupling e consumer.
 
-- codice;
-- dati;
-- integrazione;
-- temporal coupling;
-- ownership;
-- side effect;
-- operazioni successive.
+Per ogni tratto vogliamo identificare almeno:
 
-Un journey è spesso una lente migliore della struttura del repository.
+```text
+Entry point
+che cosa avvia il comportamento?
 
-## Entry point e side effect
+Decision point
+dove viene applicata la regola?
 
-Per ogni capability che vogliamo comprendere identifichiamo almeno:
+State change
+quale stato persistente cambia?
 
-### Entry point
+Side effect
+che cosa accade fuori dal commit principale?
 
-Che cosa avvia il comportamento?
+Consumer
+chi dipende dal risultato?
 
-- HTTP request;
-- queue message;
-- cron;
-- DB trigger;
-- file drop;
-- UI action;
-- webhook;
-- comando manuale.
+Recovery
+che cosa succede se il flow si interrompe?
+```
 
-### Decision point
+Questa struttura produce una mappa più utile di una call graph isolata.
 
-Dove vengono applicate le regole?
+## Le dependency che il compilatore non vede
 
-### State change
+Nel legacy una dependency non coincide con un import.
 
-Quale stato persistente cambia?
-
-### Side effect
-
-Che cosa accade fuori dalla transazione principale?
-
-### Consumer
-
-Chi dipende dal risultato?
-
-### Recovery path
-
-Che cosa succede se il flow fallisce a metà?
-
-Questa struttura è molto più utile di una semplice call graph.
-
-## Il dependency graph che conta
-
-Una dependency non è soltanto un import.
-
-Nel legacy possiamo avere dependency attraverso:
+Può vivere in:
 
 ```text
 shared table
@@ -139,111 +112,98 @@ cron ordering
 shared cache key
 CSV schema
 email subject convention
-human approval
+manual approval
 ```
 
-Queste dipendenze sono spesso più pericolose proprio perché non appaiono in un IDE come riferimento simbolico.
+Un import è facile da cercare.
 
-### Dependency visibile
-
-```ts
-import { CustomerRepository } from "./customer-repository";
-```
-
-### Dependency implicita
+Una regola come:
 
 ```text
-job B assumes job A finished before 02:15
+job B assumes job A completed before 02:15
 ```
 
-La seconda può essere più architetturalmente significativa della prima.
+può essere molto più pericolosa e non apparire in nessun reference graph del linguaggio.
+
+La code archaeology deve quindi cercare **coupling semantico e operativo**, non soltanto coupling simbolico.
 
 ## Il database come documento storico
 
-Nei sistemi legacy il database spesso racconta decisioni che il codice non racconta più.
+Nei sistemi legacy il database spesso conserva tracce di decisioni che il codice non racconta più.
 
 Cerchiamo:
 
-- table owner reale;
+- writer e reader reali;
+- trigger e stored procedure;
+- view usate da sistemi esterni;
 - colonne nullable con significato speciale;
 - default storici;
-- trigger;
-- stored procedure;
-- view;
-- foreign key mancanti intenzionalmente o accidentalmente;
-- colonne che nessuno scrive più;
-- tabelle lette da sistemi esterni;
-- timestamp usati come segnali di workflow;
-- campi che contengono enum non documentati.
+- timestamp usati come state machine implicita;
+- enum o codici non documentati;
+- indici che rivelano workload importanti;
+- colonne che nessuno scrive più ma qualcuno potrebbe leggere ancora.
 
 Una colonna apparentemente inutile può essere un contratto.
 
-Prima di rimuoverla dobbiamo sapere se qualcuno la legge.
+Prima di rimuoverla dobbiamo sapere chi la considera ancora parte del sistema.
 
-## Runtime evidence
+## Static evidence e runtime evidence rispondono a domande diverse
 
-Static analysis ci dice ciò che **può** accadere secondo il codice disponibile.
+La static analysis ci dice che cosa **può** accadere secondo gli artefatti che vediamo.
 
-Runtime evidence ci aiuta a capire ciò che **accade realmente**.
+La runtime evidence ci aiuta a capire che cosa **accade realmente**.
 
-Fonti utili:
-
-- trace;
-- structured log;
-- access log;
-- metriche;
-- query history;
-- message telemetry;
-- job execution history;
-- audit log;
-- deployment history;
-- incidenti;
-- feature flag exposure;
-- production config diff.
-
-L'observability del Capitolo 15 diventa qui strumento di archaeology.
-
-Non osserviamo soltanto per gestire incidenti.
-
-Osserviamo per ricostruire il sistema.
-
-## Git history come evidence organizzativa
-
-La storia del repository può rispondere a domande che il codice corrente non può rispondere.
-
-Per esempio:
-
-- perché esiste questo branch?
-- quale incidente ha introdotto questa condizione?
-- quali file cambiano spesso insieme?
-- chi ha lavorato su questa area?
-- questa funzione è ancora attiva o è residuo di una migrazione?
-- questo workaround doveva essere temporaneo?
-
-Strumenti come:
+Fonti utili includono:
 
 ```text
-git log
-git blame
-co-change analysis
-PR history
-issue history
-CODEOWNERS / SERVICEOWNERS
+trace
+structured log
+access log
+metrics
+query history
+message telemetry
+job execution history
+audit log
+deployment history
+incident timeline
+feature-flag exposure
+production config diff
 ```
 
-possono fornire contesto.
+L'observability del Capitolo 15 cambia qui funzione.
 
-Ma anche qui serve cautela.
+Non serve soltanto durante un incidente.
 
-`git blame` identifica chi ha introdotto una riga.
+Diventa uno strumento di archaeology.
 
-Non identifica automaticamente chi la possiede oggi.
+Una funzione trovata nel repository è `Found`.
 
-## Ownership discovery
+Una trace che mostra quella funzione nel critical journey può promuovere la claim a `Observed`.
 
-Un sistema senza owner è difficile da modernizzare anche quando il codice è comprensibile.
+Serve ancora una decisione di dominio prima di chiamarla `Confirmed`.
 
-Dobbiamo distinguere:
+## Git history racconta decisioni, non verità correnti
+
+La storia del repository può aiutarci a capire:
+
+- perché esiste un branch;
+- quale incidente ha introdotto un workaround;
+- quali file cambiano spesso insieme;
+- chi conosceva una certa area;
+- se una funzione nasceva come passaggio temporaneo;
+- quale issue descriveva la semantica originaria.
+
+`git log`, `git blame`, PR, issue e co-change analysis sono fonti preziose.
+
+Ma anche qui serve disciplina.
+
+`git blame` dice chi ha modificato una riga in passato.
+
+Non dice chi possiede oggi il comportamento.
+
+## Ownership è parte della comprensione
+
+Per una capability legacy dobbiamo distinguere almeno:
 
 ```text
 code owner
@@ -254,97 +214,118 @@ incident owner
 consumer owner
 ```
 
-Possono essere persone o team differenti.
+Possono essere team differenti.
 
-GitHub ha descritto pubblicamente la necessità di introdurre un livello `SERVICEOWNERS` sopra la sola ownership dei file in una codebase ibrida monolite/servizi, proprio perché code ownership e service ownership non coincidono necessariamente.
+GitHub ha descritto pubblicamente l'introduzione di `SERVICEOWNERS` sopra la sola file ownership proprio perché code ownership e service ownership non coincidono necessariamente.
 
 Fonte:
 
 - [GitHub Engineering — How we organize and get things done with SERVICEOWNERS](https://github.blog/engineering/architecture-optimization/how-we-organize-and-get-things-done-with-serviceowners/)
 
-## Evidence ledger
+Un sistema senza owner non è soltanto difficile da mantenere.
 
-Per evitare che le ipotesi diventino fatti, introduciamo un piccolo ledger.
+È difficile da **confermare**: manca qualcuno che possa assumersi la responsabilità del significato.
+
+## L'Evidence Ledger
+
+Per evitare che una spiegazione plausibile diventi documentazione autorevole, ogni claim importante entra in un ledger.
 
 | Claim | Evidence | State | Owner | Missing evidence |
 |---|---|---|---|---|
-| `PriorityRouter` è usato dal flow operator | call site | Found | unknown | runtime trace |
-| output `Urgent` alimenta nightly export | SQL + batch query | Inferred | Ops Data | execution evidence |
-| enterprise tenant segue regola diversa | characterization test | Observed | Operations | domain confirmation |
-| regola è ancora richiesta dal contratto | contract + Product confirmation | Confirmed | Product | — |
+| `PriorityRouter` appare nel flow operator | call site | Found | unknown | runtime trace |
+| `Urgent` alimenta nightly export | SQL + batch query | Inferred | Ops Data | execution evidence |
+| Enterprise segue una regola diversa | characterization test | Observed | Operations | domain confirmation |
+| la regola è ancora richiesta | contract + Product decision | Confirmed | Product | — |
 
-Questo è un artefatto di pensiero importante.
+La tabella non serve a creare burocrazia.
 
-## Non tutto merita la stessa profondità
-
-La quantità di archaeology deve essere proporzionata a:
-
-- blast radius;
-- reversibilità;
-- criticità business;
-- data sensitivity;
-- transaction semantics;
-- numero di consumer;
-- confidence corrente;
-- possibilità di rollback.
-
-Cambiare una label interna non richiede settimane di discovery.
-
-Cambiare il calcolo che determina un pagamento sì.
-
-## Architecture Context Map inversa
-
-Nel greenfield abbiamo costruito una Architecture Context Map prima dell'implementazione.
-
-Nel brownfield possiamo fare il contrario:
+Serve a impedire una trasformazione pericolosa:
 
 ```text
-runtime/repository/data evidence
+possible
+→ probable
+→ documented
+→ treated as true
+```
+
+senza che nessuna nuova evidence sia stata raccolta.
+
+## La profondità della discovery segue il rischio
+
+Non ogni modifica merita la stessa quantità di archaeology.
+
+La profondità dipende da:
+
+```text
+blast radius
+reversibility
+business criticality
+data sensitivity
+transaction semantics
+number of consumers
+current confidence
+rollback capability
+```
+
+Cambiare una label interna può richiedere poco.
+
+Cambiare un calcolo che influenza pagamento, autorizzazione o reporting può richiedere inventory, characterization, runtime evidence e owner confirmation.
+
+La regola è la stessa del testing risk-driven:
+
+> **spendiamo comprensione dove il costo di una convinzione sbagliata è alto.**
+
+## Ricostruire una Architecture Context Map al contrario
+
+Nel greenfield abbiamo costruito la context map prima dell'implementazione.
+
+Nel brownfield il percorso è inverso:
+
+```text
+repository / runtime / data evidence
 → infer boundaries
-→ validate owners
+→ find owners and consumers
+→ validate relationships
 → rebuild context map
 ```
 
-Questa mappa non descrive l'architettura che desideriamo.
+La mappa risultante non descrive ciò che vorremmo avere.
 
-Descrive l'architettura che abbiamo abbastanza evidence per affermare.
+Descrive ciò che abbiamo abbastanza evidence per sostenere oggi.
 
-## Il ruolo dell'AI
+## AI come acceleratore dell'inventory
 
-Un agente è particolarmente efficace nel primo pass di inventory.
-
-Può produrre:
+Un agente può fare molto bene il primo pass:
 
 ```text
 list entry points
 list DB access
-list outbound HTTP calls
+list outbound calls
 list queue/topic names
-list feature flags
 list scheduler definitions
+list feature flags
 list high fan-in modules
 list duplicated rules
 ```
 
-Ma l'output deve conservare provenance.
+Ma un output utile deve conservare provenance.
 
-Un buon risultato non è:
-
-> “Il sistema usa tre database e due queue.”
-
-È:
+Meglio:
 
 ```text
-Database A
-Found in: config/prod.yml + repository adapter
-State: Found
-Runtime confirmation: missing
-
 Queue B
-Found in: publisher source
+Found in: publisher source + config key
 State: Found
 Consumer: unknown
 Runtime traffic: missing
 ```
 
-> **Nel legacy, una mappa senza provenance può rendere più veloce una decisione sbagliata.**
+che:
+
+> Il sistema usa Queue B per il workflow X.
+
+La seconda frase è più elegante.
+
+La prima è più governabile.
+
+> **Nel legacy, una mappa senza provenance può ridurre il tempo necessario per prendere la decisione sbagliata.**
