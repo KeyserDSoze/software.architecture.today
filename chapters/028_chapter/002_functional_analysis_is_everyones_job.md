@@ -1,320 +1,93 @@
 # 28.2 — L'analisi funzionale non appartiene solo all'analista
 
-Una delle separazioni organizzative più pericolose è questa:
+Una delle separazioni organizzative più pericolose è quella che assegna il significato del prodotto a un ruolo e l'implementazione a un altro: il Business Analyst capisce il dominio, il developer traduce ticket in codice, l'architect disegna componenti.
 
-```text
-Business Analyst
-→ capisce il dominio
-→ scrive requisiti
+Sulla carta sembra efficiente. Nella pratica può produrre tre versioni parziali dello stesso sistema: ciò che il business intende, ciò che il codice fa e ciò che i diagrammi dicono che dovrebbe accadere.
 
-Developer
-→ implementa
+Quando queste tre conoscenze si sovrappongono troppo poco, la fragilità emerge proprio nei punti in cui il significato cambia.
 
-Architect
-→ disegna componenti
-```
+Per questo l'architect deve saper **leggere, discutere e produrre analisi funzionale**. Non per sostituire Product o Business Analysis, ma perché non si può progettare responsabilmente un sistema che si conosce soltanto attraverso nomi di servizi e ticket.
 
-Sembra una divisione efficiente del lavoro.
+> **L'analisi funzionale può avere specialisti. La comprensione funzionale non può avere un solo proprietario.**
 
-Spesso produce invece tre versioni parziali dello stesso sistema.
-
-L'analista conosce ciò che il business ha chiesto.
-
-Il developer conosce ciò che il codice fa.
-
-L'architect conosce ciò che i diagrammi dicono che dovrebbe succedere.
-
-Quando queste tre conoscenze non si sovrappongono abbastanza, il sistema diventa fragile proprio nei punti dove cambia il significato.
-
-L'architect del 2030 deve quindi saper **leggere, discutere e produrre analisi funzionale**.
-
-Non per sostituire il business analyst.
-
-Per essere in grado di fare architecture su qualcosa che comprende realmente.
-
-> **Non possiamo progettare bene il comportamento di un sistema che conosciamo soltanto attraverso nomi di servizi e ticket.**
-
----
-
-## La functional analysis è parte della comprensione tecnica
+## Prima del protocollo viene il significato
 
 Prendiamo una richiesta apparentemente semplice:
 
-> “Aggiungiamo un pulsante per annullare un ordine.”
+> Aggiungiamo un pulsante per annullare un ordine.
 
-Un architect che resta al livello tecnologico può cominciare subito a chiedersi:
+È facile passare immediatamente a endpoint, event, queue e idempotency. Ma le decisioni architetturali dipendono prima da altre domande: chi può annullare, in quali stati, se l'annullamento è una richiesta o un effetto immediato, cosa accade dopo il capture del pagamento o l'avvio della spedizione, chi possiede la decisione economica, quale compensazione è possibile, quali obblighi di audit esistono.
 
-```text
-REST o event?
-nuovo endpoint?
-nuova queue?
-idempotency?
-```
+Queste risposte cambiano ownership, API semantics, transaction boundary, authorization, consistency, recovery, UX e support procedure.
 
-Ma prima esistono domande funzionali:
+L'analisi funzionale non vive quindi "prima" dell'architettura come una fase separata. È una delle sue sorgenti.
 
-```text
-Chi può annullare?
-In quali stati?
-Che cosa significa annullare?
-È una richiesta o un effetto immediato?
-Che cosa succede se il pagamento è già catturato?
-Che cosa succede se la spedizione è partita?
-Esiste una finestra temporale?
-Chi possiede la decisione economica?
-Serve una compensazione?
-Il cliente può vedere l'operazione?
-Esistono obblighi di audit?
-```
+## Visione d'insieme non significa conoscere ogni dettaglio
 
-Queste domande cambiano completamente:
+In un sistema grande nessuno può conoscere tutto. Ma chi prende decisioni significative deve almeno riuscire a ricostruire attori principali, critical journey, stati business importanti, ownership dei fatti, side effect irreversibili o economici, boundary organizzativi e principali eccezioni.
 
-- ownership;
-- API semantics;
-- transaction boundary;
-- security;
-- consistency;
-- eventuali saga;
-- audit;
-- rollback;
-- UX;
-- support procedure.
+Questo vale per architect, developer, tester, product engineer, SRE, security engineer e per chi governa agent execution.
 
-Quindi l'analisi funzionale non è una fase “prima dell'architettura”.
-
-È una delle sorgenti dell'architettura.
-
----
-
-## Tutti devono avere almeno una visione d'insieme
-
-In un sistema non banale non è realistico che ogni persona conosca ogni dettaglio.
-
-Ma è ragionevole aspettarsi che chi prende decisioni significative conosca almeno:
-
-```text
-attori principali
-critical user journey
-stati business importanti
-ownership dei dati
-side effect economici o irreversibili
-boundary organizzativi
-principali eccezioni
-quality attribute che cambiano il comportamento
-```
-
-Questo vale per:
-
-- architect;
-- developer;
-- tester;
-- product engineer;
-- SRE/operations quando opera il prodotto;
-- security engineer quando un controllo cambia il journey;
-- agent manager quando delega execution.
-
-Il livello di dettaglio può cambiare.
-
-La visione d'insieme no.
+La profondità cambia per ruolo. La visione d'insieme non dovrebbe scomparire.
 
 > **Un team può distribuire il lavoro. Non può distribuire la comprensione fino al punto in cui nessuno vede più il sistema intero.**
 
----
+## Leggere una functional specification significa interrogare il significato
 
-## L'architect deve saper leggere una specifica funzionale
-
-Microsoft Well-Architected collega esplicitamente architecture design e functional specification: la specifica tecnica deve basarsi su scope e obiettivi della specifica funzionale, e il processo di progettazione è collaborativo fra stakeholder, developer, tester, operations e product owner.
+Microsoft Well-Architected collega architecture design e functional specification e descrive il design come attività collaborativa fra stakeholder, developer, tester, operations e product owner.
 
 Fonte:
 
-- Microsoft Learn — *Develop an architecture design specification*: https://learn.microsoft.com/en-us/azure/well-architected/architect-role/architecture-design-specification
+- [Microsoft Learn — Develop an architecture design specification](https://learn.microsoft.com/en-us/azure/well-architected/architect-role/architecture-design-specification)
 
-Il punto non è adottare il formato Microsoft.
+La lezione utile non è adottare un formato specifico. È riconoscere che una functional specification deve essere letta cercando ambiguità, contraddizioni, one-way door, NFR impliciti, ownership non chiare e decisioni che appartengono a un'autorità diversa.
 
-Il punto è riconoscere che un architect deve saper valutare una specifica funzionale per capire almeno:
+Una frase grammaticalmente perfetta può essere funzionalmente ambigua. Un acceptance criterion apparentemente preciso può comunque non dire chi possiede il fatto che stiamo verificando.
 
-```text
-cosa è esplicito
-cosa è ambiguo
-cosa manca
-cosa contraddice altre parti
-cosa crea una one-way door
-cosa genera un NFR implicito
-cosa richiede una decision authority diversa
-```
+## Saper fare una prima analisi è diverso dal decidere per il business
 
-Leggere una functional analysis non significa verificarne grammatica e completezza formale.
+Non sempre esiste un analyst disponibile. Una migration può rivelare una regola legacy mai formalizzata. Un incidente può mostrare una semantica implicita. Una feature AI può obbligarci a distinguere se una risposta è un fatto, un suggerimento o una decisione.
 
-Significa interrogare il significato.
+In questi casi l'architect non dovrebbe accumulare `TBD by Product` senza struttura. Deve saper trasformare l'incertezza in un oggetto discutibile: problema, attori, outcome, journey, stati, regole, eccezioni, ownership, non-goal, open question e acceptance semantics.
 
----
-
-## E deve anche saperla fare
-
-A volte il business analyst non c'è.
-
-A volte c'è ma il problema nasce in una conversazione tecnica.
-
-A volte un incidente rivela una regola funzionale mai scritta.
-
-A volte una migration costringe a decidere quale comportamento legacy debba sopravvivere.
-
-A volte una feature AI introduce una domanda nuova:
-
-> “Questa risposta è un fatto, un suggerimento o una decisione?”
-
-In tutti questi casi l'architect non può limitarsi a scrivere:
-
-```text
-TBD by Product
-```
-
-per ogni domanda.
-
-Deve essere in grado di costruire almeno una prima analisi:
-
-```text
-Problem
-Actors
-Outcome
-Journey
-States
-Rules
-Exceptions
-Ownership
-Open questions
-Acceptance semantics
-Non-goals
-```
-
-Poi può portarla alla persona che possiede la decisione.
-
-Questo è molto diverso dal decidere unilateralmente.
+Poi quella bozza va portata a chi possiede l'autorità necessaria.
 
 > **Saper fare analisi funzionale significa saper rendere una decisione discutibile. Non significa arrogarsi il diritto di prenderla.**
 
----
+## L'analisi è migliore quando diventa un oggetto condiviso
 
-## Functional Analysis come strumento di collaborazione
+Una buona functional analysis non dovrebbe essere un documento che un ruolo consegna a un altro. Può diventare il punto di convergenza di prospettive differenti.
 
-Una buona analisi funzionale non deve essere un documento consegnato da un ruolo a un altro.
+Product chiarisce outcome e priorità. Il domain expert chiarisce regole ed eccezioni. L'architect espone ownership, irreversibilità e quality implications. Il developer porta feasibility e hidden behavior dell'esistente. Il tester trasforma regole in acceptance falsificabile. Security porta abuse case e authorization. Operations porta failure e recovery consequence.
 
-Può essere un oggetto di lavoro condiviso.
+Questo non è analysis by committee. È costruzione di comprensione condivisa prima che il codice renda costose le interpretazioni divergenti.
 
-Per esempio, per una nuova capability ESI:
+## L'AI rende più costosa l'ambiguità nascosta
 
-```text
-Product
-→ chiarisce outcome e priorità
+Un agente è molto bravo a riempire un vuoto con un'interpretazione plausibile. Per scaffolding e mapping meccanici è un vantaggio. Per business rule, ownership, authorization, contract o economic effect può essere pericoloso.
 
-Domain expert
-→ chiarisce regole ed eccezioni
-
-Architect
-→ evidenzia ownership, irreversibilità, quality implication
-
-Developer
-→ evidenzia feasibility e hidden behavior del sistema attuale
-
-Tester
-→ trasforma regole in falsifiable acceptance
-
-Security
-→ evidenzia abuse case e authorization
-
-Operations
-→ evidenzia support/recovery implication
-```
-
-Questa non è “analysis by committee”.
-
-È costruzione di una comprensione condivisa prima che il codice renda costose le differenze di interpretazione.
-
----
-
-## L'AI rende questa competenza ancora più importante
-
-Un agente è molto bravo a riempire vuoti con una interpretazione plausibile.
-
-Questo è utile quando il vuoto riguarda:
+Una issue come:
 
 ```text
-boilerplate
-mapping meccanico
-scaffolding
+Implement cancel order
 ```
 
-È pericoloso quando riguarda:
+può produrre in poco tempo una soluzione tecnicamente coerente. Ma "plausibile" non significa "autorizzata dal prodotto".
 
-```text
-business rule
-ownership
-authorization
-economic effect
-exception
-contract
-```
+Più l'execution costa poco, meno possiamo permetterci che l'ambiguità rimanga invisibile.
 
-Consideriamo una issue:
+> **L'AI riduce il costo di implementare un'interpretazione. Per questo aumenta il valore di sapere se quell'interpretazione è autorizzata.**
 
-```text
-Implement cancel order.
-```
+## Functional Literacy Baseline ESI
 
-Un agente può costruire velocemente una soluzione ragionevole.
+Nella Capability Map ESI, la baseline non richiede che ogni architect sia il miglior analyst dell'azienda. Richiede però che sappia leggere una functional analysis, costruirne una prima bozza quando manca, modellare journey e stati, identificare invariant, separare requirement da implementation suggestion, rendere esplicite ownership e decision authority, trasformare ambiguità in open question e collegare acceptance semantics a evidence.
 
-Ma “ragionevole” non significa “corretta per il business”.
+Un test semplice è chiedere, prima di aprire il diagramma: quale problema risolve la capability, chi la usa, quali stati attraversa, quali invarianti non può violare, chi possiede i fatti, quali side effect sono difficili da invertire e quale evidence dimostrerebbe che la promessa è rispettata.
 
-Se il team non sa riconoscere le domande mancanti, l'AI aumenta la probabilità che l'ambiguità diventi codice funzionante.
+Non è necessario conoscere tutte le risposte in anticipo. È necessario riconoscere quando mancano.
 
-> **L'AI riduce il costo di implementare una interpretazione. Per questo aumenta il valore di sapere se quella interpretazione è autorizzata.**
+La frase che ESI non considera accettabile come baseline professionale è:
 
----
+> "Io mi occupo solo della parte tecnica."
 
-## Un test per l'architect
-
-Davanti a una capability importante, l'architect dovrebbe riuscire a rispondere senza aprire subito il diagramma:
-
-1. Quale problema risolve?
-2. Chi la usa?
-3. Qual è il journey principale?
-4. Quali stati business attraversa?
-5. Quali invariant non possono essere violati?
-6. Chi possiede i fatti coinvolti?
-7. Quali side effect sono irreversibili o economicamente rilevanti?
-8. Quali failure sono visibili all'utente?
-9. Quali decisioni sono ancora aperte?
-10. Quale evidence ci direbbe che la feature fa ciò che promette?
-
-Se non sa rispondere, non è necessariamente un problema.
-
-Il problema è non sapere che queste risposte mancano.
-
----
-
-## ESI: Functional Literacy Baseline
-
-Nella capability map ESI, ogni architect deve dimostrare almeno la capacità di:
-
-```text
-leggere una functional analysis
-costruire una prima bozza quando manca
-modellare journey e stati
-identificare invariant
-separare requirement da implementation suggestion
-identificare ownership e decision authority
-trasformare ambiguità in open question esplicite
-collegare acceptance criterion a evidence
-```
-
-Non richiediamo che ogni architect sia il miglior analyst dell'azienda.
-
-Richiediamo che nessun architect possa usare:
-
-> “Io mi occupo solo della parte tecnica.”
-
-come giustificazione per non conoscere il prodotto che sta progettando.
-
-La regola è:
-
-> **L'analisi funzionale può avere specialisti. La comprensione funzionale non può avere un solo proprietario.**
+Perché nel software il significato del prodotto è già parte della tecnica nel momento in cui determina boundary, consistency, security, recovery e rischio.
