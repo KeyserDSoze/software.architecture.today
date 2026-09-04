@@ -1,18 +1,26 @@
 ## AI e API contract
 
-Le API sono uno dei punti in cui l'AI può produrre molto valore e molto debito con la stessa velocità.
+Le API sono uno dei punti in cui l'AI può produrre valore e debito con la stessa velocità.
 
-Un agente può generare in pochi minuti controller e DTO, OpenAPI e client SDK, test, mock server, documentazione e gateway policy. Proprio questa abbondanza rende facile confondere la completezza dell'impalcatura con la maturità del contratto.
+Un agente può generare controller, DTO, OpenAPI, client SDK, mock server, test e documentazione in pochi minuti. Può anche aggiornare decine di consumer quasi istantaneamente.
 
-Questa capacità rende ancora più importante separare **generazione del contratto** da **decisione sul contratto**.
+Questa abbondanza cambia l'economia della public surface.
 
-### Il rischio della CRUD gravity
+Prima un contratto mediocre incontrava almeno il freno del lavoro necessario per implementarlo e adottarlo. Oggi generazione e adozione possono essere entrambe economiche.
 
-Se chiediamo a un agente:
+Se il contratto è buono, è un vantaggio enorme.
+
+Se il contratto è cattivo, il coupling si diffonde molto più velocemente.
+
+> **Quando execution e adoption diventano economiche, il costo di una decisione semantica sbagliata pesa di più.**
+
+## CRUD gravity
+
+Se chiediamo:
 
 > “Esponi il modulo Orders via REST.”
 
-è plausibile ottenere qualcosa come:
+un agente ha moltissimi esempi plausibili a cui assomigliare:
 
 ```text
 GET    /orders
@@ -22,39 +30,27 @@ PUT    /orders/{id}
 DELETE /orders/{id}
 ```
 
-La struttura è familiare.
+La struttura è familiare e può perfino passare tutti i test generati.
 
-Potrebbe anche essere tecnicamente corretta.
+Ma un ordine non è necessariamente una risorsa CRUD generica. Potrebbe non essere eliminabile. Le transizioni possono avere invarianti, authorization e audit. Alcune action possono coinvolgere Payments o Shipping e richiedere idempotenza specifica.
 
-Ma non sappiamo se il dominio supporti davvero CRUD generico.
+Il problema non è che l'AI “non capisca REST”.
 
-Un ordine potrebbe:
+È che completa molto bene forme riconoscibili quando il prompt non contiene abbastanza semantica.
 
-- non essere eliminabile;
-- avere transizioni controllate;
-- richiedere audit;
-- dipendere da payment e shipment;
-- avere comandi con invarianti specifici.
+La stessa CRUD gravity che rende veloce lo scaffolding può trasformare il database mentale del framework nella public API del prodotto.
 
-L'AI tende a completare pattern riconoscibili.
+## Dal modello funzionale allo schema, non dal database al contratto
 
-Il nostro lavoro è verificare se il pattern coincide con la semantica del prodotto.
+Un agente può leggere tabelle e generare API automaticamente.
 
-### Dallo schema al dominio, non il contrario
+Questo è utile per esplorazione, admin tooling o prototipi controllati.
 
-Un agente può leggere il database e generare API automaticamente.
+È pericoloso quando il risultato viene trattato come design authority.
 
-È utile per esplorazione o scaffolding.
+Microsoft Azure Architecture Center raccomanda esplicitamente di evitare API che riflettono direttamente l'implementazione o lo schema interno: [Microsoft Learn — API design](https://learn.microsoft.com/azure/architecture/microservices/design/api-design).
 
-È pericoloso come design authority.
-
-Microsoft Azure Architecture Center raccomanda di non modellare l'API come mirror dello schema interno.
-
-Fonte:
-
-- [Microsoft Learn — API design](https://learn.microsoft.com/azure/architecture/microservices/design/api-design)
-
-Quindi una pipeline del tipo:
+Una pipeline come:
 
 ```text
 database schema
@@ -62,42 +58,47 @@ database schema
 → public API
 ```
 
-ha bisogno di un gate semantico molto forte.
+salta ownership, domain meaning e consumer need.
 
-Meglio:
+Un workflow più sano è:
 
 ```text
 functional model
-+ consumer needs
-+ domain boundaries
++ consumer need
++ domain boundary
++ quality constraints
 → contract intent
-→ AI-assisted schema/prototype
-→ review
+→ AI-assisted alternatives
+→ schema/prototype
+→ semantic review
+→ implementation
 ```
 
-### AI come contract reviewer
+L'AI entra presto.
 
-Un uso molto più interessante è chiedere all'AI di criticare un contratto già motivato.
+Non entra prima del significato.
+
+## L'AI è un ottimo reviewer di assunzioni nascoste
+
+Una volta che il contratto ha una motivazione, possiamo usare un agente in modo molto più interessante che come generatore di CRUD.
 
 Per esempio:
 
-> “Assumi che questa API debba essere supportata per cinque anni. Cerca breaking change nascoste, coupling all'implementazione, campi ambigui e operazioni non idempotenti.”
+> “Assumi che questa API debba essere supportata per cinque anni e che alcuni consumer non siano sotto il nostro controllo. Cerca breaking change future probabili, coupling all'implementazione, campi ambigui, failure non documentati e operazioni la cui idempotenza non è chiara.”
 
 Oppure:
 
-> “Elenca tutte le assunzioni che un client dovrebbe fare per usare correttamente questa API ma che non sono documentate.”
+> “Elenca tutte le assunzioni che un client deve fare per usare correttamente questa API ma che non compaiono nel contratto.”
 
-Oppure:
+Oppure ancora:
 
-> “Prova a costruire tre consumer diversi e segnala dove il contratto li costringe a conoscere dettagli interni.”
+> “Simula tre consumer con esigenze diverse e mostra dove la public surface li costringe a conoscere dettagli che appartengono al provider.”
 
-Questo sfrutta l'AI per aumentare la varietà della review.
+Il valore dell'AI sta qui nella varietà delle prospettive. Può produrre rapidamente consumer fittizi, edge case e scenari che il team autore del contratto tende naturalmente a sottovalutare.
 
-### Schema diff automatico
+## Schema diff e review semantica fanno lavori diversi
 
-Quando abbiamo OpenAPI, Protocol Buffers o GraphQL schema, possiamo usare tooling automatico e agenti per confrontare versioni.
-
-Un workflow possibile:
+Quando abbiamo OpenAPI, Protocol Buffers o GraphQL schema, possiamo automatizzare una parte della compatibility review:
 
 ```text
 contract v1
@@ -106,73 +107,87 @@ contract v1
 → breaking-change detector
 → agent semantic review
 → contract tests
-→ human approval
+→ human approval dove serve
 ```
 
-Lo schema diff può trovare cambiamenti sintattici.
+Lo schema diff è molto bravo a trovare rimozioni, rename, cambi di tipo e required property.
 
-L'agent review può cercare incompatibilità semantiche che il diff non vede.
+Non vede automaticamente che un nuovo enum value rompe una state machine del consumer, che l'ordering è cambiato o che la response ora può essere stale per trenta secondi.
 
-L'umano decide se il rischio è accettabile.
+L'agent review può cercare queste incompatibilità semantiche.
 
-### Generated clients aumentano il blast radius
+L'umano mantiene il gate sulle decisioni con alto blast radius.
 
-La code generation riduce il costo di adozione di un contratto.
+Le tre forme di controllo sono complementari.
 
-Questo è utile.
+## Client generati amplificano la promessa
 
-Ma può anche aumentare rapidamente il numero di consumer.
+La code generation rende facile adottare un'API.
 
-Se dieci team generano client da un'API, una decisione sbagliata nel contratto può diffondersi molto più velocemente.
+Dieci team possono generare il proprio client quasi senza costo. Un agent tool può essere creato sopra l'endpoint. Un workflow può iniziare a dipendere dal nuovo campo subito dopo il merge.
 
-Ancora una volta:
+Questo è esattamente ciò che vogliamo quando il contratto è stabile e intenzionale.
 
-> **quando execution e adoption diventano economiche, la qualità della decisione iniziale pesa di più.**
+Ma significa anche che un errore nella public surface può diventare dipendenza organizzativa molto prima che il team provider si renda conto del proprio blast radius.
 
-### Test generati
+La generazione non riduce il bisogno di compatibility discipline.
 
-Un agente può generare centinaia di test da OpenAPI.
+Lo aumenta.
 
-I controlli generati verificano bene schema, status code, required field, example e serialization.
+## Test generati: molta copertura della forma, non della promessa completa
 
-Non verificano automaticamente business invariant e authorization semantics, idempotency reale o correctness sotto retry. Freshness, compatibility semantica e failure behavior fra dipendenze richiedono evidence diverse dalla sola conformità allo schema.
+Da una spec machine-readable un agente può generare moltissimi test su serialization, required field, status code, example e schema.
 
-La quantità di contract test non sostituisce la qualità del contratto.
+Sono controlli utili.
 
-### Tool use e API per agenti
+Non dimostrano automaticamente che un refund sia idempotente sotto retry reale, che authorization corrisponda alle policy del dominio o che una vista parziale non induca un operatore in errore. Non verificano da soli freshness, backward compatibility semantica o behavior durante failure di dipendenze.
 
-Quando un'API viene esposta come tool a un agente AI, alcuni errori diventano ancora più importanti.
+La quantità di test generati può dare un senso di completezza che il contratto non ha ancora guadagnato.
 
-Un tool con nome ambiguo:
+Dobbiamo quindi distinguere:
+
+```text
+schema conformance
+≠
+contract correctness
+```
+
+## API come tool per agenti
+
+Quando una capability viene esposta direttamente a un agente AI, la precisione del contratto diventa ancora più importante.
+
+Un tool chiamato:
 
 ```text
 updateOrder
 ```
 
-può nascondere una quantità enorme di autorità.
+può nascondere un'autorità enorme. Non sappiamo se cambi indirizzo, stato, pagamento, note o più cose insieme.
 
-Meglio capability più esplicite e con permission boundary chiare.
-
-Per esempio:
+Capability più strette possono rendere più chiari permission boundary e side effect:
 
 ```text
 getOperationalOrderView
-requestPaymentRetry
+requestPaymentEscalation
 requestSupervisorEscalation
 ```
 
-se e soltanto se queste capability esistono davvero nel modello funzionale.
+ma soltanto se queste capability esistono davvero nel modello funzionale.
 
-Un agent tool contract dovrebbe rendere espliciti side effect e authorization, idempotency e confirmation requirement, blast radius e stop condition. Un tool non diventa sicuro perché l'endpoint sottostante è ben documentato.
+Un tool contract deve rendere leggibili authorization, side effect, idempotency, confirmation requirement, blast radius e stop condition. Un endpoint ben documentato non diventa automaticamente un tool sicuro se l'agente riceve più autorità di quella necessaria.
 
 Questo tema tornerà nei capitoli AI-native.
 
-### Il gate umano utile
+## Il gate umano deve stare dove il cambiamento è costoso
 
-Non serve approvare manualmente ogni campo di ogni DTO.
+Non serve che una persona approvi manualmente ogni property generata in un DTO.
 
-Serve concentrare il gate sulle decisioni costose da cambiare: semantic meaning e public surface, authorization boundary e breaking change, side effect e operazioni irreversibili, fino ai contract che attraversano team diversi.
+Il gate umano ha più valore sulle decisioni che diventano costose da invertire: semantic meaning, public surface, authorization boundary, side effect, operazioni irreversibili, breaking change e contratti che attraversano team o organizzazioni differenti.
 
-L'obiettivo non è rallentare la generazione.
+Il resto può essere fortemente automatizzato.
 
-È evitare che la velocità di generazione trasformi una convenzione accidentale in una promessa di lungo periodo.
+Questa è la stessa proporzionalità usata per gli ADR.
+
+Più il contratto è reversibile e locale, più possiamo delegare. Più la promessa si diffonde, più serve judgment prima della diffusione.
+
+> **L'AI può produrre un'API completa in pochi minuti. Il nostro lavoro è impedire che una convenzione generata in pochi minuti diventi una promessa di cinque anni senza il reasoning necessario.**
