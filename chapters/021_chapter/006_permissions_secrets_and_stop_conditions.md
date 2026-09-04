@@ -1,278 +1,154 @@
-# Permission, secret e stop condition
+# 21.6 — Permission, secret e stop condition
 
-Un repository può essere molto facile da comprendere e comunque essere pericoloso da automatizzare.
+Un repository può essere facile da comprendere, facile da costruire e comunque pericoloso da automatizzare.
 
-Perché conoscere il sistema non equivale ad avere il diritto di modificarlo in qualunque modo.
+Il motivo è semplice: **conoscere il sistema non equivale ad avere il diritto di modificarlo in qualunque modo**.
 
-Questo è il punto in cui AI-readiness incontra Security by Design.
+Questa è la zona in cui AI-readiness incontra Security by Design. Un agente può essere tecnicamente capace di modificare Bicep, creare una migration, chiamare un'API, ruotare un secret, aprire una PR o avviare un deployment. Da questa capacità non segue automaticamente l'autorizzazione a usare tutte quelle azioni nello stesso task.
 
-## Capability non significa authorization
+> **Capability e authorization sono due proprietà diverse.**
 
-Un agente può essere tecnicamente capace di:
+## Least privilege deve seguire il task
 
-- modificare Bicep;
-- creare una migration;
-- ruotare un secret;
-- cambiare una pipeline;
-- chiamare un'API;
-- aprire una PR;
-- eseguire un deployment.
+Nel Capitolo 13 abbiamo applicato least privilege alle workload identity. Lo stesso principio vale per l'execution agentica.
 
-Da questo non segue che debba poter fare tutte queste cose nello stesso task.
+Un task che modifica una business rule non ha bisogno di production credential, cloud admin, billing write access o secret rotation. Se queste permission sono comunque disponibili, il blast radius del task cresce senza che l'outcome lo richieda.
 
-Dobbiamo distinguere:
+La permission surface deve quindi seguire la semantic surface del lavoro.
+
+Più un agente può fare, più aumentano le conseguenze potenziali di errore, instruction ambiguity, prompt injection, tool misuse o credential exposure. La soluzione non è togliere ogni tool; è evitare di concedere capability che il task non può giustificare.
+
+Possiamo pensare al mandato operativo come a:
 
 ```text
-Can the agent do it?
-vs
-Is the agent allowed to do it now?
+context
++ allowed semantic change
++ allowed tools
++ verification
++ stop conditions
 ```
 
-Questa distinzione è architetturale.
+Nel Capitolo 23 questo diventerà un contratto più formale. Qui ci interessa costruire il repository in modo che questi boundary possano essere dichiarati e rispettati.
 
-## Least privilege per agenti
+## Il repository spiega il credential flow, non contiene la credenziale
 
-Nel Capitolo 13 abbiamo applicato least privilege ai workload identity.
+Secret, API key, password, private token e production credential non appartengono a `AGENTS.md`, README, sample config, prompt, fixture o log versionati.
 
-Lo stesso principio vale per gli agenti.
-
-Un coding task che modifica una business rule non ha bisogno di:
-
-```text
-production credentials
-cloud admin
-billing write access
-secret rotation
-```
-
-Il permission boundary deve seguire il task.
-
-Più ampia è la permission surface, maggiore è il blast radius di:
-
-- errore;
-- prompt injection;
-- instruction ambiguity;
-- tool misuse;
-- compromised dependency;
-- credenziale esposta.
-
-## Il repository non deve contenere secret
-
-Sembra banale.
-
-Con agenti che leggono automaticamente molto più repository content, diventa ancora più importante.
-
-Non inseriamo secret in:
-
-```text
-AGENTS.md
-README
-example config
-prompt file
-fixtures
-logs versionati
-```
-
-Il repository deve spiegare il meccanismo:
+Il repository può dire:
 
 ```text
 Use managed identity in deployed environments.
-For local development, obtain credentials through the approved developer flow.
+For local development use the approved developer credential flow.
 ```
 
-Non deve contenere la credenziale.
+Non deve includere il valore che rende possibile l'accesso.
 
-## Tool permission come parte del task
+Questa distinzione sembra ovvia finché non consideriamo che un coding agent può leggere automaticamente molte più superfici di un repository di quante ne aprirebbe un developer durante un task locale.
 
-Possiamo pensare a un task agentico come:
+Per questo la data minimization diventa ancora più importante: sample e fixture devono essere sintetici, minimizzati e sufficienti alla verifica senza trascinare customer data reale nel context layer.
+
+> **Context non è credential. Example data non è una scusa per versionare production data.**
+
+## La stop condition separa execution e decisione
+
+Una stop condition non è una frase prudenziale come “chiedi aiuto se qualcosa sembra rischioso”. Deve essere collegata a un boundary osservabile.
+
+Per Order Operations il task deve fermarsi quando richiede, senza una decisione già autorizzata, una nuova semantica economica, una nuova authoritative data ownership, public Internet ingress, una migration distruttiva, un indebolimento della tenant isolation, un breaking contract o un cambiamento delle regole funzionali confermate.
+
+Questi eventi hanno una caratteristica comune: **il problema ha smesso di essere soltanto execution**.
+
+L'agente può ancora raccogliere evidence, descrivere alternative o proporre un follow-up. Non dovrebbe però scegliere arbitrariamente quale owner perde authority, quale rischio diventa accettabile o quale requirement va ignorato per completare il task.
 
 ```text
-Context
-+ Allowed changes
-+ Allowed tools
-+ Verification
-+ Stop conditions
+execution problem
+→ agent can proceed inside mandate
+
+decision boundary reached
+→ stop + surface evidence + request authority
 ```
 
-Esempio:
+La stop condition rende esplicito il punto di transizione.
+
+## Fail closed dove l'incertezza cambia il rischio
+
+Non ogni failure richiede lo stesso comportamento.
+
+Se un formatter non parte possiamo avere un fallback ragionevole. Se non riusciamo a verificare authorization, tenant isolation, destructive migration, Payment semantics o production deployment, la direzione più sicura è normalmente fermarsi.
+
+Il principio è:
+
+> **quando l'assenza di evidence può trasformare un task locale in un incidente ad alto impatto, l'automazione deve preferire il fail closed.**
+
+Questo non significa rendere conservativo ogni workflow. Significa calibrare il comportamento sul costo dell'errore, esattamente come abbiamo fatto con reliability e security in tutto il libro.
+
+## Non tutto il testo che l'agente legge è instruction
+
+Un coding agent può incontrare frasi imperative in source comment, issue, documenti, file generati, log, fixture, vendored dependency o dati recuperati dall'esterno.
+
+Non tutto quel testo possiede authority.
+
+Questa distinzione diventa fondamentale quando l'agente ha accesso a tool che possono produrre effetti reali. Un log può contenere “delete this file”, ma resta data. Un documento esterno può contenere una prompt injection, ma non diventa una repository policy.
+
+Una forma concettuale utile è:
 
 ```text
-Allowed tools:
-- repository read/write
-- local build/test
+authoritative instruction channels
+→ repository operating instructions
+→ platform/security policy
+→ explicit task mandate
 
-Not allowed:
-- production deployment
-- secret store write
-- destructive DB operation
+untrusted or lower-authority content
+→ application data
+→ logs
+→ external documents
+→ third-party comments
 ```
 
-Nel Capitolo 23 questa idea diventerà un Agent Delegation Contract.
+La convenzione non risolve da sola la prompt injection. Fa però una cosa importante: riduce l'ambiguità su quali contenuti possono governare l'esecuzione.
 
-Qui prepariamo il repository affinché il boundary sia leggibile.
+## Human-in-the-loop non significa approvare ogni riga
 
-## Stop condition
+Un human gate è utile quando cambia il livello di rischio, non quando duplica tutta l'execution.
 
-Una stop condition è un evento che trasforma il task da execution problem a decision problem.
+Un normale task può produrre codice, typecheck, test e PR prima dell'intervento umano. Una modifica che introduce una one-way door, cambia security boundary o abilita production può richiedere un gate separato prima di attraversare quella soglia.
 
-Esempi Order Operations:
+Il flusso può quindi essere:
 
 ```text
-STOP if:
-- a new economic side effect is required;
-- a new authoritative data owner is needed;
-- the task introduces public ingress;
-- tenant isolation requirements are ambiguous;
-- a migration would destroy or irreversibly transform production data;
-- architecture fitness appears incompatible with a newly required property;
-- a confirmed functional rule conflicts with acceptance criteria.
+agent execution
+→ local evidence
+→ review / policy gate
+→ higher-risk environment or action
 ```
 
-L'agente non deve scegliere arbitrariamente quale fonte “vince”.
+La posizione del gate dipende dal task. Il principio resta la **separation of duties**: chi è capace di eseguire non deve ottenere automaticamente anche l'autorità necessaria ad approvare la propria escalation.
 
-Deve fermarsi e rendere visibile il conflitto.
+## Instruction e security control fanno lavori diversi
 
-## Fail closed vs fail open nell'automazione
+Scrivere “Never leak secrets” può essere utile come guida. Non sostituisce secret scanning, least privilege, managed identity, protected environment, branch/ruleset, audit log, code review o network control.
 
-Una domanda utile è:
+La instruction cerca di orientare il comportamento. Il permission boundary limita ciò che può accadere quando il comportamento è sbagliato.
 
-> se l'agente non riesce a verificare una condizione, deve procedere o fermarsi?
+> **Una instruction è una guida. Un security control è una proprietà del sistema.**
 
-Per una formatting rule possiamo tollerare un fallback.
+Confondere i due produce falsa sicurezza: un repository può avere istruzioni perfette e permission eccessive; oppure controlli forti ma un context layer che induce continuamente l'agente a tentare azioni non appropriate.
 
-Per:
+## Stop condition come moltiplicatore di autonomia
 
-- authorization;
-- destructive migration;
-- tenant isolation;
-- payment semantics;
-- production deployment;
+A prima vista una stop condition sembra ridurre l'autonomia. In realtà può permettere il contrario.
 
-la direzione dovrebbe normalmente essere fail closed.
+Se il sistema non sa distinguere task ordinario e decisione ad alto impatto, dobbiamo mantenere supervisione continua. Se i boundary sono chiari, possiamo lasciare molta più libertà dentro lo spazio sicuro e intervenire soltanto quando la semantic surface cambia categoria.
 
-Non perché ogni automazione debba essere conservativa.
-
-Perché il costo dell'errore cambia.
-
-## Prompt injection dentro il repository
-
-Un coding agent legge testo che può provenire da:
-
-- source comment;
-- issue;
-- documentation;
-- generated file;
-- vendored dependency;
-- test fixture;
-- log.
-
-Non tutto ciò che contiene una frase imperativa è una instruction autorevole.
-
-Questo problema diventa particolarmente importante quando gli agenti dispongono di tool esterni.
-
-Un repository AI-ready deve quindi distinguere i canali di authority.
-
-Esempio:
+Questo è lo stesso modello che useremo più avanti per l'autonomia degli agenti:
 
 ```text
-Authoritative instructions:
-AGENTS.md + platform policy + explicit task
-
-Untrusted content:
-application data
-logs
-external documents
-third-party source comments
+clear mandate
++ narrow permission
++ strong verification
++ explicit stop
+= more useful autonomy
 ```
 
-Non stiamo risolvendo completamente la prompt injection con una convenzione.
-
-Stiamo riducendo l'ambiguità su quali contenuti possano comandare l'esecuzione.
-
-## Human gate
-
-Human-in-the-loop non significa approvare ogni riga.
-
-Significa posizionare il gate dove cambia il livello di rischio.
-
-Esempio:
-
-```text
-agent
-→ code + local verification
-→ human review
-→ staging
-→ automated evidence
-→ human/authorized release gate for production
-```
-
-Oppure per un task a basso rischio:
-
-```text
-agent
-→ code + tests + PR
-→ merge when policy gates pass
-```
-
-L'autonomia può essere diversa per classi di task.
-
-## Security instructions non sostituiscono security controls
-
-Scrivere:
-
-```text
-Never leak secrets.
-```
-
-non è un controllo sufficiente.
-
-Servono ancora:
-
-- secret scanning;
-- least privilege;
-- managed identity;
-- protected environment;
-- branch/ruleset;
-- code review;
-- audit log;
-- network control;
-- deployment separation.
-
-Il file di istruzioni aiuta il comportamento dell'agente.
-
-Il controllo limita ciò che può succedere quando il comportamento fallisce.
-
-> **Una instruction è una guida. Un permission boundary è una proprietà del sistema.**
-
-## Repository content e data minimization
-
-Anche i dati di esempio meritano attenzione.
-
-Un agente può inviare parti del contesto a servizi di modello secondo il prodotto e la configurazione utilizzati.
-
-Per questo il repository dovrebbe evitare di contenere dati production reali non necessari.
-
-Fixture e sample devono essere:
-
-- sintetici;
-- minimizzati;
-- non sensibili;
-- sufficienti per il test.
-
-Questo era già secure engineering.
-
-L'uso agentico aumenta il valore della disciplina.
-
-## Stop condition come segno di maturità
-
-Un team inesperto può vedere la stop condition come limite dell'agente.
-
-In realtà è il contrario.
-
-Un sistema che sa quando fermarsi può avere più autonomia nel resto dello spazio.
-
-Se non abbiamo boundary, dobbiamo tenere l'agente sotto supervisione continua.
-
-Se abbiamo boundary chiari, possiamo delegare più execution.
+Non stiamo ancora definendo livelli formali di autonomia. Stiamo preparando il repository affinché possa sostenerli senza confondere capability con authority.
 
 > **L'autonomia utile non nasce eliminando i limiti. Nasce rendendo i limiti abbastanza chiari da poter lasciare libero tutto il resto.**
