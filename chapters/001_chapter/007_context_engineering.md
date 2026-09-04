@@ -1,257 +1,74 @@
 ## Context engineering
 
-Per molto tempo abbiamo parlato di **prompt engineering**.
+Per molto tempo abbiamo parlato di **prompt engineering**. La disciplina non scompare: saper formulare bene una richiesta continua a essere utile. Nel software engineering reale, però, il singolo prompt è soltanto una parte del problema.
 
-La disciplina non scompare.
-
-Saper formulare bene una richiesta continua a essere utile.
-
-Ma nel software engineering reale il singolo prompt è soltanto una parte del problema.
-
-Un agente che deve modificare un repository ha bisogno di molto più di una frase ben scritta.
-
-Ha bisogno di capire il contesto operativo in cui quella frase deve essere interpretata.
-
-Da qui nasce il concetto di **context engineering**.
+Un agente che deve modificare un repository non ha bisogno soltanto di una frase ben scritta. Deve capire il contesto operativo in cui quella frase va interpretata. Da qui nasce il concetto di **context engineering**.
 
 ### Il prompt è un ingresso, non il sistema
 
-Supponiamo di chiedere:
+Supponiamo di chiedere: “Aggiungi il supporto ai webhook”. La frase è comprensibile, ma per lavorare bene un agente deve ricostruire molto di più. Deve sapere chi invia quei webhook, come autentichiamo il sender, quale formato accettiamo, quando consideriamo riuscita l’elaborazione, come gestiamo duplicati e ordering e quali dati siano sensibili. Deve inoltre capire quali eventi esistono già, quali convenzioni usa il repository, come vengono trattati retry e logging, quali test sono obbligatori e quali boundary non devono essere attraversati.
 
-> “Aggiungi il supporto ai webhook.”
-
-La frase è comprensibile.
-
-Ma per lavorare bene un agente dovrebbe sapere almeno:
-
-- quali webhook;
-- chi li invia;
-- come autentichiamo il sender;
-- quale formato accettiamo;
-- cosa significa elaborazione riuscita;
-- se dobbiamo rispondere prima o dopo il processing;
-- come gestiamo duplicati;
-- come gestiamo ordering;
-- quali dati sono sensibili;
-- quali eventi esistono già;
-- quale naming usa il repository;
-- quale libreria HTTP è standard;
-- come vengono gestiti retry e logging;
-- quali test sono obbligatori;
-- quali boundary non devono essere attraversati.
-
-Possiamo mettere tutto nel prompt.
-
-Ma se molte di queste informazioni sono stabili e ricorrenti, ripeterle ogni volta è inefficiente.
-
-Dovrebbero vivere nel sistema di contesto del progetto.
+Potremmo mettere tutto nel prompt. Ma se molte di queste informazioni sono stabili e ricorrenti, ripeterle a ogni task è inefficiente e fragile. Dovrebbero vivere nel sistema di contesto del progetto.
 
 ### Le fonti di contesto
 
-Un agente può ricevere contesto da molte fonti:
+Il contesto non arriva da un solo posto. Istruzioni globali, repository, documentazione, ADR, issue, codice esistente, test, contratti, esempi, tool disponibili, permission boundary e stato dell’ambiente contribuiscono tutti a costruire ciò che l’agente considera vero e rilevante.
 
-```text
-istruzioni globali
-+ repository
-+ documentazione
-+ ADR
-+ issue
-+ codice esistente
-+ test
-+ contratti
-+ esempi
-+ tool disponibili
-+ permission boundary
-+ stato dell'ambiente
-```
-
-La qualità del risultato dipende dal modo in cui queste fonti si combinano.
-
-Se sono coerenti, l'agente può muoversi con maggiore autonomia.
-
-Se si contraddicono, l'agente deve scegliere quale fonte considerare autorevole.
-
-Se non definiamo una gerarchia, quella scelta può essere implicita.
+La qualità del risultato dipende anche da come queste fonti si combinano. Se sono coerenti, l’agente può muoversi con maggiore autonomia. Se si contraddicono, deve decidere quale fonte considerare autorevole. Se non abbiamo definito una gerarchia, quella decisione rischia di essere implicita.
 
 ### Source of truth
 
-Una domanda centrale del context engineering è:
+Una domanda centrale del context engineering è: **dove vive la verità operativa del progetto?**
 
-> **dove vive la verità operativa del progetto?**
+Il requisito è nell’issue o nel documento di feature? Il contratto API è nel codice, in OpenAPI o in una wiki? La decisione architetturale è nel README o nell’ADR? Il comando di build corretto è quello documentato o quello che esegue davvero la CI? Una policy di sicurezza descrive ancora l’implementazione attuale oppure è rimasta indietro?
 
-Il requisito è nell'issue o nel documento di feature?
-
-Il contratto API è nel codice, in OpenAPI o in una pagina wiki?
-
-La decisione architetturale è nel README o nell'ADR?
-
-Il comando di build corretto è nella documentazione o nella CI?
-
-La policy di sicurezza è descritta in un file che non corrisponde più all'implementazione?
-
-Un sistema con cinque fonti autorevoli che si contraddicono non ha più contesto.
-
-Ha rumore.
-
-Per questo un repository AI-ready deve essere anche un repository in cui le fonti di verità sono dichiarate e mantenute.
+Un sistema con cinque fonti autorevoli che si contraddicono non ha più contesto. Ha rumore. Per questo un repository AI-ready deve essere anche un repository in cui le source of truth sono dichiarate e mantenute.
 
 ### Context quality > prompt cleverness
 
-Un prompt brillante non può compensare completamente un contesto povero.
+Un prompt brillante non può compensare completamente un contesto povero. Se il repository non documenta boundary, test, comandi, decisioni o convenzioni, possiamo scrivere una richiesta molto sofisticata e continuare comunque a chiedere all’agente di indovinare parti importanti del sistema.
 
-Consideriamo due scenari.
+Se invece il repository contiene una overview architetturale, decisioni attive, contratti, feature description, test rappresentativi e istruzioni operative, il task può essere più breve perché rimanda a fonti stabili. Abbiamo spostato conoscenza da un’interazione effimera a una memoria riutilizzabile.
 
-Nel primo, il repository non documenta boundary, test, comandi, decisioni o convenzioni.
-
-Scriviamo un prompt lungo e sofisticato.
-
-Nel secondo, il repository contiene:
-
-```text
-AGENTS.md
-architecture/overview.md
-architecture/security.md
-adr/
-contracts/
-features/
-tests/
-```
-
-Il task può essere molto più breve perché rimanda a fonti stabili.
-
-Nel secondo caso abbiamo spostato conoscenza da una interazione effimera a una memoria riutilizzabile.
-
-Questa è una delle idee più importanti del libro:
-
-> **la qualità dell'agente dipende spesso più dal contesto operativo che dalla brillantezza del singolo prompt.**
+> **La qualità dell’agente dipende spesso più dal contesto operativo che dalla brillantezza del singolo prompt.**
 
 ### Contesto minimo sufficiente
 
-Anche il context engineering può degenerare.
+Anche il context engineering può degenerare. Possiamo riempire l’agente di documenti, policy, history ed esempi fino a creare un contesto enorme e contraddittorio. Più contesto non significa automaticamente contesto migliore.
 
-Possiamo riempire un agente di documenti, regole, esempi, policy e history fino a rendere il contesto enorme e contraddittorio.
+Serve il **contesto minimo sufficiente** per prendere bene le decisioni richieste dal task. Una modifica locale può richiedere soltanto issue, modulo interessato, contract, test e convenzioni. Una decisione architetturale può aver bisogno anche di NFR, deployment model, security assumptions, cost constraint, ADR precedenti e roadmap.
 
-Più contesto non significa automaticamente contesto migliore.
-
-Serve il **contesto minimo sufficiente** per prendere bene le decisioni richieste dal task.
-
-Per una modifica locale potrebbero bastare:
-
-- issue;
-- modulo interessato;
-- contract;
-- test;
-- convenzioni.
-
-Per una decisione architetturale potrebbero servire anche:
-
-- NFR;
-- deployment;
-- security assumptions;
-- cost constraints;
-- ADR precedenti;
-- roadmap.
-
-Il context engineering è anche selezione.
+Context engineering significa quindi anche selezione: non dare tutto ciò che sappiamo, ma rendere disponibile ciò che cambia la qualità della decisione.
 
 ### Context window e contesto organizzato
 
-Una finestra di contesto molto grande non risolve da sola il problema.
+Una finestra di contesto molto grande non risolve da sola il problema. Possiamo caricare centinaia di file e sperare che il modello trovi ciò che serve, ma un repository ben organizzato fa qualcosa di più utile: rende esplicite le relazioni fra feature, contract, owner, ADR, test e impatto sul deployment.
 
-Possiamo inserire centinaia di file e sperare che il modello trovi ciò che serve.
-
-A volte funziona.
-
-Ma un repository ben organizzato permette di fare qualcosa di migliore: rendere esplicite le relazioni.
-
-Per esempio:
-
-```text
-feature
-→ contract
-→ owner
-→ ADR rilevante
-→ test
-→ deployment impact
-```
-
-Questo riduce il lavoro inferenziale richiesto.
-
-Il contesto non deve essere soltanto disponibile.
-
-Deve essere **navigabile**.
+Il contesto non deve essere soltanto disponibile. Deve essere **navigabile**.
 
 ### Tool access è contesto operativo
 
-Un agente non è definito soltanto da ciò che sa.
+Un agente non è definito soltanto da ciò che sa, ma anche da ciò che può fare. Leggere il repository, modificare file, eseguire test, interrogare un database, accedere al cloud, aprire una pull request, fare deploy o leggere secret sono capability diverse con profili di rischio diversi.
 
-È definito anche da ciò che può fare.
-
-Può leggere il repository?
-
-Può modificare file?
-
-Può eseguire test?
-
-Può interrogare un database?
-
-Può accedere al cloud?
-
-Può aprire una pull request?
-
-Può fare deploy?
-
-Può leggere secret?
-
-Questi permessi fanno parte del context engineering perché cambiano il tipo di decisione che possiamo delegare.
-
-Un agente con accesso in sola lettura può essere usato con una tolleranza al rischio diversa da un agente che può modificare produzione.
-
-Il contesto include quindi anche **capability e permission boundary**.
+Questi permessi fanno parte del context engineering perché cambiano il tipo di decisione che possiamo delegare. Un agente in sola lettura può essere usato con una tolleranza al rischio diversa da un agente capace di modificare produzione. Il contesto comprende quindi anche **capability e permission boundary**.
 
 ### Esempi come specifica implicita
 
-Gli esempi sono una forma di contesto molto potente.
+Gli esempi sono una forma potente di contesto. Un’issue ben scritta, un ADR ben fatto o un test rappresentativo insegnano una convenzione senza bisogno di trasformarla in una lunga lista di regole astratte.
 
-Se mostriamo un'issue ben scritta, un ADR ben fatto o un test rappresentativo, stiamo insegnando una convenzione.
-
-Questo può essere più efficace di una lunga lista di regole astratte.
-
-Ma gli esempi possono anche perpetuare errori.
-
-Un vecchio test copiato dieci volte diventa rapidamente una pseudo-standard.
-
-Un workaround storico può essere interpretato come pattern preferito.
-
-Per questo anche gli esempi devono avere qualità e freshness.
+Ma gli esempi possono anche perpetuare errori. Un vecchio test copiato dieci volte diventa rapidamente uno pseudo-standard; un workaround storico può essere interpretato come il pattern preferito. Anche gli esempi devono quindi avere qualità e freshness.
 
 ### Documentation drift
 
-La documentazione come contesto introduce un rischio inevitabile: il drift.
+La documentazione introduce un rischio inevitabile: il drift. Un documento obsoleto può essere peggiore dell’assenza di documentazione perché fornisce una falsa certezza.
 
-Un documento obsoleto può essere peggiore dell'assenza di documento perché fornisce una falsa certezza.
-
-Questo cambia il modo in cui dobbiamo pensare alla documentazione.
-
-Non basta crearla.
-
-Dobbiamo progettare il modo in cui resta collegata al sistema.
-
-Possibili strategie:
-
-- documenti piccoli e vicini al codice rilevante;
-- ADR immutabili con stato esplicito;
-- contract generabili o validabili;
-- test che esprimono invarianti architetturali;
-- link tra feature e decisioni;
-- ownership dei documenti critici;
-- review della documentazione nello stesso change set.
+Per questo non basta creare documenti. Dobbiamo progettare il modo in cui restano collegati al sistema. Documenti piccoli e vicini al codice, ADR con stato esplicito, contract generabili o validabili, test che esprimono invarianti architetturali, link tra feature e decisioni e ownership dei documenti critici sono tutte strategie che riducono la distanza tra descrizione e realtà. Anche la documentazione dovrebbe essere revisionata nello stesso change set quando il cambiamento la rende obsoleta.
 
 > **Documentation is part of the architecture soltanto se rimane abbastanza affidabile da guidare decisioni.**
 
 ### Dal prompt al sistema operativo del progetto
 
-Il passaggio più interessante è questo:
+L’evoluzione che ci interessa può essere riassunta così:
 
 ```text
 prompt engineering
@@ -260,16 +77,8 @@ prompt engineering
 → repository engineering
 ```
 
-All'inizio ottimizziamo la singola richiesta.
+All’inizio ottimizziamo la singola richiesta. Poi impariamo a definire meglio il task, costruiamo un contesto riutilizzabile e infine trasformiamo il repository stesso in un ambiente in cui umani e agenti possono lavorare con meno ambiguità.
 
-Poi impariamo a definire meglio il task.
+Questo tema tornerà in modo molto più approfondito nella parte AI-native del libro. Per ora ci serve una conclusione semplice:
 
-Poi costruiamo un contesto riutilizzabile.
-
-Infine il repository stesso diventa un ambiente in cui umani e agenti possono lavorare con meno ambiguità.
-
-Questo tema tornerà in modo molto più approfondito nella parte AI-native del libro.
-
-Per ora ci serve una conclusione semplice:
-
-> **se dobbiamo spiegare da zero il progetto a ogni task, il problema non è soltanto il prompt. È l'architettura del contesto.**
+> **Se dobbiamo spiegare da zero il progetto a ogni task, il problema non è soltanto il prompt. È l’architettura del contesto.**
