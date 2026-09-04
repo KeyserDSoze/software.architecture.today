@@ -1,6 +1,6 @@
-# Observability Contract
+## Observability Contract
 
-Finora abbiamo costruito diversi artefatti operativi:
+Finora il capstone ha accumulato diversi artefatti che descrivono il sistema da prospettive complementari:
 
 ```text
 Failure Mode Map
@@ -9,49 +9,38 @@ Security Control Matrix
 Reliability Contract
 ```
 
-Ora introduciamo l'artefatto che collega questi documenti ai signal che il sistema deve produrre.
+Manca ancora il documento che dica **quale evidence il sistema deve produrre per rendere osservabili quelle decisioni**.
 
-Lo chiamiamo:
+Lo chiamiamo **Observability Contract**.
 
-> **Observability Contract**
+Non è uno standard universale. È l’artefatto operativo usato da questo libro per dichiarare che cosa dobbiamo poter sapere, attraverso quali signal, con quale ownership, quale retention, quale costo e quale verification path.
 
-Non è uno standard universale.
+## Perché serve un contratto e non soltanto instrumentation
 
-È l'artefatto operativo usato da questo libro per dichiarare:
+L’instrumentation tende a crescere localmente.
 
-- che cosa dobbiamo poter osservare;
-- perché;
-- attraverso quale signal;
-- chi lo possiede;
-- come viene verificato;
-- quale retention/costo accettiamo;
-- quale response path esiste.
+Una metric viene aggiunta per una dashboard. Un log nasce durante un incidente. Un alert viene copiato da un altro servizio. Un trace attribute appare perché era disponibile nel context.
 
-## Perché un contratto
+Ogni scelta può essere ragionevole isolatamente e produrre, nel tempo, un sistema difficile da governare.
 
-L'instrumentation tende a disperdersi nel codice.
+Senza una vista d’insieme diventa complicato rispondere a domande semplici:
 
-Una metric qui.
+```text
+quali signal misurano davvero gli SLO?
+quale failure mode è ancora invisibile?
+quale evidence monitora un security control?
+quali metric non hanno consumer?
+quali identifier possiamo registrare?
+chi possiede un alert?
+quale retention è intenzionale?
+che cosa deve essere provato prima della produzione?
+```
 
-Un log lì.
+Il contract serve a conservare il significato, non a elencare ogni log line.
 
-Una dashboard costruita durante un incidente.
+## Template operativo
 
-Un alert creato mesi dopo.
-
-Senza una vista d'insieme diventa difficile rispondere a domande semplici:
-
-- quali signal misurano davvero gli SLO?
-- quale telemetry protegge un security control?
-- quali metric non usa nessuno?
-- chi possiede un alert?
-- quali identifier possiamo registrare?
-- quali retention sono intenzionali?
-- cosa deve essere verificato prima della produzione?
-
-## Template
-
-Una versione leggera può essere:
+Una forma leggera può essere:
 
 ```markdown
 # Observability Contract
@@ -60,15 +49,7 @@ Una versione leggera può essere:
 
 ## SLI / SLO measurements
 
-## Metrics
-
-## Traces
-
-## Structured logs
-
-## Business events
-
-## Audit / security signals
+## Signal registry
 
 ## Correlation
 
@@ -76,11 +57,11 @@ Una versione leggera può essere:
 
 ## Sampling
 
-## Retention
+## Retention classes
 
 ## Alerts
 
-## Dashboards / investigation views
+## Investigation views
 
 ## Synthetic checks
 
@@ -93,149 +74,89 @@ Una versione leggera può essere:
 ## Open decisions
 ```
 
-Non tutte le sezioni devono essere enormi.
+Il dettaglio tecnico può vivere nel codice e nella platform configuration. Qui rimane ciò che governa outcome, failure, security, recovery, investigation e costo.
 
-Devono essere sufficienti a governare il workload.
+## Signal registry: registrare ciò che ha significato architetturale
 
-## Signal registry
+Per i signal importanti possiamo mantenere una tabella compatta:
 
-Per i signal significativi possiamo usare una tabella:
+| Signal | Type | Purpose | Dimensions/context | Consumer | Owner | Status |
+|---|---|---|---|---|---|---|
+| core journey good events | metric | SLI-01 | env/version/result | SLO | workload | Designed |
+| outbox oldest age | gauge | backlog risk | env | alert/investigation | workload | Designed |
+| escalation publication duration | histogram/event | SLI-03 | env/result | SLO | workload | Designed |
+| publish failure | structured event | diagnosis | failure class + correlation | investigation | workload | Designed |
 
-| Signal | Type | Purpose | Dimensions/context | Consumer | Owner | Retention | Status |
-|---|---|---|---|---|---|---|---|
-| core journey good events | metric | SLI | env/version/result | SLO | workload | TBD | Designed |
-| outbox oldest age | gauge | backlog risk | env | alert/debug | workload | TBD | Designed |
-| Payment Escalation delivery | histogram | business delivery SLI | result | SLO | workload | TBD | Designed |
-| publish failure | structured event | diagnosis | failure class/message correlation | investigation | workload | TBD | Designed |
+Non serve censire ogni telemetry field. Vogliamo registrare i signal che hanno una responsabilità operativa o una relazione con un contratto del sistema.
 
-Questa tabella non deve diventare un catalogo di ogni log line.
+## Reliability Contract → measurement source
 
-Registra ciò che ha significato architetturale o operativo.
+Il collegamento più importante è con gli SLO.
 
-## Link con Reliability Contract
-
-Ogni SLI deve indicare il proprio measurement source.
-
-Per esempio:
+Se il Reliability Contract dice:
 
 ```text
-Reliability Contract:
-Payment Escalation publication SLO
-99% <= 5m
+Payment Escalation publication
+99% <= 5 min
 ```
 
-nel contract observability diventa:
+l’Observability Contract deve trasformarlo in una misura:
 
 ```text
 source event = Requested
 terminal event = Published
 business key = escalationId
 measure = publishedAt - requestedAt
-aggregation = successful within target / valid requested
+aggregation = within-target / valid requested
 ```
 
-A questo punto lo SLO è molto più vicino a essere verificabile.
+A questo punto lo SLO smette di essere un numero isolato. Possiamo indicare l’evento che lo fa entrare nel denominatore, l’evento che dimostra il successo e la business identity che li collega.
 
-## Link con Failure Mode Map
+## Failure Mode Map → detection e investigation
 
-Ogni failure significativo dovrebbe avere almeno un modo di essere rilevato o investigato.
+Un failure significativo non richiede necessariamente un page, ma non dovrebbe essere invisibile.
 
-Esempio:
+Per esempio:
 
 ```text
 Failure Mode:
 Service Bus unavailable
 ```
 
-Observability:
+può essere investigato attraverso:
 
 ```text
-publish failures
+publish failure events
 outbox oldest age
-outbox pending count
+outbox pending
 Service Bus dependency telemetry
 Payment Escalation publication SLI
 ```
 
-Non significa un alert per ogni signal.
+Il contract rende esplicito che questi signal raccontano lo stesso failure da prospettive diverse.
 
-Significa che il failure non è invisibile.
+## Threat Model e Security Control Matrix → security evidence
 
-## Link con Threat Model
+Se il threat model include cross-tenant access attempt, possiamo voler preservare outcome di authorization, reason class bounded, request correlation e informazioni sufficienti a investigare il mismatch senza registrare token o payload sensibili.
 
-Esempio:
+Il Threat Model dice che cosa temiamo. Il Security Control Matrix dice quale controllo riduce il rischio. L’Observability Contract aggiunge:
 
-```text
-Threat:
-cross-tenant access attempt
-```
+> **Come ci accorgiamo che il controllo sta fallendo o che il suo comportamento sta cambiando?**
 
-Signal possibili:
+Questo è anche il punto in cui un controllo può avanzare verso `Monitored`.
 
-```text
-authorization decision outcome
-actor security context class
-resource tenant mismatch category
-request correlation
-```
+Per esempio, un RBAC send-only sul Service Bus può essere `Codified` in Bicep e `Verified` con un negative permission test. Il monitoraggio di role/configuration change può appartenere invece al platform audit path, non a una custom application metric.
 
-con data minimization e senza registrare token.
+Non tutto deve essere instrumentato dall’applicazione.
 
-Il threat model dice che cosa temiamo.
+## Correlation contract: preservare le identity giuste attraverso i boundary
 
-L'Observability Contract dice quale evidence ci aspettiamo.
-
-## Link con Security Control Matrix
-
-Un controllo può avanzare:
-
-```text
-Designed
-→ Codified
-→ Verified
-→ Monitored
-```
-
-La transizione a `Monitored` richiede una risposta concreta.
-
-Esempio:
-
-```text
-SC-13 Service Bus send-only runtime privilege
-```
-
-`Codified`:
-
-```text
-RBAC in Bicep
-```
-
-`Verified`:
-
-```text
-negative admin permission test
-```
-
-`Monitored`:
-
-```text
-privileged role/configuration changes osservabili tramite platform audit path
-```
-
-Non ogni controllo richiede un custom application metric.
-
-Alcuni signal appartengono a Platform/Security.
-
-## Correlation contract
-
-Dobbiamo dichiarare quali identifier attraversano quali boundary.
-
-Order Operations:
+Per Order Operations la relazione è:
 
 ```text
 HTTP request
   traceId
-  correlationId
+  correlationId quando serve
 
 OperationalCase
   caseId
@@ -245,8 +166,8 @@ PaymentEscalation
 
 OutboxMessage
   messageId
-  correlationId
   escalationId
+  correlationId
 
 Payments consumer
   messageId
@@ -254,135 +175,72 @@ Payments consumer
   correlationId
 ```
 
-Regola:
+La semantica resta distinta:
 
-- `traceId` serve all'execution trace;
-- `correlationId` collega un flusso operativo più ampio quando necessario;
-- `messageId` identifica la delivery tecnica;
-- `escalationId` identifica l'intenzione business;
-- nessuno di questi identifier deve diventare automaticamente una metric label.
+- `traceId` descrive una execution;
+- `messageId` descrive una delivery tecnica;
+- `escalationId` descrive la stessa intenzione business anche attraverso retry e redelivery;
+- `correlationId` collega un flow operativo più ampio quando necessario.
 
-## Telemetry schema versioning
+Nessuno di questi identificatori entra automaticamente nelle metric dimensions.
 
-Anche la telemetry è un contratto.
+## Anche la telemetry ha versioning e compatibility
 
-Se rinominiamo:
+Se rinominiamo una metric o cambiamo il significato di un `result` senza aggiornare SLI query, alert, dashboard e runbook, abbiamo introdotto una breaking change operativa.
 
-```text
-payment_escalation_delivery_seconds
-```
+La telemetry è quindi una compatibility surface.
 
-senza aggiornare:
+Una dashboard non dovrebbe essere l’unico posto in cui esiste questa conoscenza. Deve poter essere ricostruita dal contract, dalle query versionate e dalla semantic definition dei signal.
 
-- SLI query;
-- alert;
-- dashboard;
-- runbook;
-- test;
+Per ESI preferiamo view orientate a domande.
 
-abbiamo introdotto una breaking change operativa.
+Una **Workload Health view** deve aiutare a capire core journey SLI, burn, latency/errors/traffic/saturation, degraded state e recent deployment.
 
-Questo è un tipo di compatibility spesso ignorato.
+Una **Payment Escalation view** deve mostrare requested rate, local acceptance, outbox pending/oldest age, publication latency, failure class, DLQ e reconciliation.
 
-## Dashboard come view, non source of truth
+Una **investigation view** deve facilitare failure-class breakdown, trace search, deployment/config correlation e dependency behavior.
 
-Una dashboard dovrebbe poter essere ricostruita dal contract e dalle query sottostanti.
+Non costruiamo una dashboard per ogni Azure resource soltanto perché il resource provider offre grafici.
 
-Non deve diventare l'unico posto dove esiste la conoscenza.
+## L’observability può essere testata
 
-Per ESI preferiamo dashboard orientate a domande:
+Un signal non diventa `Verified` perché il codice contiene una chiamata `record()`.
 
-### Service health
-
-```text
-core journey SLI
-error-budget burn
-latency/errors/traffic/saturation
-current degraded state
-recent deployments
-```
-
-### Payment Escalation delivery
-
-```text
-requested rate
-local acceptance failures
-outbox pending/oldest age
-publish latency
-DLQ
-business delivery SLI
-```
-
-### Investigation
-
-```text
-failure class
-trace search
-recent deployment/configuration changes
-dependency latency
-```
-
-Non una dashboard per ogni Azure resource soltanto perché esiste.
-
-## Verification del contract
-
-Prima di chiamare un signal `Verified` dobbiamo poter produrre evidence.
-
-Esempi:
+Possiamo produrre evidence con test come:
 
 ```text
 inject known application failure
-→ metric/error event appare
+→ expected metric/event appare
 
-create synthetic trace
-→ correlation attraversa boundary
-
-force publish failure in test environment
+force publish failure
 → outbox age cresce
-→ alert condition/query è verificabile
+→ query/alert condition cambia come previsto
 
-redeliver same message
-→ duplicate telemetry è distinguibile dal duplicate business effect
+propagate synthetic context
+→ correlation attraversa il boundary
+
+emit known structured event
+→ required field presente
+→ forbidden sensitive field assente
+
+compute SLI on known fixture dataset
+→ expected ratio/burn ottenuto
 ```
 
-## Observability tests
+Questi test non sostituiscono la produzione. Evitano però di scoprire durante il primo incidente che correlation, redaction o SLI query non funzionano.
 
-L'observability può essere testata.
+## Il contract deve restare piccolo abbastanza da governare
 
-Possiamo verificare:
+Se l’Observability Contract contiene cinquecento metriche senza spiegare quale decisione abilitino, abbiamo ricreato il problema in Markdown.
 
-- metric emitted;
-- required structured fields;
-- forbidden sensitive fields absent;
-- trace parent/context propagation;
-- stable business correlation;
-- alert query on fixture telemetry;
-- dashboard query correctness;
-- SLI computation against known dataset.
+Manteniamo nel contract ciò che rende il workload governabile. Il dettaglio implementativo resta vicino al codice o alla piattaforma.
 
-Questi test non sostituiscono l'osservazione in produzione.
+Nel repository vivo `docs/observability-contract.md` continuerà a evolvere nei capitoli successivi. Quando arriverà il Case Explanation Assistant, per esempio, vi entreranno nuovi signal AI e nuovi boundary di qualità. Questa sezione descrive la **baseline del Capitolo 15**, non pretende che l’artefatto cumulativo si fermi qui.
 
-Ma riducono il rischio che l'incidente sia il primo momento in cui scopriamo che la telemetry non funziona.
-
-## Il contract non deve diventare burocratico
-
-Se l'Observability Contract contiene 500 metriche e nessuna domanda, abbiamo ricreato il problema in Markdown.
-
-Manteniamo dentro il contract ciò che governa:
-
-- outcome;
-- failure;
-- security;
-- recovery;
-- cost;
-- investigation.
-
-Il dettaglio implementativo può vivere nel codice o nella piattaforma.
-
-## Fonti
+Fonti:
 
 - [OpenTelemetry — Observability primer](https://opentelemetry.io/docs/concepts/observability-primer/)
 - [OpenTelemetry — Specification overview](https://opentelemetry.io/docs/specs/otel/overview/)
 - [Google SRE Workbook — Monitoring](https://sre.google/workbook/monitoring/)
 
-> **L'Observability Contract non descrive tutto ciò che possiamo misurare. Descrive ciò che dobbiamo riuscire a sapere.**
+> **L’Observability Contract non descrive tutto ciò che possiamo misurare. Descrive ciò che dobbiamo riuscire a sapere.**
