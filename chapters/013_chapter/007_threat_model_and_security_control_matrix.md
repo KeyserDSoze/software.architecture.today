@@ -1,18 +1,16 @@
 ## Threat Model e Security Control Matrix
 
-In questo libro useremo due artefatti distinti ma collegati:
+In questo libro separiamo due artefatti che spesso vengono confusi. Il **Threat Model** conserva ciò che può andare storto, perché conta e quali assunzioni attraversano il sistema. La **Security Control Matrix** collega invece ogni rischio ai controlli, all’implementation direction, all’owner e soprattutto all’evidence che dimostra che il controllo esista davvero.
 
 ```text
 Threat Model
-→ che cosa può andare storto e perché
+→ rischio e reasoning
 
 Security Control Matrix
-→ quale controllo riduce quale rischio e come lo verifichiamo
+→ controllo, responsabilità e verifica
 ```
 
-Il primo evita di progettare controlli senza minaccia.
-
-Il secondo evita di elencare minacce senza responsabilità operativa.
+Il primo evita security control senza minaccia. Il secondo evita threat list che non cambiano il sistema.
 
 ## Threat Model — template operativo
 
@@ -47,100 +45,35 @@ Il secondo evita di elencare minacce senza responsabilità operativa.
 ## Review triggers
 ```
 
-Non serve che ogni threat model usi STRIDE.
-
-Nel libro lo usiamo perché offre un vocabolario pratico e Microsoft lo integra nel proprio Threat Modeling Tool.
+STRIDE non è obbligatorio per ogni threat model. Lo usiamo perché fornisce un vocabolario pratico e Microsoft lo integra nel proprio Threat Modeling Tool.
 
 Fonte:
 
 - [Microsoft Learn — Threat Modeling Tool](https://learn.microsoft.com/azure/security/develop/threat-modeling-tool)
 
-## Scope
+## Lo scope deve seguire il flow che stiamo proteggendo
 
-Lo scope deve dire che cosa stiamo proteggendo.
+Per Order Operations non modelliamo genericamente “Azure”. Lo scope iniziale attraversa workforce ingress, application authorization, PostgreSQL, outbox, Service Bus, Payments & Risk, Key Vault e deployment/control plane. È abbastanza ampio da vedere i boundary rilevanti e abbastanza stretto da evitare minacce generiche prive di owner.
 
-Per Order Operations non modelliamo “Azure”.
-
-Modelliamo:
-
-```text
-workforce access
-→ Order Operations
-→ operational PostgreSQL
-→ Payment Escalation outbox
-→ Service Bus
-→ Payments & Risk
-→ Key Vault / identity / deployment path
-```
-
-Uno scope enorme produce minacce vaghe.
-
-Uno scope troppo piccolo nasconde boundary importanti.
-
-## Asset
-
-Esempio:
-
-```text
-A-01 OperationalCase data
-A-02 PaymentEscalation capability
-A-03 Tenant isolation
-A-04 Operator identity
-A-05 Runtime identity
-A-06 Deployment capability
-A-07 External provider secret
-A-08 Audit trail
-```
-
-Assegnare ID agli asset aiuta la traceability.
-
-## Threat
-
-Esempio:
+Gli asset ricevono identity stabili (`A-01`, `A-02`...) quando questo migliora traceability. Lo stesso vale per i threat. Un record come:
 
 ```text
 T-04
-Scenario:
 Authenticated operator reads a case belonging to another tenant by changing caseId.
 
-STRIDE:
-Information Disclosure / Elevation of Privilege
-
-Asset:
-A-01, A-03
-
-Impact:
-Critical
-
-Mitigation:
-server-side tenant authorization + negative tests + audit
+Impact: Critical
+Mitigation: server-side tenant authorization + negative tests + audit
 ```
 
-Notiamo che la mitigazione contiene più layer.
+è molto più utile di “Information Disclosure — mitigated”. Conserva scenario, impatto e ciò che deve essere verificato.
 
-## Residual risk
+## Residual risk: un controllo riduce il rischio, non lo cancella
 
-Dopo la mitigazione resta sempre un rischio.
+Dopo server-side authorization resta la possibilità di un bug applicativo. Possiamo ridurla ulteriormente con negative integration test, access telemetry e review. Non esiste il passaggio magico da `risky` a `secure` perché un controllo è stato disegnato.
 
-Esempio:
+Il residual risk serve proprio a ricordare quale failure resta plausibile dopo la mitigation e quale detection/recovery lo rende governabile.
 
-```text
-application authorization bug remains possible
-```
-
-Quindi aggiungiamo:
-
-```text
-unit/integration negative tests
-+ centralized access telemetry
-+ periodic review
-```
-
-La security non diventa binaria solo perché abbiamo aggiunto un controllo.
-
-## Security Control Matrix
-
-Template:
+## Security Control Matrix — dal diagramma all’evidence
 
 ```markdown
 # Security Control Matrix
@@ -152,210 +85,66 @@ Template:
 | SC-03 Managed identity | T-07 | identity | system-assigned MI | RBAC inspection | platform/workload | planned |
 ```
 
-## Perché una matrix
+La matrix ci impedisce di trattare `Key Vault`, `private endpoint` o `managed identity` come icone autoesplicative. Per ciascun controllo dobbiamo sapere quale threat affronti, quale non affronti, chi lo configuri e quale evidence ne dimostri il comportamento.
 
-Senza matrix possiamo avere:
-
-```text
-Threat Model:
-"runtime credential theft"
-
-Architecture diagram:
-"Key Vault"
-```
-
-ma nessun collegamento esplicito.
-
-La matrix ci costringe a dire:
-
-- quale threat affronta Key Vault;
-- quale threat non affronta;
-- chi lo configura;
-- come sappiamo che funziona.
+“È configurato” è una claim. Un Bicep deployment, un effective-RBAC check, un negative test, una query di policy compliance o un restore exercise possono diventare evidence.
 
 ## Prevent, detect, respond, recover
 
-I controlli non sono tutti preventivi.
+`Assume breach` richiede più della prevenzione. Authorization e least privilege cercano di impedire l’abuso; audit, anomaly signal e secret scanning aiutano a rilevarlo; identity revocation, endpoint restriction e pipeline suspension sono response; restore di un known-good deployment, outbox reconciliation e permission re-establishment appartengono al recovery.
 
-Possiamo classificare:
+Un threat model fatto soltanto di controlli preventivi contiene l’assunzione implicita che la prevenzione non fallisca mai. È esattamente l’opposto del modello che vogliamo costruire.
 
-### Prevent
+## Le assunzioni devono avere lo stesso livello di visibilità delle minacce
 
-- authorization;
-- private network;
-- least privilege;
-- input validation.
+ESI può assumere che il tenant Entra sia governato centralmente, che Payments deduplichi `EscalationId`, che Platform possieda private DNS oppure che la production deployment identity usi federation. Ognuna di queste frasi, se falsa, modifica il risk model.
 
-### Detect
+Scriverle rende il threat model aggiornabile. Nasconderle trasforma dependency organizzative in sorprese operative.
 
-- audit;
-- anomaly detection;
-- failed authorization metrics;
-- secret scanning.
+## Risk acceptance non è una checkbox mancante
 
-### Respond
+Nel Capitolo 13 non introduciamo un WAF sul private internal ingress. Questa non è dimenticanza. È un accepted risk motivato dall’assenza di un Internet-facing path e accompagnato da un trigger: se comparirà public/partner/mobile ingress, la decisione verrà riaperta.
 
-- revoke identity;
-- disable endpoint;
-- quarantine deployment;
-- rotate secret.
+La differenza fra omissione e risk acceptance è avere reasoning, owner e review trigger.
 
-### Recover
+## Control ownership attraversa i team
 
-- restore known-good deployment;
-- reconstruct audit;
-- reconcile outbox;
-- re-establish identity.
+Entra tenant policy appartiene prevalentemente a Security/Platform; application authorization a Order Operations; Service Bus RBAC è condiviso fra workload e platform baseline; downstream idempotency appartiene a Payments & Risk.
 
-Un threat model che contiene soltanto prevenzione assume implicitamente che la prevenzione non fallisca mai.
+Il rischio attraversa ownership diverse. La matrix rende leggibile il contratto fra i team senza fingere che un solo gruppo possa implementare tutta la sicurezza end-to-end.
 
-Questo è contrario al principio `assume breach`.
+## Designed, Codified, Verified, Monitored
 
-## Security assumptions
+Un controllo può essere documentato senza esistere in codice; può essere codificato in Bicep senza essere stato deployed; può essere verificato in staging senza avere ancora drift detection continua.
 
-Le assunzioni sono pericolose quando restano invisibili.
-
-Esempio:
+Per questo usiamo la progressione già introdotta nel front matter:
 
 ```text
-ASSUMPTION-01
-ESI workforce devices are enrolled in the enterprise access platform.
+Designed
+→ intent architetturale documentato
+
+Codified
+→ codice / IaC / policy esiste
+
+Verified
+→ evidence dimostra il comportamento
+
+Monitored
+→ drift o failure possono essere osservati operativamente
 ```
 
-Se questa assunzione è falsa, cambia il threat model.
+Questa distinzione evita di promuovere automaticamente una buona intenzione a controllo funzionante.
 
-Altri esempi:
-
-```text
-Payments & Risk validates EscalationId idempotently.
-Platform private DNS is available.
-Entra tenant is centrally governed.
-Production deployment uses federated identity.
-```
-
-## Accepted risk
-
-A volte decidiamo di non mitigare subito.
-
-Deve essere scritto.
-
-Esempio:
-
-```text
-Risk:
-No dedicated WAF on private internal ingress.
-
-Reason:
-No Internet-facing path in current scope.
-
-Trigger:
-public/partner access introduced.
-```
-
-Questa è risk acceptance.
-
-Non dimenticanza.
-
-## Evidence
-
-La Security Control Matrix deve puntare a evidence verificabili:
-
-```text
-Bicep policy
-RBAC assignment
-integration test
-SAST result
-secret scan
-configuration query
-audit sample
-penetration test
-runbook exercise
-```
-
-“È configurato” è una claim.
-
-L'evidence è ciò che la rende verificabile.
-
-## OWASP ASVS come fonte di verification requirement
-
-ASVS può aiutare a trasformare categorie di sicurezza in verifiche concrete per autenticazione, access control, validation, cryptography e altre aree applicative.
+OWASP ASVS può contribuire a trasformare authentication, access control, validation e altre aree applicative in verification requirement selezionati per lo scope.
 
 Fonte:
 
 - [OWASP ASVS](https://owasp.org/www-project-application-security-verification-standard/)
 
-Non useremo ogni requirement ASVS nel capstone.
-
-Selezioneremo quelli pertinenti allo scope e li collegheremo ai controlli.
-
-## Control ownership
-
-Ogni controllo deve avere un owner.
-
-Esempio:
-
-```text
-Entra tenant policy
-→ Security / Platform
-
-App authorization
-→ Order Operations
-
-Service Bus RBAC
-→ workload + Platform baseline
-
-Payment consumer idempotency
-→ Payments & Risk
-```
-
-Il rischio attraversa team diversi.
-
-La responsabilità deve restare leggibile.
-
-## Drift
-
-Un controllo valido oggi può sparire domani per drift.
-
-Per questo preferiamo:
-
-```text
-control described
-→ control codified
-→ control tested
-→ control monitored
-```
-
-quando è economicamente sensato.
-
-Questa è una delle ragioni per cui il Capitolo 13 farà finalmente entrare una baseline Bicep reale.
-
 ## AI-assisted control review
 
-Un agente può confrontare:
+Un agente può confrontare Threat Model, Security Control Matrix, Bicep e application code cercando threat senza controllo, controlli senza threat, privilege mismatch, public exposure inattesa, missing test o documentation drift.
 
-```text
-Threat Model
-vs
-Security Control Matrix
-vs
-Bicep
-vs
-application code
-```
-
-cercando:
-
-- threat senza controllo;
-- controllo senza threat;
-- privilege mismatch;
-- public exposure inattesa;
-- missing test;
-- documentation drift.
-
-Questo è un uso dell'AI molto più utile che chiedere:
-
-> “Rendi sicura questa architettura.”
-
-## La frase da ricordare
+Questo è molto più utile di un prompt come “rendi sicura questa architettura”, perché il sistema di riferimento contiene già rischio, decisione e criterio di verifica.
 
 > **Una minaccia senza owner è una preoccupazione. Un controllo senza verifica è una speranza.**
