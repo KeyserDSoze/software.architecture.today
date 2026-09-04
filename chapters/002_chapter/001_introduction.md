@@ -1,225 +1,66 @@
 # Capitolo 2 — Prima del codice
 
-Nel capitolo precedente abbiamo visto che l'AI rende l'execution più economica e più veloce.
+Nel capitolo precedente abbiamo visto che l’AI rende l’execution più economica e più veloce. È una buona notizia, ma porta con sé una conseguenza scomoda: **possiamo iniziare a costruire molto prima di avere capito abbastanza bene che cosa stiamo costruendo**.
 
-Questa è una buona notizia.
+Per anni molti progetti software sono stati rallentati da limiti di execution. Servivano tempo, persone, ambienti, boilerplate, configurazioni, prototipi e integrazioni. Oggi una parte di quel costo può essere compressa drasticamente: un’idea può diventare una demo in ore e, nello stesso pomeriggio, possiamo ottenere endpoint, UI, migration, test, pipeline e perfino una prima infrastruttura.
 
-Ma introduce una conseguenza scomoda: **possiamo iniziare a costruire molto prima di avere capito abbastanza bene che cosa stiamo costruendo.**
+La velocità con cui possiamo produrre una soluzione, però, non ci dice nulla sulla qualità del problema che abbiamo formulato. Un requisito sbagliato implementato perfettamente resta sbagliato. Una feature inutile generata in cinque minuti è soltanto una feature inutile arrivata prima. E un’architettura costruita su assunzioni non esplicitate non diventa migliore perché è stata prodotta rapidamente.
 
-Per anni molti progetti software sono stati rallentati da limiti di execution: servivano tempo, persone, ambienti, boilerplate, configurazioni, prototipi, integrazioni.
+Questo capitolo riguarda quindi ciò che viene **prima** dell’architettura tecnica. Prima dei diagrammi, del framework, del database e del cloud provider dobbiamo capire quale problema stiamo cercando di risolvere e per chi, quale outcome ci interessa, quale parte del problema appartiene davvero al nostro scope e quali vincoli non possiamo ignorare. Dobbiamo rendere comprensibili i comportamenti essenziali, trasformare le qualità importanti in condizioni osservabili e decidere che cosa significhi, concretamente, poter dire che abbiamo finito.
 
-Oggi una parte di quel costo può essere compressa drasticamente.
-
-Possiamo passare da un'idea a una demo in ore.
-
-Possiamo generare un endpoint, una UI, una migration, un set di test, una pipeline e una prima infrastruttura quasi nello stesso pomeriggio.
-
-Il problema è che la velocità con cui possiamo produrre una soluzione non ci dice nulla sulla qualità del problema che abbiamo formulato.
-
-Un requisito sbagliato implementato perfettamente resta sbagliato.
-
-Una feature inutile generata in cinque minuti è soltanto una feature inutile arrivata prima.
-
-Un'architettura costruita su assunzioni non esplicitate non diventa migliore perché è stata prodotta rapidamente.
-
-Questo capitolo riguarda quindi ciò che viene **prima** dell'architettura tecnica.
-
-Non i diagrammi.
-
-Non il framework.
-
-Non il database.
-
-Non il cloud provider.
-
-Prima ancora dobbiamo sapere quale problema stiamo cercando di risolvere e per chi, quale outcome ci interessa e quale parte del problema appartiene davvero al nostro scope. Dobbiamo riconoscere i vincoli che non possiamo ignorare, i comportamenti che devono esistere, le qualità che devono diventare misurabili e che cosa significhi, concretamente, poter dire che abbiamo finito.
-
-Questa fase non è un rito preliminare.
-
-È **compressione dell'ambiguità**.
+Questa fase non è un rito preliminare. È **compressione dell’ambiguità**.
 
 ### Il falso dilemma: progettare tutto o partire subito
 
-Quando si parla di lavoro “prima del codice”, emerge spesso una reazione comprensibile.
+Quando si parla di lavoro “prima del codice” emerge spesso una reazione comprensibile: nessuno vuole passare tre mesi a scrivere documenti prima di scoprire se un’idea funzioni.
 
-> “Non voglio passare tre mesi a scrivere documenti prima di scoprire se l'idea funziona.”
+Questo libro non difende una progettazione totale e anticipata. Non propone di congelare requisiti che ancora non conosciamo né di prevedere ogni edge case prima della prima riga di codice. Il dilemma tra specificare tutto prima e iniziare a scrivere subito è falso.
 
-Giusto.
-
-Questo libro non difende una progettazione totale e anticipata.
-
-Non propone di congelare requisiti che ancora non conosciamo.
-
-Non propone di prevedere ogni edge case prima di scrivere la prima riga di codice.
-
-Il dilemma tra:
-
-```text
-specificare tutto prima
-```
-
-e:
-
-```text
-iniziare a scrivere subito
-```
-
-è falso.
-
-La domanda utile è un'altra:
+La domanda utile è un’altra:
 
 > **Qual è il minimo livello di comprensione che rende ragionevole iniziare questa execution?**
 
-Per un prototipo usa-e-getta può essere pochissimo.
-
-Per una migration irreversibile può essere molto.
-
-Per una modifica a un sistema di pagamento serve più chiarezza che per cambiare un colore nell'interfaccia.
-
-Per una feature interna a dieci utenti possiamo tollerare assunzioni che non accetteremmo su un sistema sanitario o finanziario.
+Per un prototipo usa-e-getta può essere pochissimo. Per una migration irreversibile può essere molto. Una modifica a un sistema di pagamento richiede più chiarezza di un cambiamento puramente estetico, e una feature interna per dieci utenti può tollerare assunzioni che non accetteremmo in un sistema sanitario o finanziario.
 
 La quantità di foundation deve essere proporzionata al rischio.
 
 ### Foundation Before Execution
 
-Useremo spesso questa espressione:
+Useremo spesso l’espressione **Foundation Before Execution**. Non significa “documentazione prima del lavoro”; significa ridurre abbastanza l’incertezza sulle decisioni importanti prima di moltiplicare la capacità di esecuzione.
 
-> **Foundation Before Execution.**
+Una foundation minima rende visibili almeno il problema, gli utenti, l’outcome, lo scope e i vincoli. A seconda del rischio, può aggiungere comportamenti funzionali principali, NFR significativi, assunzioni, acceptance criteria e out of scope.
 
-Non significa “documentazione prima del lavoro”.
-
-Significa:
-
-> **ridurre abbastanza l'incertezza sulle decisioni importanti prima di moltiplicare la capacità di esecuzione.**
-
-La foundation minima può includere:
-
-```text
-Problema
-Utenti
-Outcome
-Scope
-Vincoli
-Requisiti funzionali principali
-Requisiti non funzionali significativi
-Assunzioni
-Acceptance criteria
-Out of scope
-```
-
-La parola importante è **significativi**.
-
-Non dobbiamo specificare ciò che non serve ancora.
-
-Dobbiamo rendere esplicito ciò che, se lasciato implicito, potrebbe portare persone o agenti a costruire sistemi diversi credendo di lavorare allo stesso prodotto.
+La parola importante è **significativi**. Non dobbiamo specificare ciò che non serve ancora; dobbiamo rendere esplicito ciò che, se lasciato implicito, potrebbe portare persone o agenti a costruire sistemi diversi credendo di lavorare allo stesso prodotto.
 
 ### Una cattiva foundation viene amplificata
 
-Con un singolo developer, un requisito ambiguo può produrre una interpretazione sbagliata.
+Con un singolo developer, un requisito ambiguo può produrre una interpretazione sbagliata. Con cinque agenti in parallelo può produrne cinque.
 
-Con cinque agenti in parallelo può produrne cinque.
+Prendiamo una richiesta apparentemente semplice: “Aggiungi la possibilità di annullare un ordine”. Prima di implementarla dobbiamo sapere chi possa annullarlo e fino a quando, che cosa accada se il pagamento sia già stato eseguito o la spedizione sia iniziata, che cosa significhi l’annullamento per il magazzino e se sia necessario un rimborso. Dobbiamo capire se quel rimborso possa fallire, se l’operazione debba essere idempotente, se altri sistemi debbano ricevere un evento e che cosa accada quando il cliente riprova.
 
-Immaginiamo questa richiesta:
+Non serve rispondere in anticipo a ogni possibile dettaglio. Serve almeno rispondere alle domande che cambiano il comportamento del sistema. Altrimenti l’agente dovrà farlo al posto nostro e sceglierà qualcosa di plausibile.
 
-> “Aggiungi la possibilità di annullare un ordine.”
-
-Sembra semplice.
-
-Ma contiene molte decisioni nascoste.
-
-Chi può annullarlo?
-
-Fino a quando?
-
-Che cosa succede se è già stato pagato?
-
-Che cosa succede se è già in spedizione?
-
-Che cosa significa “annullato” per il magazzino?
-
-Il pagamento viene rimborsato?
-
-Il rimborso può fallire?
-
-L'operazione deve essere idempotente?
-
-Gli altri sistemi devono ricevere un evento?
-
-Il cliente può riprovare?
-
-Se non rispondiamo almeno alle domande che cambiano il comportamento del sistema, l'agente deve farlo al posto nostro.
-
-E farà qualcosa di plausibile.
-
-Il problema è proprio questo.
-
-Una decisione plausibile non è necessariamente la nostra decisione.
+Il problema è proprio questo: una decisione plausibile non è necessariamente la nostra decisione.
 
 ### Il costo invisibile delle assunzioni
 
-Le assunzioni implicite hanno una caratteristica pericolosa: spesso non compaiono nel diff.
+Le assunzioni implicite sono pericolose perché spesso non compaiono nel diff. Vediamo il codice, una nuova tabella o un endpoint, ma non vediamo subito la frase non scritta che ha prodotto quella soluzione: “ho assunto che un ordine possa essere annullato fino alla spedizione”, “ho assunto che il rimborso sia sincrono”, “ho assunto che soltanto il proprietario dell’ordine possa eseguire l’operazione”.
 
-Vediamo il codice introdotto.
-
-Vediamo una tabella nuova.
-
-Vediamo un endpoint.
-
-Ma non vediamo immediatamente la frase non scritta che ha prodotto quella soluzione:
-
-> “Ho assunto che un ordine possa essere annullato fino alla spedizione.”
-
-Oppure:
-
-> “Ho assunto che il rimborso sia sincrono.”
-
-Oppure:
-
-> “Ho assunto che soltanto il proprietario dell'ordine possa eseguire l'operazione.”
-
-L'architettura nasce spesso da queste frasi invisibili.
-
-Per questo, prima del codice, dobbiamo imparare a portarle alla luce.
+L’architettura nasce spesso da queste frasi invisibili. Prima del codice dobbiamo imparare a portarle alla luce.
 
 ### Dal prompt al brief
 
-Nel capitolo precedente abbiamo criticato il *prompt-first development*.
+Nel capitolo precedente abbiamo criticato il *prompt-first development*. La risposta non è scrivere prompt infinitamente più lunghi, ma costruire pochi artefatti stabili che rendano il contesto leggibile e verificabile.
 
-La risposta non è scrivere prompt infinitamente più lunghi.
+Il primo sarà il **Problem & Outcome Brief**. Non è una specifica completa: è una pagina, a volte meno, che permette a un essere umano o a un agente di capire quale situazione vogliamo cambiare, per chi e quale outcome ci dirà che abbiamo creato valore. Deve rendere chiaro ciò che stiamo facendo adesso e ciò che stiamo lasciando fuori, i vincoli noti e le assunzioni che richiedono ancora verifica.
 
-È costruire un piccolo insieme di artefatti che rendano il contesto stabile e verificabile.
-
-Il primo sarà il **Problem & Outcome Brief**.
-
-Non è una specifica completa.
-
-È una pagina — a volte meno — che deve permettere a chiunque, umano o agente, di capire quale situazione vogliamo cambiare, per chi e quale outcome ci dirà che abbiamo creato valore. Deve rendere leggibile ciò che stiamo facendo adesso e ciò che non stiamo facendo, i vincoli già noti e le assunzioni che richiedono ancora verifica.
-
-Il suo scopo non è descrivere la soluzione.
-
-È impedire che la soluzione preceda il problema.
+Il suo scopo non è descrivere la soluzione. È impedire che la soluzione preceda il problema.
 
 ### Il caso Order Operations
 
-Nel capitolo precedente abbiamo introdotto **Order Operations**, un caso simulato/composito che accompagnerà il libro.
+Nel capitolo precedente abbiamo introdotto **Order Operations**, il caso simulato/composito che accompagnerà il libro. Abbiamo visto un piccolo prodotto crescere attraverso richieste apparentemente semplici. Da qui in poi smettiamo di aggiungere feature per inerzia e torniamo all’inizio, non per buttare il prototipo, ma per capire che cosa stiamo realmente cercando di costruire.
 
-Abbiamo visto un piccolo prodotto che iniziava a crescere attraverso richieste apparentemente semplici.
-
-Da questo capitolo smettiamo di aggiungere feature per inerzia.
-
-Torniamo all'inizio.
-
-Non per buttare il prototipo.
-
-Per capire che cosa stiamo realmente cercando di costruire.
-
-È un passaggio importante.
-
-Molti progetti reali non iniziano da una pagina bianca.
-
-Iniziano da qualcosa che esiste già e funziona abbastanza da generare nuove domande.
-
-“Prima del codice” non significa quindi sempre cronologicamente prima della prima riga.
+È un passaggio importante perché molti progetti reali non iniziano da una pagina bianca. Iniziano da qualcosa che esiste già e funziona abbastanza da generare nuove domande. “Prima del codice” non significa quindi sempre cronologicamente prima della prima riga.
 
 Può significare:
 
