@@ -1,114 +1,52 @@
 ## Le qualità competono tra loro
 
-Uno degli errori più pericolosi nella progettazione consiste nel trattare le quality attribute come se potessero essere massimizzate tutte contemporaneamente.
+Uno degli errori più pericolosi consiste nel parlare di quality attribute come se potessero essere massimizzate tutte insieme: più availability, più consistency, più performance, più security, più flexibility e meno costo, con meno complessità.
 
-Più availability.
+La realtà è che molte proprietà competono. L'architettura serve anche a decidere **quale compromesso sia accettabile e quale qualità abbia diritto di vincere quando due obiettivi entrano in conflitto**.
 
-Più consistency.
+## Performance e consistency
 
-Più performance.
+Una cache può ridurre latency e carico, ma introduce freshness e invalidation. Una replica geografica può avvicinare i dati agli utenti e complicare le scritture. Un read model asincrono può rendere le letture molto efficienti introducendo eventual consistency.
 
-Più security.
+La domanda non è quale pattern sia migliore in assoluto. È quanto valore otteniamo dalla performance aggiuntiva e quanto costa la semantica più debole o più complessa che dobbiamo introdurre per ottenerla.
 
-Più flexibility.
+## Availability e correctness
 
-Più portability.
+In alcuni sistemi è preferibile rifiutare temporaneamente una richiesta anziché accettarla in uno stato incerto. Una transazione economica non idempotente è un esempio evidente: “restare disponibili” a ogni costo può produrre un danno maggiore del downtime.
 
-Meno costo.
+In altri journey, mostrare uno stato noto con freshness esplicita è perfettamente accettabile e molto meglio di nessuna risposta.
 
-Meno complessità.
+Availability non domina sempre. La priorità dipende dal costo semantico dell'errore.
 
-Sarebbe bello.
+## Security e usability
 
-La realtà è che molte proprietà competono.
+Controlli più severi introducono spesso frizione. Sessioni più brevi, MFA, autorizzazioni granulari e verifiche aggiuntive possono ridurre alcuni rischi e peggiorare l'esperienza.
 
-L'architettura è anche il lavoro di decidere **quale compromesso sia accettabile**.
+Questo non significa scegliere tra “sicuro” e “usabile”. Significa progettare il punto di equilibrio in base agli asset, alle minacce e al rischio residuo che siamo disposti ad accettare.
 
-### Performance vs consistency
+## Portability e platform fit
 
-Una cache può migliorare latency e ridurre carico.
+Astrarre ogni servizio cloud può ridurre una parte del lock-in e, nello stesso tempo, impedirci di usare bene la piattaforma o costringerci a possedere molto più codice. Legarsi a capability specifiche può aumentare produttività e operability, rendendo più costosa una futura migrazione.
 
-Ma introduce il problema della freshness.
+Il lock-in zero è quasi sempre un'illusione. La domanda utile è:
 
-Una replica geografica può avvicinare i dati agli utenti.
+> **Quale lock-in stiamo comprando, quale valore riceviamo in cambio e quanto costerebbe uscirne?**
 
-Ma rende più complesso il coordinamento delle scritture.
+## Flexibility e simplicity
 
-Un read model asincrono può rendere le letture estremamente efficienti.
+Una soluzione altamente configurabile preserva molti scenari futuri, ma aumenta cognitive load, test e superficie operativa oggi. Una soluzione specifica può essere più semplice e meno riusabile.
 
-Ma introduce eventual consistency.
+Ancora una volta, il futuro possibile non basta a giustificare il costo presente. La flessibilità deve pagare un'incertezza reale, non un'immaginazione illimitata.
 
-Non esiste una risposta universale.
+## Availability e cost
 
-La domanda è:
+Gli incrementi di disponibilità non hanno costo lineare. Avvicinarsi a target molto severi può richiedere ridondanza aggiuntiva, failover più rapido, multi-region, capacità idle, automazione e un on-call molto più maturo.
 
-> “Quanto valore otteniamo dalla performance aggiuntiva e quanto ci costa la consistency più debole?”
+Per questo una percentuale non dovrebbe essere scelta perché “suona enterprise”. Deve essere collegata al costo dell'indisponibilità del journey che stiamo proteggendo.
 
-### Availability vs correctness
+## Operability e technology diversity
 
-In alcuni sistemi è meglio rifiutare temporaneamente una richiesta piuttosto che accettarla in uno stato incerto.
-
-Pensiamo a una transazione finanziaria non idempotente.
-
-Se una dipendenza fondamentale non risponde, “restare disponibili” a ogni costo può generare errori peggiori del downtime.
-
-In altri contesti invece una risposta stale è perfettamente accettabile e molto migliore di nessuna risposta.
-
-Availability non è sempre la priorità dominante.
-
-### Security vs usability
-
-Controlli più severi possono aumentare frizione.
-
-Sessioni brevi, MFA frequente, autorizzazioni granulari e verifiche aggiuntive migliorano alcuni aspetti della sicurezza ma possono peggiorare l'esperienza.
-
-Questo non significa che dobbiamo scegliere tra “sicuro” e “usabile”.
-
-Significa che dobbiamo progettare consapevolmente il punto di equilibrio rispetto al rischio.
-
-### Portability vs platform fit
-
-Astrarre ogni servizio cloud dietro un layer personalizzato può ridurre parte del lock-in.
-
-Può anche impedirci di sfruttare capacità specifiche della piattaforma e aumentare enormemente il codice che possediamo.
-
-All'opposto, legarsi profondamente a un provider può aumentare produttività e qualità operativa ma rendere più costosa una migrazione futura.
-
-La domanda non è:
-
-> “Come eliminiamo ogni lock-in?”
-
-Il lock-in assolutamente nullo è spesso un'illusione.
-
-La domanda è:
-
-> **“Quale lock-in stiamo accettando, quale valore riceviamo in cambio e quanto sarebbe costoso uscirne?”**
-
-### Flexibility vs simplicity
-
-Una soluzione estremamente configurabile può adattarsi a molti scenari futuri.
-
-Ma può essere più difficile da capire, testare e operare oggi.
-
-Una soluzione specifica può essere molto più semplice ma meno riutilizzabile.
-
-Ancora una volta, il futuro possibile non basta a giustificare la complessità presente.
-
-### Availability vs cost
-
-Passare da una buona disponibilità a una disponibilità eccezionale può richiedere un incremento di costo sproporzionato.
-
-La relazione non è lineare.
-
-Ogni nuovo livello può richiedere maggiore ridondanza e failover più rapido, automazione più sofisticata e test più frequenti. Può spingerci verso multi-region, più capacità idle e un on-call più maturo. Per questo una percentuale di availability non dovrebbe mai essere scelta perché “suona enterprise”.
-
-Deve essere collegata al costo dell'indisponibilità.
-
-### Operability vs technology diversity
-
-Usare il miglior strumento specializzato per ogni singolo problema può sembrare ottimale localmente.
-
-Il risultato globale potrebbe essere:
+Ottimizzare localmente ogni problema con lo strumento specializzato migliore può produrre un sistema globale ingestibile:
 
 ```text
 7 database
@@ -118,39 +56,23 @@ Il risultato globale potrebbe essere:
 8 SDK di observability
 ```
 
-Ogni scelta locale è giustificabile.
+Ogni scelta può essere difendibile isolatamente. La varietà cumulativa ha però un costo di formazione, diagnosi, upgrade, sicurezza e incident response.
 
-Il sistema complessivo potrebbe essere ingestibile.
+Esiste quindi un valore nella **standardizzazione sufficiente**. Non perché un unico strumento sia il migliore per tutto, ma perché la diversità tecnologica deve anch'essa pagare l'affitto.
 
-Esiste quindi un valore architetturale nella **standardizzazione sufficiente**.
+## Il costo marginale della qualità
 
-Non perché un unico strumento sia il migliore per tutto.
+Una domanda molto utile è:
 
-Ma perché la varietà ha un costo cumulativo.
+> **Quanto costa ottenere il prossimo incremento di qualità, e chi ne riceve il valore?**
 
-### Il costo marginale della qualità
+Passare da p95 di 500 ms a 300 ms potrebbe richiedere una query migliore. Da 300 ms a 100 ms potrebbe richiedere caching. Da 100 ms a 20 ms potrebbe imporre un redesign. Ogni passo compra un beneficio diverso a un costo diverso.
 
-Una domanda utile è:
+Non ottimizziamo perché possiamo. Ottimizziamo quando la proprietà aggiuntiva cambia materialmente l'outcome o il rischio.
 
-> “Quanto costa ottenere il prossimo incremento di qualità?”
+## Quality budget
 
-Passare da p95 di 500 ms a 300 ms potrebbe richiedere una query migliore.
-
-Passare da 300 ms a 100 ms potrebbe richiedere caching.
-
-Passare da 100 ms a 20 ms potrebbe richiedere redesign profondo.
-
-Ogni passo produce un beneficio diverso e un costo diverso.
-
-Non ottimizziamo perché possiamo.
-
-Ottimizziamo quando il beneficio supera il costo.
-
-### Quality budget
-
-Possiamo pensare alle quality attribute come a budget da distribuire.
-
-Un critical journey può avere un latency budget:
+Per alcune qualità possiamo distribuire un budget lungo il journey. Un latency budget, per esempio:
 
 ```text
 browser: 80 ms
@@ -162,36 +84,18 @@ network margin: 30 ms
 totale p95: 300 ms
 ```
 
-Oppure un error budget.
+Lo stesso principio può valere per error budget o cost budget. La qualità smette di essere un desiderio globale e diventa una responsabilità distribuita tra parti del sistema.
 
-Oppure un cost budget.
+## Priorità prima della controversia tecnologica
 
-Questi modelli aiutano a trasformare la qualità da desiderio globale a responsabilità distribuibile.
-
-### Priorità prima del conflitto
-
-Le priorità dovrebbero essere decise prima che emergano le controversie tecnologiche.
-
-Se sappiamo che per una funzione:
+Se sappiamo che, per una capability:
 
 ```text
 correctness > availability > latency > cost
 ```
 
-possiamo valutare una failure in modo coerente.
+possiamo ragionare in modo coerente quando una dipendenza degrada. Se non abbiamo dichiarato nessuna priorità, ogni gruppo tenderà a ottimizzare la proprietà che vede meglio: Platform l'operability, backend il throughput, Security il controllo, Product la UX e Finance il costo.
 
-Se non lo sappiamo, ogni team ottimizzerà la proprietà che conosce meglio.
-
-Il team platform potrebbe ottimizzare operability.
-
-Il backend throughput.
-
-Il security team controllo.
-
-Il prodotto UX.
-
-Tutti potrebbero avere ragione localmente.
-
-L'architettura serve anche a costruire una priorità globale.
+Tutti possono avere ragione localmente e produrre insieme una decisione incoerente.
 
 > **Un trade-off non è un difetto della soluzione. È il prezzo esplicito della proprietà che abbiamo scelto di privilegiare.**
