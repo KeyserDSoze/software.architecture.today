@@ -1,12 +1,6 @@
 ## Un operating model per lavorare con gli agenti
 
-Fin qui abbiamo parlato di principi.
-
-Per renderli utilizzabili serve un modello operativo semplice.
-
-Non un framework da applicare a ogni task.
-
-Un modo per ricordare quali domande diventano importanti quando deleghiamo lavoro tecnico a un sistema capace di agire.
+Fin qui abbiamo parlato di principi. Per renderli utilizzabili serve un modello operativo semplice, non un framework da applicare meccanicamente a ogni task, ma un modo per ricordare quali domande diventano importanti quando deleghiamo lavoro tecnico a un sistema capace di agire.
 
 Possiamo condensarlo in sette passaggi:
 
@@ -20,37 +14,21 @@ Intento
 → Decisione
 ```
 
+La forma sequenziale è intenzionale: non descrive sette documenti da compilare, ma sette momenti di attenzione che possono essere molto leggeri nei task piccoli e diventare più espliciti quando il rischio cresce.
+
 ### 1. Intento
 
-Prima di chiedere cosa costruire, dobbiamo sapere quale risultato vogliamo ottenere.
-
-Non:
-
-> “Aggiungi Redis.”
-
-Ma:
-
-> “Riduci il carico di lettura sul database mantenendo la coerenza richiesta dal dominio.”
-
-Redis potrebbe essere una soluzione.
-
-L'intento è il problema da risolvere.
-
-Separare i due evita di trasformare l'agente in un esecutore di decisioni premature.
+Prima di chiedere che cosa costruire, dobbiamo sapere quale risultato vogliamo ottenere. “Aggiungi Redis” è già una soluzione; “Riduci il carico di lettura sul database mantenendo la coerenza richiesta dal dominio” descrive invece un intento. Redis potrebbe diventare una buona risposta, ma separare il problema dalla tecnologia evita di trasformare l'agente in un esecutore di decisioni premature.
 
 ### 2. Contesto
 
-L'agente deve conoscere abbastanza del sistema da non dover inventare ciò che conta.
+L'agente deve conoscere abbastanza del sistema da non dover inventare ciò che conta. Il contesto può includere requisiti, architecture overview, ADR e contratti, insieme alle convenzioni del repository e ai non-functional requirements. Deve rendere visibili anche i vincoli di sicurezza, i comandi di test e build, gli esempi esistenti e i componenti che restano fuori scope.
 
-Il contesto può includere requisiti, architecture overview, ADR e contratti, insieme alle convenzioni del repository e ai non-functional requirements. Deve rendere visibili anche i vincoli di sicurezza, i comandi di test e build, gli esempi esistenti e i componenti che restano fuori scope.
-
-Context engineering non significa riempire il prompt di testo.
-
-Significa rendere disponibile il **contesto giusto al momento giusto**.
+Context engineering non significa riempire il prompt di testo. Significa rendere disponibile il **contesto giusto al momento giusto**.
 
 ### 3. Delega
 
-Una buona delega rende espliciti:
+Una buona delega rende visibili l'obiettivo, il contesto, il comportamento atteso e i vincoli, ma anche acceptance criteria, dipendenze, edge case, test, out of scope, stop condition e definition of done. Qui manteniamo una rappresentazione strutturata perché diventerà più avanti un vero artefatto riutilizzabile:
 
 ```text
 Objective
@@ -66,23 +44,13 @@ Stop conditions
 Definition of done
 ```
 
-Questa struttura diventerà più avanti il nostro **Agent Delegation Contract**.
-
-Non tutte le issue avranno bisogno di ogni campo.
-
-L'artefatto serve come vocabolario di rischi, non come formulario burocratico.
+Questa struttura diventerà il nostro **Agent Delegation Contract**. Non tutte le issue avranno bisogno di ogni campo: l'artefatto serve come vocabolario di rischi, non come formulario burocratico.
 
 ### 4. Osservazione
 
-Delegare non significa sparire fino alla fine.
+Delegare non significa sparire fino alla fine, ma nemmeno interrompere l'agente a ogni passo. Dobbiamo scegliere i checkpoint nei punti in cui una decisione sbagliata diventerebbe costosa.
 
-Ma nemmeno interrompere l'agente a ogni passo.
-
-Dobbiamo scegliere i checkpoint.
-
-Per un task piccolo potrebbe bastare il risultato finale.
-
-Per un refactoring ampio potremmo voler vedere:
+Per un task piccolo potrebbe bastare il risultato finale. Per un refactoring ampio potremmo invece voler osservare il piano, il primo slice, i test e la migrazione restante prima della review finale:
 
 ```text
 piano
@@ -92,59 +60,29 @@ piano
 → review finale
 ```
 
-Per una modifica rischiosa potremmo richiedere escalation prima ancora dell'execution.
-
-L'osservazione deve concentrarsi sui punti in cui una decisione sbagliata diventa costosa.
+Per una modifica rischiosa potremmo richiedere escalation prima ancora dell'execution. L'osservazione non deve seguire ogni gesto: deve presidiare i punti di irreversibilità o di forte propagazione.
 
 ### 5. Verifica
 
-La verifica deve essere progettata prima, quando possibile.
+La verifica, quando possibile, va progettata prima. Se sappiamo che una proprietà è critica, trasformiamola in un controllo. Per esempio, il requisito “un utente non deve mai leggere ordini di un altro tenant” può diventare un integration test con due tenant e identità differenti. Questo è più forte di chiedere a posteriori “Sei sicuro che il tenant isolation sia corretto?”.
 
-Se sappiamo che una proprietà è critica, trasformiamola in un controllo.
-
-Esempio:
-
-```text
-Requisito:
-un utente non deve mai leggere ordini di un altro tenant.
-
-Verifica:
-integration test con due tenant e identità differenti.
-```
-
-Questo è più forte di chiedere dopo:
-
-> “Sei sicuro che il tenant isolation sia corretto?”
+La differenza è importante: nella prima forma abbiamo una proprietà osservabile, nella seconda una rassicurazione.
 
 ### 6. Escalation
 
-Quando una stop condition viene raggiunta, l'agente non dovrebbe improvvisare.
+Quando una stop condition viene raggiunta, l'agente non dovrebbe improvvisare. Dovrebbe rendere la decisione visibile. Una buona escalation descrive il blocco e perché conta, esplicita le informazioni mancanti, porta alternative plausibili e il loro impatto e può includere una raccomandazione, purché resti chiaramente distinta dalla decisione finale.
 
-Dovrebbe rendere la decisione visibile.
-
-Una buona escalation descrive il blocco e perché conta, esplicita le informazioni mancanti, porta alternative plausibili e il loro impatto e può includere una raccomandazione, purché resti chiaramente distinta dalla decisione finale.
-
-L'obiettivo è trasformare l'incertezza in una decisione gestibile.
+L'obiettivo è trasformare l'incertezza in una decisione gestibile, non semplicemente spostare il problema su un essere umano senza contesto.
 
 ### 7. Decisione
 
-Alla fine serve qualcuno che dica:
+Alla fine serve qualcuno — una persona o una policy esplicita — che autorizzi il passaggio successivo perché l'evidenza disponibile è ritenuta sufficiente, oppure lo blocchi perché il rischio non è ancora sotto controllo. Questa responsabilità non deve essere nascosta dentro una pipeline.
 
-> “Sì, questa evidenza è sufficiente per procedere.”
-
-Oppure:
-
-> “No, il rischio non è ancora sotto controllo.”
-
-Questa responsabilità non deve essere nascosta dentro una pipeline.
-
-Possiamo automatizzare moltissimo.
-
-Ma dobbiamo sempre sapere quale policy, quale gate o quale persona ha autorizzato il passaggio successivo.
+Possiamo automatizzare moltissimo, ma dobbiamo sempre sapere quale policy, quale gate o quale persona abbia autorizzato il passaggio successivo.
 
 ### L'Agent Delegation Contract
 
-Da questo capitolo ricaviamo il primo artefatto operativo del libro.
+Da questo capitolo ricaviamo il primo artefatto operativo del libro. Qui la struttura è volutamente esplicita perché deve poter essere copiata e adattata:
 
 ```markdown
 # Agent Delegation Contract
@@ -180,15 +118,11 @@ Quali strumenti e risorse può usare?
 Quali artefatti devono essere consegnati?
 ```
 
-Non lo compileremo per correggere un typo.
-
-Potrebbe invece essere molto utile per un refactoring repository-wide o una migration, per una nuova integrazione o una modifica cross-service, per un task affidato a più agenti e, in generale, quando entrano security implications o un livello di autonomia elevato.
+Non lo compileremo per correggere un typo. Può invece diventare utile per un refactoring repository-wide o una migration, per una nuova integrazione o una modifica cross-service, per un task affidato a più agenti e, in generale, quando entrano security implications o un livello di autonomia elevato.
 
 ### L'Agent Verification Bundle
 
-Il secondo artefatto nasce dalla fase di verifica.
-
-Un possibile bundle è:
+Il secondo artefatto nasce dalla fase di verifica. Anche qui manteniamo la struttura perché descrive il contenuto di una consegna, non una semplice enumerazione narrativa:
 
 ```text
 Agent Verification Bundle
@@ -201,13 +135,9 @@ Agent Verification Bundle
 └── rollback-or-recovery
 ```
 
-Ancora una volta: non è una checklist universale.
-
-Serve quando il rischio giustifica il costo.
+Non è una checklist universale: serve quando il rischio giustifica il costo.
 
 ### Dalla chat al sistema di lavoro
-
-Questo passaggio è importante.
 
 Molte persone iniziano a usare l'AI come una conversazione individuale:
 
@@ -215,13 +145,13 @@ Molte persone iniziano a usare l'AI come una conversazione individuale:
 io ↔ modello
 ```
 
-Poi aggiungono strumenti:
+Poi aggiungono strumenti e il modello diventa un agente che interagisce con il repository:
 
 ```text
 io ↔ agente ↔ repository
 ```
 
-Poi più agenti:
+Infine possono comparire più agenti coordinati:
 
 ```text
           ↗ agent A
@@ -229,27 +159,9 @@ io → orchestrazione → agent B
           ↘ agent C
 ```
 
-A quel punto il problema non è più scrivere il prompt migliore.
+A quel punto il problema non è più scrivere il prompt migliore. Il problema è progettare un **sistema di lavoro**. Dobbiamo capire chi possiede il contesto e chi decide il piano, quali strumenti siano disponibili e quali modifiche richiedano review. Dobbiamo sapere come viene verificato il risultato, come impedire che agenti diversi prendano decisioni architetturali incompatibili e come mantenere la memoria del perché una scelta sia stata fatta.
 
-Il problema è progettare un **sistema di lavoro**.
-
-Chi possiede il contesto?
-
-Chi decide il piano?
-
-Quali strumenti sono disponibili?
-
-Quali modifiche richiedono review?
-
-Come viene verificato il risultato?
-
-Come si evita che agenti diversi prendano decisioni architetturali incompatibili?
-
-Come viene mantenuta la memoria del perché?
-
-Sono domande di architettura applicate al processo di costruzione del software.
-
-E non è un caso che questo libro inizi da qui.
+Sono domande di architettura applicate al processo di costruzione del software, ed è per questo che il libro inizia da qui.
 
 ### Il principio del capitolo
 
@@ -257,8 +169,4 @@ Tutto il Capitolo 0 può essere ridotto a una frase:
 
 > **Delega la produzione quanto vuoi. Non delegare inconsapevolmente il diritto di capire, verificare e decidere.**
 
-Nei prossimi capitoli sposteremo il focus dal modo in cui costruiamo al modo in cui pensiamo il sistema prima di costruirlo.
-
-Perché un agente molto veloce con un problema definito male non risolve il problema.
-
-Lo implementa.
+Nei prossimi capitoli sposteremo il focus dal modo in cui costruiamo al modo in cui pensiamo il sistema prima di costruirlo. Un agente molto veloce con un problema definito male non risolve il problema: lo implementa.
