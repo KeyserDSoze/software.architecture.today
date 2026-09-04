@@ -1,214 +1,111 @@
 # Capitolo 25 — One-Man Project
 
-## Il progetto di una persona non è il progetto che dipende da una persona
+Il nome **One-Man Project** è volutamente provocatorio. Non descrive un eroe solitario, né un’organizzazione in cui una persona sostituisce Product, Security, Platform, Operations e dominio. Nel libro indica un’altra cosa: un **one-person operating model** in cui una singola persona può governare una quantità di execution molto maggiore perché non deve produrre personalmente ogni artefatto.
 
-Immaginiamo un engineer di ESI davanti a Order Operations.
+La domanda nasce naturalmente dopo i capitoli precedenti. Order Operations possiede repository context, work item execution-ready, agent governance, fitness function, test, threat model, cost model e una prima capability AI runtime con un boundary esplicito. Molto lavoro può essere esplorato, implementato e verificato da agenti dentro confini già progettati.
 
-Ha un repository AI-ready.
+A quel punto il limite non è più soltanto quante righe una persona riesce a scrivere in una giornata.
 
-Ha work item abbastanza precisi da essere delegabili.
+> **Quanto software può governare una singola persona quando l’execution cresce più velocemente della sua capacità di produrla direttamente?**
 
-Ha agenti che possono esplorare, implementare, testare e fare review entro boundary espliciti.
+Questa è la vera domanda del capitolo.
 
-Ha fitness function, test, documentazione, ADR, threat model, cost model e un sistema di evidence che gli evita di rieseguire manualmente ogni dettaglio.
+## Il collo di bottiglia si sposta
 
-A questo punto nasce una domanda quasi inevitabile:
-
-> **quanto software può governare una singola persona quando non deve più produrre personalmente ogni artefatto?**
-
-È la domanda del **One-Man Project**.
-
-Il nome è volutamente provocatorio. Nel libro descrive un **one-person operating model**: una singola persona che può assumere la responsabilità operativa di governare una quantità di execution molto maggiore grazie ad agenti, automazione e piattaforme. Non descrive genere, eroismo individuale né un'organizzazione in cui tutti gli altri diventano inutili.
-
-Soprattutto non significa:
-
-```text
-one human
-=
-one source of truth
-=
-one reviewer
-=
-one domain expert
-=
-one production operator
-=
-one person who can ever understand the system
-```
-
-Quello sarebbe un **single point of failure umano**, non leverage.
-
-## Il cambio di scala
-
-Per gran parte della storia del software, la capacità di una persona era fortemente vincolata dalla quantità di execution che riusciva a produrre direttamente:
-
-- scrivere codice;
-- costruire test;
-- cercare dipendenze;
-- aggiornare documentazione;
-- preparare migration;
-- investigare incidenti;
-- eseguire refactoring;
-- fare review;
-- mantenere pipeline e infrastruttura.
-
-Con coding agent e sistemi AI una parte crescente di questo lavoro può essere delegata.
-
-OpenAI descrive l'uso interno di Codex per code understanding, refactoring, migration, test, investigazione e task asincroni che un engineer può delegare e poi rivedere. La stessa guida insiste però su task ben circoscritti, ambiente riproducibile e review dell'output, non su autonomia illimitata.
-
-Fonte:
-
-- [OpenAI — How OpenAI uses Codex](https://openai.com/business/guides-and-resources/how-openai-uses-codex/)
-
-Una ricerca Microsoft pubblicata nel 2025 ha aggregato tre randomized field experiment su 4.867 developer di Microsoft, Accenture e una Fortune 100, riportando un aumento medio del **26,08% dei task completati** per i developer con accesso all'AI coding assistant. È evidence utile che il leverage individuale può crescere; non dimostra che un engineer possa sostituire un'organizzazione intera.
+L’AI può aumentare la capacità individuale di execution. Una ricerca Microsoft pubblicata nel 2025, aggregando tre randomized field experiment su 4.867 developer di Microsoft, Accenture e una Fortune 100, ha riportato un aumento medio del 26,08% dei task completati per chi aveva accesso a un coding assistant. È evidence utile che il throughput individuale possa crescere; non è evidence che un engineer possa sostituire un’intera organizzazione.
 
 Fonte:
 
 - [Microsoft Research — The Effects of Generative AI on High-Skilled Work](https://www.microsoft.com/en-us/research/publication/the-effects-of-generative-ai-on-high-skilled-work-evidence-from-three-field-experiments-with-software-developers/)
 
-La distinzione è fondamentale.
+OpenAI descrive allo stesso modo l’uso interno di Codex per code understanding, refactoring, migration, test, incident investigation e task asincroni che un engineer può delegare e poi rivedere. La stessa guida insiste però su task circoscritti, environment riproducibile e review dell’output.
+
+Fonte:
+
+- [OpenAI — How OpenAI uses Codex](https://openai.com/business/guides-and-resources/how-openai-uses-codex/)
+
+Il punto quindi non è negare il leverage. È capire che cosa succede **dopo** che il leverage aumenta.
+
+Un agente può produrre cinque candidate change in parallelo. Una persona deve ancora capire quali conseguenze hanno, quali claim sono supportati dall’evidence e quali decisioni sono state accidentalmente aperte. Un agente può preparare una migration; qualcuno deve ancora accettare il rischio del point of no return. Un agente può proporre una nuova business rule; la capacità di scriverla non trasferisce l’authority di approvarla.
+
+Quando l’execution diventa abbondante, diventano relativamente più scarsi attention, judgment, decision throughput, verification bandwidth, domain understanding e risk acceptance.
 
 > **Più capacità individuale non implica automaticamente più capacità organizzativa.**
 
-Se l'engineer produce tre volte più cambiamenti ma diventa il collo di bottiglia di tutte le decisioni, delle review e della conoscenza, abbiamo soltanto spostato il limite.
+Se una persona produce tre volte più cambiamenti ma diventa il collo di bottiglia di tutte le decisioni, delle review e della conoscenza, il sistema non ha eliminato il limite. Lo ha spostato.
 
-## Il nuovo collo di bottiglia
+## One accountable lead non significa one source of truth
 
-Quando l'execution diventa più abbondante, le risorse scarse diventano altre:
+La versione sbagliata del One-Man Project è facile da riconoscere. Una persona conosce tutto, approva tutto, risolve ogni incidente, custodisce le eccezioni e diventa l’unico punto attraverso cui il sistema può essere cambiato in sicurezza.
 
-```text
-attention
-judgment
-decision throughput
-verification bandwidth
-domain understanding
-risk acceptance
-organizational trust
-```
+Questa forma può apparire velocissima finché il lead è disponibile. In realtà ha trasformato il leverage in un **single point of failure umano**.
 
-Un agente può produrre cinque pull request in parallelo.
-
-Una persona può comunque non essere in grado di comprenderne seriamente cinque in parallelo.
-
-Un agente può trovare dieci alternative architetturali.
-
-Una persona deve ancora decidere quali trade-off valgono per il business.
-
-Un agente può scrivere una migration.
-
-Qualcuno deve ancora accettare il rischio del point of no return.
-
-Per questo il One-Man Project non è principalmente una tecnica di code generation.
-
-È un problema di **control plane umano**.
-
-## Non un hero developer
-
-C'è una versione tossica di questa idea:
-
-```text
-la persona più forte
-→ conosce tutto
-→ approva tutto
-→ aggiusta tutto
-→ viene chiamata per ogni incidente
-→ nessuno osa cambiare il sistema senza di lei
-```
-
-Questa non è eccellenza.
-
-È concentrazione di conoscenza e autorità.
-
-Il One-Man Project che ci interessa deve ottenere l'effetto opposto:
+Il modello che ci interessa fa l’opposto. Concentra parte del control plane tecnico, ma distribuisce la verità e i limiti attraverso repository, test, policy e decision owner espliciti.
 
 ```text
 one accountable lead
 +
-knowledge externalized
+externalized knowledge
 +
 executable verification
 +
-domain decision gates
+explicit domain/security/platform gates
 +
-explicit ownership
+secondary maintainer
 +
-reproducible environment
-+
-continuity when the lead is absent
+continuity evidence
 ```
 
-La domanda quindi non è:
+Il lead può coordinare molto lavoro senza diventare automaticamente proprietario della semantica di Payments, dell’authorization policy, della piattaforma cloud o di ogni scelta irreversibile.
 
-> “Posso costruirlo da solo?”
-
-È:
-
-> **“Posso governare questo progetto con una singola persona nel control plane senza rendere il progetto dipendente dalla presenza continua di quella persona?”**
-
-## Il compromesso ESI
-
-ESI vuole usare il Case Explanation Assistant del Capitolo 24 come primo pilot del modello.
-
-Commerce & Operations vorrebbe un lead tecnico capace di portare avanti discovery, implementation, eval, security review e operational preparation usando agenti specializzati.
-
-Finance vede un possibile aumento del leverage.
-
-Platform vede meno handoff operativi.
-
-Ma Product, Security e Payments & Risk pongono una condizione:
-
-> **la riduzione del numero di executor umani non può trasformarsi nella riduzione del numero di prospettive necessarie a prendere decisioni corrette.**
-
-La scelta corrente sarà quindi:
-
-```text
-one accountable project lead
-+
-multiple bounded agents
-+
-Product/domain decision gates
-+
-Security/platform gates when triggered
-+
-independent verification
-+
-knowledge in repository, not in memory
-+
-continuity test
-```
-
-Costo accettato:
-
-- alcuni checkpoint restano umani;
-- non tutto viene parallelizzato;
-- documentazione ed evidence devono essere mantenute;
-- un secondo maintainer deve poter riprendere il progetto.
-
-Quality floor:
-
-- nessuna decisione economica, security-critical o irreversibile viene resa unilaterale solo perché un singolo engineer possiede molta execution capacity;
-- il progetto deve restare comprensibile e recuperabile in assenza del lead;
-- verificare continua a essere separato dal produrre.
-
-## Dove vogliamo arrivare
-
-A fine capitolo Order Operations avrà un nuovo artefatto:
-
-> **One-Man Project Operating Model**
-
-che renderà espliciti:
-
-- accountable lead;
-- agent portfolio;
-- work-in-progress limit;
-- decision rights;
-- mandatory human/domain gates;
-- verification model;
-- continuity/absence plan;
-- knowledge externalization;
-- escalation path;
-- success metric.
-
-E soprattutto ci obbligherà a fare una distinzione che vale ben oltre l'AI:
+Questa distinzione è il cuore del capitolo:
 
 > **Essere in grado di fare quasi tutto non significa essere autorizzati a decidere tutto.**
+
+## Il control plane umano
+
+La metafora più utile viene dal cloud.
+
+Nel **data plane** del progetto avviene l’execution: code generation, search, refactoring, test creation, environment setup, document synchronization, candidate review.
+
+Nel **control plane** avvengono decisioni di un altro tipo: quale outcome conta, quale rischio è accettabile, chi possiede la truth, quale contract può cambiare, quale evidence è sufficiente, quando il lavoro deve fermarsi e quando un risultato può avanzare.
+
+Gli agenti aumentano soprattutto la capacità del primo piano. Il One-Man Project funziona soltanto se il secondo resta governabile.
+
+Per questo una persona che governa agenti non diventa semplicemente “uno sviluppatore più veloce”. Diventa un **governor of execution**. Il suo lavoro si sposta verso formulazione del problema, decomposizione, selezione dell’evidence, controllo del WIP, riconoscimento dei boundary e decisioni che non devono essere delegate.
+
+## Il problema ESI
+
+ESI vuole sperimentare questo operating model sul **Case Explanation Assistant** del Capitolo 24. È un buon candidato proprio perché il suo blast radius iniziale è volutamente contenuto: feature interna, read-only, advisory, senza write tool, con fallback e source provenance espliciti.
+
+Commerce & Operations vede un’opportunità: un singolo accountable lead potrebbe portare avanti discovery, provider evaluation, adapter implementation, eval e documentazione usando agenti specializzati, senza creare prematuramente un team dedicato.
+
+Product, Security, Platform e Payments & Risk pongono però una condizione più importante del numero di executor:
+
+> **Ridurre gli handoff di execution non può significare ridurre le prospettive e le authority necessarie per prendere decisioni corrette.**
+
+ESI sceglie quindi un modello con un accountable lead, agenti bounded, specialist gate trigger-based, independent verification, un Secondary Maintainer e una continuity story che vive nel repository anziché nella memoria del lead.
+
+Il costo è reale. Non tutto verrà parallelizzato. Alcuni checkpoint resteranno umani. Documentazione, evidence e handoff devono essere mantenuti. Una seconda persona deve poter riprendere il control plane.
+
+Ma proprio questo costo distingue leverage da fragilità organizzativa.
+
+## La promessa del capitolo
+
+Non cercheremo una formula del tipo “un engineer può gestire X linee di codice” o “N agenti equivalgono a M persone”. Sarebbe una precisione falsa.
+
+Studieremo invece le condizioni che rendono sostenibile il modello: attention budget e WIP, elasticità dei ruoli senza competence laundering, specialist authority, knowledge externalization, continuity, project fit ed exit trigger.
+
+Order Operations possiede già un **One-Man Project Operating Model** che rende espliciti accountable lead, non-authorities, agent portfolio, WIP policy, verification model, specialist trigger e continuity plan. Il documento è Codified; il continuity drill e i dati reali di throughput e costo sono ancora Pending.
+
+È la distinzione corretta da mantenere per tutto il capitolo:
+
+```text
+Operating Model        Codified
+Continuity model       Designed
+Continuity evidence    Pending
+Real workflow leverage Pending
+Production support fit Pending
+```
+
+> **Il One-Man Project non è la prova che una persona possa fare tutto. È un esperimento su quanto lavoro una persona possa governare senza diventare il punto fragile da cui tutto dipende.**
