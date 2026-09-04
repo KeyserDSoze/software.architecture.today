@@ -44,6 +44,7 @@ Order Operations non sostituisce Orders, Payments o Shipping come authoritative 
 | 22 | issue-driven development, work-item template e OO-001 |
 | 23 | Agent Delegation Contract, Verification Bundle e AI Autonomy Matrix |
 | 24 | Case Explanation Assistant, AI Feature Contract, eval seed e AI boundary fitness |
+| 25 | One-Man Project Operating Model, secondary maintainer, WIP policy, OO-002 e continuity direction |
 
 ---
 
@@ -159,6 +160,62 @@ Pending eval comparison
 
 Nessun adapter OpenAI/Azure/Anthropic o altro è stato ancora inserito nel semantic core.
 
+## One-Man Project pilot — Capitolo 25
+
+Il Case Explanation Assistant diventa il primo pilot ESI del **One-Man Project operating model**.
+
+Il modello significa:
+
+```text
+one accountable project lead
++ bounded agent portfolio
++ secondary maintainer
++ specialist/domain gates
++ WIP limits
++ independent verification where required
++ explicit exit triggers
+```
+
+Non significa:
+
+```text
+one source of truth
+one reviewer
+one sovereign authority
+one person required for every incident/change
+```
+
+Nuovo artifact:
+
+```text
+docs/one-man-project-operating-model.md
+```
+
+Initial WIP policy simulata ESI:
+
+```text
+Max active execution tasks       2
+Max active cross-boundary tasks  1
+Max unresolved semantic gates    1
+```
+
+Continuity direction:
+
+```text
+Secondary Maintainer
++ repository-first handoff
++ planned continuity/vacation drill
+```
+
+Current continuity evidence:
+
+```text
+Designed
+not yet executed
+```
+
+Il file esistente non viene trattato come prova di continuity.
+
 ---
 
 # Agentic engineering state
@@ -178,19 +235,29 @@ persistent canonical context
 current work-item context
 ```
 
-## Current work item
+## Current work items
 
 ```text
 OO-001
 Verify PostgreSQL atomicity for Payment Escalation + Outbox
+
+OO-002
+Evaluate Case Explanation model/provider candidates against the same eval suite
 ```
 
 Stato:
 
 ```text
-execution contract = Codified
-PostgreSQL execution = Pending
+OO-001 execution contract = Codified
+OO-001 PostgreSQL execution = Pending
+
+OO-002 execution contract = Codified
+OO-002 model/provider evaluation = Pending
 ```
+
+Entrambi sono classificati `T2 Cross-boundary` nel current One-Man Project Operating Model.
+
+Ready non significa che debbano essere entrambi Active contemporaneamente.
 
 ## Delegation baseline
 
@@ -217,6 +284,8 @@ docs/ai-autonomy-matrix.md
 ```
 
 Nessuna A4 production capability è autorizzata.
+
+OO-002 richiederà una task-specific delegation decision se verrà eseguita tramite il modello agentico del Capitolo 23.
 
 ---
 
@@ -246,13 +315,16 @@ Agent governance AGOV-001…AGOV-005             5/5 locally exercised
 
 Chapter 24
 AI boundary compile + AI-001…AI-005             5/5 locally exercised
+
+Chapter 25
+One-Man Project fitness test                    Codified; local execution not completed in authoring runtime due GitHub DNS failure
 ```
 
 Chapter 24 local verification:
 
 ```text
 tsc
-→ PASS for the new provider-neutral AI contract
+→ PASS for the provider-neutral AI contract
 
 node --test tests/ai-boundary-fitness.test.mjs
 → 5 tests
@@ -260,19 +332,22 @@ node --test tests/ai-boundary-fitness.test.mjs
 → 0 fail
 ```
 
-Questa evidence dimostra soltanto proprietà deterministicamente verificabili del nuovo model boundary e del seed eval.
-
-Non dimostra:
+Chapter 25 authoring-runtime verification attempt:
 
 ```text
-model groundedness
-real prompt-injection resistance
-provider availability
-model latency
-model cost
-operator usefulness
-production AI quality
+git clone https://github.com/KeyserDSoze/software.architecture.today.git
+→ failed: Could not resolve host github.com
 ```
+
+Quindi:
+
+```text
+one-man-project-fitness.test.mjs
+= Codified
+= not yet locally Verified in Chapter 25 authoring runtime
+```
+
+Non inventiamo il PASS.
 
 ---
 
@@ -310,6 +385,10 @@ AI Feature Contract                             Codified
 CaseExplanationPort + deterministic validator   Codified + locally compiled
 AI eval seed                                    Codified
 AI boundary fitness AI-001…AI-005               locally exercised 5/5
+One-Man Project Operating Model                 Codified
+OO-002 execution contract                       Codified / execution Pending
+One-Man Project fitness                         Codified / local execution Pending
+Continuity/vacation drill                       Designed / Pending
 Runtime model/provider adapter                  Pending
 AI eval execution                               Pending
 PostgreSQL integration via OO-001               Pending
@@ -356,6 +435,7 @@ order-operations/
 │   ├── agent-verification-bundle.md
 │   ├── ai-autonomy-matrix.md
 │   ├── ai-feature-contract.md
+│   ├── one-man-project-operating-model.md
 │   ├── events/
 │   └── adr/
 ├── evals/
@@ -375,12 +455,14 @@ order-operations/
 │   ├── architecture-fitness.test.mjs
 │   ├── cost-fitness.test.mjs
 │   ├── issue-readiness-fitness.test.mjs
+│   ├── one-man-project-fitness.test.mjs
 │   ├── payment-escalation.test.mjs
 │   ├── outbox-publisher.test.mjs
 │   └── priority-policy.test.mjs
 └── work-items/
     ├── TEMPLATE.md
-    └── OO-001-postgresql-escalation-outbox-atomicity.md
+    ├── OO-001-postgresql-escalation-outbox-atomicity.md
+    └── OO-002-case-explanation-model-evaluation.md
 ```
 
 Legacy system separato:
@@ -404,6 +486,7 @@ Quando il prodotto cambia verifichiamo almeno:
 - Observability Contract e Cost Model quando cambia il comportamento operativo;
 - Testing Strategy e eval dataset quando cambia la superficie di rischio;
 - AI Feature Contract quando cambiano model authority, context, retrieval, tool, output o fallback;
+- One-Man Project Operating Model quando cambiano WIP, decision rights, specialist trigger, secondary maintainer, continuity o exit criteria;
 - Agent Delegation Contract / Verification Bundle / Autonomy Matrix quando cambia la governance degli executor;
 - work item corrente quando cambia scope/outcome/evidence del task;
 - Architecture Fitness Checklist quando una proprietà merita protezione continua.
@@ -419,6 +502,10 @@ Quando il prodotto cambia verifichiamo almeno:
 > **Il modello può proporre un'interpretazione. Il sistema decide ancora che cosa è vero e che cosa è autorizzato.**
 
 > **Grounding è un requisito. RAG è una possibile soluzione.**
+
+> **One accountable lead non significa one source of truth.**
+
+> **Il One-Man Project deve massimizzare leverage senza diventare un single point of failure umano.**
 
 ## Obiettivo finale
 
