@@ -1,146 +1,70 @@
 # Capitolo 7 — Pattern senza religione
 
-## Il pattern non viene prima del problema
+I pattern sono tra le idee più utili del software engineering proprio perché condensano esperienza. Ci permettono di riconoscere tensioni già incontrate, dare un nome a strutture ricorrenti e discutere con un team senza reinventare ogni volta il vocabolario.
 
-I pattern sono una delle idee più utili e più abusate del software engineering.
+Diventano pericolosi quando il nome arriva prima del problema.
 
-Sono utili perché ci permettono di riconoscere strutture ricorrenti. Ci aiutano a dare un nome a problemi già incontrati, a condividere un vocabolario con il team e a evitare di reinventare ogni volta soluzioni che hanno già mostrato proprietà interessanti.
-
-Sono abusati quando diventano badge di competenza.
-
-Quando il ragionamento comincia così:
-
-> “Qui ci metterei un CQRS.”
-
-oppure:
+> “Qui ci starebbe bene CQRS.”
 
 > “Questo sembra perfetto per event sourcing.”
 
-oppure:
-
 > “Usiamo una saga.”
 
-prima ancora di aver chiarito il problema, abbiamo invertito l'ordine corretto delle cose.
+Frasi così non sono necessariamente sbagliate. Sono incomplete se non sappiamo ancora quale tensione debba essere risolta e quale costo siamo disposti a introdurre.
 
-Il pattern è diventato il punto di partenza.
+Nel capitolo precedente abbiamo costruito il principio **fit before fashion**. Qui lo applichiamo ai pattern: non sono badge di maturità e non sono ingredienti che rendono automaticamente un'architettura più professionale. Sono possibili risposte a forze ricorrenti.
 
-Nel capitolo precedente abbiamo introdotto il principio **fit before fashion**.
-
-Qui lo applichiamo direttamente ai pattern.
-
-Un pattern non è una tecnologia da installare.
-
-Non è una libreria.
-
-Non è nemmeno una ricetta da copiare.
-
-È un modo ricorrente di organizzare una soluzione quando certe forze sono presenti.
-
-La domanda corretta non è:
+La domanda quindi non è:
 
 > “Quale pattern possiamo usare?”
 
-È:
+ma:
 
-> **“Quale problema stiamo cercando di risolvere, quali forze agiscono e quale struttura ci aiuta a gestirle con il trade-off migliore?”**
+> **Quale problema stiamo cercando di risolvere, quali forze lo rendono difficile e quale struttura gestisce meglio quel trade-off nel nostro contesto?**
 
-Questa differenza sembra sottile.
+## Pattern-first development
 
-Non lo è.
+Esiste una forma di overengineering particolarmente seducente perché produce codice ordinato. Factory, Strategy, Mediator, Repository, Unit of Work, command handler, event bus, adapter e orchestrator sono tutti concetti riconoscibili e possono far sembrare il design maturo.
 
-### Il Pattern-First Development
+Il problema emerge quando una feature semplice attraversa molti livelli e nessuno riesce più a spiegare quale forza concreta giustifichi ciascuno di essi. Il costo non è soltanto il numero di file; è il numero di concetti che una persona deve tenere in testa per trovare il comportamento reale.
 
-Esiste una forma di overengineering molto elegante.
-
-Non produce necessariamente codice brutto.
-
-Produce codice pieno di concetti riconoscibili: factory e strategy, mediator e repository, unit of work, command e handler, event bus, adapter, gateway e orchestrator. La familiarità dei nomi può far sembrare il design più maturo di quanto sia il problema che sta cercando di risolvere.
-
-Ogni pezzo può essere difendibile isolatamente.
-
-Il problema emerge quando nessuno sa più spiegare quale forza concreta giustifichi ciascun livello.
-
-Una feature semplice finisce per attraversare sette astrazioni perché “questa è la nostra architecture”.
-
-Il costo non è soltanto il numero di file.
-
-È il numero di concetti che ogni engineer deve tenere in testa per capire dove vive davvero il comportamento.
-
-Con l'AI questo rischio aumenta.
-
-Un agente può produrre in pochi minuti una struttura estremamente sofisticata e apparentemente professionale.
-
-Può introdurre interfacce, adapter, command bus e test mockati con una facilità che rende il costo iniziale quasi invisibile.
-
-Ma il costo di comprensione rimane.
-
-E quel costo viene pagato da ogni persona e da ogni agente che entrerà successivamente nel repository.
-
-Da qui una regola:
+Con gli agenti questo rischio cresce perché generare astrazioni costa pochissimo. Un modello può costruire in minuti una struttura coerente, testata e formalmente elegante. Il costo di comprenderla rimane però nel repository e viene pagato da ogni engineer e da ogni agente successivo.
 
 > **L'AI abbassa il costo di creare astrazioni. Non abbassa automaticamente il costo di capirle.**
 
-### Un pattern è una compressione di esperienza
+## Il pattern è esperienza compressa
 
-La parte interessante dei pattern non è il diagramma UML.
+La parte interessante di un pattern non è il diagramma UML. È la storia che quel diagramma comprime: una tensione compare abbastanza spesso da essere riconoscibile, alcune soluzioni ingenue producono problemi ricorrenti e una certa distribuzione delle responsabilità offre vantaggi prevedibili pagando costi altrettanto prevedibili.
 
-È l'esperienza condensata dietro quel diagramma.
+Se perdiamo problema e conseguenze, rimane soltanto la forma. E una forma applicata senza la forza che l'ha resa utile diventa cargo cult.
 
-Un pattern racconta implicitamente che una certa tensione compare abbastanza spesso da essere riconoscibile, che alcune soluzioni ingenue tendono a fallire e che una particolare distribuzione delle responsabilità può essere utile. Soprattutto, racconta che quei vantaggi non sono gratuiti: arrivano insieme a costi specifici.
+Per questo non studieremo i pattern come un catalogo da memorizzare. Li useremo come **linguaggio per ragionare**.
 
-Se perdiamo questa relazione tra problema, forze e conseguenze, resta soltanto la forma.
+Ogni volta chiederemo quale problema risolvano, quali forze debbano essere presenti, quale coupling riducano e quale introducano, quali failure mode cambino, quali conseguenze operative producano e quale alternativa più semplice possa soddisfare gli stessi requisiti.
 
-E la forma senza il problema diventa cargo cult.
+La parte più importante sarà spesso un'altra: **quando non usarli**.
 
-Per questo in questo libro non studieremo i pattern come un catalogo da memorizzare.
+## Conoscere un pattern significa anche saperlo rifiutare
 
-Li useremo come **linguaggio per ragionare**.
+Una queue può ridurre coupling temporale e introdurre delivery semantics, backlog e retry. Un circuit breaker può contenere una dipendenza degradata e aggiungere stato, soglie e nuove necessità di osservabilità. CQRS può separare letture e scritture quando divergono davvero e può introdurre duplicazione e consistency più complessa. Event sourcing può offrire una storia ricchissima del dominio e cambiare profondamente persistence, debugging, privacy ed evoluzione degli eventi.
 
-Per ogni pattern importante porremo sempre le stesse domande:
+Nessuno di questi costi rende il pattern cattivo. Impedisce però di trattarlo come “upgrade” generico dell'architettura.
 
-1. quale problema prova a risolvere?
-2. quali forze devono essere presenti perché abbia senso?
-3. quale complessità introduce?
-4. quale coupling rimuove e quale coupling aggiunge?
-5. quali failure mode crea?
-6. come cambia operabilità e osservabilità?
-7. quali alternative più semplici esistono?
-8. quando non dovremmo usarlo?
+Un segnale di maturità non è quante soluzioni conosciamo, ma quante riusciamo a **non introdurre** quando non hanno ancora un lavoro reale da svolgere.
 
-### La parte più importante: quando non usarlo
+## La grammatica del capitolo
 
-Conoscere un pattern significa anche riconoscere quando non serve.
+Useremo una sequenza semplice:
 
-Questo è un segnale di maturità tecnica.
+```text
+problema
+→ forze
+→ struttura possibile
+→ conseguenze
+→ evidence
+→ adozione, rinvio o rimozione
+```
 
-Un engineer junior spesso mostra ciò che sa introducendolo.
-
-Un engineer più esperto mostra ciò che sa anche decidendo consapevolmente di non introdurlo.
-
-Perché ogni pattern è un trade-off.
-
-Una queue riduce alcune forme di coupling temporale, ma introduce delivery semantics, retry, poison message, ordering e operabilità.
-
-Un circuit breaker può limitare il danno di una dipendenza degradata, ma introduce stato e soglie che devono essere comprese e osservate.
-
-CQRS può separare modelli di lettura e scrittura quando hanno esigenze molto diverse, ma può introdurre duplicazione, sincronizzazione e consistenza eventuale.
-
-Event sourcing può conservare una storia ricca del dominio, ma cambia profondamente il modello di persistenza, debugging, evoluzione degli eventi e gestione dei dati.
-
-Nessuno di questi costi rende il pattern sbagliato.
-
-Rende necessario giustificarlo.
-
-### Pattern senza religione
-
-Il titolo di questo capitolo non significa che i pattern siano superati.
-
-Significa esattamente il contrario.
-
-Sono troppo utili per ridurli a rituali.
-
-Li tratteremo come strumenti di decisione.
-
-La regola sarà semplice:
+Questa sequenza impedisce al nome del pattern di prendere il controllo del reasoning. Ci permette anche di collegare la scelta agli ADR, ai quality target e ai review trigger dei capitoli precedenti.
 
 > **Non applicare un pattern perché lo riconosci. Applicalo quando riconosci il problema che lo rende utile.**
