@@ -1,42 +1,34 @@
-# Fault isolation, capacity e cascading failure
+## Fault isolation, capacity e cascading failure
 
-Un sistema affidabile non è quello in cui nulla si rompe.
+Un sistema affidabile non è quello in cui nulla si rompe. È quello in cui un failure incontra abbastanza boundary da avere difficoltà a diventare **tutti i failure contemporaneamente**.
 
-È quello in cui un failure ha difficoltà a diventare **tutti i failure contemporaneamente**.
-
-## Cascading failure
-
-Una failure cascade nasce quando una parte degradata produce pressione aggiuntiva su altre parti.
-
-Scenario classico:
+La propagazione è spesso più pericolosa del trigger iniziale. Una dependency rallenta, le request restano aperte più a lungo, la concurrency cresce, le connection pool si saturano, aumentano i timeout, partono retry e il traffico effettivo cresce proprio mentre la capacità utile scende.
 
 ```text
 dependency latency ↑
 → request duration ↑
 → concurrency ↑
-→ connection pool saturation
+→ saturation
 → timeout ↑
 → retry ↑
 → effective traffic ↑
 → dependency pressure ↑
 ```
 
-Il failure si autoalimenta.
+Questo feedback loop è il cuore del cascading failure.
 
-AWS Builders' Library e Azure Well-Architected insistono entrambi sulla necessità di limitare retry, evitare overload e proteggere il sistema dalla propagazione di failure.
+AWS Well-Architected e Microsoft Well-Architected insistono entrambi su retry limitati, fault isolation e self-preservation proprio perché i meccanismi di recovery possono diventare amplificatori quando non sono bounded.
 
 Fonti:
 
 - [AWS Well-Architected — Control and limit retry calls](https://docs.aws.amazon.com/wellarchitected/latest/framework/rel_mitigate_interaction_failure_limit_retries.html)
 - [Microsoft Learn — Reliability design patterns](https://learn.microsoft.com/azure/well-architected/reliability/design-patterns)
 
-## Capacity è parte della reliability
+## La capacity è reliability quando smette di bastare
 
-Spesso capacity viene trattata come performance.
+Capacity planning viene spesso relegato alla performance. Ma quando il sistema raggiunge il proprio limite, latency e throughput diventano availability problem.
 
-Ma quando la capacity finisce, il problema diventa reliability.
-
-Dobbiamo conoscere almeno:
+Per progettare un workload dobbiamo conoscere almeno la forma del carico:
 
 ```text
 steady-state load
@@ -46,364 +38,137 @@ saturation point
 recovery load
 ```
 
-Il punto `recovery load` è particolarmente importante.
+L’ultimo elemento è facile da dimenticare. Dopo un outage possiamo avere backlog da drenare, cache fredde, client che ritentano, job rimasti indietro, connessioni che si ristabiliscono tutte insieme e operatori che ripetono manualmente le azioni.
 
-Dopo un outage possiamo avere:
+Un sistema perfettamente dimensionato per lo steady state può quindi collassare proprio mentre sta recuperando.
 
-- backlog da drenare;
-- cache fredde;
-- client che ritentano;
-- job rimasti indietro;
-- connessioni che si ristabiliscono insieme;
-- operatori che ripetono manualmente azioni.
+Questo vale in modo evidente per la Service Bus Queue introdotta nel Capitolo 11. La queue assorbe temporaneamente uno squilibrio tra producer e consumer, ma non genera capacità downstream.
 
-Un sistema che ha capacità sufficiente nello steady state può collassare durante il recovery.
-
-## Queue ≠ capacity
-
-Dal Capitolo 11 abbiamo una Service Bus Queue.
-
-La queue ci consente di assorbire temporaneamente una differenza fra producer e consumer.
-
-Ma:
-
-> **Una queue trasforma overload immediato in backlog. Non crea capacità downstream.**
-
-Se:
+Se per abbastanza tempo:
 
 ```text
 arrival rate > processing rate
 ```
 
-per abbastanza tempo:
+allora inevitabilmente:
 
 ```text
 queue depth ↑
-queue age ↑
+oldest-message age ↑
 business delivery latency ↑
 ```
 
-La reliability policy deve decidere quando il backlog è ancora accettabile e quando il flow è `Degraded` o `Unhealthy`.
+Il Reliability Contract deve quindi dire quando il backlog è ancora dentro un envelope accettabile e quando il flow passa a `Degraded` o `Unhealthy`.
 
-## Retry budget
+> **Una queue sposta il debito nel tempo. Non lo cancella.**
 
-Ogni retry usa capacità.
+## Retry significa spendere capacità
 
-Per questo il retry deve essere bounded.
+Ogni retry è nuovo lavoro. Per questo il retry budget del Capitolo 11 ora diventa anche una decisione di capacity.
 
-Domande minime:
+Non basta sapere che una richiesta “può essere ritentata”. Dobbiamo sapere chi ritenta, quante volte, per quali errori, con quale backoff e jitter, entro quale budget temporale e soprattutto che cosa succede quando il budget termina.
 
-```text
-quale errore è transient?
-chi ritenta?
-quante volte?
-con quale backoff?
-con quale jitter?
-quanto tempo totale?
-che cosa succede quando il budget finisce?
-```
+La domanda aggiuntiva della reliability è:
 
-Il Capitolo 11 ha già definito stable identity e retry limitati per il publisher.
+> **Quanta capacità siamo disposti a spendere per recuperare un’operazione prima di proteggere il resto del sistema?**
 
-Il Capitolo 14 aggiunge una domanda:
+Questa domanda rende leggibili anche circuit breaker, bulkhead e load shedding.
 
-> **Quanta capacità siamo disposti a consumare per recuperare un'operazione prima di proteggere il resto del sistema?**
+Un **circuit breaker** può avere fit quando una dipendenza fallisce abbastanza a lungo da rendere dannoso continuare a insistere. Il suo valore non è “riparare il downstream”, ma far fallire velocemente, evitare consumo inutile e permettere un degraded path quando esiste.
 
-## Circuit breaker
-
-Un circuit breaker interrompe temporaneamente chiamate verso una dipendenza che sta fallendo abbastanza da rendere controproducente continuare a insistere.
-
-Pattern concettuale:
-
-```text
-Closed
-→ failures threshold
-→ Open
-→ cool-down
-→ Half-Open
-→ probe
-→ Closed / Open
-```
-
-Il beneficio non è "far tornare la dipendenza".
-
-È:
-
-- fallire velocemente;
-- evitare consumo inutile di risorse;
-- limitare traffic amplification;
-- rendere disponibile un degraded path quando esiste.
-
-Microsoft raccomanda circuit breaker quando retry continui rischiano di aumentare pressione su failure più persistenti.
+Microsoft include questo pattern nei design mission-critical proprio per limitare pressione e propagation quando il retry non è più utile.
 
 Fonte:
 
 - [Microsoft Learn — Mission-critical application design](https://learn.microsoft.com/azure/well-architected/mission-critical/mission-critical-application-design)
 
-## Non ogni dependency vuole un circuit breaker
+Ma aggiungerlo ovunque sarebbe un altro tipo di reliability theater. Un breaker introduce stato, soglie, recovery delay e nuove condizioni da osservare. Per le dipendenze live di Order Operations diventerà una scelta soltanto se le misure mostrano che failure persistenti stanno davvero consumando il critical path.
 
-Aggiungerlo a ogni chiamata può introdurre:
+## Bulkhead: separare prima che una parte consumi tutto
 
-- stato distribuito aggiuntivo;
-- soglie difficili da tarare;
-- recovery delay;
-- debugging più complesso;
-- falsi open circuit.
+Il Bulkhead pattern nasce dalla stessa logica. Se workload diversi condividono completamente CPU, connection pool, thread, queue o concurrency, la saturazione di uno può togliere capacità agli altri.
 
-Per Order Operations può essere candidato sulle dependency live di lettura se misure reali mostrano che failure persistenti creano cascading pressure.
+Order Operations ha oggi App Service e continuous WebJob nello stesso lifecycle. È una scelta consapevole del Capitolo 12: semplice e proporzionata al workload corrente.
 
-Non lo implementiamo soltanto perché esiste il pattern.
-
-## Bulkhead
-
-Il Bulkhead pattern separa risorse affinché la saturazione di un workload non consumi tutto.
-
-Esempio futuro ESI:
+Ma abbiamo anche già definito il trigger di revisione. Se un backlog di outbox in fase di recovery producesse:
 
 ```text
-API request pool
-≠
-outbox publisher concurrency
+publisher recovery load
+→ CPU/connection pressure
+→ operator API latency ↑
+→ SLO core journey violato
 ```
 
-Oggi App Service e WebJob condividono il lifecycle e parte della capacità.
+avremmo evidence per separare capacity, concurrency o addirittura runtime.
 
-Questa era una scelta consapevole del Capitolo 12.
+Quella estrazione sarebbe guidata dal failure model, non dalla moda dei microservizi.
 
-Il trigger di revisione era proprio:
+## Ridondanza utile significa failure domain indipendenti
 
-```text
-background workload interferisce con API
-```
-
-Se osservassimo:
-
-```text
-publisher backlog recovery
-→ CPU saturation
-→ operator API latency SLO violation
-```
-
-avremmo evidence per separare capacity o compute.
-
-Questa sarebbe una estrazione guidata da reliability, non da moda.
-
-## Fault domain
-
-Un fault domain è l'insieme delle parti che possono fallire insieme a causa della stessa dipendenza o causa comune.
-
-Esempi:
-
-- stessa VM;
-- stessa availability zone;
-- stesso database cluster;
-- stessa identity dependency;
-- stessa configurazione distribuita globalmente;
-- stessa credenziale;
-- stessa pipeline;
-- stessa regione.
+Un **fault domain** è l’insieme di parti che possono fallire insieme per una stessa causa. Può essere una VM, una availability zone, un database cluster, una regione, una identity dependency, una pipeline, una configurazione distribuita o persino una singola credenziale condivisa.
 
 La ridondanza ha valore soltanto se le copie non condividono il failure che vogliamo tollerare.
 
+Due istanze applicative proteggono da un instance failure, ma non da un bad deployment propagato a entrambe. Due database node possono proteggere da un guasto fisico, ma non da una corruption logica replicata correttamente. Due regioni configurate dallo stesso automation bug possono condividere un common-mode failure.
+
 > **Due copie dello stesso errore non sono alta disponibilità.**
 
-## Common-mode failure
-
-Possiamo avere tre istanze applicative.
-
-Ma se tutte ricevono:
-
-```text
-config sbagliata
-```
-
-abbiamo tre istanze che falliscono insieme.
-
-Possiamo avere due database node.
-
-Ma se un comando applicativo corrompe logicamente i dati e la replica correttamente la corruption:
-
-```text
-HA != recovery dalla corruption
-```
-
-Questo è il motivo per cui HA e backup risolvono failure diversi.
-
-## Caso reale — GitHub, maggio 2026
-
-Nel maggio 2026 GitHub ha documentato un incidente in cui una online schema migration su una tabella molto usata, combinata con l'aumento del traffico, saturò la capacità di connessione del database e produsse query contention e cascading timeout su servizi dipendenti.
-
-GitHub dichiarò come follow-up:
-
-- migrazioni più allineate alle finestre di minor traffico;
-- dynamic throttling in base al load live;
-- circuit breaker automatici sulle migration;
-- monitoring anticipato di connection saturation, lock e write pressure.
-
-Fonte primaria:
-
-- [GitHub Availability Report — May 2026](https://github.blog/news-insights/company-news/github-availability-report-may-2026/)
-
-Il caso è particolarmente utile perché mostra che:
-
-```text
-migration
-```
-
-non è soltanto un tema dati.
-
-È un workload concorrente che compete per una capacity condivisa.
-
-## Caso reale — Cloudflare 2020
-
-Cloudflare ha documentato nel 2020 un configuration error nella propria backbone che fece convergere traffico verso Atlanta fino a sovraccaricare quel router e causare outage in più location.
-
-La rete non collassò interamente: alcune location continuarono a funzionare.
-
-Fra le mitigazioni introdotte Cloudflare citò limiti e modifiche di routing per impedire che una singola location attirasse nuovamente traffico in quel modo.
-
-Fonte primaria:
-
-- [Cloudflare — Outage on July 17, 2020](https://blog.cloudflare.com/cloudflare-outage-on-july-17-2020/)
-
-La lezione non è "usate BGP prefix limit" in ogni software architecture.
-
-È:
-
-> **Quando una configurazione errata può concentrare il carico, il sistema deve avere un limite che impedisca alla concentrazione di diventare sistemica.**
-
-## Redundancy
-
-La ridondanza può esistere a diversi livelli:
-
-```text
-process
-instance
-zone
-region
-data copy
-network path
-operator skill
-```
-
-Ma ogni livello deve essere collegato a un failure mode.
-
-Esempio:
-
-```text
-2 App Service instances
-```
-
-proteggono meglio da instance failure.
-
-Se zone redundancy è configurata, possono proteggere anche da zone failure secondo le capability del servizio.
-
-Non proteggono da:
-
-- bad deployment distribuito a entrambe;
-- auth policy sbagliata;
-- bug applicativo;
-- database corruption;
-- region outage.
-
-## Availability zone
-
-Per App Service, Microsoft documenta che i piani supportati possono essere configurati zone-redundant con almeno due istanze; le istanze vengono distribuite tra availability zone quando la regione/scale unit lo supportano.
+Per App Service, Microsoft documenta che i piani compatibili possono essere configurati con zone redundancy e almeno due istanze, distribuendo capacità attraverso availability zone nelle regioni supportate.
 
 Fonte:
 
 - [Microsoft Learn — Configure App Service plans for zone redundancy](https://learn.microsoft.com/azure/app-service/configure-zone-redundancy)
 
-Per Order Operations questa capability diventa candidata concreta nel Capitolo 14.
+Per ESI questa capability ha fit perché il prodotto rimane single-region ma vuole ridurre il failure domain dai singoli host e dalla singola zone senza pagare subito la complessità multi-region.
 
-Perché?
+## Headroom: la ridondanza nominale non basta
 
-Perché oggi il prodotto è ancora single-region ma vuole ridurre il failure domain da:
+Avere `N` istanze non protegge davvero dalla perdita di una istanza se le `N-1` rimanenti non possono sostenere il traffico.
 
-```text
-region
-```
-
-almeno a:
+La domanda di capacity deve quindi includere anche lo scenario degradato:
 
 ```text
-zone
-```
-
-senza pagare immediatamente multi-region.
-
-## Headroom
-
-Capacity al 100% non è efficiente reliability.
-
-Se una istanza viene persa e le altre non possono assorbire il traffico, abbiamo ridondanza nominale ma non sufficiente capacità di failover.
-
-Dobbiamo quindi ragionare anche su:
-
-```text
-N instances healthy
+N istanze healthy
 → load per instance
 
-N-1 instances
+N-1 istanze
 → load per remaining instance
 ```
 
-Questo non significa sovradimensionare senza misura.
+Headroom non significa sovradimensionare alla cieca. Significa scegliere quale failure scenario deve essere assorbito senza superare il saturation point.
 
-Significa rendere esplicito il failure scenario usato per capacity planning.
+Questo vale anche per il recovery. Se dopo trenta minuti di consumer outage la queue contiene un backlog importante, il sistema deve drenarlo senza togliere capacità al traffico interattivo o creare un nuovo retry storm.
 
-## Load shedding
+Quando la capacità disponibile non basta per tutto, può essere più affidabile rifiutare o rinviare lavoro meno importante invece di accettarlo e degradare lentamente ogni flow. È il principio del **load shedding**.
 
-Quando il sistema si avvicina alla saturazione possiamo preferire:
+Per Order Operations non abbiamo ancora export o report pesanti. Non implementiamo quindi un meccanismo che non serve. Ma se arriveranno, dovranno avere una priorità esplicita rispetto al core operator journey.
 
-```text
-rifiutare lavoro non critico presto
-```
+## I casi reali mostrano che la capacity è spesso il propagation path
 
-invece di:
+Nel maggio 2026 GitHub ha documentato un incidente in cui una online schema migration su una tabella molto utilizzata, combinata con l’aumento del traffico, contribuì a saturare la capacità di connessione del database e a generare contention e cascading timeout. Tra i follow-up dichiarati comparivano scheduling più attento delle migration, throttling dinamico, circuit breaker e monitoring anticipato della saturation.
 
-```text
-accettare tutto
-→ diventare lento
-→ fallire tutto
-```
+Fonte primaria:
 
-È una strategia di self-preservation.
+- [GitHub Availability Report — May 2026](https://github.blog/news-insights/company-news/github-availability-report-may-2026/)
 
-Per ESI, eventuali export/report pesanti futuri dovranno avere priority diversa dal core operator journey.
+Il valore didattico non è “usare gli stessi threshold di GitHub”. È riconoscere che una migration è anch’essa un workload che compete per capacity condivisa.
 
-## Retry storm da AI-generated client
+Cloudflare ha documentato nel 2020 un altro tipo di propagation path: una configurazione di backbone fece convergere traffico verso Atlanta fino a sovraccaricare quel punto e causare outage in più location. Tra le mitigazioni descritte comparivano limiti e cambiamenti di routing destinati a evitare una nuova concentrazione analoga.
 
-Nell'era degli agenti compare anche un nuovo failure amplifier.
+Fonte primaria:
 
-Un agente può generare rapidamente più client, worker e automation che condividono una stessa retry policy ingenua.
+- [Cloudflare — Outage on July 17, 2020](https://blog.cloudflare.com/cloudflare-outage-on-july-17-2020/)
 
-Esempio:
+Anche qui il principio generale non è una regola BGP. È più semplice:
 
-```text
-10 agent-generated workers
-× 5 retry immediati
-```
+> **Quando una configurazione può concentrare il carico, serve un limite che impedisca alla concentrazione di diventare sistemica.**
 
-Un failure transient diventa un burst artificiale.
+## Cosa cambia con l’AI
 
-La soluzione non è vietare la generazione.
+L’AI rende economico generare client, worker, automation e retry policy. Lo stesso vantaggio rende economico anche duplicare una policy ingenua.
 
-È avere guardrail:
+Dieci worker generati rapidamente, ognuno con cinque retry immediati, possono trasformare un piccolo transient failure in un burst artificiale. La risposta non è rallentare la generazione, ma avere guardrail condivisi su retry, concurrency, backoff, capacity budget e load testing.
 
-```text
-shared retry policy
-bounded concurrency
-backoff+jitter
-capacity budget
-load test
-architecture review
-```
+> **Quando l’execution costa poco, anche l’amplificazione di un errore costa poco da produrre.**
 
-> **Quando l'execution costa poco, anche l'amplificazione di un errore costa poco da produrre.**
-
-## Corollario
-
-La fault isolation non serve a impedire al primo componente di fallire.
-
-Serve a impedire che il primo componente decida quanti altri devono fallire con lui.
+La fault isolation non impedisce al primo componente di fallire. Decide quanti altri componenti quel failure ha il diritto di portarsi dietro.
