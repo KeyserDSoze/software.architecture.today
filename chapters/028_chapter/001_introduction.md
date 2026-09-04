@@ -1,308 +1,80 @@
 # Capitolo 28 — L'architect del 2030
 
-Per molti anni abbiamo descritto l'architect attraverso gli artefatti che produceva.
+Per molto tempo abbiamo descritto l'architect attraverso gli artefatti che produce: diagrammi, specifiche, review, ADR, standard, reference architecture. Quegli artefatti continuano a essere utili, ma l'AI cambia il rapporto fra il costo di produrli e il valore professionale che rappresentano.
 
-Diagrammi.
+Un agente può leggere una codebase, proporre alternative, preparare un diagramma, scrivere una prima bozza di ADR, generare test, confrontare tecnologie e implementare una parte consistente della soluzione. Se il valore dell'architect coincide con la velocità con cui produce questi output, il ruolo sembra inevitabilmente comprimersi.
 
-Specifiche.
-
-Review.
-
-Decision record.
-
-Standard.
-
-Reference architecture.
-
-Quel lavoro non scompare.
-
-Ma nell'era dell'AI cambia il rapporto fra artefatto e responsabilità.
-
-Un agente può generare una prima bozza di diagramma in pochi secondi. Può leggere una codebase, proporre una decomposizione, scrivere un ADR, confrontare alternative, produrre una checklist di security, analizzare una migration, preparare test e persino implementare una parte consistente della soluzione.
-
-Se definiamo il valore dell'architect come capacità di produrre questi artefatti, il ruolo sembra improvvisamente minacciato.
-
-Se invece lo definiamo come capacità di **capire il problema, tenere insieme il sistema, prendere decisioni sotto vincoli reali e governare le conseguenze**, il ruolo diventa ancora più importante.
+Se invece il valore consiste nel capire quale problema merita di essere risolto, mantenere coerenti business e sistema, riconoscere le decisioni ad alto blast radius, scegliere trade-off sotto vincoli reali e pretendere evidence proporzionata ai claim, allora il quadro cambia.
 
 > **Quando produrre alternative costa meno, scegliere bene fra le alternative vale di più.**
 
-Questo capitolo parla quindi dell'architect del 2030 non come previsione di una job description futura, ma come evoluzione di responsabilità che è già visibile oggi.
+Il riferimento al 2030 è simbolico. Non stiamo prevedendo una job description né sostenendo che esisterà un solo tipo di architect. Stiamo osservando un cambiamento già visibile: quando l'execution diventa più economica, la scarsità si sposta verso **judgment, contesto, authority, verifica e capacità di integrare conseguenze che appartengono a domini diversi**.
 
-La data nel titolo è deliberatamente simbolica.
+## Architecture come responsabilità, non come fabbrica di artefatti
 
-Non stiamo dicendo che nel 2030 esisterà un unico tipo di architect.
+Il libro ha attraversato analisi funzionale, boundary, API, dati, sistemi distribuiti, cloud, security, reliability, observability, testing, legacy, refactoring, costi, agent governance, runtime AI e production readiness. Nessuna di queste aree può essere governata soltanto attraverso diagrammi, e nessuna richiede che una singola persona sia il massimo esperto di tutto.
 
-Stiamo chiedendo:
+Il lavoro architetturale consiste sempre più nel sapere quale profondità serve per prendere una decisione credibile, quale evidence può falsificarla e quando la decision authority appartiene a uno specialista o a un domain owner.
 
-> **Quali capacità diventano più preziose quando il costo dell'execution scende e aumenta il numero di decisioni che possiamo materializzare?**
+Questo non allontana l'architect dal codice. Lo obbliga, al contrario, a restare abbastanza vicino alla realtà da accorgersi quando il modello mentale non coincide più con ciò che il sistema fa.
 
----
+Un architecture decision acquista significato soltanto quando incontra implementation, runtime behavior, costi reali, incidenti, feedback utente e nuovi constraint. Per questo il ruolo non finisce con il design.
 
-## Da produttore di artefatti a governor di sistemi
+Microsoft Azure Well-Architected descrive il solution architect come una figura coinvolta lungo l'intero lifecycle del workload: raccoglie input dagli stakeholder, comprende il business context, bilancia aspetti tecnici, operativi ed economici e continua a contribuire durante implementazione, review ed evoluzione.
 
-La trasformazione può essere sintetizzata così:
+Fonti:
 
-```text
-prima
-architect
-→ produce e approva molti artefatti
+- [Microsoft Learn — Solution Architect's Responsibilities and Guiding Principles](https://learn.microsoft.com/en-us/azure/well-architected/architect-role/fundamentals)
+- [Microsoft Learn — Support the workload in a consultative role](https://learn.microsoft.com/en-us/azure/well-architected/architect-role/ongoing-support)
 
-sempre di più
-architect
-→ progetta il sistema di decisioni
-→ rende espliciti i boundary
-→ costruisce context ed evidence
-→ delega execution
-→ verifica trade-off e conseguenze
-→ governa l'evoluzione
-```
-
-Non significa che l'architect smetta di scrivere codice.
-
-Non significa nemmeno che debba scriverne continuamente.
-
-Significa che la scrittura di codice non è più il confine che separa il lavoro tecnico da quello architetturale.
-
-Nel libro abbiamo già visto un architect dover ragionare di:
-
-```text
-analisi funzionale
-API
-ownership dei dati
-transazioni
-failure distribuiti
-cloud
-identity
-security
-recovery
-observability
-testing
-legacy
-refactoring
-cost
-agent governance
-runtime AI
-production readiness
-```
-
-Nessuna di queste aree può essere governata soltanto con diagrammi.
-
-E nessuna richiede che una singola persona sia il massimo esperto di tutto.
-
-La capacità chiave è sapere **quale profondità serve per decidere**, quando chiedere evidence e quando coinvolgere chi possiede una competenza o una decision authority più specifica.
-
----
-
-## Il ruolo non finisce con il design
-
-Una visione ancora diffusa è:
-
-```text
-requirements
-→ architect produce design
-→ implementation team costruisce
-→ architect passa al progetto successivo
-```
-
-È un modello sempre meno utile.
-
-Microsoft Azure Well-Architected descrive esplicitamente il solution architect come una figura coinvolta lungo l'intero lifecycle del workload: raccoglie input dagli stakeholder, comprende il business context, bilancia considerazioni tecniche, operative ed economiche, collabora durante l'implementazione e continua a partecipare a review ed evoluzione dopo il go-live.
-
-Fonte:
-
-- Microsoft Learn — *Solution Architect's Responsibilities and Guiding Principles*: https://learn.microsoft.com/en-us/azure/well-architected/architect-role/fundamentals
-- Microsoft Learn — *Support the workload in a consultative role*: https://learn.microsoft.com/en-us/azure/well-architected/architect-role/ongoing-support
-
-Questa prospettiva è coerente con tutto ciò che abbiamo costruito fin qui.
-
-L'architecture decision prende significato soltanto quando possiamo confrontarla con:
-
-```text
-implementation reale
-runtime behavior
-incidenti
-costo reale
-feedback degli utenti
-nuovi requirement
-nuove constraint
-```
-
-Per questo:
+La fonte non definisce universalmente il mestiere. È però coerente con una proprietà che il percorso del libro ha reso evidente:
 
 > **L'architettura non termina quando il diagramma è approvato. Inizia a essere verificabile quando il sistema comincia a vivere.**
 
----
+## Il titolo può cambiare. La responsabilità resta
 
-## L'AI aumenta il bisogno di architecture, non necessariamente di architect title
+Una piccola organizzazione può non avere nessuno con il titolo formale `Software Architect`. Le responsabilità architetturali possono essere esercitate da un principal engineer, un tech lead, uno staff engineer o da chi possiede tecnicamente un prodotto. In un'impresa più grande possono essere distribuite fra solution, software, platform, data e security architect.
 
-C'è una distinzione importante.
+Il titolo non elimina le domande. Qualcuno deve capire il problema oltre il ticket, riconoscere le decisioni difficili da invertire, collegare funzionale e non funzionale, rendere esplicita l'ownership, chiedere evidence adeguata, facilitare trade-off e impedire che execution veloce diventi drift veloce.
 
-Il libro non sostiene che ogni team debba avere una persona con il titolo formale `Software Architect`.
-
-In una piccola organizzazione la responsabilità architetturale può essere svolta da un senior engineer, un tech lead o persino dalla stessa persona che possiede il prodotto tecnico.
-
-In un'impresa più grande può esistere una combinazione di:
-
-```text
-solution architect
-software architect
-platform architect
-data architect
-security architect
-principal engineer
-staff engineer
-tech lead
-```
-
-Il punto non è il titolo.
-
-Il punto è che alcune responsabilità non scompaiono:
-
-- qualcuno deve capire il problema oltre il ticket;
-- qualcuno deve riconoscere quali decisioni hanno blast radius ampio;
-- qualcuno deve tenere insieme funzionale e non funzionale;
-- qualcuno deve rendere esplicito chi possiede cosa;
-- qualcuno deve chiedere evidence adeguata al claim;
-- qualcuno deve negoziare trade-off fra stakeholder;
-- qualcuno deve sapere quando una decisione è scaduta;
-- qualcuno deve impedire che execution veloce diventi drift veloce.
-
-In un buon team queste responsabilità possono essere distribuite.
-
-In un team cattivo possono essere formalmente assegnate a un architect ma non realmente esercitate.
+Queste responsabilità possono essere distribuite bene oppure concentrate male. Possono esistere senza un architect title oppure mancare anche in presenza di un'intera funzione Architecture.
 
 > **Architecture è una responsabilità prima di essere un ruolo.**
 
----
+## L'AI amplifica il sistema che trova
 
-## L'AI è un amplificatore del sistema che trova
-
-DORA, nel report 2025 sul software development assistito da AI, descrive l'AI soprattutto come un **amplificatore**: tende a magnificare le capacità di organizzazioni già solide e anche le debolezze di organizzazioni disfunzionali.
+DORA, nel report 2025 sul software development assistito da AI, descrive l'AI come un amplificatore: tende a magnificare sia le capacità di sistemi organizzativi solidi sia le debolezze di sistemi fragili.
 
 Fonte:
 
-- DORA — *State of AI-assisted Software Development 2025*: https://dora.dev/research/2025/dora-report/
+- [DORA — State of AI-assisted Software Development 2025](https://dora.dev/research/2025/dora-report/)
 
-Questa osservazione è particolarmente rilevante per l'architect.
+Se requirement, ownership, test, repository e permission boundary sono ambigui, aggiungere agenti non crea automaticamente chiarezza. Può produrre più rapidamente codice plausibile, varianti architetturali, infrastruttura e test che incorporano la stessa ambiguità.
 
-Un'organizzazione con:
+Se invece il sistema possiede functional clarity, boundary leggibili, decision record, golden command, fitness function, issue execution-ready, stop condition ed evidence model, l'AI può diventare leverage reale.
 
-```text
-requirement ambigui
-ownership debole
-test poco affidabili
-repository confusi
-architecture drift
-permission boundary vaghi
-```
+Quindi la domanda professionale non è soltanto:
 
-non ottiene automaticamente ordine aggiungendo agenti.
+> Come uso meglio l'AI?
 
-Può ottenere più velocemente:
+È anche:
 
-```text
-più codice ambiguo
-più variazioni architetturali
-più test che verificano poco
-più infrastruttura
-più decisioni implicite
-```
+> **Quale sistema tecnico e organizzativo sto facendo amplificare all'AI?**
 
-Viceversa, un sistema con:
+## Il compromesso ESI
 
-```text
-functional clarity
-boundary leggibili
-decision record
-golden command
-fitness function
-work item execution-ready
-stop condition
-evidence model
-```
+ESI considera due estremi poco desiderabili. Il primo è un architect generalista che delega agli agenti tutta la profondità tecnica e conserva soltanto la capacità di parlare in astratto. Il secondo è uno specialista che concentra ogni decisione e trasforma Architecture in un gate seriale.
 
-può trasformare l'AI in leverage reale.
+La direzione scelta è diversa: ampiezza sufficiente per comprendere business e sistema, almeno una profondità tecnica credibile, capacità di leggere codice e runtime evidence, specialist gate quando il rischio lo richiede e agent execution che non diventa mai self-certification.
 
-Quindi l'architect del 2030 non deve soltanto sapere **usare** l'AI.
+Il costo è reale: studio continuo, lavoro cross-funzionale, maggiore esposizione a domini diversi e meno comfort nel restare per anni dentro una sola specializzazione. Ma il quality floor resta chiaro: architecture non disconnessa dall'implementation, functional semantics non delegate per default, technical judgment non sostituito da output AI e specialist authority rispettata.
 
-Deve sapere progettare il sistema organizzativo e tecnico dentro cui l'AI lavora.
-
----
-
-## Il compromesso ESI del capitolo
-
-ESI sta discutendo come evolvere la propria funzione Architecture.
-
-Una proposta estrema è:
-
-```text
-architect più generalisti
-+ agenti per tutto il lavoro tecnico
-```
-
-Un'altra è:
-
-```text
-architect molto specialistici
-+ ogni decisione passa da loro
-```
-
-La prima rischia una perdita di profondità tecnica.
-
-La seconda rischia di trasformare Architecture in collo di bottiglia.
-
-ESI sceglie una terza strada:
-
-```text
-broad systems/business literacy
-+ almeno una profondità tecnica credibile
-+ capacità di leggere codice e runtime evidence
-+ specialist gate quando il rischio lo richiede
-+ agent execution senza self-certification
-```
-
-Costo accettato:
-
-```text
-più tempo dedicato a studio continuo
-più collaborazione cross-funzionale
-meno comfort nel restare dentro una sola specializzazione
-```
-
-Quality floor:
-
-```text
-architecture non disconnessa dall'implementation
-functional semantics non delegate ad altri per default
-technical judgment non sostituito da output AI
-specialist authority rispettata
-```
-
-La formula che useremo nel capitolo è:
+La formula del capitolo è:
 
 > **Ampiezza per capire il sistema. Profondità sufficiente per non essere ingannati dalle astrazioni.**
 
----
+Le prossime sezioni sviluppano questa formula. Partiremo dalla comprensione funzionale, scenderemo nella technical literacy, arriveremo al judgment e all'organizzazione, poi agli agenti e all'apprendimento. Alla fine ricomporremo tutto nella **ESI Architect Capability Map**.
 
-## Dove andiamo
-
-Nelle prossime sezioni vedremo l'architect come:
-
-```text
-interprete del business e dell'analisi funzionale
-engineer tecnicamente credibile
-designer di decisioni e trade-off
-systems thinker
-negoziatore fra stakeholder
-governor di agenti
-curatore dell'evidence
-studente permanente
-```
-
-E chiuderemo il capitolo con una **Architect Capability Map ESI**.
-
-Non sarà una matrice di certificazioni.
-
-Sarà una risposta operativa alla domanda:
+Non sarà una classifica di tecnologie né un punteggio personale. Sarà una risposta operativa alla domanda centrale:
 
 > **Che cosa deve saper fare una persona affinché l'AI aumenti il suo leverage senza ridurre la qualità del suo judgment?**
