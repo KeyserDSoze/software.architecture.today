@@ -1,80 +1,64 @@
-# 24.3 — Grounding, context engineering e RAG senza riflessi automatici
+# 24.3 — Grounding e context engineering: prima l'evidence, poi il retrieval
 
-Una capability generativa enterprise raramente può lavorare bene usando soltanto la conoscenza incorporata nel modello.
+Una capability generativa enterprise raramente può rispondere bene affidandosi soltanto alla conoscenza incorporata nel modello.
 
-Il modello non conosce automaticamente:
+Il modello non conosce automaticamente lo stato corrente di Order Operations, il tenant dell'operatore, l'ultima Payment Escalation, un retry appena riuscito o una policy aggiornata ieri.
 
-- lo stato corrente di Order Operations;
-- il tenant corretto;
-- l'ultima Payment Escalation;
-- la policy Priority confermata da ESI;
-- un runbook appena aggiornato;
-- una decisione architetturale presa ieri.
+Ha bisogno di **evidence del sistema corrente**.
 
-Serve contesto.
+Ma il problema non è massimizzare il context window. È costruire il contesto minimo che rappresenti bene la domanda, rispetti authorization e conservi provenance e freshness.
 
-Ma **dare più contesto** non equivale a dare **il contesto giusto**.
+> **Più contesto non significa più verità. Significa più materiale che il sistema deve autorizzare, selezionare, interpretare, pagare e valutare.**
 
-## Grounding
+## Grounding è una relazione fra risposta e source controllate
 
-Con grounding intendiamo, in questo capitolo, il processo con cui forniamo al modello evidence rilevante del nostro sistema affinché la risposta possa essere ricondotta a fonti controllate.
+Nel capitolo usiamo *grounding* per descrivere la disciplina con cui la generazione viene collegata a evidence del nostro sistema.
 
-Schema concettuale:
+La pipeline concettuale è:
 
 ```text
 user question
-→ authorized context acquisition
-→ context normalization
+→ authorization
+→ source acquisition
+→ normalization / minimization
 → model
-→ grounded answer
-→ source references
+→ generated claims
+→ source-reference validation
 ```
 
-La qualità della risposta dipende quindi da almeno due sistemi:
+La qualità finale dipende quindi almeno da due sistemi: la pipeline che costruisce il context e la pipeline che genera l'output.
+
+Un modello eccellente con source stale o sbagliate può produrre una spiegazione elegantemente errata. Un modello più modesto con context preciso e boundary chiaro può essere molto più utile sul workload specifico.
+
+Questo cambia il luogo in cui cerchiamo il failure. Non chiediamo soltanto “il modello ha allucinato?”. Chiediamo anche se abbiamo recuperato la source corretta, se era abbastanza fresca, se l'utente poteva vederla e se la claim finale era realmente supportata.
+
+## RAG risolve una classe di retrieval problem
+
+Retrieval-Augmented Generation è una strategia utile quando dobbiamo selezionare evidence rilevante dentro un corpus più ampio.
+
+Microsoft Azure Architecture Center descrive RAG come un pattern in cui un retrieval system fornisce grounding data al modello e non lo lega a una specifica tecnologia di vector search.
+
+Fonte:
+
+- [Microsoft Learn — AI technology overview](https://learn.microsoft.com/en-us/azure/architecture/ai-ml/ai-overview)
+
+Questa distinzione evita l'equazione:
 
 ```text
-context pipeline
-+
-generation pipeline
+RAG
+= embeddings
++ vector database
 ```
 
-Un modello eccellente con contesto sbagliato produce una risposta elegantemente sbagliata.
+Il retrieval potrebbe essere una query relazionale, un'API, keyword search, graph traversal, vector similarity o una combinazione ibrida. La tecnologia dipende dalla forma della conoscenza e dalla domanda che dobbiamo risolvere.
 
-## RAG è una strategia di retrieval, non la definizione di grounding
+> **Grounding è il requisito. Retrieval è il meccanismo. RAG è una famiglia di soluzioni, non il punto di partenza.**
 
-Retrieval-Augmented Generation è utile quando abbiamo bisogno di selezionare informazioni rilevanti da un insieme più ampio di contenuti.
+## Per il primo use case ESI conosce già le source
 
-Microsoft Azure Architecture Center descrive RAG come un pattern nel quale un retrieval system fornisce grounding data al modello e sottolinea che il retrieval non è limitato a un particolare vector database.  
-Fonte: [Microsoft Learn — AI technology overview](https://learn.microsoft.com/en-us/azure/architecture/ai-ml/ai-overview).
+Case Explanation Assistant deve spiegare un singolo `OperationalCase`.
 
-Questo è importante perché evita una equivalenza troppo comune:
-
-```text
-RAG = embeddings + vector database
-```
-
-Non necessariamente.
-
-Il retrieval può dipendere da:
-
-- keyword/search index;
-- relational query;
-- graph traversal;
-- document store;
-- APIs;
-- vector similarity;
-- hybrid retrieval;
-- tool call deterministica.
-
-La domanda resta quella di sempre:
-
-> **Quale retrieval ha il fit migliore con la conoscenza che dobbiamo recuperare?**
-
-## Perché ESI non introduce ancora un vector database
-
-Case Explanation Assistant deve spiegare **un Operational Case specifico**.
-
-Le fonti principali sono già note e strutturate:
+Le source primarie sono già note:
 
 ```text
 Order Operations
@@ -83,202 +67,151 @@ Payments
 Shipping
 ```
 
-Possiamo costruire deterministicamente:
+Il sistema possiede contract e authorization path per raggiungerle. Possiamo quindi costruire deterministicamente un `CaseExplanationContext` senza chiedere a un retriever probabilistico di decidere quali documenti siano rilevanti.
+
+Introdurre oggi embedding model, vector index, chunking, re-indexing, retrieval tuning e ACL propagation aggiungerebbe ownership e failure mode che il problema non ha ancora giustificato.
+
+La scelta ESI v1 è perciò:
 
 ```text
-CaseExplanationContext
+known case
+→ known authorized sources
+→ deterministic context assembly
 ```
 
-attraverso contract già autorizzati.
+Non perché vector search sia una cattiva tecnologia. Perché non compra una proprietà che ci manca in questo slice.
 
-Non abbiamo ancora un problema del tipo:
+> **Non introdurre retrieval probabilistico quando sai già deterministicamente quali source devi interrogare.**
 
-> trova cinque documenti rilevanti fra due milioni di pagine enterprise.
+## Quando la forza cambierà, potrà cambiare anche il retrieval
 
-Quindi introdurre oggi:
+Il trigger arriverà se il prodotto dovrà usare un corpus che non possiamo indirizzare direttamente: migliaia di runbook, knowledge article, incident history, procedure support o cross-case knowledge.
 
-```text
-embedding pipeline
-vector index
-chunking
-re-indexing
-retrieval tuning
-vector ACL propagation
-```
+A quel punto il problema diventerà selezionare informazione rilevante da una superficie ampia e dovremo progettare corpus, metadata, ACL, freshness, chunking, ranking, citation, re-indexing e retention.
 
-sarebbe un costo senza una forza sufficiente.
+La decisione non sarà “aggiungiamo un vector database”. Sarà:
 
-> **Non aggiungere retrieval probabilistico quando conosci già deterministicamente quali fonti ti servono.**
+> **quale retrieval conserva meglio relevance, authorization, freshness e provenance per questo corpus e questo journey?**
 
-## Quando RAG potrebbe entrare
+Questa è ancora *fit before fashion*.
 
-Un trigger reale potrebbe essere l'introduzione di:
+## Context engineering comprende più del retrieval
 
-- runbook operativi estesi;
-- knowledge base di incidenti;
-- procedure Customer Support;
-- documentazione prodotto ampia;
-- policy interne versionate;
-- storico di casi risolti consultabile con controlli appropriati.
+Microsoft usa *context engineering* in un senso più ampio: oltre ai documenti recuperati comprende instruction, conversation history, tool output ed enterprise data forniti al modello.
 
-A quel punto dovremo decidere:
+Fonte:
 
-```text
-corpus
-chunking
-metadata
-ACL
-freshness
-retrieval metric
-re-ranking
-citation/provenance
-re-indexing
-retention
-```
+- [Microsoft Learn — AI technology overview](https://learn.microsoft.com/en-us/azure/architecture/ai-ml/ai-overview)
 
-Non basta aggiungere un vector store.
+Per ESI questo significa progettare il `CaseExplanationContext` come un vero input contract.
 
-## Context engineering
+Ogni source materiale deve conservare almeno identity/provenance e `observedAt`. Il context builder deve minimizzare i campi, distinguere derived fact da testo libero e mantenere riconoscibili eventuali conflitti invece di appiattirli in una sola narrativa.
 
-Microsoft definisce context engineering in termini più ampi di RAG: progettare selezione, scope e struttura di documenti, conversation history, tool output, system instructions ed enterprise data che arrivano al modello.  
-Fonte: [Microsoft Learn — AI technology overview](https://learn.microsoft.com/en-us/azure/architecture/ai-ml/ai-overview).
+Se due source autorizzate non concordano, il modello non riceve implicitamente il ruolo di arbitro. L'output deve poter mantenere visibile la contradiction o dichiarare evidence insufficiente.
 
-Nel nostro sistema significa decidere:
+La preparazione del contesto è quindi già parte della semantica del prodotto.
 
-### Cosa entra
+## Freshness non è metadata decorativo
 
-Solo dati necessari alla domanda e autorizzati per l'operatore corrente.
+Supponiamo che il context builder osservi un payment attempt fallito. Dieci secondi dopo un retry riesce. La spiegazione generata può essere perfettamente grounded rispetto alla fotografia precedente e contemporaneamente essere operativamente stale.
 
-### Cosa resta fuori
-
-Dati di altri tenant, dettagli irrilevanti, secret, interi record che non servono all'interpretazione.
-
-### Come viene marcato
+Per questo distinguiamo:
 
 ```text
-source
-ownership
-observedAt
-freshness
-classification
-```
-
-### Come si gestiscono conflitti
-
-Il modello non deve arbitrare silenziosamente due fonti che dicono cose incompatibili.
-
-L'output può dichiarare:
-
-```text
-conflictingEvidence
-```
-
-## Freshness è parte della semantica
-
-Una source reference senza tempo può essere pericolosa.
-
-Supponiamo che il modello riceva:
-
-```text
-Payment attempt failed
-```
-
-ma dieci secondi dopo avvenga un retry riuscito.
-
-L'assistant può ancora generare una spiegazione grammaticalmente corretta ma operativamente stale.
-
-Dobbiamo quindi distinguere almeno:
-
-```text
-source event time
-retrieval time
+source observed time
+context acquisition time
 answer generation time
 ```
 
-E definire quale freshness è accettabile per il journey.
+La domanda non è soltanto “la fonte esiste?”. È “quanto a lungo questa evidence resta adeguata alla claim che mostriamo all'operatore?”.
 
-Questo collega direttamente AI architecture a consistency e observability.
+Se la feature diventerà più importante nel journey, dovremo definire un freshness contract esplicito. Per ora la metadata è già necessaria perché il sistema possa rendere visibile la temporalità invece di presentare ogni fact come eternamente corrente.
 
-## Authorization before retrieval
+## Authorization viene prima della retrieval surface
 
-Non vogliamo:
+Un anti-pattern pericoloso è:
 
 ```text
-retrieve everything
-→ ask model not to reveal forbidden data
+retrieve broad corpus
+→ send everything to model
+→ instruct model not to reveal forbidden data
 ```
 
-Vogliamo:
+Il modello non è il nostro authorization server.
+
+La direzione ESI è:
 
 ```text
-authorize
-→ retrieve only allowed context
+operator identity
+→ tenant/resource authorization
+→ retrieve only allowed sources
 → minimize
 → model
 ```
 
-La sicurezza non può dipendere dalla promessa del modello di ignorare dati che non avrebbe dovuto ricevere.
+Il modo più robusto per impedire al modello di rivelare un dato che l'utente non può vedere è **non consegnarglielo**.
 
-> **Il modo più affidabile per impedire al modello di rivelare un dato è non consegnargli quel dato quando non serve.**
+Questa decisione riduce anche cost e prompt-injection surface.
 
-## Prompt injection indiretta
+## Retrieved text resta data, non instruction
 
-Quando il contesto include testo esterno, i dati possono contenere istruzioni malevole.
+Quando entreranno note utente, runbook o documenti esterni, il context potrà contenere frasi imperative controllate da terzi.
 
-Microsoft evidenzia che i RAG prompt possono essere vulnerabili a indirect prompt injection e raccomanda di trattare il retrieved context come dati, separandolo dalle istruzioni e applicando controlli sui contenuti.  
-Fonte: [Microsoft Learn — RAG prompt engineering](https://learn.microsoft.com/en-us/azure/architecture/ai-ml/guide/rag/rag-prompt-engineering).
+Microsoft evidenzia il rischio di indirect prompt injection nelle pipeline RAG; OWASP raccomanda least privilege, separazione fra instruction e data, validation e monitoring.
 
-OWASP include fra i rischi prompt injection diretta, indiretta, RAG poisoning, data exfiltration e agent-specific attacks, raccomandando least privilege, separazione fra instruction e data, validation e monitoring.  
-Fonte: [OWASP — LLM Prompt Injection Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/LLM_Prompt_Injection_Prevention_Cheat_Sheet.html).
+Fonti:
 
-Quindi un eventuale futuro runbook recuperato non deve essere trattato come system instruction.
+- [Microsoft Learn — RAG prompt engineering](https://learn.microsoft.com/en-us/azure/architecture/ai-ml/guide/rag/rag-prompt-engineering)
+- [OWASP — LLM Prompt Injection Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/LLM_Prompt_Injection_Prevention_Cheat_Sheet.html)
+
+Una frase dentro un runbook recuperato non diventa system policy perché il retriever l'ha trovata.
 
 ```text
-SYSTEM INSTRUCTION
+trusted instruction
 ≠
-RETRIEVED DOCUMENT
+retrieved document
+≠
+user-controlled text
 ```
 
-## Citation non significa automaticamente groundedness
+Il context builder deve preservare questa distinzione e i tool/permission devono essere progettati assumendo che il modello possa comunque essere manipolato.
 
-Un modello può citare una fonte reale ma attribuirle una conclusione che la fonte non sostiene.
+## Una citation non dimostra da sola groundedness
 
-Per questo le eval devono controllare almeno:
+È possibile citare una source reale e attribuirle una conclusione che non sostiene.
+
+Quindi la validation deterministica può controllare che il reference esista e appartenga al context autorizzato, ma le eval devono verificare anche la relazione fra claim e source.
+
+La chain che ci interessa è:
 
 ```text
 source exists
-source is authorized
-source supports claim
-important claim has source
-missing evidence is disclosed
++ source authorized
++ source sufficiently fresh
++ source supports claim
++ material claim exposes provenance
 ```
 
-La semplice presenza di `[1] [2] [3]` non basta.
+Solo la prima parte è facilmente deterministica nel nostro primo implementation slice.
 
-## Il context pipeline di ESI
+## La baseline ESI
 
-Prima versione:
+Il primo context path resta volutamente stretto:
 
 ```text
 Operator
 → authorization
-→ OperationalCase lookup
+→ OperationalCase
 → Orders support view
 → Payments support view
 → Shipping support view
-→ deterministic normalization
-→ CaseExplanationContext
-→ model
+→ deterministic derived facts
+→ normalized CaseExplanationContext
+→ model boundary
 ```
 
-Nessun corpus globale.
+Nessun corpus globale, nessuna semantic search aggiunta per inerzia e nessuna copia di authoritative business truth in una knowledge base AI separata.
 
-Nessuna semantic search per moda.
+Questo non chiude la porta a RAG. Mantiene la decisione reversibile finché il workload non dimostra di averne bisogno.
 
-Nessuna copia di authority dentro una knowledge base AI.
-
-Il capitolo non dice che RAG sia cattivo.
-
-Dice qualcosa di più utile:
-
-> **Grounding è un requisito. RAG è una possibile soluzione. Retrieval è una decisione architetturale come tutte le altre.**
+> **La qualità del grounding comincia prima del modello: da quali source scegliamo, da chi può vederle, da quanto sono fresche e da quanto chiaramente conserviamo la loro provenance.**
