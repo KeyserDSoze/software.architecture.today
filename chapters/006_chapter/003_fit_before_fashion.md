@@ -57,17 +57,7 @@ problema
 
 La popolarità ha valore.
 
-Una tecnologia diffusa può offrire:
-
-- community ampia;
-- ecosistema maturo;
-- più documentazione;
-- maggiore disponibilità di competenze;
-- più librerie;
-- più esperienza operativa accumulata;
-- minore rischio di abbandono.
-
-Sono fattori reali.
+Una tecnologia diffusa può offrire una community ampia e un ecosistema maturo, più documentazione, librerie e competenze disponibili. Può beneficiare di maggiore esperienza operativa accumulata e di un minore rischio di abbandono. Sono fattori reali.
 
 Ma non sono una prova automatica di fit.
 
@@ -93,19 +83,7 @@ ed:
 
 > “Quindi dobbiamo farlo anche noi.”
 
-Quando leggiamo una storia tecnica dobbiamo ricostruire almeno:
-
-- scala;
-- team;
-- organizzazione;
-- sistema preesistente;
-- constraint;
-- obiettivi;
-- costo del problema precedente;
-- capacità operativa;
-- momento storico.
-
-Senza questi elementi stiamo facendo **copy-paste architecture**.
+Quando leggiamo una storia tecnica dobbiamo ricostruire scala, team e organizzazione, il sistema preesistente, i constraint e gli obiettivi. Dobbiamo capire quanto costasse il problema precedente, quale capacità operativa avesse l'azienda e in quale momento storico fosse stata presa la decisione. Senza questi elementi stiamo facendo **copy-paste architecture**.
 
 ### Anche “usiamo quello che conosciamo” può diventare dogma
 
@@ -196,17 +174,7 @@ Un vincolo di budget può fare lo stesso.
 
 Ogni tecnologia sofisticata deve pagare l'affitto.
 
-Se introduciamo:
-
-- broker;
-- cluster;
-- service mesh;
-- database aggiuntivo;
-- orchestratore;
-- cache distribuita;
-- piattaforma di workflow;
-
-la domanda è:
+Se introduciamo un broker o un cluster, una service mesh, un database aggiuntivo, un orchestratore, una cache distribuita o una piattaforma di workflow, la domanda è:
 
 > **Quale problema significativo rende questo costo ragionevole?**
 

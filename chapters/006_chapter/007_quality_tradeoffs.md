@@ -100,17 +100,7 @@ Passare da una buona disponibilità a una disponibilità eccezionale può richie
 
 La relazione non è lineare.
 
-Ogni nuovo livello può richiedere:
-
-- maggiore ridondanza;
-- failover più rapido;
-- automazione più sofisticata;
-- test più frequenti;
-- multi-region;
-- maggiore capacità idle;
-- on-call più maturo.
-
-Per questo una percentuale di availability non dovrebbe mai essere scelta perché “suona enterprise”.
+Ogni nuovo livello può richiedere maggiore ridondanza e failover più rapido, automazione più sofisticata e test più frequenti. Può spingerci verso multi-region, più capacità idle e un on-call più maturo. Per questo una percentuale di availability non dovrebbe mai essere scelta perché “suona enterprise”.
 
 Deve essere collegata al costo dell'indisponibilità.
 

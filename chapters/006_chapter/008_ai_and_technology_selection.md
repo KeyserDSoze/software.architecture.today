@@ -8,20 +8,7 @@ Davanti a una richiesta generica come:
 
 > “Progetta un sistema altamente scalabile e resiliente.”
 
-un modello può produrre in pochi secondi:
-
-- Kubernetes;
-- microservizi;
-- Redis;
-- Kafka;
-- CDN;
-- database distribuito;
-- service mesh;
-- multi-region;
-- autoscaling;
-- observability stack completo.
-
-La risposta può essere tecnicamente plausibile.
+un modello può produrre in pochi secondi un design con Kubernetes e microservizi, Redis e Kafka, CDN, database distribuito e service mesh, fino a multi-region, autoscaling e uno stack di observability completo. La risposta può essere tecnicamente plausibile.
 
 Il problema è che potrebbe non avere alcun rapporto con il contesto reale.
 
@@ -29,15 +16,7 @@ Il problema è che potrebbe non avere alcun rapporto con il contesto reale.
 
 Quando mancano requisiti, il modello deve comunque produrre qualcosa.
 
-Quindi riempie il vuoto con:
-
-- pattern comuni;
-- convenzioni frequenti;
-- architetture viste nel training;
-- assunzioni plausibili;
-- scelte statisticamente compatibili con il prompt.
-
-Questo è utile per generare idee.
+Quindi riempie il vuoto con pattern comuni e convenzioni frequenti, architetture viste nel training, assunzioni plausibili e scelte statisticamente compatibili con il prompt. Questo è utile per generare idee.
 
 È pericoloso quando interpretiamo quelle idee come decisioni.
 
@@ -58,16 +37,7 @@ E ogni significato inventato può generare una tecnologia diversa.
 
 ### Prima dare all'AI il problema di qualità
 
-Un uso migliore consiste nel fornire:
-
-- critical journey;
-- target;
-- vincoli;
-- team;
-- budget;
-- crescita;
-- failure tolerance;
-- priorità.
+Un uso migliore consiste nel fornire il critical journey e i target, i vincoli, il team e il budget, la crescita prevista, la failure tolerance e le priorità.
 
 Poi chiedere:
 
@@ -131,18 +101,7 @@ Questa review è particolarmente utile sui design generati automaticamente.
 
 Un modello può conoscere feature, pattern e API di molti prodotti.
 
-Ma il fit reale dipende anche da informazioni che spesso non sono nel prompt:
-
-- contratti commerciali;
-- competenze interne;
-- accordi enterprise;
-- procedure di procurement;
-- vincoli compliance;
-- tooling esistente;
-- on-call;
-- incident history;
-- costi di migrazione;
-- persone disponibili.
+Ma il fit reale dipende anche da informazioni che spesso non sono nel prompt: contratti commerciali e accordi enterprise, competenze interne e persone disponibili, procedure di procurement e vincoli compliance. Tooling esistente, modello di on-call, incident history e costi di migrazione possono cambiare completamente la scelta.
 
 Quindi una comparazione tecnologica generata dall'AI può essere molto competente tecnicamente e comunque sbagliare la decisione economica o organizzativa.
 
@@ -150,18 +109,7 @@ Quindi una comparazione tecnologica generata dall'AI può essere molto competent
 
 Le tecnologie cambiano.
 
-Cambiano:
-
-- feature;
-- pricing;
-- limiti;
-- supporto;
-- versioni;
-- status di deprecazione;
-- licenze;
-- availability geografica.
-
-Quando questi dettagli influenzano una scelta reale, non dobbiamo affidarci alla memoria del modello.
+Cambiano feature, pricing e limiti, supporto e versioni, stato di deprecazione, licenze e availability geografica. Quando questi dettagli influenzano una scelta reale, non dobbiamo affidarci alla memoria del modello.
 
 Dobbiamo verificare documentazione e fonti aggiornate.
 
@@ -173,16 +121,7 @@ Il principio generale invece rimane stabile:
 
 ### L'AI può accelerare il benchmark, non definirne il significato
 
-Possiamo usare agenti per:
-
-- creare benchmark;
-- generare load test;
-- preparare proof of concept;
-- raccogliere metriche;
-- confrontare configurazioni;
-- analizzare risultati.
-
-Ma dobbiamo aver definito prima ciò che stiamo misurando.
+Possiamo usare agenti per creare benchmark e load test, preparare proof of concept, raccogliere metriche, confrontare configurazioni e analizzare risultati. Ma dobbiamo aver definito prima ciò che stiamo misurando.
 
 Un benchmark che misura la cosa sbagliata produce precisione senza utilità.
 
@@ -198,17 +137,7 @@ Questo può creare una nuova tentazione:
 
 > “Tanto lo fa l'AI.”
 
-Ma l'AI può abbassare il costo iniziale di creazione senza eliminare:
-
-- runtime cost;
-- incident cost;
-- cognitive load;
-- debugging;
-- upgrade;
-- security surface;
-- operational ownership.
-
-Costruire è soltanto una parte del costo.
+Ma l'AI può abbassare il costo iniziale di creazione senza eliminare runtime e incident cost, cognitive load e debugging, upgrade, security surface e operational ownership. Costruire è soltanto una parte del costo.
 
 Possedere il sistema è il resto.
 

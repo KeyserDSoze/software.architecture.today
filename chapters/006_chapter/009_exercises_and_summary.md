@@ -10,19 +10,7 @@ Gli aggettivi non sono requisiti.
 
 Le quality attribute non esistono nel vuoto.
 
-Cambiano rispetto a:
-
-- critical journey;
-- rischio;
-- utenti;
-- scala;
-- valore economico;
-- costo del downtime;
-- team;
-- operabilità;
-- budget.
-
-Non possiamo massimizzarle tutte contemporaneamente.
+Cambiano rispetto al critical journey e al rischio, agli utenti e alla scala, al valore economico e al costo del downtime. Team, operabilità e budget completano il contesto. Non possiamo massimizzarle tutte contemporaneamente.
 
 Ogni architettura paga trade-off.
 
@@ -388,16 +376,7 @@ L'AI rende molto più economico produrre soluzioni sofisticate.
 
 Questo aumenta il rischio che la sofisticazione venga confusa con qualità.
 
-Un agente può generare rapidamente:
-
-- infrastruttura;
-- configurazione;
-- deployment;
-- test;
-- integrazioni;
-- benchmark.
-
-Ma il costo futuro di possedere quei componenti rimane reale.
+Un agente può generare rapidamente infrastruttura e configurazione, deployment e test, integrazioni e benchmark. Ma il costo futuro di possedere quei componenti rimane reale.
 
 Per questo, nell'era degli agenti, diventa ancora più importante chiedere:
 

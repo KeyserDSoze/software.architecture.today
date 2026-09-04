@@ -14,16 +14,7 @@ Se non sappiamo quanto costa l'indisponibilità, non sappiamo nemmeno quanto abb
 
 Un prodotto può contenere journey con criticità molto diverse.
 
-Per Order Operations, per esempio, potremmo avere:
-
-- consultazione ordine da parte dell'operatore;
-- creazione ordine;
-- pagamento;
-- aggiornamento indirizzo;
-- esportazione mensile;
-- report statistico.
-
-Non è detto che tutti richiedano lo stesso livello di disponibilità.
+Per Order Operations, per esempio, la consultazione di un ordine da parte dell'operatore, la creazione dell'ordine e il pagamento convivono con attività come aggiornamento dell'indirizzo, export mensile e report statistici. Non è detto che tutti richiedano lo stesso livello di disponibilità.
 
 Un report può attendere.
 
@@ -35,16 +26,7 @@ Una qualità importante dell'architettura è quindi la capacità di **localizzar
 
 ### Availability target
 
-Quando ha senso definire un obiettivo esplicito, dobbiamo chiarire almeno:
-
-- quale servizio o journey misura;
-- la finestra temporale;
-- cosa conta come indisponibilità;
-- eventuali finestre di manutenzione;
-- dipendenze esterne;
-- comportamento degradato considerato accettabile.
-
-Senza questa semantica, una percentuale di availability è solo un numero elegante.
+Quando ha senso definire un obiettivo esplicito, dobbiamo chiarire quale servizio o journey stiamo misurando e in quale finestra, che cosa conti come indisponibilità e come trattiamo eventuali finestre di manutenzione. Dobbiamo includere le dipendenze esterne e il comportamento degradato che consideriamo ancora accettabile. Senza questa semantica, una percentuale di availability è solo un numero elegante.
 
 ### RTO
 
@@ -60,14 +42,7 @@ Per esempio:
 RTO del journey di consultazione ordine: 60 minuti
 ```
 
-Questa informazione orienta scelte come:
-
-- automazione del restore;
-- failover;
-- replica;
-- infrastruttura standby;
-- runbook;
-- frequenza dei test di recovery.
+Questa informazione orienta il livello di automazione del restore, la strategia di failover e replica, l'eventuale infrastruttura standby, i runbook e la frequenza con cui dobbiamo esercitare il recovery.
 
 ### RPO
 
@@ -110,16 +85,7 @@ Availability non è sempre binaria.
 
 A volte il sistema può continuare a offrire valore riducendo temporaneamente alcune capability.
 
-Esempi:
-
-- mostrare l'ultimo stato noto quando un sistema secondario è indisponibile;
-- disabilitare raccomandazioni non critiche;
-- accettare una richiesta e processarla successivamente;
-- usare una cache read-only;
-- impedire modifiche rischiose ma mantenere la consultazione;
-- ridurre funzionalità avanzate preservando il critical user journey.
-
-Questa strategia si chiama spesso **graceful degradation**.
+Possiamo mostrare l'ultimo stato noto quando un sistema secondario è indisponibile, disabilitare raccomandazioni non critiche o accettare una richiesta per processarla più tardi. Possiamo usare una cache read-only, impedire modifiche rischiose mantenendo la consultazione o ridurre funzionalità avanzate preservando il critical user journey. Questa strategia si chiama spesso **graceful degradation**.
 
 È una decisione di prodotto tanto quanto tecnica.
 
@@ -133,14 +99,7 @@ Un pattern ricorrente consiste nell'aggiungere una cache per migliorare performa
 
 Può funzionare.
 
-Ma dobbiamo porre altre domande:
-
-- quanto può essere vecchio il dato?
-- cosa succede dopo una scrittura?
-- come viene invalidata?
-- può contenere dati tra tenant?
-- cosa succede quando la cache ritorna online?
-- il sistema regge un cache miss massivo?
+Ma dobbiamo chiederci quanto possa essere vecchio il dato e che cosa accada dopo una scrittura, come avvenga l'invalidazione e se la cache possa mescolare dati fra tenant. Dobbiamo anche sapere che cosa succeda quando torna online e se il sistema regga un cache miss massivo.
 
 La cache risolve alcuni problemi introducendone altri.
 
@@ -150,18 +109,7 @@ La cache risolve alcuni problemi introducendone altri.
 
 Due istanze non sono necessariamente due failure domain indipendenti.
 
-Potrebbero condividere:
-
-- database;
-- regione;
-- identity provider;
-- configurazione;
-- certificate authority;
-- deployment pipeline;
-- DNS;
-- bug applicativo.
-
-Aggiungere copie dello stesso componente può aumentare availability rispetto ad alcuni failure mode e non cambiare nulla rispetto ad altri.
+Potrebbero condividere database o regione, identity provider e configurazione, certificate authority, deployment pipeline o DNS. Potrebbero perfino condividere lo stesso bug applicativo. Aggiungere copie dello stesso componente può aumentare availability rispetto ad alcuni failure mode e non cambiare nulla rispetto ad altri.
 
 Per questo la domanda corretta non è:
 

@@ -102,18 +102,7 @@ Non esiste quasi mai una tecnologia universalmente migliore.
 
 Esiste una soluzione con un **fit migliore rispetto al contesto**.
 
-Quel contesto comprende almeno:
-
-- ciò che il sistema deve fare;
-- quanto bene deve farlo;
-- i failure mode che non possiamo accettare;
-- il volume e la crescita attesi;
-- il budget;
-- il team;
-- la capacità operativa;
-- il rischio;
-- i vincoli normativi e organizzativi;
-- il costo del cambiamento futuro.
+Quel contesto comprende ciò che il sistema deve fare e quanto bene deve farlo, i failure mode che non possiamo accettare, il volume e la crescita attesi. Comprende budget, team e capacità operativa, rischio e vincoli normativi o organizzativi, fino al costo con cui potremo cambiare il sistema in futuro.
 
 La domanda utile non è:
 
@@ -129,17 +118,7 @@ In questo libro useremo spesso un principio:
 
 > **Fit before fashion. Il fit prima della moda.**
 
-Una tecnologia non diventa adatta perché:
-
-- è nuova;
-- è popolare;
-- la usa una grande azienda;
-- compare in molte conferenze;
-- è considerata cloud-native;
-- è interessante da mettere nel curriculum;
-- un agente AI la propone con sicurezza.
-
-Questi elementi possono essere segnali utili.
+Una tecnologia non diventa adatta perché è nuova o popolare, perché la usa una grande azienda o compare in molte conferenze. Nemmeno l'etichetta cloud-native, il valore sul curriculum o la sicurezza con cui un agente AI la propone dimostrano il fit. Questi elementi possono essere segnali utili.
 
 Non sono criteri sufficienti.
 

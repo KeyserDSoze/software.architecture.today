@@ -167,38 +167,13 @@ Se il business cambia, la card cambia.
 
 Ogni proprietà importante dovrebbe avere un modo plausibile per essere verificata.
 
-Per esempio:
-
-- load test;
-- chaos test;
-- restore drill;
-- contract test;
-- security review;
-- architecture test;
-- synthetic monitoring;
-- audit log review;
-- cost review;
-- incident exercise.
-
-Se non sappiamo come verificare una proprietà, dobbiamo almeno dichiarare il limite.
+La verifica può passare da load e chaos test, restore drill e contract test, security e architecture review. Synthetic monitoring, audit log review, cost review e incident exercise coprono altre proprietà che un singolo test non vede. Se non sappiamo come verificare una proprietà, dobbiamo almeno dichiarare il limite.
 
 ### Review triggers
 
 I requisiti non funzionali non sono eterni.
 
-Trigger possibili:
-
-- traffico raddoppia;
-- nuovo mercato geografico;
-- nuova normativa;
-- nuovo tenant enterprise;
-- cambiamento nel costo del downtime;
-- nuovo critical journey;
-- aumento degli incidenti;
-- cambiamento del team operativo;
-- introduzione di un nuovo sistema esterno.
-
-Il requisito può cambiare perché cambia il prodotto.
+Il requisito può cambiare se il traffico raddoppia, apriamo un nuovo mercato geografico o arriva una nuova normativa. Può cambiare con un tenant enterprise, con il costo del downtime o con un nuovo critical journey; anche incidenti più frequenti, un team operativo diverso o un nuovo sistema esterno possono riaprire la decisione. Il requisito può cambiare perché cambia il prodotto.
 
 E quindi può cambiare anche la scelta tecnologica.
 

@@ -205,14 +205,7 @@ Availability?
 
 Se le misure future mostrassero che il lookup rispetta ampiamente i target e il carico è trascurabile, Redis potrebbe non risolvere alcun problema significativo.
 
-In compenso introdurrebbe:
-
-- invalidazione;
-- stale data;
-- nuova infrastruttura;
-- nuovi failure mode;
-- nuovi costi;
-- authorization e isolation da verificare anche nel caching layer.
+In compenso introdurrebbe invalidazione e stale data, nuova infrastruttura e nuovi failure mode, nuovi costi e la necessità di verificare authorization e isolation anche nel caching layer.
 
 Quindi, per questa iterazione:
 
@@ -234,17 +227,7 @@ La card non contiene però un requisito che giustifichi quel prezzo.
 
 Un'architettura active-active potrebbe migliorare alcune proprietà.
 
-Ma introduce anche complessità su:
-
-- consistency;
-- data replication;
-- routing;
-- deployment;
-- incident response;
-- test;
-- costo.
-
-Non abbiamo ancora un requisito che renda necessario pagarlo.
+Ma introduce anche complessità su consistency e data replication, routing e deployment, incident response, test e costo. Non abbiamo ancora un requisito che renda necessario pagarlo.
 
 Quindi non la scegliamo.
 
@@ -303,16 +286,7 @@ Queste fonti sostengono il metodo. Non sostengono i numeri simulati di ESI.
 
 ### La tecnologia giusta potrebbe cambiare
 
-Tra due anni Order Operations potrebbe avere:
-
-- clienti enterprise con SLA severi;
-- presenza globale;
-- milioni di eventi al giorno;
-- costi di downtime molto più elevati;
-- requisiti di data residency;
-- nuovi consumer mobile o partner.
-
-La stessa scelta che oggi sarebbe overengineering potrebbe allora diventare insufficiente.
+Tra due anni Order Operations potrebbe avere clienti enterprise con SLA severi e presenza globale, milioni di eventi al giorno e costi di downtime molto più elevati. Potrebbero comparire requisiti di data residency o nuovi consumer mobile e partner. La stessa scelta che oggi sarebbe overengineering potrebbe allora diventare insufficiente.
 
 Non c'è contraddizione.
 

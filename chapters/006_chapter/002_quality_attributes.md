@@ -58,13 +58,7 @@ Non significa che questi numeri siano buoni in assoluto.
 
 Significa che abbiamo descritto il comportamento atteso in modo discutibile e verificabile.
 
-Dobbiamo inoltre distinguere:
-
-- latency del singolo componente;
-- latency end-to-end;
-- latency percepita dall'utente;
-- latency sotto carico normale;
-- latency durante degrado o dipendenze lente.
+Dobbiamo inoltre distinguere la latency del singolo componente da quella end-to-end e da quella percepita dall'utente. La stessa misura va letta sotto carico normale e durante degrado o dipendenze lente.
 
 Ottimizzare un servizio a 20 ms non serve se il critical user journey impiega comunque tre secondi per una dipendenza esterna.
 
@@ -80,14 +74,7 @@ Dire:
 
 è già meglio di “deve scalare”, ma non basta.
 
-Dobbiamo sapere:
-
-- con quale mix di operazioni;
-- per quanto tempo;
-- con quale dataset;
-- con quale latency target;
-- con quale margine;
-- con quale comportamento oltre la soglia.
+Dobbiamo sapere con quale mix di operazioni e per quanto tempo, con quale dataset e quale latency target. Servono anche un margine e un comportamento dichiarato quando la soglia viene superata.
 
 Un sistema che regge 1.000 richieste al secondo ma porta il p99 a trenta secondi non ha necessariamente soddisfatto il requisito.
 
@@ -113,15 +100,7 @@ Un sistema può rispondere sempre e rispondere male.
 
 Per alcune funzioni la correttezza è il requisito dominante.
 
-Pensiamo a:
-
-- pagamento duplicato;
-- saldo errato;
-- assegnazione di un ordine al tenant sbagliato;
-- perdita di un evento di business;
-- esecuzione doppia di un workflow non idempotente.
-
-In questi casi “HTTP 200” è una misura quasi inutile della qualità reale.
+Pensiamo a un pagamento duplicato o a un saldo errato, a un ordine assegnato al tenant sbagliato, alla perdita di un evento di business o alla doppia esecuzione di un workflow non idempotente. In questi casi “HTTP 200” è una misura quasi inutile della qualità reale.
 
 ### Consistency
 
@@ -147,15 +126,7 @@ Un database potrebbe essere temporaneamente non raggiungibile ma non aver perso 
 
 Oppure potrebbe essere online e avere già subito una perdita non rilevata.
 
-Quando il dato è economicamente o legalmente importante, dobbiamo discutere esplicitamente:
-
-- replica;
-- backup;
-- restore;
-- retention;
-- corruzione;
-- cancellazione accidentale;
-- recovery testing.
+Quando il dato è economicamente o legalmente importante, dobbiamo discutere esplicitamente replica, backup e restore, retention, corruzione e cancellazione accidentale, fino al recovery testing che dimostra se le protezioni funzionano davvero.
 
 ### Operability
 
@@ -163,15 +134,7 @@ Una proprietà spesso sottovalutata è l'operabilità.
 
 Possiamo costruire un sistema tecnicamente elegante che nessuno sa operare bene.
 
-Domande utili:
-
-- come viene distribuito?
-- come si torna indietro?
-- come capiamo che sta fallendo?
-- chi riceve l'alert?
-- quali dipendenze richiedono manutenzione?
-- quante competenze specialistiche servono?
-- possiamo diagnosticare un incidente senza collegarci manualmente a dieci macchine?
+Dobbiamo sapere come il sistema viene distribuito e come si torna indietro, come capiamo che sta fallendo e chi riceve l'alert. Conta anche quanta manutenzione richiedano le dipendenze, quante competenze specialistiche servano e se un incidente possa essere diagnosticato senza collegarsi manualmente a dieci macchine.
 
 L'operabilità è architettura perché modifica il costo reale di mantenere il sistema vivo.
 
@@ -198,17 +161,7 @@ Possiamo definire invarianti, scenari e criteri osservabili.
 
 “Sicuro” non è un requisito.
 
-Dobbiamo capire:
-
-- quali asset proteggiamo;
-- da chi;
-- con quali trust boundary;
-- quali permessi sono necessari;
-- quali dati sono sensibili;
-- quali azioni devono essere auditabili;
-- quale rischio residuo accettiamo.
-
-Lo stesso vale per privacy.
+Dobbiamo capire quali asset proteggiamo e da chi, attraverso quali trust boundary e con quali permessi. Dobbiamo sapere quali dati siano sensibili, quali azioni debbano essere auditabili e quale rischio residuo siamo disposti ad accettare. Lo stesso vale per privacy.
 
 Una frase come:
 
