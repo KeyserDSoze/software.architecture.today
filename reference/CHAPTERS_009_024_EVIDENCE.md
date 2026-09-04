@@ -232,7 +232,7 @@ L'**Observability Contract** è un artefatto del libro/ESI, non uno standard Ope
 
 Fonti principali:
 
-- Microsoft Learn — workload testing, .NET testing, ASP.NET testing, code coverage e mutation testing;
+- Microsoft Learn — workload testing,.NET testing, ASP.NET testing, code coverage e mutation testing;
 - Google Testing Blog — test sizes e limiti dell'eccesso di end-to-end testing;
 - Pact — contract testing e differenza da functional testing;
 - OWASP ASVS;
