@@ -41,8 +41,10 @@ I casi reali rimangono separati da ESI.
 | 15 — Observability | sì | sì — draft | sì — draft | OpenTelemetry/Google SRE/Microsoft |
 | 16 — Testing Architecture | sì | sì — draft | sì — draft | Microsoft/Google/Meta/OWASP/Pact |
 | 17 — Legacy e comprensione | sì | sì — draft | sì — draft | Microsoft/AWS/GitHub; characterization/evidence provenance |
-| 18 — Refactoring nell'era dell'AI | sì | sì — draft | sì — draft | AWS/Microsoft/GitHub/OpenRewrite; Branch by Abstraction, safe rollout, state migration, agentic modernization, Refactoring Safety Plan |
-| 19+ | non ancora | source-first | required | research + ESI compromise + capstone update before closure |
+| 18 — Refactoring nell'era dell'AI | sì | sì — draft | sì — draft | AWS/Microsoft/GitHub/OpenRewrite; safe migration and Refactoring Safety Plan |
+| 19 — Architecture Evolution | sì | sì — draft | sì — draft | Thoughtworks/AWS/Microsoft/GitHub; fitness functions, architecture drift, exceptions, Architecture Fitness Checklist |
+| 20 — Costi e decisioni | sì | sì — draft | sì — draft | Microsoft/FinOps Foundation/Uber; TCO, unit economics, quality premiums, allocation, Cost Model |
+| 21+ | non ancora | source-first | required | research + ESI compromise + capstone update before closure |
 
 ## Evidence vocabulary
 
@@ -158,8 +160,6 @@ La decisione è stata inserita anche nel `functional-analysis.md` principale, qu
 
 ### Local verification performed
 
-Il source corrente necessario al check è stato ricostruito localmente dal repository dopo le modifiche del Capitolo 18.
-
 ```text
 tsc -p tsconfig.json
 → PASS
@@ -175,73 +175,135 @@ Operations Desk Classic characterization
 → 0 fail
 ```
 
-Dei 19 test Order Operations:
+Questa evidence supporta PriorityPolicy seam, adapter, target policy e shadow classification soltanto al layer locale.
+
+Non supporta ancora production shadow telemetry, candidate production cutover, PostgreSQL integration, Azure identity/network, performance/capacity o recovery.
+
+## Verification status — Capitolo 19
+
+Nuovi artefatti:
 
 ```text
-11 existing application/outbox/observability tests
-8 new priority/refactoring/shadow tests
+docs/architecture-fitness-checklist.md
+tests/architecture-fitness.test.mjs
 ```
 
-Questa evidence supporta:
+Fitness rule iniziali:
 
 ```text
-PriorityPolicy seam                  Codified + Verified locally
-ConfirmedPriorityPolicy              Codified + Verified locally
-LegacyPriorityAdapter                Codified + Verified locally against legacy calculator
-Branching/shadow classification      Codified + Verified locally
-ED-001 local classification          Verified locally
-legacy behavior LB-01..LB-06         still Observed + Verified locally
+AF-001 legacy isolation
+AF-002 application dependency direction
+AF-003 contract independence
+AF-004 priority isolation
+AF-005 Azure SDK boundary in semantic core
 ```
 
-Non supporta ancora:
+Gate dedicato eseguito sul current import graph ricostruito dai source correnti:
 
 ```text
-production shadow telemetry
-runtime mismatch distribution
-candidate production cutover
-real feature-flag provider
-legacy caller/consumer retirement
-priority data ownership/persistence
-PostgreSQL integration semantics
-Azure identity/network
-performance/capacity
-recovery
+node --test tests/architecture-fitness.test.mjs
+→ 5 tests
+→ 5 pass
+→ 0 fail
 ```
 
-Questi restano `Designed/Pending` o non ancora autorizzati.
+Questa evidence verifica solo dependency/import structure.
 
-## Source pass — Capitolo 18
+Non supporta runtime topology, Azure Policy, data ownership runtime, recovery o production observability.
 
-Principali fonti usate:
+## Verification status — Capitolo 20
 
-- AWS Prescriptive Guidance — Branch by Abstraction;
-- Microsoft Azure Architecture Center — Strangler Fig / Anti-Corruption Layer;
-- Microsoft Azure Well-Architected — safe deployment practices;
-- Microsoft Learn — GitHub Copilot modernization workflow;
-- GitHub Engineering — feature flags, persistent-data migration, rate-limiter backend migration, server-side hooks;
-- OpenRewrite official documentation — automated refactoring/recipes.
+Nuovi artefatti:
+
+```text
+docs/cost-model.md
+tests/cost-fitness.test.mjs
+```
+
+Il Cost Model contiene:
+
+```text
+cost surface
+architectural premiums
+cost drivers
+fixed / variable / step / transition cost
+unit metric definitions
+allocation direction
+optimization order
+review triggers
+```
+
+Non contiene prezzi Azure inventati.
+
+Unit metric candidate:
+
+```text
+UM-01 cost per OperationalCase handled
+UM-02 cost per Payment Escalation delivered
+UM-03 observability cost per 1,000 critical journeys
+```
+
+Stato corretto:
+
+```text
+Cost Model structure        Designed + documented
+production billing data     Pending
+unit metrics measured       Pending
+forecast                    Pending
+real cost allocation        Pending provider/billing evidence
+```
+
+Il Bicep corrente contiene già metadata:
+
+```text
+workload = order-operations
+owner = commerce-operations
+environment = environmentName
+```
+
+Un cost-fitness test è stato aggiunto per proteggerli e per impedire al libro di hardcodare un `cost-center` inventato.
+
+La logica del nuovo test è stata esercitata localmente sulla stanza di metadata corrente ricostruita da `infra/main.bicep`:
+
+```text
+CF-001 allocation metadata
+CF-002 no fabricated hard-coded cost-center
+→ 2 tests
+→ 2 pass
+→ 0 fail
+```
+
+Questa evidence **non** equivale a una nuova esecuzione end-to-end della suite, né verifica Cost Management/Azure billing.
+
+## Source pass — Capitoli 19–20
+
+### Capitolo 19
+
+Principali fonti:
+
+- Thoughtworks — Building Evolutionary Architectures / fitness functions;
+- AWS Architecture Blog — cloud fitness functions;
+- Microsoft Azure Well-Architected — continuous workload review;
+- GitHub Engineering — SERVICEOWNERS.
+
+### Capitolo 20
+
+Principali fonti:
+
+- Microsoft Azure Well-Architected — Cost Optimization design principles, cost model e tradeoff;
+- Microsoft Cost Management — allocation;
+- FinOps Foundation — Framework, Unit Economics, Allocation, Architecting & Workload Placement;
+- Uber Engineering — vertical CPU scaling, Big Data supply/demand, partial replication, artifact storage modernization.
 
 Uso delle fonti:
 
-- proprietà dei pattern e delle piattaforme → claim fattuali;
-- casi GitHub → esempi reali documentati, separati da ESI;
-- ESI priority semantics/ED-001 → scenario simulato, **non** claim derivato dalle fonti.
+- Microsoft/FinOps → definizioni e guidance su cost model, optimization, allocation, unit economics e architecture/cost collaboration;
+- Uber → casi reali documentati di efficiency/architecture tradeoff;
+- ESI cost surface, unit metric e decisioni → scenario simulato, non benchmark.
 
-## Important distinction — Chapter 18
+## Important distinctions
 
-Due suite possono essere entrambe verdi e richiedere output differenti:
-
-```text
-legacy characterization:
-Enterprise >=30m → URGENT
-
-confirmed target policy:
-Enterprise alone → Standard
-```
-
-Non è una contraddizione editoriale.
-
-È il risultato intenzionale della distinzione:
+### Legacy / target
 
 ```text
 Observed legacy behavior
@@ -249,7 +311,27 @@ Observed legacy behavior
 Confirmed target requirement
 ```
 
-ED-001 deve rimanere marcata come **simulated product decision**, non come best practice generale.
+### Cost
+
+```text
+resource price
+≠
+Total Cost of Ownership
+```
+
+```text
+cost per token
+≠
+cost per useful outcome
+```
+
+```text
+lower monthly spend
+≠
+better architecture
+```
+
+quando il taglio modifica una proprietà necessaria.
 
 ## Numeri simulati ESI
 
@@ -270,7 +352,9 @@ La soglia priority:
 Payment failedAttempts >= 3 → Urgent
 ```
 
-è anch'essa una policy simulata ESI, non un benchmark o standard.
+è anch'essa una policy simulata ESI.
+
+Il Capitolo 20 **non aggiunge prezzi, percentuali di saving o benchmark ESI simulati presentati come reali**.
 
 ## Workflow editoriale corrente
 
@@ -297,6 +381,17 @@ claim provenance
 → stop condition / rollback review
 ```
 
+Per cost model aggiungiamo:
+
+```text
+cost driver
+→ property purchased
+→ unit metric
+→ quality metric
+→ owner
+→ review trigger
+```
+
 ## Evidence pass rules
 
 Richiedono particolare attenzione e fonte:
@@ -307,6 +402,7 @@ Richiedono particolare attenzione e fonte:
 - limiti di prodotti;
 - incidenti/casi aziendali;
 - benchmark/numeri reali;
+- pricing e caratteristiche commerciali variabili;
 - affermazioni storiche;
 - raccomandazioni che dipendono da evidence esterna.
 
@@ -332,7 +428,9 @@ Prima di una release candidata del libro:
 - nessun capitolo deve restare `da fare` nell'evidence pass;
 - casi reali e ESI devono restare distinguibili;
 - numeri ESI non devono essere presentati come benchmark;
+- pricing volatile va verificato vicino alla release se compare nel testo;
 - artefatti `Codified` non vanno descritti come `Verified` senza execution evidence;
 - `Monitored` richiede runtime signal reale;
 - temporary migration architecture deve avere cleanup condition;
-- legacy behavior `Observed` non deve trasformarsi silenziosamente in requirement `Confirmed`.
+- legacy behavior `Observed` non deve trasformarsi silenziosamente in requirement `Confirmed`;
+- Cost Model e unit economics non devono essere descritti come misurati finché non esistono billing/usage data reali.
