@@ -1,50 +1,18 @@
 # Capitolo 5 — Dalle feature ai confini
 
-Una feature arriva quasi sempre come una frase breve.
+Una feature arriva quasi sempre come una frase breve: “permetti al cliente di annullare un ordine”, “aggiungiamo la cronologia delle modifiche”, “serve una dashboard per gli operatori”. Da una richiesta così può nascere una modifica di poche righe oppure una trasformazione che attraversa mezzo sistema.
 
-> “Permetti al cliente di annullare un ordine.”
+La differenza non dipende soltanto dalla quantità di codice. Dipende da **dove passa la responsabilità**.
 
-Oppure:
+Quando il software cresce, implementare il comportamento non basta più. Dobbiamo decidere quali regole appartengano davvero insieme, quali conoscenze debbano rimanere locali, chi sia autorevole per un significato e quali dipendenze siamo disposti a far attraversare un confine. Dobbiamo anche capire quali cambiamenti vogliamo poter fare senza coordinare mezzo repository.
 
-> “Aggiungiamo la cronologia delle modifiche.”
+Queste sono domande di design. Diventano architetturali quando un confine sbagliato rende costoso cambiare il sistema.
 
-Oppure ancora:
+## Il repository non si divide da solo
 
-> “Serve una dashboard per gli operatori.”
+Ogni codebase presenta già una struttura: cartelle, namespace, package, progetti, servizi, API e database. È facile scambiare questa organizzazione per modularità.
 
-Da una frase così può nascere una modifica di venti righe oppure una trasformazione dell'intero sistema.
-
-La differenza non dipende soltanto dalla quantità di codice.
-
-Dipende da **dove passa la responsabilità**.
-
-Quando il software cresce, il problema non è più soltanto implementare comportamenti. Diventa decidere quali parti appartengano davvero insieme e quali conoscenze debbano restare locali, quali dipendenze siano accettabili e quali dettagli vadano nascosti. Dobbiamo anche stabilire chi sia autorevole per una regola, quali cambiamenti debbano poter avvenire indipendentemente e dove un confine riduca complessità invece di crearne altra.
-
-Queste sono domande di design.
-
-E molte di esse diventano architetturali quando il costo di sbagliare il confine cresce.
-
-## Il sistema non si divide da solo
-
-Un repository presenta già una struttura.
-
-Cartelle.
-
-Namespace.
-
-Package.
-
-Progetti.
-
-Servizi.
-
-Database.
-
-API.
-
-Ma questa struttura non è necessariamente la struttura del problema.
-
-Potremmo trovare un'applicazione divisa in:
+Un'applicazione può essere ordinata così:
 
 ```text
 controllers/
@@ -54,49 +22,25 @@ models/
 utils/
 ```
 
-ed essere tentati di considerarla ben modulare.
+ed essere comunque difficile da modificare. Se ogni feature attraversa tutte le cartelle, se una regola è ricostruita in più layer e se per cambiare un comportamento dobbiamo conoscere metà repository, abbiamo classificato il codice per tipo tecnico senza necessariamente contenere il cambiamento.
 
-In realtà potremmo avere creato soltanto una classificazione per tipo tecnico.
+Il codice può essere ordinato e il sistema rimanere concettualmente mescolato.
 
-Ogni feature potrebbe attraversare tutte le cartelle.
+## Il confine è una dichiarazione di responsabilità
 
-Ogni regola potrebbe dipendere da dettagli presenti ovunque.
-
-Ogni modifica importante potrebbe richiedere di conoscere metà repository.
-
-Il codice è ordinato.
-
-Il sistema non necessariamente lo è.
-
-### Confini di responsabilità
-
-Un confine utile prova a rispondere a una domanda più difficile:
+Un confine utile prova a rispondere a una domanda più impegnativa:
 
 > **Quale parte del sistema ha il diritto e il dovere di conoscere questa cosa?**
 
-Chi decide se un ordine può essere annullato?
+Chi decide se un ordine può essere annullato? Il controller, la UI, il database, il modulo Orders, Payments o un workflow esterno?
 
-Il controller HTTP?
+Se la risposta cambia a seconda di dove ci serve la regola, non abbiamo distribuito soltanto codice: abbiamo distribuito **significato**. E il significato duplicato tende prima o poi a divergere.
 
-Il database?
+Per questo un boundary non serve principalmente a separare file. Serve a rendere locale una decisione.
 
-Il modulo ordini?
+## La feature non coincide automaticamente con il modulo
 
-Il servizio pagamenti?
-
-La UI?
-
-Un workflow esterno?
-
-Se la risposta è “dipende da dove ci serve”, non abbiamo realmente definito una responsabilità.
-
-Abbiamo distribuito una regola.
-
-E una regola distribuita tende a divergere.
-
-### La feature non è sempre il modulo
-
-Un errore comune consiste nel trasformare automaticamente ogni feature in un componente autonomo.
+Il backlog può suggerire nomi molto convincenti:
 
 ```text
 OrderCancellationService
@@ -105,68 +49,36 @@ OrderExportService
 OrderSearchService
 ```
 
-Può sembrare ordinato.
+Ma le feature non sono automaticamente confini. Più feature possono condividere lo stesso modello e le stesse invarianti, quindi separararle aumenterebbe contratti e coordinamento senza comprare vera indipendenza. Al contrario, una singola feature può attraversare responsabilità che devono rimanere distinte.
 
-Ma non sempre i nomi delle feature indicano confini reali.
-
-A volte più feature condividono lo stesso modello, le stesse invarianti e la stessa ownership.
-
-Separarle crea più contratti, più coordinamento e più possibilità di inconsistenza.
-
-Altre volte una singola feature attraversa invece responsabilità realmente differenti.
-
-L'architettura non deve seguire meccanicamente il backlog.
+L'architettura non deve quindi seguire meccanicamente la forma delle issue.
 
 > **Le issue descrivono lavoro. I confini descrivono responsabilità.**
 
-### Cambiare insieme è un segnale
+## Cambiare insieme è un segnale
 
-Una domanda molto utile è:
+Un modo pratico per scoprire i confini consiste nell'osservare il cambiamento. Se due parti vengono modificate frequentemente per la stessa ragione di business, potrebbe esistere una responsabilità comune. Se due componenti vivono nello stesso package ma cambiano per cause indipendenti, il confine corrente potrebbe essere soltanto convenzionale.
 
-> quali parti cambiano frequentemente insieme per lo stesso motivo?
+Non è una legge. File che cambiano insieme possono farlo per accidente, e parti dello stesso dominio possono evolvere a ritmi diversi. Ma il **change coupling** è una traccia importante perché ci mostra la struttura che il sistema impone al lavoro reale, non soltanto quella disegnata nelle cartelle.
 
-Se due classi cambiano sempre quando cambia la stessa regola di business, forse appartengono allo stesso confine.
+La modularità utile contiene il cambiamento: permette a una decisione locale di rimanere locale abbastanza a lungo da poter essere compresa e verificata.
 
-Se due componenti vivono nello stesso package ma cambiano per motivi completamente differenti, forse il confine attuale è artificiale.
+## Confini leggibili anche dagli agenti
 
-Questo non è un criterio assoluto.
+Con gli agenti questa proprietà acquista un valore ulteriore. Un coding agent incaricato di modificare la gestione degli ordini dovrebbe poter capire quali file appartengano a quella responsabilità, quali invarianti debba preservare, quali API possa usare e quali dipendenze non sia autorizzato a introdurre.
 
-Ma è un segnale.
+Se un task apparentemente locale richiede di esplorare tutto il repository per evitare effetti collaterali, la delega rimane fragile. Quando invece boundary, ownership e contratti sono leggibili, possiamo ridurre il perimetro di contesto senza nascondere le dipendenze importanti.
 
-La modularità riguarda anche la capacità di contenere il cambiamento.
+La modularità diventa quindi anche **context containment**: per le persone e per gli agenti.
 
-Un buon modulo permette a una decisione locale di rimanere locale.
+## La domanda del capitolo
 
-### Confini e AI
-
-Con gli agenti questa proprietà diventa ancora più importante.
-
-Un agente a cui chiediamo di modificare la gestione degli ordini dovrebbe poter capire quali file appartengano a quella responsabilità e quali invarianti debba preservare, quali API possa usare, quali dipendenze non debba introdurre e quali test rappresentino il contratto del modulo.
-
-Se una modifica apparentemente locale richiede di esplorare tutto il repository, la capacità di delegare diminuisce.
-
-Se invece i confini sono leggibili, possiamo dare all'agente un perimetro più preciso.
-
-La modularità diventa quindi anche **context containment**.
-
-Non solo per gli esseri umani.
-
-Anche per gli agenti.
-
-### La domanda del capitolo
-
-Nel capitolo precedente abbiamo definito l'architettura come sistema di decisioni significative.
-
-Ora dobbiamo capire come quelle decisioni diventano struttura del software.
+Nel capitolo precedente abbiamo definito l'architettura come un sistema di decisioni significative. Ora dobbiamo vedere come quelle decisioni diventano struttura del software.
 
 La domanda centrale sarà:
 
 > **Dove deve vivere una responsabilità perché il sistema resti comprensibile, modificabile e verificabile?**
 
-Per rispondere useremo concetti classici come modularità, cohesion e coupling, information hiding, dependency inversion, composition e domain modeling. Ma non come definizioni da memorizzare.
+Useremo modularità, cohesion, coupling, information hiding, dependency direction e domain modeling non come definizioni da memorizzare, ma come lenti diverse con cui giudicare lo stesso confine.
 
-Li useremo come strumenti per giudicare un confine.
-
-Il nostro obiettivo non è produrre più moduli.
-
-È produrre **meno ragioni per cui una modifica locale deve diventare una modifica globale**.
+L'obiettivo non è produrre più moduli. È produrre **meno ragioni per cui una modifica locale debba diventare una modifica globale**.
