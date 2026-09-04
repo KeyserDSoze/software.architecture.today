@@ -57,7 +57,8 @@ I casi reali rimangono separati da ESI.
 | 26 — Production Readiness | sì | sì — draft | sì — draft | AWS ORR/Google SRE/Microsoft/GitHub; dedicated audit |
 | 27 — Casi end-to-end | sì | sì — draft | sì — draft | Microsoft/GitHub/Uber; dedicated audit |
 | 28 — L'architect del 2030 | sì | sì — draft | sì — draft | Microsoft architect role/DORA/Microsoft Research/OpenAI; dedicated audit |
-| Capitolo finale — Il timone resta a noi | sì — sezioni 001–008 | sintesi di evidence già auditata | sì — draft | `009` intenzionalmente assente; Dieci comandamenti ancora da scegliere |
+| 29 — Il timone resta a noi | sì — sezioni 001–008 | sintesi di evidence già auditata | sì — draft | chiusura argomentativa completa; decalogo spostato al Capitolo 30 |
+| 30 — I Dieci comandamenti della Software Architecture nell'era dell'AI | sì — sezione 001 | sintesi di evidence già auditata | n/a — nessuna nuova decisione ESI | capitolo autonomo finale; nessun contenuto principale dopo |
 
 Dedicated audits:
 
@@ -67,6 +68,7 @@ reference/CHAPTER_026_EVIDENCE.md
 reference/CHAPTER_027_EVIDENCE.md
 reference/CHAPTER_028_EVIDENCE.md
 reference/CHAPTER_029_EVIDENCE.md
+reference/CHAPTER_030_EVIDENCE.md
 ```
 
 ---
@@ -155,7 +157,9 @@ Chapter 27 adds decision-trace/documentary synthesis, not new runtime verificati
 
 Chapter 28 adds company-level capability/governance documentation, not a claim that ESI people were empirically assessed.
 
-The final chapter sections 001–008 synthesize the already established method and introduce no new runtime verification or production claim.
+Chapter 29 synthesizes the already established method and introduces no new runtime verification or production claim.
+
+Chapter 30 compresses already-established principles into the final decalogue and likewise introduces no new runtime verification or production claim.
 
 ---
 
@@ -291,13 +295,15 @@ Detailed audit:
 
 ---
 
-# Final chapter evidence policy
+# Chapters 29–30 evidence policy
 
-Sections 001–008 are intentionally synthesis-heavy.
+## Chapter 29 — Il timone resta a noi
 
-They do not introduce new vendor recommendations, benchmark numbers, production claims or new real-company architecture claims.
+Chapter 29 is synthesis-heavy.
 
-They summarize concepts already developed and audited across Chapters 0–28, including:
+It does not introduce new vendor recommendations, benchmark numbers, production claims or new real-company architecture claims.
+
+It summarizes concepts already developed and audited across Chapters 0–28, including:
 
 ```text
 functional understanding
@@ -311,7 +317,7 @@ Production Readiness NO-GO
 One-Man Project / Specialist Gate
 ```
 
-The final chapter preserves the current ESI truth:
+It preserves the current ESI truth:
 
 ```text
 Order Operations PRR
@@ -320,11 +326,27 @@ Order Operations PRR
 
 It deliberately does not invent a successful launch for narrative closure.
 
-Detailed audit and final-section gate:
+Detailed audit:
 
 - `reference/CHAPTER_029_EVIDENCE.md`.
 
-The only future main-manuscript section allowed after `chapters/029_chapter/008_before_the_commandments.md` is the final Dieci comandamenti section.
+## Chapter 30 — I Dieci comandamenti della Software Architecture nell'era dell'AI
+
+Chapter 30 is a standalone final synthesis.
+
+It contains no new technical recommendation or new ESI claim. The ten principles compress arguments already developed across the manuscript.
+
+Canonical manuscript file:
+
+```text
+chapters/030_chapter/001_i_dieci_comandamenti.md
+```
+
+Detailed audit:
+
+- `reference/CHAPTER_030_EVIDENCE.md`.
+
+No main-manuscript content may follow Chapter 30.
 
 ---
 
@@ -510,4 +532,4 @@ Before a release candidate of the book:
 - Architect Capability Map must not be described as an industry standard or validated ranking system;
 - current OpenAI/Microsoft/DORA capability claims should be rechecked near publication;
 - real quantitative case-study results must remain attributed to their organizations and contexts;
-- the **Dieci comandamenti** must remain only in the final section of the final chapter, with nothing after them in the main manuscript.
+- the **Dieci comandamenti** must remain only in the standalone **Capitolo 30**, with nothing after it in the main manuscript.
