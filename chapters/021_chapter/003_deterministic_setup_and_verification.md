@@ -39,14 +39,14 @@ npm test
 
 Il dettaglio della sintassi conta meno del contratto. Se `npm test` è il golden command, persone, agenti e CI devono poter capire che cosa esegue, che cosa dimostra e che cosa **non** dimostra.
 
-Possiamo pensare a questi comandi come a una API interna:
+Possiamo pensare a questi comandi come a un'API interna:
 
 ```text
 typecheck()
 test()
 ```
 
-Una API può evolvere. Ma non dovrebbe cambiare in modo accidentale né avere un significato diverso per ogni contributor.
+Un'API può evolvere. Ma non dovrebbe cambiare in modo accidentale né avere un significato diverso per ogni contributor.
 
 Un alias chiamato `test` che salta silenziosamente metà della suite o richiede un setup non dichiarato non è un golden command. È un'interfaccia ambigua.
 
