@@ -3,7 +3,6 @@ from __future__ import annotations
 import argparse
 import re
 import sys
-from collections import Counter
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -15,8 +14,8 @@ INLINE_CODE_RE = re.compile(r"`[^`\n]+`")
 URL_RE = re.compile(r"https?://[^\s)>]+")
 WORD_RE = re.compile(r"\b[\wÀ-ÖØ-öø-ÿ’'-]+\b", re.UNICODE)
 
-# Errori linguistici/meccanici ad alta confidenza. Le regex sono intenzionalmente
-# conservative: questo gate non deve imporre preferenze stilistiche discutibili.
+# Errori linguistici/meccanici ad alta confidenza. Il gate è volutamente
+# conservativo: non deve trasformare preferenze stilistiche discutibili in errori.
 CLEAR_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"\buna endpoint\b", re.I), "usare 'un endpoint'"),
     (re.compile(r"\bla endpoint\b", re.I), "usare 'l\'endpoint'"),
@@ -33,17 +32,19 @@ CLEAR_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"\bdella AI\b", re.I), "usare 'dell\'AI'"),
     (re.compile(r"\buna (?:applicazione|architettura|attività|analisi|alternativa|assunzione|esigenza|eccezione|entità|esperienza|evoluzione|idea|implementazione|informazione|infrastruttura|integrazione|interfaccia|operazione|opportunità|organizzazione|osservazione|opzione|autonomia)\b", re.I), "elisione dell'articolo femminile davanti a vocale"),
     (re.compile(r"\bqual['’]è\b", re.I), "usare 'qual è'"),
-    (re.compile(r"\bun po['’]?\b", re.I), "usare 'un po’'"),
+    (re.compile(r"\bun po'(?!\w)|\bun po\b(?![’'])", re.I), "usare 'un po’'"),
     (re.compile(r"\bperchè\b", re.I), "usare 'perché'"),
     (re.compile(r"\bpoichè\b", re.I), "usare 'poiché'"),
     (re.compile(r"\baffinchè\b", re.I), "usare 'affinché'"),
     (re.compile(r"\bpurchè\b", re.I), "usare 'purché'"),
     (re.compile(r"\bsopratutto\b", re.I), "usare 'soprattutto'"),
     (re.compile(r"\bdaccordo\b", re.I), "usare 'd\'accordo'"),
-    (re.compile(r"\b(?:l|un|dell|all|nell)['’]\s+\w", re.I), "rimuovere lo spazio dopo l'apostrofo"),
+    (re.compile(r"\b(?:l|un|dell|all|nell)['’][ \t]+\w", re.I), "rimuovere lo spazio dopo l'apostrofo"),
     (re.compile(r"[ \t]+[,.;:!?]"), "rimuovere lo spazio prima della punteggiatura"),
     (re.compile(r"[,;:!?]{2,}"), "punteggiatura duplicata"),
-    (re.compile(r"\b([A-Za-zÀ-ÖØ-öø-ÿ]{3,})\s+\1\b", re.I), "parola duplicata consecutivamente"),
+    # [ \t]+ è intenzionale: non segnaliamo una parola che chiude un heading e
+    # ricompare correttamente all'inizio del paragrafo successivo.
+    (re.compile(r"\b([A-Za-zÀ-ÖØ-öø-ÿ]{3,})[ \t]+\1\b", re.I), "parola duplicata consecutivamente"),
     (re.compile(r"\bAcme Orders\b"), "capstone non canonico: usare/integrare Order Operations (ESI)"),
 )
 
@@ -75,9 +76,11 @@ def governance_files() -> list[Path]:
 
 
 def prose(text: str) -> str:
-    text = FENCE_RE.sub("\n", text)
-    text = INLINE_CODE_RE.sub("", text)
-    text = URL_RE.sub("", text)
+    # Conserviamo un token al posto di code/URL invece di cancellarli: cancellarli
+    # produce falsi positivi come "`symbol`." -> " .".
+    text = FENCE_RE.sub(lambda m: "\n" * m.group(0).count("\n"), text)
+    text = INLINE_CODE_RE.sub("INLINECODE", text)
+    text = URL_RE.sub("URL", text)
     return text
 
 
