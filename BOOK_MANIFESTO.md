@@ -68,6 +68,8 @@ Non considera più autonomia degli agenti automaticamente migliore.
 
 Non considera più documentazione automaticamente migliore.
 
+Non considera una soluzione più economica automaticamente migliore se riduce una proprietà che il workload deve garantire.
+
 Non considera l'AI una ragione per conoscere meno software engineering.
 
 Il libro preferisce domande come:
@@ -212,11 +214,12 @@ Cloud Deployment Map
 Observability Contract
 Testing Strategy
 Refactoring Safety Plan
+Architecture Fitness Checklist
+Cost Model
 Agent Delegation Contract
 Agent Verification Bundle
 AI Autonomy Matrix
 Operational Readiness Review
-Architecture Fitness Checklist
 Production Readiness Review
 ```
 
