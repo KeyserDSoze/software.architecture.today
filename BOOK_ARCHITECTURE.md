@@ -842,11 +842,11 @@ Temi:
 
 Questo capitolo non deve fare previsioni teatrali. Deve distinguere ciò che è già osservabile da ciò che rimane una possibilità.
 
-## Capitolo finale — Il timone resta a noi
+## Capitolo 29 — Il timone resta a noi
 
-Il capitolo conclusivo riprende il percorso senza introdurre nuove tecnologie.
+Il Capitolo 29 è la chiusura argomentativa del libro.
 
-Deve chiudere il cerchio aperto nel Capitolo 0:
+Riprende il percorso senza introdurre nuove tecnologie e chiude il cerchio aperto nel Capitolo 0:
 
 ```text
 execution
@@ -855,17 +855,25 @@ execution
 → responsabilità
 ```
 
-L'ultima sezione dell'ultimo capitolo sarà:
+Qui si chiudono in prosa outcome, analisi funzionale, decision system, evidence, AI authority, compromessi aziendali e responsabilità professionale.
 
-## I Dieci comandamenti della Software Architecture nell'era dell'AI
+Il Capitolo 29 non contiene il decalogo: deve poter terminare come capitolo autonomo, con il proprio arco narrativo completo.
 
-Non compariranno prima come struttura didattica esplicita.
+## Capitolo 30 — I Dieci comandamenti della Software Architecture nell'era dell'AI
 
-Arriveranno quando il lettore conosce già la sostanza dietro ogni principio.
+Il Capitolo 30 è un capitolo autonomo e volutamente breve.
 
-Il tono potrà essere più leggero, ironico e goliardico del resto del libro, senza trasformarli in battute vuote.
+Non introduce nuove tecnologie, nuovi claim o nuovi framework.
 
-**Devono essere letteralmente l'ultima cosa del manoscritto principale.**
+Comprende soltanto il decalogo finale, scritto dopo che il lettore ha già incontrato la sostanza dietro ogni principio.
+
+Non comparirà prima come struttura didattica esplicita.
+
+Il tono può essere più leggero, ironico e goliardico del resto del libro, senza trasformare i comandamenti in battute vuote.
+
+**Il Capitolo 30 deve essere letteralmente l'ultima cosa del manoscritto principale.**
+
+Nulla — afterword, appendice, esercizio, nota editoriale o altro contenuto narrativo — viene dopo i Dieci comandamenti nel manoscritto principale.
 
 ---
 
