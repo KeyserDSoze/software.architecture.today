@@ -218,6 +218,16 @@ Trigger
 **Guardrail:** Production Readiness Review, blocker register, claim→evidence→limitation, `OO-003`, production-readiness fitness.  
 **Evidence:** AWS ORR/Well-Architected, Google SRE launch planning, Microsoft safe deployment, GitHub deployment/availability cases; evidence audit in `reference/CHAPTER_026_EVIDENCE.md`.
 
+## 27 — Casi end-to-end
+
+**Esigenza:** mostrare che il metodo del libro funziona su workload diversi senza trasformarsi in una architecture template unica.  
+**Tensione:** enterprise coherence vs workload-specific fit.  
+**Decisione:** condividere guardrail aziendali dove la differenziazione ha poco valore, mantenendo architecture/technology specifiche quando cambiano dominio, failure model, evidence e operating model.  
+**Costo accettato:** alcune capability Platform comuni, alcune eccezioni motivate e più di un operating model dentro ESI.  
+**Quality floor:** functional authority, security/identity ownership, operability, evidence provenance e cost attribution restano espliciti anche quando la topology cambia.  
+**Guardrail:** tre End-to-End Decision Trace, case-specific readiness, company paved roads, review trigger; nuovo prodotto `products/campaign-launchpad/`.  
+**Evidence:** Microsoft Learn/Well-Architected, GitHub Rails migration, Uber Genie/Enhanced Agentic-RAG; audit in `reference/CHAPTER_027_EVIDENCE.md`.
+
 ## Regola di continuità
 
 Il ledger continua insieme al manoscritto.
