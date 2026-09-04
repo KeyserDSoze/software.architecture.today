@@ -1,305 +1,86 @@
 ## Lo schema cambia mentre il sistema vive
 
-Un database di produzione non è un file che possiamo riscrivere liberamente.
+Un database di produzione non è un file che possiamo riscrivere liberamente. Contiene dati esistenti, consumer attivi, job, replica, backup, integrazioni e versioni applicative che possono convivere durante un rollout. Una modifica di schema è quindi una migrazione di un sistema vivo, non soltanto DDL.
 
-Contiene:
+## Il vero problema è la compatibilità durante la transizione
 
-- dati esistenti;
-- consumer attivi;
-- query concorrenti;
-- job;
-- replica;
-- backup;
-- integrazioni;
-- versioni applicative che possono convivere durante un rollout.
+Rinominare `payment_state` in `payment_status` sembra banale finché guardiamo un solo commit. In produzione potremmo avere contemporaneamente una versione applicativa che legge il vecchio nome, una nuova che legge il nuovo, un background job che scrive ancora il primo e un report che interroga direttamente la colonna precedente.
 
-Quindi una modifica di schema non è soltanto DDL.
-
-È una migrazione di un sistema vivo.
-
-## Il problema della compatibilità temporale
-
-Supponiamo di voler rinominare:
-
-```text
-payment_state
-```
-
-in:
-
-```text
-payment_status
-```
-
-Nel repository la modifica sembra banale.
-
-In produzione potremmo avere contemporaneamente:
-
-```text
-app version N   → legge payment_state
-app version N+1 → legge payment_status
-background job  → scrive payment_state
-report          → query diretta payment_state
-```
-
-Se eliminiamo la colonna troppo presto, una parte del sistema fallisce.
-
-Il problema non è il rename.
-
-È la **compatibilità durante la transizione**.
-
-## Expand, migrate, contract
-
-Un approccio frequente è separare il cambiamento in fasi.
+La migration diventa pericolosa quando assumiamo che tutti cambino nello stesso istante. Per questo molte trasformazioni possono essere rese più sicure separandole in fasi:
 
 ```text
 EXPAND
-aggiungi la nuova forma senza rompere la vecchia
+introduci la nuova forma senza rompere la precedente
 
 MIGRATE
 sposta dati e consumer gradualmente
 
 CONTRACT
-rimuovi la forma precedente quando nessuno la usa più
+rimuovi la forma vecchia quando non serve più
 ```
 
-La sequenza riduce il blast radius perché evita di richiedere che tutti i componenti cambino nello stesso istante.
-
-Non ogni migration richiede esattamente questi passi.
-
-Il principio generale è:
-
-> **rendere compatibili le versioni che devono convivere durante il rollout.**
+Non ogni cambiamento richiede questa sequenza esatta. Il principio è più generale: **le versioni che devono convivere durante il rollout devono essere compatibili abbastanza a lungo da consentire una transizione controllata**.
 
 ## Caso reale — Stripe: online migrations at scale
 
-Stripe ha documentato una migrazione di centinaia di milioni di oggetti Subscription eseguita mantenendo il servizio operativo.
-
-La strategia descritta seguiva quattro fasi principali:
-
-1. scrivere sia nel vecchio sia nel nuovo modello;
-2. spostare gradualmente i read path sul nuovo store;
-3. spostare i write path;
-4. rimuovere il vecchio modello quando non era più necessario.
-
-Stripe ha anche usato confronti tra i due read path per rilevare inconsistenze durante la transizione, e ha eseguito il backfill in modo controllato invece di tentare una sostituzione istantanea.
+Stripe ha documentato una migrazione di centinaia di milioni di oggetti `Subscription` mantenendo il servizio operativo. La strategia prevedeva una fase in cui vecchio e nuovo modello coesistevano, spostamento graduale dei read path, spostamento dei write path e rimozione della struttura precedente soltanto dopo verifica sufficiente. Stripe ha anche confrontato i due read path per rilevare inconsistenze e ha eseguito il backfill in modo controllato.
 
 Fonte primaria:
 
 - [Stripe Engineering — Online migrations at scale](https://stripe.com/blog/online-migrations)
 
-La lezione non è “fate sempre dual write”.
+La lezione non è “usare sempre dual write”. È che una migration rischiosa può essere trasformata in una sequenza di stati osservabili e verificabili, ritardando le one-way door finché non abbiamo abbastanza confidence.
 
-La lezione è più generale:
+## Dual write: migrazione graduale, non atomicità gratuita
 
-> **una migration rischiosa può essere trasformata in una sequenza di stati osservabili e reversibili.**
+Scrivere contemporaneamente su `old_store` e `new_store` non elimina il rischio. Se una write riesce e l’altra fallisce, nasce una divergenza che deve essere rilevata e corretta. Servono quindi reconciliation, retry, metriche di mismatch, backfill, criteri di cutover e un piano per il rollback.
 
-Ogni fase aumenta confidence prima di eliminare la precedente via d'uscita.
-
-## Dual write non è magia
-
-Il dual write introduce a sua volta problemi.
-
-Se scriviamo:
-
-```text
-old_store
-new_store
-```
-
-che cosa succede se la prima write riesce e la seconda fallisce?
-
-Dobbiamo avere:
-
-- reconciliation;
-- retry;
-- metriche di mismatch;
-- backfill;
-- criteri di cutover;
-- piano per il rollback.
-
-Il valore del pattern non è ottenere atomicità gratuita.
-
-È permettere una migrazione graduale sapendo che la divergenza deve essere governata.
+Il valore del dual write, quando è appropriato, è consentire una transizione graduale. Non trasformare due sistemi indipendenti in una transazione magica.
 
 ## Caso reale — GitHub e gh-ost
 
-GitHub ha sviluppato e open-sourced `gh-ost` per eseguire online schema migration su MySQL con un approccio controllabile, osservabile e con basso impatto rispetto a cambiamenti che altrimenti avrebbero potuto bloccare tabelle in produzione.
+GitHub ha sviluppato e open-sourced `gh-ost` per eseguire online schema migration su MySQL in modo controllabile e osservabile, riducendo l’impatto di operazioni che altrimenti avrebbero potuto bloccare tabelle in produzione.
 
 Fonte primaria:
 
 - [GitHub Blog — gh-ost: GitHub's online schema migration tool for MySQL](https://github.blog/news-insights/company-news/gh-ost-github-s-online-migration-tool-for-mysql/)
 
-Il caso è interessante non perché Order Operations userà MySQL o `gh-ost`.
+Order Operations non userà necessariamente MySQL né `gh-ost`. Il caso è utile perché mostra un principio trasferibile: **il meccanismo di migration deve essere progettato rispetto al comportamento operativo del datastore e al workload reale**.
 
-È interessante perché mostra una proprietà generale:
+## Il backfill è spesso la parte più rischiosa
 
-> **il meccanismo di migration deve essere progettato rispetto al comportamento operativo del datastore e del workload reale.**
+Aggiungere una colonna può richiedere pochi secondi. Popolare milioni di righe può richiedere ore o giorni e competere con il traffico utente. Batch size, rate limiting, lock contention, replica lag, IO, retry, resumability e idempotenza diventano quindi parte della strategia.
 
-La migration è parte dell'operability.
+Un agente AI può generare uno script di backfill in pochi secondi. Questo rende ancora più importante distinguere uno **script generato** da una **migration strategy**. Il primo è codice; la seconda è un piano operativo che tiene conto di workload, failure behavior e stop condition.
 
-## Backfill
+## Rollback del codice e rollback del dato non coincidono
 
-Aggiungere una colonna è spesso la parte facile.
+Se la nuova versione ha già scritto dati che la vecchia non sa interpretare, fare rollback del deploy può non bastare. Prima di una migration significativa dobbiamo sapere se la vecchia versione possa leggere i nuovi dati, se la nuova sappia ancora leggere i vecchi e se una trasformazione abbia perso informazione.
 
-Popolare milioni di righe può essere la parte pericolosa.
+Un cambio distruttivo può trasformare una release normale in una one-way door senza che il diff lo renda evidente.
 
-Un backfill deve considerare:
+## Retention: anche cancellare è una decisione architetturale
 
-- batch size;
-- rate limiting;
-- lock contention;
-- replica lag;
-- IO;
-- retry;
-- resume dopo failure;
-- idempotenza;
-- priorità rispetto al traffico utente.
+I dati non devono soltanto nascere e cambiare. Devono essere conservati, archiviati, anonimizzati, cancellati o sottoposti a legal hold secondo esigenze che spesso appartengono a stakeholder differenti.
 
-Un agente AI può generare uno script di backfill in pochi secondi.
+“Conserviamo tutto per sicurezza” aumenta superficie di esposizione, costo di storage e backup, tempi di restore e difficoltà di deletion. Cancellare troppo presto può invece violare audit, esigenze di business o obblighi contrattuali. La retention è quindi un requisito da decidere con Legal, Security, Product e Data, non un default lasciato al database.
 
-Questo rende ancora più importante non confondere:
+Lo stesso vale per audit e temporal data. History table, audit trail, event log, CDC e temporal table non sono sinonimi. Un audit trail per accountability non diventa automaticamente un event store; un event stream di integrazione non è automaticamente un ledger finanziario. Ancora una volta, la semantica viene prima dello strumento.
 
-```text
-script generato
-```
+## ESI: prepariamo una migration senza inventare la scala
 
-con:
+Order Operations introdurrà una tabella propria per `OperationalCase`, perché quel concetto appartiene davvero al suo dominio operativo. Non copieremo ancora automaticamente tutti i dettagli di Orders, Payments e Shipping.
 
-```text
-migration strategy
-```
+Se in futuro una projection locale diventerà necessaria, la migrazione seguirà una progressione osservabile: introdurre lo storage, avviare la propagation, fare backfill, confrontare live view e projection, spostare gradualmente i read, mantenere un fallback durante il periodo di verifica e rimuovere il vecchio path soltanto dopo evidence sufficiente.
 
-La seconda richiede conoscenza del workload e del failure behavior.
-
-## Schema migration e rollback
-
-Il rollback di codice non implica automaticamente rollback del database.
-
-Se la nuova versione ha già scritto dati in una forma che la versione precedente non comprende, tornare indietro con il deploy può non essere sufficiente.
-
-Per questo una migration deve chiedere:
-
-```text
-La vecchia versione può leggere i nuovi dati?
-La nuova versione può leggere i vecchi dati?
-Il rollback richiede reverse migration?
-Abbiamo modificato semanticamente il dato?
-Abbiamo perso informazione?
-```
-
-Un cambio distruttivo può trasformare una normale release in una one-way door.
-
-## Retention è architettura
-
-I dati non devono soltanto nascere e cambiare.
-
-Devono anche essere:
-
-- conservati;
-- archiviati;
-- anonimizzati;
-- cancellati;
-- eventualmente legal-held.
-
-La retention influenza:
-
-- costo;
-- performance;
-- partizionamento;
-- backup;
-- compliance;
-- recovery;
-- analytics.
-
-“Conserviamo tutto per sicurezza” non è una strategia neutrale.
-
-Più dati conserviamo, più aumentano:
-
-- superficie di esposizione;
-- costo di storage e backup;
-- tempi di restore;
-- difficoltà di deletion;
-- data governance.
-
-Allo stesso modo, cancellare troppo presto può violare audit, business need o obblighi contrattuali.
-
-La retention è quindi un requisito da decidere con Legal, Security, Product e Data, non una default del database.
-
-## Temporal data e audit
-
-Quando dobbiamo sapere non soltanto il valore corrente ma **come siamo arrivati lì**, possiamo aver bisogno di:
-
-- audit trail;
-- history table;
-- immutable event log per specifiche esigenze;
-- temporal table;
-- change data capture;
-- domain event persistiti.
-
-Questi strumenti non sono equivalenti.
-
-Un audit trail per accountability non deve essere automaticamente usato come event store del dominio.
-
-Un event stream per integrazione non è automaticamente un ledger contabile.
-
-Ancora una volta, la semantica viene prima della tecnologia.
-
-## ESI: la prima migration che prepariamo
-
-Order Operations introdurrà una propria tabella per l'ownership operativa dei casi.
-
-Una possibile prima forma:
-
-```text
-operational_case
-- order_id
-- problem_category
-- assigned_to
-- detected_at
-- updated_at
-```
-
-Non copieremo ancora tutti i dettagli di Orders, Payments e Shipping.
-
-Se in futuro una projection locale diventerà necessaria, la migration verrà progettata in fasi:
-
-```text
-1. introdurre projection storage
-2. iniziare propagation
-3. backfill
-4. confrontare live view e projection
-5. spostare gradualmente i read
-6. mantenere fallback durante il periodo di verifica
-7. rimuovere il vecchio path solo dopo evidenza sufficiente
-```
-
-Questa sequenza prende ispirazione dal principio dimostrato nei casi reali, senza fingere che la scala di ESI sia quella di Stripe o GitHub.
+Questa sequenza prende ispirazione dai principi mostrati nei casi reali senza fingere che ESI abbia la scala di Stripe o GitHub.
 
 ## AI e migration
 
-L'AI è particolarmente utile per:
+L’AI è molto utile per trovare consumer di una colonna, proporre migration candidate, generare backfill, confrontare schema prima/dopo e costruire query di validation. Può anche cercare accessi cross-boundary o modificare centinaia di access path con grande velocità.
 
-- trovare consumer di una colonna;
-- generare candidate migration;
-- costruire script di backfill;
-- confrontare schema prima/dopo;
-- creare query di validation;
-- analizzare diff di ORM/model;
-- cercare accessi diretti fuori boundary.
+Non conosce però automaticamente i dati reali, il lock behavior, la deployment topology, il replica lag, la durata del backfill, i consumer esterni o i vincoli di rollback. Per questo una migration production-safe deve conservare un gate umano sulle decisioni di rischio.
 
-Ma il rischio è alto perché può produrre una trasformazione repository-wide molto convincente senza conoscere:
+> **L’AI può accelerare una migration. Non può decidere da sola quale finestra di rischio l’azienda sia disposta ad accettare.**
 
-- dati reali;
-- lock behavior;
-- deployment topology;
-- replica lag;
-- durata del backfill;
-- consumer esterni;
-- rollback constraints.
-
-Quindi applicheremo una regola:
-
-> **L'AI può accelerare la migration. Non può decidere da sola quale finestra di rischio l'azienda è disposta ad accettare.**
-
-Una migration production-safe è una decisione architetturale, non una refactor automatica.
+La migration è architettura perché modifica il modo in cui il sistema continua a vivere mentre cambia.
