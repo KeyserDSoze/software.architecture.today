@@ -1,182 +1,178 @@
-# 19.3 — Architecture drift, ADR e decisioni che scadono
+# 19.3 — Drift, decision expiry e debito come rischio
 
-Un'architettura non degrada soltanto quando qualcuno viola una regola.
+Una fitness function può dirci che una proprietà non è più rispettata.
 
-Può degradare anche quando una regola continua a essere rispettata ma **il contesto che la giustificava non esiste più**.
+Prima di correggere qualcosa dobbiamo però capire **che cosa è cambiato**.
 
-Questo è un problema diverso.
-
-Nel Capitolo 4 abbiamo introdotto gli ADR come record di decisione.
-
-Adesso aggiungiamo il tempo.
-
-Un ADR non dovrebbe dire soltanto:
+Esistono almeno due failure mode molto diversi:
 
 ```text
-Decision
-Consequences
+implementation drift
+→ il sistema non rispetta più l'intento
+
+context drift
+→ l'intento è ancora rispettato, ma non ha più fit
 ```
 
-Dovrebbe anche aiutarci a capire:
+Confonderli produce due reazioni sbagliate: modificare il codice quando dovremmo riaprire una decisione, oppure modificare la governance per nascondere una vera regressione.
+
+## Implementation drift
+
+L'implementazione si allontana da una decisione che continua ad avere senso.
+
+Esempi ESI:
 
 ```text
-Under which assumptions?
-Until when?
-What would make us revisit it?
+src/application imports src/integration
+priority code imports legacy directly
+public access appears despite private-ingress decision
+metric dimension includes caseId
 ```
 
-## Decisioni senza trigger
-
-Consideriamo una decisione ESI già presa:
+Qui la risposta tipica è:
 
 ```text
-Order Operations remains single-region.
+fitness violation
+→ fix implementation
 ```
 
-Era ragionevole perché il business aveva accettato:
+oppure, se l'eccezione è realmente necessaria, registrarla esplicitamente.
+
+## Context drift
+
+Il secondo caso è più sottile.
+
+Order Operations è stato progettato single-region con un requisito simulato:
 
 ```text
 region-wide RTO <= 8h
 RPO <= 1h
 ```
 
-Se domani un contratto enterprise richiede:
+Se un nuovo impegno cambia il requisito in:
 
 ```text
 RTO <= 15m anche per region failure
 ```
 
-l'ADR non diventa "sbagliato" retroattivamente.
+l'implementazione può essere perfettamente coerente con l'ADR originale e contemporaneamente non essere più adeguata al business.
 
-È semplicemente scaduto il contesto che lo rendeva adatto.
+L'ADR non era necessariamente sbagliato.
 
-> **Una decisione architetturale può restare ben ragionata e diventare comunque obsoleta.**
+È cambiata una delle forze che lo giustificavano.
 
-## Review trigger
+> **Una decisione può restare ben implementata e diventare comunque obsoleta.**
 
-Ogni ADR significativo dovrebbe avere trigger come:
+## Gli ADR hanno bisogno di review trigger
 
-- volume oltre una soglia;
-- nuovo team owner;
+Un Architecture Decision Record è più utile se, oltre a decisione e conseguenze, conserva:
+
+```text
+assumptions
+review triggers
+expected evidence
+conditions that invalidate the fit
+```
+
+Trigger possibili:
+
+- volume o consumer count significativamente diversi;
 - nuovo public ingress;
-- nuovo requisito compliance;
-- SLO non raggiunto;
-- costo oltre budget;
-- incident class ricorrente;
-- capability cloud diventata disponibile;
+- nuovo requirement compliance;
+- SLO/RTO/RPO cambiati;
+- recurring incident class;
+- cost oltre il range accettato;
+- team/domain ownership cambiata;
 - technology support lifecycle;
-- consumer count significativamente diverso;
-- domain boundary cambiato.
+- nuova capability che modifica il trade-off.
 
-Questo ci evita due estremi.
+Questo evita due estremi.
 
 ### Architecture amnesia
 
-Nessuno ricorda perché la scelta esiste.
-
-Quindi la si mantiene per inerzia.
+La decisione resta perché nessuno ricorda più perché esiste.
 
 ### Architecture churn
 
-Ogni nuova tecnologia riapre decisioni già buone senza che sia cambiato il problema.
+Ogni novità di mercato riapre decisioni sane anche quando il problema non è cambiato.
 
 Il review trigger dice:
 
-> **non rimettere in discussione tutto continuamente; riapri la decisione quando cambia una delle forze che la sostenevano.**
+> **non rimettere tutto in discussione continuamente; riapri ciò che ha perso una delle assunzioni su cui era costruito.**
 
-## Drift di implementazione e drift di contesto
+## Runtime evidence chiude il feedback loop
 
-Conviene separarli.
+Microsoft raccomanda che l'architect continui anche dopo il go-live a confrontare design hypothesis con comportamento reale: health model, cost model, scaling assumption, performance e technical debt.
 
-### Implementation drift
+Fonte:
 
-L'implementazione non rispetta più l'intento.
+- [Microsoft Learn — Support the workload in a consultative role](https://learn.microsoft.com/en-us/azure/well-architected/architect-role/ongoing-support)
 
-Esempi:
+Questo crea un ciclo:
 
 ```text
-application imports infrastructure
-module reads foreign table
-public endpoint appears despite private-ingress decision
-new metric contains orderId dimension
+intent
+→ implementation
+→ runtime evidence
+→ changed context
+→ review trigger
+→ new decision
 ```
 
-Può essere intercettato da test, policy e runtime checks.
+L'architetto non custodisce il diagramma iniziale.
 
-### Context drift
+Aiuta a mantenere vivo questo feedback loop.
 
-L'implementazione rispetta ancora l'intento, ma l'intento non soddisfa più il contesto.
+## Technical debt: descrivere il vincolo, non insultare il codice
 
-Esempi:
+`Technical debt` diventa poco utile quando significa semplicemente “cose brutte che vorremmo sistemare”.
 
-```text
-single region still implemented correctly
-but RTO changed
-```
-
-Qui serve review.
-
-Nessun linter può dedurre da solo che il business ha cambiato strategia.
-
-## Technical debt come rischio, non come vergogna
-
-`Technical debt` viene spesso usato come contenitore per tutto ciò che non ci piace.
-
-Questo lo rende poco utile.
-
-Nel libro useremo un modello più operativo.
-
-Una debt item dovrebbe dire:
+Un debt item governabile dovrebbe invece rispondere a:
 
 ```text
-What constraint does it create?
-Which future change becomes harder?
-Which failure becomes more likely?
+Which constraint does it create?
+Which failure/change becomes more likely?
 What is the carrying cost?
+Who owns it?
 What triggers repayment?
-Who owns the decision?
 ```
 
-Esempio:
+Esempio ESI:
 
 ```text
 TD-07
-PostgreSQL HA is designed but not yet codified in IaC.
+PostgreSQL HA is designed but not fully codified/verified in IaC.
 
-Risk:
-manual provisioning drift
-unverified recovery posture
+Constraint
+readiness depends on manual/unverified assumptions
 
-Carrying cost:
-readiness uncertainty
+Risk
+configuration drift + recovery uncertainty
 
-Trigger:
+Carrying cost
+production-readiness evidence remains open
+
+Trigger
 production-readiness gate
 ```
 
 Questo è molto più utile di:
 
-> "infra needs cleanup".
+```text
+infra needs cleanup
+```
 
-Microsoft Well-Architected descrive il technical debt come costo futuro associato a scorciatoie o soluzioni subottimali e raccomanda di monitorare l'evoluzione del workload attraverso assessment periodici e milestone.
+Microsoft Well-Architected tratta il technical debt come costo futuro di shortcut o solution suboptimal e raccomanda assessment periodici per osservare come il workload cambia.
 
-Riferimento:
+Fonte:
 
 - [Microsoft Learn — Complete an Azure Well-Architected Review assessment](https://learn.microsoft.com/en-us/azure/well-architected/design-guides/implementing-recommendations)
 
-## Debt portfolio
+## Un portfolio di debito, non una guerra allo zero
 
-Un sistema enterprise avrà sempre debt.
+Un sistema reale avrà sempre debito.
 
-La domanda non è:
-
-> possiamo arrivare a zero?
-
-È:
-
-> stiamo scegliendo quale debito portare oppure lo stiamo soltanto accumulando?
-
-Possiamo classificare:
+Possiamo distinguere:
 
 ```text
 intentional debt
@@ -184,13 +180,19 @@ known accidental debt
 unknown debt
 ```
 
-L'ultima categoria è la più pericolosa.
+Il terzo è particolarmente pericoloso perché non può entrare in nessuna priorità consapevole.
 
-Fitness function, observability e review periodiche servono anche a trasformare una parte dell'unknown debt in rischio visibile.
+Fitness function, incident review, observability e assessment periodici servono anche a trasformare unknown debt in rischio visibile.
 
-## Drift prodotto dall'AI
+La domanda non è:
 
-L'AI rende più facile produrre un tipo particolare di drift.
+> Come arriviamo a zero debt?
+
+È:
+
+> **Quale debito stiamo scegliendo di portare e quale stiamo accumulando senza saperlo?**
+
+## L'AI può accelerare il drift senza “sbagliare” la feature
 
 Un agente riceve:
 
@@ -198,44 +200,36 @@ Un agente riceve:
 implement feature X
 ```
 
-Trova una dipendenza interna comoda.
+Trova una dipendenza interna comoda, la usa e produce test funzionali verdi.
 
-La usa.
-
-I test funzionali passano.
-
-La feature è corretta.
+La feature funziona.
 
 L'architettura peggiora.
 
-Questo non richiede una "AI cattiva".
+Non serve attribuire all'AI una mancanza misteriosa di comprensione.
 
-Richiede soltanto che l'obiettivo locale sia più specifico dell'intento architetturale globale.
+Il problema è che l'obiettivo locale e il contesto fornito erano più specifici dell'intento globale.
 
-> **Un agente ottimizza ciò che gli rendiamo visibile. I vincoli architetturali che restano soltanto nella testa del team sono contesto perso.**
+> **Un agente ottimizza soprattutto ciò che rendiamo visibile. Una regola architetturale che vive soltanto nella memoria del team è contesto perso.**
 
-Per questo il repository deve contenere almeno una parte delle proprie regole in forma interrogabile ed eseguibile.
+Questo è il motivo per cui alcune decisioni devono diventare documentazione, test, contract, metadata o altri feedback eseguibili.
 
-## Architecture review come feedback loop
+## Il punto finale
 
-Microsoft raccomanda che l'architect continui a verificare dopo il go-live se health model, cost model, scaling assumptions e design hypotheses corrispondono al comportamento reale, e che proponga miglioramenti prima della crisi.
-
-Riferimento:
-
-- [Microsoft Learn — Support the workload in a consultative role](https://learn.microsoft.com/en-us/azure/well-architected/architect-role/ongoing-support)
-
-Questo cambia il ruolo dell'architect.
-
-Non è il custode del diagramma iniziale.
-
-È uno dei responsabili del feedback loop fra:
+L'evoluzione architetturale richiede due capacità contemporanee:
 
 ```text
-intent
-→ implementation
-→ runtime evidence
-→ changed context
-→ new decision
+protect decisions that still fit
 ```
 
-> **L'architettura non è stabile quando non cambia. È stabile quando sa distinguere ciò che deve restare da ciò che deve poter cambiare.**
+e:
+
+```text
+notice when the context has invalidated them
+```
+
+Proteggere soltanto il primo produce rigidità.
+
+Fare soltanto il secondo produce churn.
+
+> **Un'architettura resta viva quando sa distinguere ciò che ha driftato da ciò che è semplicemente arrivato al momento di essere deciso di nuovo.**
