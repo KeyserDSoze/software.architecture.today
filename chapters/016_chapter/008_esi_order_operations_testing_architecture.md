@@ -1,208 +1,113 @@
 # 16.8 — ESI: Testing Architecture di Order Operations
 
-Adesso applichiamo il capitolo al capstone.
+A questo punto Order Operations possiede abbastanza architettura da rendere il testing una decisione di sistema, non una fase finale del delivery.
 
-Order Operations ha accumulato abbastanza architettura da rendere interessante una vera Testing Strategy.
+Abbiamo Functional Analysis, requirements, API ed event contract, Data Ownership Map, Failure Mode Map, Threat Model, Security Control Matrix, Reliability Contract e Observability Contract.
 
-Non partiamo dal framework.
+Ognuno di questi artefatti contiene claim che possono essere sbagliate.
 
-Partiamo dagli artefatti che il progetto possiede già.
+La Testing Architecture del Capitolo 16 nasce per una sola ragione:
 
-## Le sorgenti della strategy
+> **decidere quale boundary deve essere attraversato per avere una possibilità reale di falsificare ciascuna claim importante.**
 
-### Functional Analysis
+Non partiamo quindi dal framework e nemmeno dalla piramide.
 
-Ci dice:
+Partiamo dalle cose che ESI non può permettersi di credere soltanto sulla parola.
 
-- cosa può fare un operatore;
-- quali business rule esistono;
-- quali operazioni non sono ancora definite;
-- quali significati appartengono ai domini sorgente.
+## La domanda che unifica la strategy
 
-### Requirements
+Commerce & Operations vuole mantenere una delivery veloce.
 
-Ci dà FR, SR e RR espliciti.
+Payments & Risk vuole contract e duplicate-delivery safety verificabili.
 
-### API Contract
+Security vuole evidence negativa su tenant isolation e privilege.
 
-Ci dà request/response, idempotency e compatibility expectation.
+Platform non vuole ricreare Azure per ogni test locale.
 
-### Event Contract
+Reliability vuole failure e recovery provati.
 
-Ci dà `OperationalCasePaymentEscalatedV1`.
+Finance non vuole una seconda produzione sempre accesa soltanto per la suite.
 
-### Data Ownership Map
+Il trade-off non è quindi:
 
-Ci dice quali facts possiamo persistire e modificare.
+```text
+pochi test
+vs
+molti test
+```
 
-### Failure Mode Map
-
-Ci dice quali failure distribuiti devono diventare test.
-
-### Threat Model / Security Control Matrix
-
-Ci dà negative path di authorization, identity, reachability e logging.
-
-### Reliability Contract
-
-Ci dà SLO, RTO/RPO e required recovery drill.
-
-### Observability Contract
-
-Ci dice quale evidence dobbiamo poter raccogliere quando i test falliscono e quando il sistema opera.
-
-Questa è una differenza importante rispetto a “apriamo il file e generiamo test”.
-
-> **La suite nasce dal modello del sistema, non dalla forma del codice.**
-
-## Compromesso ESI del Capitolo 16
-
-### Esigenza
-
-Commerce & Operations vuole aumentare velocità di modifica del prodotto senza aumentare il rischio di regressioni su escalation, authorization e integrazioni.
-
-### Tensione
+È:
 
 ```text
 confidence
 vs
-pipeline speed
+feedback latency
 vs
-test environment cost
+environment fidelity
+vs
+cost
 vs
 maintenance burden
 ```
 
-Payments & Risk vuole evidence forte sui contract.
+La decisione ESI è una **evidence pipeline a più velocità**.
 
-Security vuole negative test.
+Il principio resta semplice:
 
-Platform non vuole un environment Azure completo per ogni test locale.
+> **ogni rischio compra il livello di realismo necessario, non il massimo realismo disponibile.**
 
-Finance non vuole una seconda produzione sempre accesa soltanto per la suite.
+## Claim 1 — Una Payment Escalation deve rappresentare una sola intenzione business
 
-### Decisione
+Questa claim contiene più proprietà.
 
-ESI adotta una Testing Strategy a più velocità:
+Una escalation può essere creata soltanto da un `OperationalCase` di categoria `Payment`.
 
-```text
-local / PR fast layer
-→ business/application tests
-→ deterministic contract checks
+La stessa `escalationId`, associata allo stesso case e allo stesso tenant, deve essere trattata come replay idempotente.
 
-PR integration layer
-→ PostgreSQL
-→ API
-→ migration
-→ provider/consumer contracts
+La stessa identità riutilizzata per un case o tenant differente deve invece diventare conflict o rejection.
 
-staging/deployment layer
-→ real Azure identity/network/broker
-→ synthetic smoke
+Il layer più economico capace di verificare queste regole è l'application layer.
 
-scheduled/readiness layer
-→ performance
-→ mutation on critical risk
-→ recovery/failure drill
-→ broader security verification
-
-production
-→ continuous SLI + private synthetic journey
-```
-
-### Costo accettato
-
-Non ogni commit verifica la topologia cloud completa.
-
-Alcuni risk hanno evidence più lenta e costosa.
-
-### Quality floor
-
-Non rinunciamo a:
-
-- idempotency;
-- tenant isolation;
-- authorization;
-- atomicity escalation/outbox;
-- contract compatibility;
-- duplicate-delivery safety;
-- migration safety;
-- recovery drill prima della production readiness.
-
-### Guardrail
-
-- Testing Strategy;
-- Risk-to-Evidence Map;
-- pipeline gate;
-- flaky-test policy;
-- incident-derived regression;
-- mutation testing selettivo;
-- review obbligatoria dei test AI-generated.
-
-## TST-001 — Payment category eligibility
-
-Property:
+Qui vogliamo scenari deterministici come:
 
 ```text
-only OperationalCase.problemCategory = Payment
-can create a Payment Escalation
+Payment
+→ accepted
+
+Shipping / Order
+→ rejected
+
+same escalationId + same intent
+→ replay
+→ no second business intent
+
+same escalationId + different case or tenant
+→ rejected
+→ no new outbox
+→ no foreign data exposed
 ```
 
-Cheap evidence:
+Questo produce evidence forte sulla semantica applicativa.
+
+Non dimostra però ancora che PostgreSQL e HTTP preservino la stessa proprietà.
+
+Per questo la chain continua con:
 
 ```text
-application test
+application tests
+→ PostgreSQL integration
+→ HTTP integration
 ```
 
-Scenari:
+Il database serve quando la claim dipende da constraint, transaction e concurrency reali.
 
-```text
-Payment → accepted
-Shipping → rejected
-Order → rejected
-```
+L'HTTP host serve quando vogliamo verificare davvero `Idempotency-Key`, serialization, authentication e authorization boundary.
 
-Non serve PostgreSQL per dimostrare la regola pura.
+La stessa proprietà non viene duplicata ovunque. Ogni layer verifica la parte che soltanto quel boundary può falsificare.
 
-## TST-002 — Same intent is idempotent
+## Claim 2 — PaymentEscalation e OutboxMessage devono essere atomici
 
-Property:
-
-```text
-same escalationId + same case + same tenant
-→ already-accepted
-→ no second business escalation
-```
-
-Layer:
-
-1. application test;
-2. PostgreSQL integration per persistence/constraint;
-3. HTTP integration per Idempotency-Key semantics.
-
-## TST-003 — Idempotency key cannot be stolen
-
-Property:
-
-```text
-same escalationId + different case
-OR different tenant
-→ conflict/rejection
-```
-
-Questo è sia business correctness sia security boundary.
-
-Il test deve verificare:
-
-```text
-rejected
-AND no new outbox
-AND no foreign data exposed
-```
-
-## TST-004 — Atomic escalation + outbox
-
-Property:
+Il contratto è:
 
 ```text
 PaymentEscalation commit
@@ -210,130 +115,112 @@ PaymentEscalation commit
 OutboxMessage commit
 ```
 
-Application test può verificare che il use case richieda entrambe nello stesso `UnitOfWork`.
+Un application test può dimostrare che il use case richiede entrambe le write nello stesso `UnitOfWork`.
 
-Ma la evidence forte sarà:
+Non può dimostrare la semantica della transaction PostgreSQL.
 
-```text
-real PostgreSQL transaction integration test
-```
+La evidence forte richiede quindi un'integrazione reale con PostgreSQL e un fault introdotto nella finestra che ci interessa.
 
-con fault injection fra le due write.
-
-## TST-005 — Event contract v1
-
-Property:
+Il test deve riuscire a distinguere:
 
 ```text
-OperationalCasePaymentEscalatedV1
-remains wire-compatible with Payments & Risk expectation
+both committed
 ```
 
-Evidence:
+da:
 
-- schema/serialization test;
-- consumer/provider contract;
-- version compatibility test quando arriverà v2.
+```text
+neither committed
+```
 
-Non useremo il full E2E come prima linea di difesa per una incompatibilità di shape.
+e deve impedire:
 
-## TST-006 — Redelivery is harmless
+```text
+PaymentEscalation committed
+OutboxMessage missing
+```
 
-Property downstream:
+Questo è un esempio perfetto della regola del capitolo:
+
+> **il fake verifica la nostra orchestration; la tecnologia reale verifica il boundary che il fake non può garantire.**
+
+## Claim 3 — Il contratto cross-team deve restare compatibile
+
+`OperationalCasePaymentEscalatedV1` non appartiene soltanto a Order Operations.
+
+Esiste perché Payments & Risk deve comprenderlo.
+
+La evidence si separa in tre domande.
+
+La serializzazione produce il wire shape dichiarato?
+
+Il provider continua a soddisfare l'aspettativa del consumer?
+
+Il consumer, quando riceve quel messaggio, produce davvero un solo effetto business?
+
+Sono tre livelli diversi:
+
+```text
+serialization/schema
+→ consumer-provider contract
+→ downstream functional/idempotency evidence
+```
+
+Un contract test verde non dimostra che Payments & Risk non creerà due workflow.
+
+Allo stesso modo un E2E completo non è il modo più economico per scoprire che un campo obbligatorio è scomparso.
+
+La proprietà cross-team più importante è:
 
 ```text
 same EscalationId delivered twice
-→ one Payments business workflow
+→ one downstream business workflow
 ```
 
-Owner principale:
+Order Operations non può dichiararla `Verified` da solo.
+
+L'owner principale di quella evidence è Payments & Risk.
+
+Questo rende visibile una regola organizzativa importante:
+
+> **la responsabilità di un test segue il boundary che possiede la semantica, non il team che desidera il risultato.**
+
+## Claim 4 — Un retry non deve trasformare un'incertezza tecnica in un doppio effetto business
+
+Il path di pubblicazione contiene una finestra inevitabilmente ambigua:
 
 ```text
-Payments & Risk
+broker accepts message
+→ local acknowledgement / markPublished is lost
 ```
 
-Order Operations non può dichiarare questa property verificata da solo.
+Il publisher può dover ripubblicare.
 
-È un ottimo esempio di test ownership cross-team.
-
-## TST-007 — Tenant isolation
-
-Threat/property:
+La Testing Strategy deve quindi provare almeno che:
 
 ```text
-operator from tenant A
-cannot read/write case from tenant B
+same messageId is preserved
+retry is bounded
+failure is classified
+exhausted path is explicit
 ```
 
-Evidence chain:
+Il numero esatto di tentativi è una configurazione.
+
+La proprietà è più importante:
 
 ```text
-application authorization test
-→ HTTP authenticated integration negative test
-→ staging identity test
-```
-
-Questo risk è troppo importante per affidarsi soltanto a mock di security context.
-
-## TST-008 — Runtime least privilege
-
-Property:
-
-```text
-App Service managed identity
-can send required message / read required secret
-but cannot modify RBAC or infrastructure
-```
-
-Questo non può essere dimostrato in locale.
-
-Gate:
-
-```text
-staging deployment verification
-```
-
-## TST-009 — Publisher ambiguous acknowledgement
-
-Scenario:
-
-```text
-broker accepted message
-local markPublished fails
-```
-
-Expected:
-
-```text
-message can be published again
-same messageId preserved
-consumer duplicate tolerance protects business effect
-```
-
-Il nostro `OutboxPublisher` deve avere un test deterministico per questa finestra.
-
-## TST-010 — Retry classification
-
-Property:
-
-```text
-transient publish failure
-→ bounded retry
-
-exhausted attempts
-→ exhausted path
+transient
+→ retry allowed
 
 permanent semantic rejection
 → no blind retry
+
+unknown outcome
+→ retry with stable identity
 ```
 
-I numeri concreti possono essere configuration test.
-
-La property principale è la policy.
-
-## TST-011 — Reconciliation threshold
-
-Property:
+Una seconda proprietà riguarda la reconciliation:
 
 ```text
 Requested
@@ -342,253 +229,217 @@ Requested
 → reconciliation candidate
 ```
 
-Test con clock controllato.
+Qui il clock controllato è parte della testability. Non aspettiamo il tempo reale e non usiamo `sleep()` per dimostrare una regola temporale.
 
-Nessun `sleep()`.
+## Claim 5 — Tenant isolation e least privilege devono fallire in modo sicuro
 
-## TST-012 — Migration chain
+La security evidence non può fermarsi a un `403`.
 
-Evidence:
+Per una richiesta cross-tenant il risultato atteso è:
+
+```text
+denied
+AND no PaymentEscalation persisted
+AND no OutboxMessage persisted
+AND no foreign data disclosed
+```
+
+La chain di evidence cresce con il boundary:
+
+```text
+application authorization test
+→ authenticated HTTP negative test
+→ staging identity test
+```
+
+La runtime identity introduce poi una claim che non può essere provata localmente:
+
+```text
+App Service managed identity
+can use only required data-plane capabilities
+but cannot administer RBAC or infrastructure
+```
+
+Questo richiede Azure.
+
+Non è un difetto della suite locale. È semplicemente una property il cui boundary reale vive altrove.
+
+## Claim 6 — Le migration devono preservare stato e constraint reali
+
+La migration chain deve poter partire da un database vuoto:
 
 ```text
 empty DB
-→ migration 001
-→ migration 002
+→ apply migration 001
+→ apply migration 002
 → schema valid
 ```
 
-E:
+Ma il caso più interessante è evolutivo:
 
 ```text
-schema after 001 + representative state
-→ migration 002
+previous supported schema
++ representative persisted state
+→ next migration
 → old data preserved
 → new constraints valid
 ```
 
-## TST-013 — Core synthetic journey
+Un repository finto non può fornire evidence su locking, transaction, constraint o comportamento reale delle migration PostgreSQL.
 
-Staging/production-like:
+Per questo questa parte appartiene al PR integration layer.
 
-```text
-private test identity
-→ private ingress
-→ authenticated read
-→ expected synthetic OperationalCase
-```
+## Claim 7 — Il sistema deve sapere fallire e tornare indietro
 
-Non introduce public endpoint solo per monitorare.
+Il Reliability Contract ha già trasformato availability, RTO e RPO in claim misurabili.
 
-## TST-014 — Payment consumer outage
+Ora la Testing Strategy assegna loro un gate.
 
-Failure test:
+Per un outage del consumer Payments, l'atteso è:
 
 ```text
-Payments consumer unavailable
-```
-
-Expected:
-
-```text
-local escalation acceptance works
-message persists/delivers to broker
-backlog visible
-business delivery delay visible
+local escalation acceptance continues
+broker/outbox path retains intent
+backlog becomes visible
+business delay becomes visible
 recovery drains backlog
+no duplicate business effect
 ```
 
-## TST-015 — PostgreSQL failover
-
-Evidence richiesta prima della production readiness:
+Per PostgreSQL failover vogliamo:
 
 ```text
-failover executed
-actual downtime measured
-client reconnect behavior observed
-committed data checked
-RTO/RPO compared with contract
+fault executed
+→ actual downtime measured
+→ reconnect observed
+→ committed state checked
+→ observed RTO/RPO compared with contract
 ```
 
-## TST-016 — PITR restore
-
-Non è un test CI per ogni PR.
-
-È un readiness/scheduled drill.
-
-Pass criterion:
+Per PITR:
 
 ```text
-restore completes
-application validates restored state
-actual recovery time recorded
-actual data loss window recorded
+restore executed
+→ restored data validated
+→ application validation
+→ actual recovery time
+→ actual data-loss window
 ```
 
-## TST-017 — Telemetry redaction
+Questi non sono test da ogni pull request.
 
-Property:
+Sono readiness evidence.
+
+La loro frequenza può essere più bassa; la loro importanza non lo è.
+
+## Claim 8 — Se il sistema fallisce, dobbiamo accorgercene
+
+Il Capitolo 15 ha reso l'observability un contratto.
+
+Ora dobbiamo testare anche quel contratto.
+
+Per esempio, quando il publisher fallisce ripetutamente vogliamo verificare che:
 
 ```text
-access token / Authorization / secret
-must not appear in normal telemetry
+failure signal emitted
+correlation preserved
+outbox age becomes visible
+alert condition can be reached
+correct owner is addressable
+runbook exists
 ```
 
-Cheap evidence:
-
-- unit test del telemetry adapter/policy;
-- representative event snapshot review.
-
-Higher fidelity:
-
-- staging query su emitted telemetry.
-
-## TST-018 — Alert route
-
-Property:
+Separatamente, la telemetry non deve esporre:
 
 ```text
-critical synthetic/SLO condition
-→ actionable alert
-→ correct owner
-→ runbook
+access token
+Authorization header
+secret
 ```
 
-Questo è un operational test, non un unit test.
+La prima evidence può essere locale sul telemetry policy/adapter; una verifica più forte avverrà interrogando la telemetry realmente emessa in staging.
 
-## Pipeline ESI
+Un sistema che gestisce correttamente il failure ma non permette di rilevarlo non ha ancora chiuso il rischio operativo.
+
+## La evidence pipeline ESI
+
+Dalle claim precedenti emerge una pipeline naturale.
 
 ### Local / commit
 
-```text
-npm run typecheck
-npm test
-```
-
-Obiettivo:
+Scopo: feedback deterministico in pochi secondi o minuti.
 
 ```text
-fast deterministic feedback
+typecheck
+business/application tests
+outbox/retry tests
+deterministic schema/contract checks
+static security baseline
 ```
 
 ### Pull request
 
-Future direction:
+Scopo: attraversare i boundary che richiedono tecnologia reale ma non l'intera cloud topology.
 
 ```text
-typecheck
-unit/application tests
+local fast layer
 PostgreSQL integration
-migration test
-API integration
-contract test
-security static checks
+migration tests
+HTTP/API integration
+consumer-provider contract
+selected negative security tests
 Bicep build/lint
 ```
 
-### Staging deployment
+### Staging / deployment
+
+Scopo: verificare ciò che esiste soltanto nel deployment reale.
 
 ```text
-private network smoke
-Entra auth
-RBAC negative
+private connectivity
+Entra authentication
+runtime RBAC negative tests
 Service Bus adapter
-PostgreSQL connectivity
-synthetic journey
+managed PostgreSQL connectivity
+private synthetic smoke
 ```
 
-### Scheduled/readiness
+### Scheduled / readiness
+
+Scopo: produrre evidence costosa ma necessaria prima di chiamare il workload production-ready.
 
 ```text
-mutation critical areas
+selected mutation testing
 performance/capacity
 consumer outage
-failover
-PITR
+PostgreSQL failover
+PITR restore
 alert drill
-security verification
+broader security verification
 ```
 
-## Test suite health
+### Production continuous verification
 
-ESI introduce una regola:
+Scopo: capire se le proprietà continuano a valere nel sistema in esecuzione.
 
 ```text
-un test flaky è un defect della quality system
+SLI / SLO
+private synthetic journey
+alerting
+runtime drift / operational evidence
 ```
 
-Quindi ogni flaky test deve avere:
+La pipeline non è una gerarchia di prestigio.
 
-- issue;
-- owner;
-- evidence;
-- remediation or removal;
-- eventual quarantine con scadenza.
+È una gerarchia di costo e fedeltà.
 
-Il retry automatico non lo assolve.
+## Il primo incremento eseguibile
 
-## Coverage
+Il Capitolo 16 fa comparire finalmente una suite in `tests/`.
 
-Decisione:
+La prima suite non finge di provare tutto.
 
-```text
-coverage visible
-but not release confidence KPI by itself
-```
-
-Usiamo coverage per trovare zone mai esercitate.
-
-Non generiamo test artificiali per inseguire una percentuale uniforme.
-
-## Mutation
-
-Prima area candidata:
-
-```text
-requestPaymentEscalation
-```
-
-Mutant significativi:
-
-- rimuovere category check;
-- rimuovere tenant check;
-- cambiare conflict condition;
-- trattare existing escalation come sempre accepted;
-- saltare outbox append.
-
-Se la suite non rileva questi fault, abbiamo trovato un gap reale.
-
-## AI policy ESI
-
-Gli agenti possono generare test candidate.
-
-Ma il prompt di default non sarà:
-
-```text
-write more tests
-```
-
-Sarà qualcosa come:
-
-```text
-Given requirement RR/TST-X and this implementation,
-identify realistic faults that would violate the property.
-Then propose the smallest deterministic tests that would fail for those faults.
-Do not optimize for coverage percentage.
-```
-
-Questo orienta l'agente verso risk detection.
-
-## Primo incremento eseguibile
-
-In questo capitolo facciamo comparire finalmente:
-
-```text
-tests/
-```
-
-La prima suite non proverà tutto.
-
-Proverà property per cui abbiamo già codice eseguibile senza infrastruttura esterna:
+Codifica soltanto le property per cui il capstone possiede già un boundary eseguibile senza infrastruttura esterna, fra cui:
 
 - Payment category eligibility;
 - idempotent replay;
@@ -598,41 +449,116 @@ Proverà property per cui abbiamo già codice eseguibile senza infrastruttura es
 - outbox retry/exhaustion;
 - telemetry classification.
 
-Useremo il test runner integrato di Node sul JavaScript compilato per evitare di aggiungere un nuovo framework soltanto per mostrare test nel capstone.
+Usiamo il test runner integrato di Node sul JavaScript compilato.
 
-Questo è coerente con `fit before fashion`.
+Non introduciamo Vitest, Jest o un altro framework soltanto perché sono popolari.
 
-Se in futuro la suite richiederà capability migliori, potremo introdurre Vitest/Jest o altro con una decisione esplicita.
+Se la suite richiederà capability che il runner corrente non offre, quella sarà una nuova decisione con un nuovo trade-off.
 
-## Stato di evidence dopo il capitolo
+È ancora `fit before fashion`.
 
-Dopo l'implementazione prevista:
+## Coverage e mutation: strumenti, non obiettivi
+
+ESI rende visibile la code coverage per trovare zone mai esercitate.
+
+Non la usa come prova di confidence.
+
+Per le aree più rischiose useremo mutation testing in modo selettivo.
+
+La prima candidata è `requestPaymentEscalation`.
+
+Fault plausibili includono:
 
 ```text
-Testing Strategy
-= Designed
-
-first test suite
-= Codified
-
-local test execution
-= Verified se eseguita con successo
-
-PostgreSQL integration
-= Designed / pending
-
-contract testing with Payments
-= Designed / pending cross-team
-
-Azure negative tests
-= Designed / pending
-
-recovery drills
-= Designed / pending
+remove category check
+remove tenant check
+change conflict condition
+accept different case for same escalationId
+skip outbox append
 ```
 
-Non gonfiamo il grado di maturità perché alcuni test locali passano.
+La domanda non è quale mutation score otteniamo.
 
-## Frase chiave
+È:
 
-> **Il test layer più costoso non è quello che dà più confidenza in assoluto. È quello che deve giustificare il proprio costo dimostrando qualcosa che i layer più economici non possono dimostrare.**
+> **la suite che oggi chiamiamo forte riesce davvero a vedere questi errori?**
+
+## AI-generated test policy
+
+Gli agenti possono proporre test, fixture, fault e mutation candidate.
+
+Ma il prompt di default non sarà:
+
+```text
+write more tests
+```
+
+Sarà più vicino a:
+
+```text
+Given this requirement, risk and implementation,
+identify realistic faults that violate the property.
+Propose the smallest deterministic tests that would fail for those faults.
+Do not optimize for coverage percentage.
+```
+
+Il test generato entra nella suite soltanto quando possiamo rispondere a quattro domande:
+
+```text
+quale risk protegge?
+quale fault deve rilevare?
+perché questo layer è sufficiente?
+quale nuova evidence aggiunge?
+```
+
+Il fatto che passi non basta.
+
+## La salute della suite è parte del prodotto
+
+ESI adotta una regola esplicita:
+
+> **un test flaky è un defect del quality system.**
+
+Un test instabile deve avere owner, issue ed evidence. Può essere quarantinato temporaneamente quando blocca lavoro non correlato, ma la quarantine deve restare visibile e avere una scadenza.
+
+`rerun until green` non è una policy di qualità.
+
+Trasforma una evidence ambigua in un verde amministrativo.
+
+## Stato al termine del Capitolo 16
+
+La baseline narrativa del capitolo è:
+
+```text
+Testing Strategy                  Designed
+Risk-to-Evidence Map              Designed
+first deterministic test suite    Codified
+local execution                   Verified only when actually run
+PostgreSQL integration            Designed / Pending
+consumer contract                 Designed / Pending cross-team
+Azure identity/network tests      Designed / Pending
+performance/recovery drills       Designed / Pending
+production synthetic journey      Designed / Pending
+```
+
+Il file vivo `docs/testing-strategy.md` continuerà a evolvere nei capitoli successivi. Nello stato attuale del repository include già legacy/refactoring e runtime AI evaluation introdotti molto più avanti.
+
+Il manoscritto qui conserva invece il livello di conoscenza raggiunto da ESI **al Capitolo 16**.
+
+Non gonfiamo la maturity perché alcuni test locali esistono.
+
+## Il compromesso ESI
+
+**Esigenza:** aumentare la velocità di modifica senza perdere confidence sui boundary critici.
+
+**Tensione:** confidence contro feedback latency, fidelity, costo e maintenance burden.
+
+**Decisione:** evidence pipeline a più velocità; application test per le regole locali, PostgreSQL/API/contract test per i boundary reali, staging per identity/network/cloud behavior, readiness drill per recovery e performance, production verification per SLI e synthetic journey.
+
+**Costo accettato:** nessun singolo gate dimostra tutto e alcune evidence arrivano più lentamente.
+
+**Quality floor:** idempotency, tenant isolation, authorization, atomicità escalation/outbox, contract compatibility, duplicate-delivery safety, migration safety e recovery evidence non possono sparire perché sono costose da verificare.
+
+**Guardrail:** Testing Strategy, Risk-to-Evidence Map, pipeline gate, flakiness policy, incident-derived regression, mutation selettiva e human review dei test AI-generated.
+
+> **Il test layer più costoso non vale di più perché costa di più. Vale soltanto quando riesce a falsificare una claim che i layer più economici non possono mettere davvero alla prova.**
