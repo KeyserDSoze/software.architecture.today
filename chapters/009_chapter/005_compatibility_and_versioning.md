@@ -1,6 +1,6 @@
 ## Compatibility: progettare per il cambiamento
 
-Una API utile cambia.
+un'API utile cambia.
 
 Nuovi campi arrivano.
 
@@ -49,7 +49,7 @@ Aggiungere un enum value può rompere un consumer che implementa uno switch esau
 
 Aggiungere risultati a una collection può cambiare assunzioni di pagination.
 
-Aggiungere un nuovo side effect a una operazione esistente è chiaramente una modifica semantica.
+Aggiungere un nuovo side effect a un'operazione esistente è chiaramente una modifica semantica.
 
 La compatibility deve essere letta dal punto di vista del consumer.
 
@@ -110,7 +110,7 @@ Prima di cambiare un contratto chiediamo:
 4. esistono consumer sconosciuti?
 5. quale finestra di migrazione è realistica?
 
-Una API interna con tre consumer nello stesso repository è diversa da una API pubblica usata da migliaia di integrazioni.
+un'API interna con tre consumer nello stesso repository è diversa da un'API pubblica usata da migliaia di integrazioni.
 
 Il livello di governance deve essere proporzionato al blast radius.
 
@@ -168,4 +168,4 @@ Più il contratto è pubblico, persistente o asincrono, più quel costo aumenta.
 
 Per questo:
 
-> **l'evolvibilità di una API è parte dell'architettura del sistema, non manutenzione futura da lasciare a chi verrà dopo.**
+> **l'evolvibilità di un'API è parte dell'architettura del sistema, non manutenzione futura da lasciare a chi verrà dopo.**

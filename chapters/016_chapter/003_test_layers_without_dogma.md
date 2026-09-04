@@ -16,7 +16,7 @@ Microsoft definisce gli unit test come test che esercitano componenti o unità d
 
 Fonte:
 
-- [Microsoft Learn — Testing in .NET](https://learn.microsoft.com/en-us/dotnet/core/testing/)
+- [Microsoft Learn — Testing in.NET](https://learn.microsoft.com/en-us/dotnet/core/testing/)
 
 Per Order Operations sono candidati naturali:
 
@@ -78,7 +78,7 @@ Microsoft evidenzia proprio questa differenza: gli integration test includono sp
 
 Fonti:
 
-- [Microsoft Learn — Testing in .NET](https://learn.microsoft.com/en-us/dotnet/core/testing/)
+- [Microsoft Learn — Testing in.NET](https://learn.microsoft.com/en-us/dotnet/core/testing/)
 - [Microsoft Learn — Testing ASP.NET Core services and web apps](https://learn.microsoft.com/dotnet/architecture/microservices/multi-container-microservice-net-applications/test-aspnet-core-services-web-apps)
 
 Per Order Operations:

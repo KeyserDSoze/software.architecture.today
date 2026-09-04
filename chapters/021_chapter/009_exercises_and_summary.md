@@ -214,7 +214,7 @@ Dopo il capitolo dovresti saper rispondere a queste domande.
 1. Perché un file di istruzioni non rende da solo un repository AI-ready?
 2. Qual è la differenza fra navigation, decision ed execution context?
 3. Qual è la differenza fra persistent context e task context?
-4. Quando una informazione merita always-on context?
+4. Quando un'informazione merita always-on context?
 5. Perché duplicare la documentazione nei file specifici di ogni tool è rischioso?
 6. Perché un architecture test può essere una forma di context engineering?
 7. Che cosa rende un golden command davvero affidabile?

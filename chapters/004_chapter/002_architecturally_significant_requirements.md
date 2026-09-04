@@ -138,7 +138,7 @@ Non esiste.
 
 Gli ASR devono quindi essere non soltanto identificati, ma **ordinati e contestualizzati**.
 
-Per Acme Orders, per esempio, potremmo scoprire che:
+Per Order Operations, per esempio, potremmo scoprire che:
 
 1. tenant isolation è non negoziabile;
 2. dati vecchi di qualche secondo sono accettabili;

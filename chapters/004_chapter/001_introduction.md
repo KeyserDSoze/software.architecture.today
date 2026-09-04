@@ -185,7 +185,7 @@ Le sezioni che seguono costruiranno una risposta attraverso:
 - one-way door e two-way door;
 - Architecture Decision Record;
 - trigger di revisione;
-- applicazione ad Acme Orders.
+- applicazione ad Order Operations.
 
 Il punto non sarà imparare a “fare l'architetto”.
 

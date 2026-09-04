@@ -63,7 +63,7 @@ code that represents intended architecture
 
 ## Il repository deve diventare leggibile anche dagli agenti
 
-Una AI-ready architecture non significa aggiungere un file gigantesco con tutte le regole.
+un'AI-ready architecture non significa aggiungere un file gigantesco con tutte le regole.
 
 Significa distribuire il contesto nei punti adatti:
 

@@ -39,7 +39,7 @@ Non ogni API ha bisogno di ogni voce.
 
 Una funzione interna allo stesso processo potrebbe richiedere molto meno.
 
-Una API pubblica o un evento business persistente potrebbe richiedere molto di più.
+un'API pubblica o un evento business persistente potrebbe richiedere molto di più.
 
 ### Purpose
 
@@ -96,7 +96,7 @@ Errors
 Timing expectation
 ```
 
-Questo rende evidente quando una API ha troppa semantica nascosta.
+Questo rende evidente quando un'API ha troppa semantica nascosta.
 
 ### Consistency e freshness
 
@@ -147,7 +147,7 @@ Non basta scrivere `yes/no`.
 
 Serve capire l'unità di intento.
 
-Per una operazione di refund:
+Per un'operazione di refund:
 
 ```text
 Idempotency unit: refund request identified by merchant + order + request key
@@ -212,7 +212,7 @@ La documentazione duplicata crea drift.
 
 ### Definition of contract-ready
 
-Prima che una API importante venga implementata o delegata a un agente, dovremmo riuscire a rispondere a queste domande:
+Prima che un'API importante venga implementata o delegata a un agente, dovremmo riuscire a rispondere a queste domande:
 
 1. Quale capability espone?
 2. Qual è il consumer?

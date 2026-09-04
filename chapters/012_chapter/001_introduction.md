@@ -52,7 +52,7 @@ ed essere comunque:
 - dipendente da skill che il team non possiede;
 - incapace di soddisfare il vero requisito business.
 
-Allo stesso modo, una applicazione relativamente tradizionale ospitata su un PaaS gestito può essere una scelta cloud eccellente se soddisfa bene il workload con poco overhead.
+Allo stesso modo, un'applicazione relativamente tradizionale ospitata su un PaaS gestito può essere una scelta cloud eccellente se soddisfa bene il workload con poco overhead.
 
 Per questo useremo due espressioni distinte.
 

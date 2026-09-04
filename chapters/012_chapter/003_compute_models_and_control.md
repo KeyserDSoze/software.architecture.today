@@ -175,7 +175,7 @@ Per esempio:
 
 Ha un fit peggiore quando il requisito è semplicemente:
 
-> “abbiamo una API Node.js e un worker”.
+> “abbiamo un'API Node.js e un worker”.
 
 ## Serverless
 

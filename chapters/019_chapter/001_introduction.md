@@ -24,7 +24,7 @@ Una queue che diventa una seconda source of truth.
 
 Un feature flag che nessuno rimuove.
 
-Una eccezione alle regole di layering che diventa il precedente per la prossima eccezione.
+Un'eccezione alle regole di layering che diventa il precedente per la prossima eccezione.
 
 Nessuno di questi cambiamenti, isolatamente, sembra sempre abbastanza grave da convocare una architecture review.
 

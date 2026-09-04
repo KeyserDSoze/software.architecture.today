@@ -12,7 +12,7 @@ Spesso costruiamo proprio per imparare.
 
 Un prototipo può rivelare limiti che nessun documento avrebbe mostrato.
 
-Una spike tecnica può verificare una assunzione.
+Una spike tecnica può verificare un'assunzione.
 
 Un test con utenti può smentire il nostro problem framing.
 
@@ -167,7 +167,7 @@ I requisiti possono essere raffinati.
 
 Lo scope può restringersi.
 
-Una assunzione può cadere.
+Un'assunzione può cadere.
 
 Un NFR può diventare significativo soltanto dopo aver misurato il sistema.
 

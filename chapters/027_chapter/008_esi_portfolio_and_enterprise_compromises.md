@@ -139,7 +139,7 @@ unnecessary runtime/cost/complexity of forcing the existing path
 
 Un nuovo standard deve guadagnarsi il proprio costo.
 
-Ma anche una eccezione deve farlo.
+Ma anche un'eccezione deve farlo.
 
 ## Il conflitto Security vs Product
 

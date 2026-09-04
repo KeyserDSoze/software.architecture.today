@@ -35,7 +35,7 @@ Il sistema cresce.
 
 Le schermate compaiono.
 
-Le endpoint rispondono.
+gli endpoint rispondono.
 
 I test diventano verdi.
 

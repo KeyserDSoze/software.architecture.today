@@ -30,7 +30,7 @@ Produce conflitto più rapidamente.
 
 Lo stesso vale per gli agenti.
 
-Possiamo chiedere in parallelo a un agente di modificare una API, a un altro di preparare il database e a un terzo di aggiornare i test.
+Possiamo chiedere in parallelo a un agente di modificare un'API, a un altro di preparare il database e a un terzo di aggiornare i test.
 
 Ma se non abbiamo sincronizzato prima:
 
@@ -222,7 +222,7 @@ Confrontiamo due richieste.
 
 La prima:
 
-> “Aggiungi caching alla endpoint degli ordini.”
+> “Aggiungi caching all'endpoint degli ordini.”
 
 La seconda:
 

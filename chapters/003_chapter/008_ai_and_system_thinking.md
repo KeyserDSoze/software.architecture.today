@@ -9,7 +9,7 @@ Possiamo chiederle di:
 - individuare schema condivisi;
 - mappare eventi;
 - confrontare configurazioni;
-- trovare consumer di una API;
+- trovare consumer di un'API;
 - riassumere ADR;
 - identificare aree modificate insieme;
 - proporre failure mode;

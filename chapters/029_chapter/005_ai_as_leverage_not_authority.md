@@ -185,7 +185,7 @@ Il parallelismo utile richiede che il collision domain decisionale sia sufficien
 
 Quando non lo è, il primo task è spesso una decisione o una discovery.
 
-Non una implementazione.
+Non un'implementazione.
 
 ---
 

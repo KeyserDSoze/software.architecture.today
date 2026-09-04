@@ -1,6 +1,6 @@
 ## Idee chiave
 
-1. **Una API è una promessa, non un controller.** Il contratto comprende semantica, errori, side effect, authorization, compatibility e failure behavior.
+1. **un'API è una promessa, non un controller.** Il contratto comprende semantica, errori, side effect, authorization, compatibility e failure behavior.
 2. **Il protocollo viene dopo l'interazione.** REST, gRPC, GraphQL, WebSocket, webhook e messaging risolvono problemi differenti e spostano complessità in punti differenti.
 3. **L'API deve modellare il dominio, non lo storage.** Un refactoring del database non dovrebbe diventare automaticamente una breaking change.
 4. **HTTP possiede già semantica.** Safe method, idempotenza, status code e header sono parte di un ecosistema condiviso; reinventarli senza motivo aumenta ambiguità.
@@ -11,7 +11,7 @@
 9. **Versionare non elimina il costo del cambiamento.** Permette di distribuirlo nel tempo, pagando supporto parallelo e migrazione.
 10. **Uno schema non contiene tutta la semantica.** OpenAPI, `.proto` e GraphQL schema sono preziosi, ma non sostituiscono invarianti, ownership, freshness e failure behavior.
 11. **L'AI può generare contratti velocemente.** Per questo deve aumentare anche la qualità della review su semantica, compatibility e blast radius.
-12. **Non pubblicare un endpoint prematuro è una decisione di design.** Acme Orders non espone ancora command di remediation perché l'analisi funzionale non li ha definiti abbastanza bene.
+12. **Non pubblicare un endpoint prematuro è una decisione di design.** Order Operations non espone ancora command di remediation perché l'analisi funzionale non li ha definiti abbastanza bene.
 
 ## Artefatto operativo
 
@@ -42,7 +42,7 @@ Examples
 Open decisions
 ```
 
-Lo snapshot corrente di Acme Orders è in:
+Lo snapshot corrente di Order Operations è in:
 
 ```text
 capstone/acme-orders/docs/api-contract.md
@@ -121,7 +121,7 @@ Spiega il fit.
 
 ## 3. Idempotency failure
 
-Disegna una API di refund.
+Disegna un'API di refund.
 
 Considera questo scenario:
 
@@ -172,7 +172,7 @@ Spiega la prospettiva del consumer.
 
 ## 6. Versioning strategy
 
-Hai una API pubblica `v1` con centinaia di consumer.
+Hai un'API pubblica `v1` con centinaia di consumer.
 
 Devi introdurre una modifica incompatibile.
 
@@ -214,7 +214,7 @@ Non scegliere automaticamente il cursor.
 
 ## 8. AI adversarial contract review
 
-Prendi una API reale o simulata e chiedi a un agente:
+Prendi un'API reale o simulata e chiedi a un agente:
 
 > “Assumi che questo contratto debba essere supportato per cinque anni e che esistano consumer fuori dal controllo del team. Cerca coupling all'implementazione, breaking change future probabili, ambiguità semantiche, failure non documentate e problemi di idempotenza.”
 
@@ -228,7 +228,7 @@ Da verificare
 
 Poi aggiungi almeno un rischio che l'agente non ha trovato.
 
-## 9. Acme Orders — aggiungiamo una remediation
+## 9. Order Operations — aggiungiamo una remediation
 
 Nuovo requisito simulato:
 
@@ -266,18 +266,18 @@ Indica quali proprietà non possono essere verificate da un semplice test genera
 
 ## Domande di autovalutazione
 
-1. So spiegare una API in termini di capability e consumer prima di parlare di endpoint?
+1. So spiegare un'API in termini di capability e consumer prima di parlare di endpoint?
 2. So distinguere REST da RPC in termini di modello di interazione, non di preferenza personale?
 3. Riesco a spiegare quando GraphQL, WebSocket o messaging spostano complessità invece di eliminarla?
 4. So distinguere safe e idempotent?
 5. So progettare un'operazione business in modo sicuro rispetto ai retry?
 6. So definire un error model che guidi il comportamento del consumer?
-7. So riconoscere una API che espone lo schema interno?
+7. So riconoscere un'API che espone lo schema interno?
 8. Riesco a identificare breaking change semantiche oltre a quelle sintattiche?
 9. So scegliere una strategia di versioning proporzionata al numero e al controllo dei consumer?
 10. Riesco a progettare pagination e filtering come parte del contratto?
 11. So distinguere ciò che uno schema machine-readable verifica da ciò che richiede una regola di dominio?
-12. Saprei impedire a un coding agent di pubblicare una API semanticamente prematura anche se il codice è corretto?
+12. Saprei impedire a un coding agent di pubblicare un'API semanticamente prematura anche se il codice è corretto?
 
 ## Fonti principali del capitolo
 

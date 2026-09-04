@@ -56,7 +56,7 @@ Esempio:
 cost per API request
 ```
 
-potrebbe migliorare se introduciamo una API molto chatty che produce più request per lo stesso journey.
+potrebbe migliorare se introduciamo un'API molto chatty che produce più request per lo stesso journey.
 
 Oppure:
 

@@ -13,7 +13,7 @@ Ma quell'attrito aveva un effetto collaterale: limitava naturalmente il numero d
 
 Oggi possiamo chiedere a un agente di:
 
-- aggiungere una endpoint;
+- aggiungere un endpoint;
 - generare test;
 - creare una migration;
 - modificare uno schema;

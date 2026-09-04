@@ -115,7 +115,7 @@ missed business opportunity
 
 Prima di ottimizzare dobbiamo sapere che cosa muove il costo.
 
-Una applicazione potrebbe avere:
+Un'applicazione potrebbe avere:
 
 ```text
 traffic → compute

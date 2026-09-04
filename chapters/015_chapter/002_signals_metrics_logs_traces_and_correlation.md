@@ -186,7 +186,7 @@ Se conservassimo soltanto trace campionati, non avremmo necessariamente una base
 
 ## Span attributes
 
-Gli attribute devono rendere una operazione investigabile.
+Gli attribute devono rendere un'operazione investigabile.
 
 Esempi ragionevoli:
 

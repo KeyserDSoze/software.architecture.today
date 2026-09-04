@@ -60,7 +60,7 @@ Il system of interest è ciò che stiamo progettando, modificando o analizzando 
 
 L'ambiente contiene tutto ciò che interagisce con esso ma che non controlliamo nello stesso modo.
 
-Per Acme Orders, in una certa fase, il system of interest potrebbe essere:
+Per Order Operations, in una certa fase, il system of interest potrebbe essere:
 
 ```text
 Acme Orders application

@@ -216,9 +216,9 @@ Il suo scopo non è descrivere la soluzione.
 
 È impedire che la soluzione preceda il problema.
 
-### Il caso Acme Orders
+### Il caso Order Operations
 
-Nel capitolo precedente abbiamo introdotto **Acme Orders**, un caso simulato/composito che accompagnerà il libro.
+Nel capitolo precedente abbiamo introdotto **Order Operations**, un caso simulato/composito che accompagnerà il libro.
 
 Abbiamo visto un piccolo prodotto che iniziava a crescere attraverso richieste apparentemente semplici.
 

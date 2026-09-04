@@ -14,7 +14,7 @@ Se non sappiamo quanto costa l'indisponibilità, non sappiamo nemmeno quanto abb
 
 Un prodotto può contenere journey con criticità molto diverse.
 
-Per Acme Orders, per esempio, potremmo avere:
+Per Order Operations, per esempio, potremmo avere:
 
 - consultazione ordine da parte dell'operatore;
 - creazione ordine;

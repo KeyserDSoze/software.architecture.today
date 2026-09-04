@@ -22,7 +22,7 @@ case.assigned_to = operatorA
 
 non venga contemporaneamente sovrascritto in silenzio da `operatorB`.
 
-Questa è una esigenza di concorrenza e atomicità locale.
+Questa è un'esigenza di concorrenza e atomicità locale.
 
 Potremmo risolverla con:
 

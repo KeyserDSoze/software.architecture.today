@@ -40,7 +40,7 @@ La domanda utile è:
 
 > “Quale variazione abbiamo ragione di aspettarci e quanto costa assorbirla?”
 
-Se in Acme Orders abbiamo un solo provider di pagamento e nessun piano realistico per sostituirlo, un'astrazione sofisticata di plugin potrebbe essere prematura.
+Se in Order Operations abbiamo un solo provider di pagamento e nessun piano realistico per sostituirlo, un'astrazione sofisticata di plugin potrebbe essere prematura.
 
 Se invece il business sa già che opererà in paesi con provider differenti, quella stessa astrazione può avere un ottimo fit.
 
@@ -88,7 +88,7 @@ Durante una review possiamo chiedere:
 
 - questo componente cambia per troppe ragioni indipendenti?
 - stiamo rendendo costosa una variazione che sappiamo essere frequente?
-- una implementazione rompe le aspettative del contratto?
+- un'implementazione rompe le aspettative del contratto?
 - un consumer conosce più del necessario?
 - una policy di business dipende da un dettaglio volatile?
 

@@ -30,7 +30,7 @@ Poi:
 
 Qualcuno apre il codice. Qualcun altro apre la conversazione con l'agente. Si cerca di ricostruire a posteriori il ragionamento che ha prodotto una soluzione già implementata.
 
-A quel punto il problema non è che il codice sia stato scritto da una AI.
+A quel punto il problema non è che il codice sia stato scritto da un'AI.
 
 Il problema è che **il codice è arrivato prima della comprensione condivisa del sistema che stavamo cambiando**.
 
@@ -42,7 +42,7 @@ Il software non è diventato facile.
 
 Sono due affermazioni molto diverse.
 
-Scrivere una funzione, generare una API, aggiungere test, creare un container, preparare una pipeline, cercare una dipendenza o modificare cento file sono attività che possono diventare drasticamente più veloci quando una parte dell'esecuzione viene affidata a sistemi artificiali.
+Scrivere una funzione, generare un'API, aggiungere test, creare un container, preparare una pipeline, cercare una dipendenza o modificare cento file sono attività che possono diventare drasticamente più veloci quando una parte dell'esecuzione viene affidata a sistemi artificiali.
 
 Ma un sistema software non è la somma dei file che contiene.
 
@@ -90,7 +90,7 @@ Non perché ogni decisione architetturale sia improvvisamente più difficile. Ma
 
 Una demo funzionante produce una sensazione potente: *ci siamo quasi*.
 
-Il bottone risponde. I dati compaiono. La API restituisce `200`. Il container parte. Il test passa.
+Il bottone risponde. I dati compaiono. l'API restituisce `200`. Il container parte. Il test passa.
 
 È un momento utile, ma può diventare una forma di falsa confidenza.
 

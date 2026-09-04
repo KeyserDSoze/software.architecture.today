@@ -20,7 +20,7 @@ Se una parte del comportamento cambia indipendentemente dal resto, possiamo vole
 
 La **Strategy** è utile quando esistono davvero più politiche intercambiabili.
 
-Per esempio, Acme Orders potrebbe in futuro avere regole di calcolo della data di consegna diverse per mercato o corriere.
+Per esempio, Order Operations potrebbe in futuro avere regole di calcolo della data di consegna diverse per mercato o corriere.
 
 Se oggi esiste una sola regola semplice, introdurre subito una gerarchia di strategy potrebbe non comprare nulla.
 

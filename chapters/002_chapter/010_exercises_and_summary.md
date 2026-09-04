@@ -205,7 +205,7 @@ Per ciascuna feature scegli quale evidenza useresti per dire che funziona:
 3. migration di una tabella da 500 milioni di righe;
 4. pagina di configurazione interna;
 5. retry di un pagamento asincrono;
-6. nuova cache per una API ad alto traffico.
+6. nuova cache per un'API ad alto traffico.
 
 Puoi usare test, metriche, benchmark, review, invarianti o osservazione.
 
@@ -265,7 +265,7 @@ Deve contenere:
 - quale evidenza produrrai;
 - condizione che impedisce al prototipo di diventare production code per inerzia.
 
-## 10. Acme Orders — cambia il contesto
+## 10. Order Operations — cambia il contesto
 
 Parti dal Problem & Outcome Brief del capitolo.
 

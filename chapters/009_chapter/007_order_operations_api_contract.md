@@ -113,7 +113,7 @@ is_problematic_bit
 
 Esporremmo dettagli dell'implementazione.
 
-Microsoft Azure Architecture Center raccomanda che una API modelli il dominio e non il database interno.
+Microsoft Azure Architecture Center raccomanda che un'API modelli il dominio e non il database interno.
 
 Fonte:
 

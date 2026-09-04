@@ -135,7 +135,7 @@ Il consumer sta modificando un ordine o un dettaglio dello storage?
 
 Chi garantisce che quella transizione sia valida?
 
-Una API orientata al dominio potrebbe invece esporre un'operazione con significato esplicito oppure una rappresentazione di stato comprensibile.
+un'API orientata al dominio potrebbe invece esporre un'operazione con significato esplicito oppure una rappresentazione di stato comprensibile.
 
 Microsoft raccomanda di evitare il mirroring dello schema interno e di modellare il dominio nel contratto.
 

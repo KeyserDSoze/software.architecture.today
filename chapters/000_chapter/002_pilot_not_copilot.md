@@ -40,7 +40,7 @@ Il controllo non può dipendere dal rifare tutto.
 
 Deve dipendere dalla capacità di definire e osservare proprietà del sistema.
 
-Se un agente implementa una endpoint, il nostro compito non è necessariamente riscrivere la endpoint riga per riga. È sapere quale contratto deve rispettare, quali autorizzazioni sono richieste, quali invarianti non può violare, quali errori deve produrre, quali test devono passare e quali modifiche sarebbero fuori scope.
+Se un agente implementa un endpoint, il nostro compito non è necessariamente riscrivere l'endpoint riga per riga. È sapere quale contratto deve rispettare, quali autorizzazioni sono richieste, quali invarianti non può violare, quali errori deve produrre, quali test devono passare e quali modifiche sarebbero fuori scope.
 
 Se un agente prepara una migration, non dobbiamo riscriverla per dimostrare di essere ancora developer. Dobbiamo sapere se è compatibile con il deployment, se blocca tabelle critiche, se può essere applicata e annullata in sicurezza, se vecchio e nuovo codice possono convivere e quale segnale ci dirà che la migrazione sta fallendo.
 
@@ -88,7 +88,7 @@ Tra queste due frasi vive una parte enorme dell'architettura.
 
 Quando lavoriamo con persone che conoscono da anni un prodotto, moltissimo contesto viene dato per scontato.
 
-Sappiamo che un certo database non può essere modificato liberamente perché alimenta un processo esterno. Sappiamo che una API apparentemente interna viene usata da un vecchio client. Sappiamo che il job delle 02:00 è lento, ma non possiamo spostarlo perché coincide con una finestra contabile. Sappiamo che una feature flag è rimasta lì per un motivo storico che non compare nel codice.
+Sappiamo che un certo database non può essere modificato liberamente perché alimenta un processo esterno. Sappiamo che un'API apparentemente interna viene usata da un vecchio client. Sappiamo che il job delle 02:00 è lento, ma non possiamo spostarlo perché coincide con una finestra contabile. Sappiamo che una feature flag è rimasta lì per un motivo storico che non compare nel codice.
 
 Un agente non conosce automaticamente nulla di tutto questo.
 
@@ -147,7 +147,7 @@ Non sappiamo chi possieda un dato, ma costruiamo integrazioni che lo replicano.
 
 Non conosciamo il failure mode più importante, ma aggiungiamo retry “per resilienza”.
 
-Non sappiamo se una operazione è idempotente, ma la mettiamo dietro una coda.
+Non sappiamo se un'operazione è idempotente, ma la mettiamo dietro una coda.
 
 Un engineer al timone distingue tra:
 

@@ -249,9 +249,9 @@ Scrivi una breve nota:
 
 > “Che cosa non poteva sapere l'agente guardando soltanto il codice?”
 
-## Esercizio 10 — Acme Orders
+## Esercizio 10 — Order Operations
 
-Usa la Context Map di Acme Orders.
+Usa la Context Map di Order Operations.
 
 Confronta due alternative:
 

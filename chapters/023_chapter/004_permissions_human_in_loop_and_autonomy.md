@@ -268,14 +268,14 @@ Se cambia uno di questi elementi, la matrice può dover cambiare.
 
 Un approval system deve decidere anche cosa accade se l'approvatore non è disponibile.
 
-Per una operazione high-risk:
+Per un'operazione high-risk:
 
 ```text
 no approval
 → no execution
 ```
 
-Per una analisi non mutativa:
+Per un'analisi non mutativa:
 
 ```text
 no approver
@@ -341,7 +341,7 @@ merge
 → human/repository gate
 ```
 
-Questa è circa una autonomia A2 sul task.
+Questa è circa un'autonomia A2 sul task.
 
 Non perché l'agente non possa tecnicamente fare di più.
 

@@ -26,7 +26,7 @@ Se il ciclo è velocissimo ma misura soltanto una parte del sistema, possiamo ac
 
 ### Feedback locale, danno globale
 
-Immaginiamo un agente incaricato di migliorare le performance di una endpoint.
+Immaginiamo un agente incaricato di migliorare le performance di un endpoint.
 
 Misura la latenza locale.
 

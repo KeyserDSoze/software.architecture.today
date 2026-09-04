@@ -47,7 +47,7 @@ Questa è **Production Readiness**.
 
 Un repository può compilare perfettamente e non essere pronto alla produzione.
 
-Una applicazione può avere ottima code coverage e non avere:
+Un'applicazione può avere ottima code coverage e non avere:
 
 - backup ripristinabili;
 - ownership operativa;

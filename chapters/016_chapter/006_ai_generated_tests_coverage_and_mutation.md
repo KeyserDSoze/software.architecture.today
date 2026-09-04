@@ -114,7 +114,7 @@ Code coverage risponde a una domanda:
 
 > quale parte del codice è stata eseguita durante i test?
 
-È una informazione utile.
+È un'informazione utile.
 
 Non risponde a:
 
@@ -198,7 +198,7 @@ Questo può indicare:
 - codice equivalente/non rilevante;
 - property non protetta.
 
-Microsoft Learn, nella guida corrente sul mutation testing .NET, raccomanda di usare i surviving mutant per individuare gap e assertion deboli e avverte di non inseguire il 100% di mutation score: il valore maggiore è nelle aree business-critical o ad alto rischio.
+Microsoft Learn, nella guida corrente sul mutation testing.NET, raccomanda di usare i surviving mutant per individuare gap e assertion deboli e avverte di non inseguire il 100% di mutation score: il valore maggiore è nelle aree business-critical o ad alto rischio.
 
 Fonte:
 

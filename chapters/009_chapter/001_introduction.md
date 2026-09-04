@@ -1,10 +1,10 @@
 # Capitolo 9 — API e contratti
 
-> **Nota editoriale.** Le affermazioni su HTTP, REST, gRPC, GraphQL, WebSocket e AsyncAPI in questo capitolo vengono collegate a specifiche o documentazione ufficiale. Acme Orders rimane un caso simulato/composito.
+> **Nota editoriale.** Le affermazioni su HTTP, REST, gRPC, GraphQL, WebSocket e AsyncAPI in questo capitolo vengono collegate a specifiche o documentazione ufficiale. Order Operations rimane un caso simulato/composito.
 
 ## L'API è una promessa
 
-Quando guardiamo una API dal codice è facile ridurla a un insieme di endpoint.
+Quando guardiamo un'API dal codice è facile ridurla a un insieme di endpoint.
 
 ```text
 GET /orders
@@ -14,7 +14,7 @@ GET /orders/{id}
 
 Ma l'endpoint è soltanto la parte più visibile.
 
-Una API stabilisce una relazione tra chi offre una capability e chi dipende da essa.
+un'API stabilisce una relazione tra chi offre una capability e chi dipende da essa.
 
 Quella relazione contiene promesse:
 
@@ -30,7 +30,7 @@ Quella relazione contiene promesse:
 
 Per questo:
 
-> **una API non è un controller pubblico. È un contratto tra sistemi.**
+> **un'API non è un controller pubblico. È un contratto tra sistemi.**
 
 ### Un refactoring non dovrebbe diventare un breaking change
 
@@ -105,7 +105,7 @@ Non significa necessariamente scrivere per prima cosa OpenAPI o `.proto`.
 
 Prima dello schema viene la semantica.
 
-Per Acme Orders, prima di decidere l'URI dobbiamo sapere:
+Per Order Operations, prima di decidere l'URI dobbiamo sapere:
 
 - che cosa significa “ordine problematico”;
 - chi può vederlo;
@@ -137,7 +137,7 @@ framework
 
 ### Un contratto vive nel tempo
 
-La parte difficile di una API raramente è la prima versione.
+La parte difficile di un'API raramente è la prima versione.
 
 È la seconda.
 

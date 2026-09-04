@@ -159,7 +159,7 @@ Possiamo distinguere almeno:
 Esempi:
 
 - una normativa;
-- una API esterna che non supporta un certo comportamento;
+- un'API esterna che non supporta un certo comportamento;
 - un deployment obbligatorio in una determinata regione;
 - compatibilità con una versione minima;
 - un limite contrattuale.
@@ -176,7 +176,7 @@ Esempi:
 
 Questa distinzione evita che una preferenza diventi accidentalmente una legge.
 
-“Usiamo sempre .NET” può essere una convenzione utile.
+“Usiamo sempre.NET” può essere una convenzione utile.
 
 Non è una legge della fisica.
 
@@ -204,9 +204,9 @@ Dobbiamo rivalutare la decisione.
 
 Un agente che scopre un hard constraint nuovo dovrebbe spesso fermarsi e segnalarlo invece di “far funzionare comunque” la soluzione.
 
-### Acme Orders: restringere prima di espandere
+### Order Operations: restringere prima di espandere
 
-Torniamo ad Acme Orders.
+Torniamo ad Order Operations.
 
 Immaginiamo che il team voglia “migliorare la gestione degli ordini problematici”.
 

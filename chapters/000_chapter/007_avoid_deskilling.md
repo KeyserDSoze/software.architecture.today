@@ -40,7 +40,7 @@ Il secondo può erodere competenza.
 
 Immaginiamo due developer junior.
 
-Il primo usa l'AI per produrre velocemente una API, ma poi chiede:
+Il primo usa l'AI per produrre velocemente un'API, ma poi chiede:
 
 - perché è stata scelta questa struttura?
 - che cosa succede se due richieste arrivano insieme?

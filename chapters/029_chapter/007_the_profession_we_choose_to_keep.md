@@ -337,7 +337,7 @@ ridurre dipendenza dall'esperto
 
 Questa è forse una delle migliori definizioni di leadership tecnica.
 
-L'architect che deve approvare tutto non ha necessariamente costruito una organizzazione ben governata.
+L'architect che deve approvare tutto non ha necessariamente costruito un'organizzazione ben governata.
 
 Può avere costruito un collo di bottiglia.
 

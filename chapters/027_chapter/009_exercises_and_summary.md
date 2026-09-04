@@ -362,7 +362,7 @@ Dovresti riuscire a rispondere senza consultare il testo.
 11. Che differenza c'è fra public authoring boundary e runtime AI tool boundary?
 12. Perché una feature disabilitata può consentire un launch boundary più piccolo?
 13. Che cosa dovrebbe standardizzare una piattaforma enterprise?
-14. Quando una eccezione allo standard è giustificata?
+14. Quando un'eccezione allo standard è giustificata?
 15. Perché cost allocation è una architectural concern?
 16. Perché una capability comune non deve nascere prima di un problema comune ripetuto?
 17. Che cosa cambia quando l'AI rende più economico creare nuovi sistemi?

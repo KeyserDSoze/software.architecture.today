@@ -296,9 +296,9 @@ Confronta le due risposte e identifica:
 
 Non chiedere all'agente di decidere al posto tuo.
 
-## Esercizio 10 — Acme Orders cresce
+## Esercizio 10 — Order Operations cresce
 
-Modifica il caso Acme Orders.
+Modifica il caso Order Operations.
 
 Ora il business richiede:
 

@@ -41,7 +41,7 @@ Il libro usa due categorie che non vanno confuse.
 
 **Scenario simulato/composito** indica materiale didattico inventato per rendere concrete le decisioni. Il mondo principale è **Example Software Industries S.p.A. — ESI**, azienda fittizia. Il capstone principale è **Order Operations**. Numeri, SLO, RTO, RPO, costi, incidenti e risultati ESI sono simulati salvo indicazione esplicita del contrario.
 
-Alcuni capitoli iniziali usano anche **Acme Orders** come caso didattico compatto. È anch'esso simulato/composito e non rappresenta un'azienda reale né un benchmark industriale.
+Alcuni capitoli iniziali usano anche **Order Operations** come caso didattico compatto. È anch'esso simulato/composito e non rappresenta un'azienda reale né un benchmark industriale.
 
 ## Come leggere le fonti
 

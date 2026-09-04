@@ -75,7 +75,7 @@ Ma non può saltare tenant isolation, data integrity o ownership solo perché il
 
 # Caso 3 — GitHub: canary insufficiente
 
-GitHub ha documentato una evoluzione del proprio deployment system in cui il canary esistente al 2% non intercettava alcune classi di problema prima del rollout completo.
+GitHub ha documentato un'evoluzione del proprio deployment system in cui il canary esistente al 2% non intercettava alcune classi di problema prima del rollout completo.
 
 Il team introdusse una seconda fase al 20% per aumentare la capacità di osservare regressioni prima del 100%, mantenendo comunque progressività.
 

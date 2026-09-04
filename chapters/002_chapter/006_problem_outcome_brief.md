@@ -114,9 +114,9 @@ Non stiamo affermando che siano vere.
 
 Stiamo rendendo visibile ciò su cui stiamo costruendo.
 
-Una assunzione esplicita può essere verificata.
+Un'assunzione esplicita può essere verificata.
 
-Una assunzione implicita può diventare architettura senza che nessuno se ne accorga.
+Un'assunzione implicita può diventare architettura senza che nessuno se ne accorga.
 
 ### Open decisions
 

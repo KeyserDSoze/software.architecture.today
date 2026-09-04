@@ -133,7 +133,7 @@ Se accettiamo:
 ?status=anything&field=anything&expression=anything
 ```
 
-potremmo trasformare una API di dominio in un query engine generico.
+potremmo trasformare un'API di dominio in un query engine generico.
 
 Questo aumenta:
 
@@ -168,7 +168,7 @@ Dobbiamo capire:
 - quanto può aspettare il consumer;
 - quale timeout applica il server verso downstream;
 - quale budget resta per retry;
-- quando una operazione lunga deve diventare asincrona.
+- quando un'operazione lunga deve diventare asincrona.
 
 Azure Architecture Center descrive anche il pattern request-reply asincrono per operazioni HTTP che non possono completarsi ragionevolmente dentro la request iniziale.
 

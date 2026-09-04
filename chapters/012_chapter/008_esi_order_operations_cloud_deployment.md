@@ -399,7 +399,7 @@ La scelta ESI è simulata.
 
 Non sosteniamo che App Service sia sempre migliore di Kubernetes o serverless.
 
-Il caso dacadoo discusso prima mostra proprio l'opposto: una architettura può attraversare VM, Kubernetes e serverless quando il contesto evolve.
+Il caso dacadoo discusso prima mostra proprio l'opposto: un'architettura può attraversare VM, Kubernetes e serverless quando il contesto evolve.
 
 La lezione comune è:
 

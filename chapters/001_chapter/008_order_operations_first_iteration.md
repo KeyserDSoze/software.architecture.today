@@ -239,7 +239,7 @@ L'agente è veloce.
 
 Possiamo chiedergli di sistemare ogni nuovo caso.
 
-Probabilmente continuerà a produrre un sistema funzionante ancora per un po'.
+Probabilmente continuerà a produrre un sistema funzionante ancora per un po’'.
 
 La seconda è fermarci e trasformare ciò che abbiamo imparato in contesto esplicito.
 

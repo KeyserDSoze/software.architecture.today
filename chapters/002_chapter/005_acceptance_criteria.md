@@ -27,7 +27,7 @@ Per esempio:
 
 > “Aggiungi la possibilità di prendere in carico un ordine problematico.”
 
-Una implementazione può salvare un `assignedUserId` nel database.
+Un'implementazione può salvare un `assignedUserId` nel database.
 
 Ma restano domande:
 
@@ -72,7 +72,7 @@ Alcune condizioni sono più profonde di uno scenario.
 
 Sono invarianti.
 
-Per Acme Orders potremmo avere:
+Per Order Operations potremmo avere:
 
 ```text
 - un ordine appartiene a un solo tenant;

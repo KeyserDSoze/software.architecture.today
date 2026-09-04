@@ -260,7 +260,7 @@ premium SKU
 
 ## Showback before punishment
 
-In una organizzazione che sta iniziando, la visibility può avere più valore del chargeback aggressivo.
+In un'organizzazione che sta iniziando, la visibility può avere più valore del chargeback aggressivo.
 
 Se un team scopre:
 

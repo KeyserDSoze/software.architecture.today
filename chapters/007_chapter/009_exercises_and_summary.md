@@ -89,7 +89,7 @@ Domanda finale:
 
 ### Esercizio 4 — Adapter boundary
 
-Scegli una API esterna usata dal tuo progetto.
+Scegli un'API esterna usata dal tuo progetto.
 
 Elenca tutte le parti del suo modello che oggi trapelano nel dominio:
 
@@ -203,7 +203,7 @@ Misura:
 - capacità di spiegare ogni astrazione;
 - comportamento effettivamente migliorato.
 
-### Esercizio 10 — Acme Orders, sei mesi dopo
+### Esercizio 10 — Order Operations, sei mesi dopo
 
 Simuliamo un cambio di contesto.
 

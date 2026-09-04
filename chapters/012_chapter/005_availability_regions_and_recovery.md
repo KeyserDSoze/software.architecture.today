@@ -94,7 +94,7 @@ Non dal menu del cloud provider.
 
 ## Multi-region non è una checkbox
 
-Una architettura multi-region può richiedere:
+Un'architettura multi-region può richiedere:
 
 - data replication;
 - conflict strategy;
@@ -107,7 +107,7 @@ Una architettura multi-region può richiedere:
 - incident ownership;
 - cost duplicato o comunque maggiore.
 
-Se il workload ha RTO di alcune ore, una recovery strategy basata su backup + IaC potrebbe avere più fit di una architettura active-active.
+Se il workload ha RTO di alcune ore, una recovery strategy basata su backup + IaC potrebbe avere più fit di un'architettura active-active.
 
 Se il workload è business-critical con RTO di secondi, il discorso cambia.
 

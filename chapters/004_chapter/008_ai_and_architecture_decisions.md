@@ -129,7 +129,7 @@ Un diagramma ben formato, una tabella ordinata e una spiegazione fluida possono 
 
 Questo fenomeno è particolarmente pericoloso nell'architettura perché molte decisioni non possono essere verificate immediatamente.
 
-Una API sbagliata può fallire nei test.
+un'API sbagliata può fallire nei test.
 
 Una strategia di partizionamento sbagliata può mostrare il problema mesi o anni dopo.
 

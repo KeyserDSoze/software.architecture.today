@@ -288,7 +288,7 @@ test()
 verifyArchitecture()
 ```
 
-Una API interna può cambiare.
+un'API interna può cambiare.
 
 Ma deve farlo intenzionalmente.
 

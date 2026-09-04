@@ -131,7 +131,7 @@ Questo riduce polling, ma introduce nuovi problemi:
 
 Un webhook non è soltanto “una POST che arriva da fuori”.
 
-È una integrazione asincrona con semantica di delivery.
+È un'integrazione asincrona con semantica di delivery.
 
 ### Messaging ed event-driven API
 

@@ -167,7 +167,7 @@ Poi rispondi:
 - quale informazione mancante cambierebbe la decisione?
 - modificheresti l'ADR?
 
-### Esercizio 9 — Acme Orders cambia contesto
+### Esercizio 9 — Order Operations cambia contesto
 
 L'ADR-001 sceglie lookup live sul database operativo.
 
@@ -207,7 +207,7 @@ Obiettivo: evitare sia architecture by committee sia architecture by accident.
 7. Sai riconoscere una one-way door?
 8. Sai scrivere un trigger di revisione concreto?
 9. Sai spiegare perché un ADR non è un documento di approvazione?
-10. Sai distinguere un'alternativa credibile da una alternativa-fantoccio?
+10. Sai distinguere un'alternativa credibile da un'alternativa-fantoccio?
 11. Sai usare l'AI per criticare una decisione senza delegarle il judgment?
 12. Sai spiegare quali decisioni devono essere coerenti tra team e quali possono rimanere locali?
 

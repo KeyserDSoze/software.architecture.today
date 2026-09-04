@@ -200,7 +200,7 @@ Per ciascuno definisci retention e sampling coerenti con il rischio.
 
 ## Esercizio 8 — Build vs buy
 
-Confronta un managed service con una opzione self-managed.
+Confronta un managed service con un'opzione self-managed.
 
 Non usare soltanto il prezzo.
 

@@ -10,7 +10,7 @@ Ma il lavoro reale non arriva diviso per capitoli.
 
 Un requisito funzionale può cambiare il data model. Una scelta di availability può cambiare il costo. Una decisione di security può cambiare il networking. Una migration può cambiare il rollback. Un nuovo modello AI può cambiare latency, privacy, observability e supporto operativo senza modificare una singola business rule.
 
-Per questo questo capitolo non introduce quasi nessuna nuova tecnica.
+Per questo capitolo non introduce quasi nessuna nuova tecnica.
 
 Fa qualcosa di più utile: **rimette insieme le decisioni**.
 

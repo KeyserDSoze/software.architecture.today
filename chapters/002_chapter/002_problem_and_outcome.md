@@ -121,7 +121,7 @@ Vogliamo migliorare [outcome],
 senza compromettere [vincolo importante].
 ```
 
-Esempio per Acme Orders:
+Esempio per Order Operations:
 
 ```text
 Il team operations ha difficoltà a identificare rapidamente gli ordini

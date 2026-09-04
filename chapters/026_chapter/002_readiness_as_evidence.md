@@ -347,7 +347,7 @@ Nel capitolo useremo una matrice semplice:
 
 | Area | Claim | Required evidence | Current state | Launch impact | Owner |
 |---|---|---|---|---|---|
-| Functional | core journey behaves as specified | tests + staged journey | ? | blocker | Product + workload |
+| Functional | core journey behaves as specified | tests + staged journey |? | blocker | Product + workload |
 | Data | escalation/outbox atomic | real PostgreSQL integration | pending | blocker for escalation | workload |
 | Security | private/auth boundaries hold | deployment + negative tests | pending | blocker | Security + workload |
 | Reliability | restore meets target | drill | pending | blocker/accepted risk by boundary | Operations |

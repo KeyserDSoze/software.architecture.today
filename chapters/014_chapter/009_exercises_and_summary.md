@@ -113,7 +113,7 @@ Identifica il signal che manca.
 
 ## Esercizio 3 — Graceful degradation
 
-Per una applicazione che usa:
+Per un'applicazione che usa:
 
 - catalogo;
 - prezzi;

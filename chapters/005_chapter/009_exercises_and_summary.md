@@ -104,7 +104,7 @@ Spiega anche quali elementi lasceresti insieme e perché.
 
 ### 3. Coupling invisibile
 
-Due servizi comunicano attraverso una API con una sola operazione:
+Due servizi comunicano attraverso un'API con una sola operazione:
 
 ```text
 POST /reserve
@@ -194,7 +194,7 @@ Poi decidi se vuoi:
 
 Giustifica la scelta.
 
-### 8. Acme Orders — cancellazione concorrente
+### 8. Order Operations — cancellazione concorrente
 
 Nel capstone, due richieste di cancellazione arrivano quasi contemporaneamente.
 
@@ -304,7 +304,7 @@ Ma se abbiamo assegnato la regola al componente sbagliato, il sistema continuer�
 
 ## Dal design alla qualità
 
-A questo punto Acme Orders ha:
+A questo punto Order Operations ha:
 
 - un problema definito;
 - un contesto sistemico;

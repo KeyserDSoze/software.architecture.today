@@ -180,7 +180,7 @@ Il white-box ci aiuta a cercare la causa.
 
 Un synthetic check esegue periodicamente un comportamento noto per verificare se una capability è raggiungibile e funzionale.
 
-Per una API pubblica può essere relativamente semplice.
+Per un'API pubblica può essere relativamente semplice.
 
 Order Operations però ha una decisione di sicurezza precisa:
 

@@ -12,7 +12,7 @@ Ma scompare anche una parte del tempo che, volontariamente o meno, ci costringev
 
 Le idee da portare avanti sono queste.
 
-1. **Produrre software e costruire buoni sistemi non sono sinonimi.** Una applicazione può essere generata rapidamente senza che i suoi requisiti, failure mode o costi siano stati compresi.
+1. **Produrre software e costruire buoni sistemi non sono sinonimi.** Un'applicazione può essere generata rapidamente senza che i suoi requisiti, failure mode o costi siano stati compresi.
 
 2. **L'execution abbondante sposta il collo di bottiglia.** Diventano più preziosi chiarezza, judgment, integrazione e verifica.
 
@@ -48,7 +48,7 @@ Le idee da portare avanti sono queste.
 
 Prendi una feature recente su cui hai lavorato o inventane una realistica.
 
-Elenca tutti gli artefatti che una AI potrebbe produrre rapidamente:
+Elenca tutti gli artefatti che un'AI potrebbe produrre rapidamente:
 
 - codice;
 - test;
@@ -106,7 +106,7 @@ Non scrivere codice.
 
 ### Esercizio 3 — Demo sotto processo
 
-Hai davanti una demo di una applicazione che:
+Hai davanti una demo di un'applicazione che:
 
 - autentica utenti;
 - accetta pagamenti;
@@ -153,7 +153,7 @@ Non esiste un ordine universale corretto. Devi difendere il tuo.
 
 ### Esercizio 5 — Progettare feedback
 
-Un agente deve ridurre la latenza di una endpoint critica.
+Un agente deve ridurre la latenza di un endpoint critica.
 
 Definisci un feedback loop che non si limiti alla latenza locale.
 
@@ -236,9 +236,9 @@ Annota:
 - quali critiche cambiano davvero la decisione;
 - quali sono soltanto possibilità teoriche.
 
-### Esercizio 9 — Acme Orders
+### Esercizio 9 — Order Operations
 
-Riprendi il caso Acme Orders.
+Riprendi il caso Order Operations.
 
 Il requisito iniziale è:
 

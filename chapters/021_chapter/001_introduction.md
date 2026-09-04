@@ -21,7 +21,7 @@ Per un nuovo engineer questo produce onboarding lento.
 
 Per un agente produce qualcosa di ancora più pericoloso:
 
-> una implementazione plausibile costruita sopra un modello incompleto del sistema.
+> un'implementazione plausibile costruita sopra un modello incompleto del sistema.
 
 ## Il repository come ambiente operativo
 

@@ -186,7 +186,7 @@ Poi indica:
 
 ## Esercizio 6 — Backup non è HA
 
-Prendi una architettura con database replicato.
+Prendi un'architettura con database replicato.
 
 Descrivi separatamente cosa succede con:
 

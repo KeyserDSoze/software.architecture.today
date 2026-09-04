@@ -33,7 +33,7 @@ A quel punto abbiamo ricreato la wiki monolitica dentro il prompt context.
 
 ## Always-on context deve meritare di esserlo
 
-Una informazione dovrebbe essere always-on quando:
+Un'informazione dovrebbe essere always-on quando:
 
 - si applica alla maggior parte dei task;
 - una violazione ha costo elevato;

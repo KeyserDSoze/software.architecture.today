@@ -306,7 +306,7 @@ Non dovrebbe fare:
 I changed the stop condition so that migration rewrite is now allowed.
 ```
 
-Lo stesso vale per la AI Autonomy Matrix.
+Lo stesso vale per l'AI Autonomy Matrix.
 
 > **Un executor non dovrebbe poter aumentare unilateralmente la propria autonomia per completare il task corrente.**
 

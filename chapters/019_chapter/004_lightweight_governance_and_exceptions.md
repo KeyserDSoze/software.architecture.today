@@ -95,7 +95,7 @@ Removal: move adapter to integration layer
 
 La differenza fra un'eccezione e il drift è che l'eccezione è **visibile e temporanea**.
 
-> **Una eccezione senza expiry è spesso una nuova architettura introdotta senza ammetterlo.**
+> **Un'eccezione senza expiry è spesso una nuova architettura introdotta senza ammetterlo.**
 
 ## Waiver debt
 

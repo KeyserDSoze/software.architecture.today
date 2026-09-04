@@ -102,7 +102,7 @@ Più conoscenza serve, più il coupling è profondo.
 
 ### Coupling sintattico e coupling semantico
 
-Due moduli possono avere una API piccola e rimanere fortemente accoppiati.
+Due moduli possono avere un'API piccola e rimanere fortemente accoppiati.
 
 Supponiamo che `Shipping` esponga:
 

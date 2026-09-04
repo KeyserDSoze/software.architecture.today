@@ -221,7 +221,7 @@ abbiamo tre istanze che falliscono insieme.
 
 Possiamo avere due database node.
 
-Ma se un comando applicativo corrompe logicamente i dati e la replica replica correttamente la corruption:
+Ma se un comando applicativo corrompe logicamente i dati e la replica correttamente la corruption:
 
 ```text
 HA != recovery dalla corruption

@@ -12,7 +12,7 @@ Non è una metrica importante.
 
 Questa distinzione cambia completamente il modo in cui progettiamo l'alerting.
 
-## Alert != dashboard
+## Alert!= dashboard
 
 Una dashboard può mostrare:
 

@@ -89,7 +89,7 @@ Supponiamo che un'organizzazione abbia:
 - un team di quattro persone;
 - nessun on-call 24/7;
 - budget cloud limitato;
-- una piattaforma .NET già standardizzata;
+- una piattaforma.NET già standardizzata;
 - obbligo di deployment in una regione specifica;
 - deadline di otto settimane.
 

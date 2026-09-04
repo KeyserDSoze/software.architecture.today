@@ -2,7 +2,7 @@
 
 ## Dieci idee da portarsi dietro
 
-1. **Un modello runtime è una dipendenza architetturale, non soltanto una API.**
+1. **Un modello runtime è una dipendenza architetturale, non soltanto un'API.**
 2. **Il modello può interpretare; il sistema decide ciò che è vero e autorizzato.**
 3. **Deterministic logic resta fuori dal modello quando possiamo esprimerla in modo affidabile.**
 4. **Grounding è un requisito; RAG è una possibile soluzione.**
@@ -73,7 +73,7 @@ Source
 → Sink
 ```
 
-per una applicazione AI a tua scelta.
+per un'applicazione AI a tua scelta.
 
 Identifica:
 

@@ -132,7 +132,7 @@ Perché pagheremo comunque:
 
 ### Un confine non deve diventare immediatamente un servizio
 
-Nel capitolo precedente abbiamo identificato responsabilità distinte in Acme Orders.
+Nel capitolo precedente abbiamo identificato responsabilità distinte in Order Operations.
 
 Per esempio:
 

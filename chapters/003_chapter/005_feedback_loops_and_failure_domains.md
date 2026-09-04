@@ -183,7 +183,7 @@ Ma se è sbagliata, può distribuire l'errore con grande efficienza.
 
 Per questo source of truth e review devono andare insieme.
 
-## Acme Orders: failure domain iniziali
+## Order Operations: failure domain iniziali
 
 Per il nostro caso possiamo già identificare alcuni domini di failure:
 

@@ -51,7 +51,7 @@ Conosce:
 
 Se molte parti del sistema fanno lo stesso, la persistenza non è più un dettaglio del modulo Orders.
 
-È diventata una API implicita globale.
+È diventata un'API implicita globale.
 
 Una variante potrebbe essere:
 
@@ -75,7 +75,7 @@ Per esempio:
 processOrder(orderId)
 ```
 
-è una API piccola ma forse semanticamente opaca.
+è un'API piccola ma forse semanticamente opaca.
 
 Che cosa significa “processare”?
 

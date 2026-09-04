@@ -88,7 +88,7 @@ Prendiamo un Adapter.
 Può:
 
 - proteggere il modello interno;
-- ridurre coupling verso una API esterna;
+- ridurre coupling verso un'API esterna;
 - rendere più semplice sostituire una dipendenza;
 - centralizzare mapping ed error handling.
 

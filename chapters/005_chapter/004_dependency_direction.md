@@ -16,7 +16,7 @@ Questa è l'idea operativa dietro il dependency inversion principle.
 
 Supponiamo che una regola di dominio debba inviare una notifica quando un ordine viene annullato.
 
-Una implementazione ingenua potrebbe essere:
+Un'implementazione ingenua potrebbe essere:
 
 ```ts
 import { SendGridClient } from "@vendor/sendgrid";

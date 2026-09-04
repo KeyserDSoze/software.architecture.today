@@ -113,7 +113,7 @@ La reazione opposta alla fashion-driven architecture può essere altrettanto sba
 
 > “Abbiamo sempre usato SQL Server.”
 
-> “Noi facciamo tutto in .NET.”
+> “Noi facciamo tutto in.NET.”
 
 > “Non introduciamo mai broker.”
 

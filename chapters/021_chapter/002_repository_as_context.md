@@ -54,7 +54,7 @@ La regola che riguarda soltanto `src/priority/` dovrebbe stare vicino a quella c
 
 La regola che riguarda un deployment specifico dovrebbe vivere con l'IaC o con la relativa documentazione, non in una pagina generica che nessuno associa più alla modifica.
 
-Più una informazione è distante dal luogo in cui produce una conseguenza, più aumenta il rischio che venga dimenticata.
+Più un'informazione è distante dal luogo in cui produce una conseguenza, più aumenta il rischio che venga dimenticata.
 
 Questo vale per umani e agenti.
 

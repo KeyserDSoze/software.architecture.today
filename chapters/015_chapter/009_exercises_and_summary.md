@@ -9,7 +9,7 @@ L'obiettivo non è raccogliere tutto.
 ## Idee chiave
 
 1. monitoring e observability sono collegati ma non equivalenti;
-2. una dashboard non è una architettura di observability;
+2. una dashboard non è un'architettura di observability;
 3. metrics, logs e traces rispondono a domande differenti;
 4. la correlazione moltiplica il valore dei singoli signal;
 5. business identity e trace identity non sono la stessa cosa;

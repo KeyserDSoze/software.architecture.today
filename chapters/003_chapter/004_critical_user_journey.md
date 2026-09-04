@@ -22,7 +22,7 @@ browse
 → order confirmation
 ```
 
-Per Acme Orders, nel nostro scenario iniziale, un journey critico è:
+Per Order Operations, nel nostro scenario iniziale, un journey critico è:
 
 ```text
 support operator
@@ -227,7 +227,7 @@ Questa classificazione non è universale.
 
 Serve a rendere esplicito che reliability, observability e recovery devono essere proporzionate all'importanza del journey.
 
-## Acme Orders
+## Order Operations
 
 Nel brief precedente abbiamo definito un obiettivo:
 

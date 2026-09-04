@@ -224,9 +224,9 @@ Significa che manca contesto.
 
 Quel contesto va costruito prima di delegare decisioni importanti al codice o agli agenti.
 
-### Acme Orders
+### Order Operations
 
-Da questo punto Acme Orders non sarà soltanto un esempio narrativo.
+Da questo punto Order Operations non sarà soltanto un esempio narrativo.
 
 Il capstone avrà una propria analisi funzionale viva nel repository.
 

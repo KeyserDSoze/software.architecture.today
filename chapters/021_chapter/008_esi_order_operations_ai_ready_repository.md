@@ -86,7 +86,7 @@ canonical agent entry point
 
 Se in futuro una superficie GitHub richiederà comportamento aggiuntivo specifico, potremo introdurre un file tool-specific che **referenzia** il contesto canonical invece di duplicarlo.
 
-Questa è una applicazione diretta di fit before fashion.
+Questa è un'applicazione diretta di fit before fashion.
 
 ## Repository map corrente
 

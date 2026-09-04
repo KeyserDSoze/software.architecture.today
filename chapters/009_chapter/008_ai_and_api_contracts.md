@@ -132,7 +132,7 @@ Questo è utile.
 
 Ma può anche aumentare rapidamente il numero di consumer.
 
-Se dieci team generano client da una API, una decisione sbagliata nel contratto può diffondersi molto più velocemente.
+Se dieci team generano client da un'API, una decisione sbagliata nel contratto può diffondersi molto più velocemente.
 
 Ancora una volta:
 
@@ -164,7 +164,7 @@ La quantità di contract test non sostituisce la qualità del contratto.
 
 ### Tool use e API per agenti
 
-Quando una API viene esposta come tool a un agente AI, alcuni errori diventano ancora più importanti.
+Quando un'API viene esposta come tool a un agente AI, alcuni errori diventano ancora più importanti.
 
 Un tool con nome ambiguo:
 

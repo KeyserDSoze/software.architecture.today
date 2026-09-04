@@ -188,9 +188,9 @@ Cerca l'evidenza più forte.
 
 ---
 
-## Esercizio 9 — Acme Orders cambia contesto
+## Esercizio 9 — Order Operations cambia contesto
 
-Modifica il caso Acme Orders con queste nuove condizioni:
+Modifica il caso Order Operations con queste nuove condizioni:
 
 ```text
 Payments viene affidato a un team dedicato

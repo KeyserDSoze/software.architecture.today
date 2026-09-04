@@ -6,7 +6,7 @@ Un'idea diventa una demo in poche ore.
 
 Una specifica diventa una pull request.
 
-Una descrizione in linguaggio naturale diventa una API, una migration, una suite di test, un workflow CI/CD e perfino una prima bozza di infrastruttura.
+Una descrizione in linguaggio naturale diventa un'API, una migration, una suite di test, un workflow CI/CD e perfino una prima bozza di infrastruttura.
 
 Il salto è reale.
 

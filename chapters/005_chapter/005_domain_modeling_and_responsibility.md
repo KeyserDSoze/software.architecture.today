@@ -22,7 +22,7 @@ Il domain modeling prova a partire da un'altra domanda:
 
 ### Il dominio non è il database
 
-Se osserviamo Acme Orders dal database potremmo vedere tabelle come:
+Se osserviamo Order Operations dal database potremmo vedere tabelle come:
 
 ```text
 customers

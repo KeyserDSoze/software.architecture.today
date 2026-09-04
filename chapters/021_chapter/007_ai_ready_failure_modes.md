@@ -328,7 +328,7 @@ Una metrica più interessante è:
 
 E una seconda:
 
-> **quante volte un agente deve riscoprire una informazione stabile che il repository avrebbe potuto rendere persistente?**
+> **quante volte un agente deve riscoprire un'informazione stabile che il repository avrebbe potuto rendere persistente?**
 
 ## Corollario
 

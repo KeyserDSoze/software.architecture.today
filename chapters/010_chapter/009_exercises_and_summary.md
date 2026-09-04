@@ -202,7 +202,7 @@ Concludi se introdurla ora o no.
 
 ## Esercizio 6 — Cache senza magia
 
-Progetta una cache-aside per una API di product catalog.
+Progetta una cache-aside per un'API di product catalog.
 
 Definisci:
 
@@ -321,7 +321,7 @@ Order Operations vuole una vista unica e semplice; ESI accetta per ora maggiore 
 
 ## Corollario
 
-Nel Capitolo 9 abbiamo detto che una API è una promessa.
+Nel Capitolo 9 abbiamo detto che un'API è una promessa.
 
 Ora possiamo completare il pensiero:
 

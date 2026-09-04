@@ -165,7 +165,7 @@ Le fonti preferite saranno standard, RFC, documentazione ufficiale, paper, postm
 
 Il libro è language-agnostic e cloud-agnostic nei principi.
 
-Quando serve codice, TypeScript è la scelta predefinita. C# viene usato quando rende più chiaro il concetto o quando il contesto .NET/Azure è particolarmente utile.
+Quando serve codice, TypeScript è la scelta predefinita. C# viene usato quando rende più chiaro il concetto o quando il contesto.NET/Azure è particolarmente utile.
 
 Azure potrà comparire spesso negli esempi, senza trasformare il libro in un manuale Azure.
 

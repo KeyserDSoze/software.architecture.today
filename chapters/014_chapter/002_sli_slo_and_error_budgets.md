@@ -63,7 +63,7 @@ good requests / valid requests
 
 Ma la parola `good` deve avere semantica.
 
-Per una API potrebbe significare:
+Per un'API potrebbe significare:
 
 ```text
 status success

@@ -2,7 +2,7 @@
 
 Prima di parlare di servizi cloud dobbiamo chiarire chi possiede che cosa.
 
-In una organizzazione enterprise la domanda non è soltanto:
+In un'organizzazione enterprise la domanda non è soltanto:
 
 > “Come deployiamo questa applicazione?”
 

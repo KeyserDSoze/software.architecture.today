@@ -212,7 +212,7 @@ public ingress not ready
 
 Questa è architettura e product strategy insieme.
 
-> **Un launch boundary più piccolo può essere una mitigation migliore di una architettura più grande.**
+> **Un launch boundary più piccolo può essere una mitigation migliore di un'architettura più grande.**
 
 ---
 
