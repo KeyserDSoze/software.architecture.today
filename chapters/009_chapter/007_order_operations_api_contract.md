@@ -21,14 +21,7 @@ operatore
 
 Le capability già definite sono soprattutto di lettura.
 
-Non abbiamo ancora definito abbastanza bene la semantica di:
-
-- refund;
-- retry payment;
-- retry shipment;
-- force transition;
-- assignment persistente;
-- escalation persistente.
+Non abbiamo ancora definito abbastanza bene la semantica di refund, retry payment e retry shipment, force transition, assignment persistente ed escalation persistente. Esporre endpoint prima di aver deciso queste regole trasformerebbe l'API in una fonte accidentale di business semantics.
 
 Questo dettaglio è importante.
 
@@ -63,13 +56,7 @@ Per la prima versione scegliamo HTTP request/response con JSON.
 
 Non perché REST sia il default universale.
 
-Perché il journey attuale è:
-
-- interattivo;
-- read-oriented;
-- browser-based;
-- senza requisito di streaming continuo;
-- senza requisito di temporal decoupling per le letture.
+Il journey attuale è interattivo, read-oriented e browser-based; non richiede streaming continuo né temporal decoupling per le letture. Per questo una normale API request/response ha oggi un fit migliore di tecnologie più complesse.
 
 Non introduciamo quindi GraphQL, gRPC, WebSocket o messaging soltanto per dimostrare che li conosciamo.
 

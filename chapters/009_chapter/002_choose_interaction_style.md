@@ -50,24 +50,11 @@ Fonte:
 
 - [gRPC — Introduction](https://grpc.io/docs/what-is-grpc/introduction/)
 
-Può essere un fit forte quando:
-
-- client e server sono sotto governance tecnica coordinata;
-- vogliamo contratti fortemente tipizzati;
-- generazione client/server è utile;
-- streaming o comunicazione service-to-service sono centrali;
-- l'overhead di un protocollo binario e toolchain dedicata è giustificato.
+gRPC può avere un fit forte quando client e server sono sotto governance tecnica coordinata, i contratti fortemente tipizzati e la generazione client/server comprano valore reale, oppure quando streaming e comunicazione service-to-service sono centrali. In cambio dobbiamo giustificare l'overhead di un protocollo binario e di una toolchain dedicata.
 
 Ma l'analogia con una chiamata locale può nascondere la realtà distribuita.
 
-Una chiamata remota continua ad avere:
-
-- latency;
-- timeout;
-- partial failure;
-- retry;
-- compatibility;
-- authorization.
+Una chiamata remota continua però ad avere latency e timeout, partial failure e retry, problemi di compatibility e authorization. La toolchain non cancella la fisica della rete.
 
 La sintassi da metodo non annulla la rete.
 
@@ -81,14 +68,7 @@ Fonte:
 
 Può essere utile quando diversi client hanno esigenze di lettura molto differenti e la possibilità di comporre query riduce proliferazione di endpoint o over-fetching.
 
-Ma sposta complessità altrove:
-
-- authorization a livello di campo o resolver;
-- query cost analysis;
-- caching;
-- observability;
-- N+1;
-- governance dello schema.
+GraphQL sposta complessità altrove: authorization a livello di campo o resolver, analisi del costo delle query, caching e observability. N+1 e governance dello schema diventano problemi che devono essere affrontati esplicitamente.
 
 Non è “REST più moderno”.
 
@@ -106,28 +86,13 @@ Può essere appropriato quando il server deve inviare aggiornamenti frequenti e 
 
 Non dobbiamo usarlo soltanto perché il requisito contiene la parola “real time”.
 
-Prima chiediamo:
-
-- quanto deve essere fresco il dato?
-- chi produce gli aggiornamenti?
-- quanti client restano connessi?
-- che cosa succede dopo una disconnessione?
-- come recuperiamo gli eventi persi?
-- polling o server-sent update sarebbero sufficienti?
+Prima di scegliere WebSocket chiediamo quanto debba essere fresco il dato, chi produca gli aggiornamenti e quanti client debbano restare connessi. Dobbiamo sapere che cosa succeda dopo una disconnessione, come recuperare eventuali eventi persi e se polling o server-sent update sarebbero già sufficienti.
 
 ### Webhook
 
 Un webhook inverte la direzione classica: invece di interrogare continuamente un provider, registriamo un endpoint che il provider chiamerà quando avviene qualcosa.
 
-Questo riduce polling, ma introduce nuovi problemi:
-
-- autenticità del sender;
-- retry;
-- duplicati;
-- ordering;
-- timeout;
-- replay;
-- endpoint pubblicamente raggiungibile.
+Un webhook riduce il polling, ma introduce autenticità del sender, retry e duplicati, ordering, timeout e replay. Inoltre il receiver deve spesso essere pubblicamente raggiungibile, con una superficie di sicurezza che il polling non aveva.
 
 Un webhook non è soltanto “una POST che arriva da fuori”.
 
@@ -143,15 +108,7 @@ Fonte:
 
 - [AsyncAPI — Introduction](https://www.asyncapi.com/docs/concepts/asyncapi-document)
 
-La separazione temporale può migliorare resilienza e indipendenza, ma introduce:
-
-- eventual consistency;
-- delivery semantics;
-- duplicate processing;
-- ordering;
-- replay;
-- dead letter;
-- observability distribuita.
+La separazione temporale può migliorare resilienza e indipendenza, ma introduce eventual consistency, delivery semantics e duplicate processing. Ordering, replay, dead letter e observability distribuita diventano parte del contratto operativo.
 
 Ancora una volta, il decoupling non elimina complessità.
 

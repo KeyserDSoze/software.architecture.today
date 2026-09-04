@@ -16,17 +16,7 @@ Ma l'endpoint è soltanto la parte più visibile.
 
 un'API stabilisce una relazione tra chi offre una capability e chi dipende da essa.
 
-Quella relazione contiene promesse:
-
-- che cosa significa una richiesta;
-- che cosa significa una risposta;
-- quali dati possono mancare;
-- quali errori sono possibili;
-- che cosa può essere ritentato;
-- quali operazioni hanno side effect;
-- quali autorizzazioni servono;
-- quali limiti esistono;
-- come cambia il contratto nel tempo.
+Quella relazione contiene promesse sul significato di richieste e risposte, sui dati che possono mancare e sugli errori possibili. Definisce che cosa possa essere ritentato, quali operazioni producano side effect, quali autorizzazioni e limiti esistano e come il contratto possa cambiare nel tempo senza sorprendere i consumer.
 
 Per questo:
 
@@ -73,21 +63,9 @@ Il problema è distinguere coupling necessario da coupling accidentale.
 
 Un contratto buono rende intenzionale ciò che deve essere condiviso e nasconde ciò che non serve condividere.
 
-Il consumer deve conoscere:
+Il consumer deve conoscere il significato della capability e la forma del messaggio, le regole di compatibilità e le condizioni di errore.
 
-- il significato della capability;
-- la forma del messaggio;
-- le regole di compatibilità;
-- le condizioni di errore.
-
-Non dovrebbe conoscere:
-
-- il nome della tabella;
-- la struttura delle classi;
-- il framework ORM;
-- la topologia interna;
-- la strategia di caching;
-- la sequenza di chiamate interne.
+Non dovrebbe invece conoscere il nome della tabella o la struttura delle classi, il framework ORM, la topologia interna, la strategia di caching o la sequenza con cui il provider realizza internamente la capability.
 
 Questa separazione crea evolvibilità.
 
@@ -105,13 +83,7 @@ Non significa necessariamente scrivere per prima cosa OpenAPI o `.proto`.
 
 Prima dello schema viene la semantica.
 
-Per Order Operations, prima di decidere l'URI dobbiamo sapere:
-
-- che cosa significa “ordine problematico”;
-- chi può vederlo;
-- quanto può essere stale;
-- qual è la source of truth;
-- che cosa succede quando una dipendenza non risponde.
+Per Order Operations, prima di decidere l'URI dobbiamo sapere che cosa significhi “ordine problematico”, chi possa vederlo e quanto il dato possa essere stale. Dobbiamo conoscere la source of truth e decidere che cosa debba accadere quando una dipendenza non risponde.
 
 Solo dopo possiamo scegliere una rappresentazione.
 

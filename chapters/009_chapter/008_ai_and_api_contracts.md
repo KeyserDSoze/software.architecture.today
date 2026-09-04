@@ -2,16 +2,7 @@
 
 Le API sono uno dei punti in cui l'AI può produrre molto valore e molto debito con la stessa velocità.
 
-Un agente può generare in pochi minuti:
-
-- controller;
-- DTO;
-- OpenAPI;
-- client SDK;
-- test;
-- mock server;
-- documentation;
-- gateway policy.
+Un agente può generare in pochi minuti controller e DTO, OpenAPI e client SDK, test, mock server, documentazione e gateway policy. Proprio questa abbondanza rende facile confondere la completezza dell'impalcatura con la maturità del contratto.
 
 Questa capacità rende ancora più importante separare **generazione del contratto** da **decisione sul contratto**.
 
@@ -142,23 +133,9 @@ Ancora una volta:
 
 Un agente può generare centinaia di test da OpenAPI.
 
-Questo verifica bene:
+I controlli generati verificano bene schema, status code, required field, example e serialization.
 
-- schema;
-- status code;
-- required field;
-- example;
-- serialization.
-
-Non verifica automaticamente:
-
-- business invariant;
-- authorization semantics;
-- idempotency reale;
-- correctness sotto retry;
-- freshness;
-- compatibility semantica;
-- failure behavior tra dipendenze.
+Non verificano automaticamente business invariant e authorization semantics, idempotency reale o correctness sotto retry. Freshness, compatibility semantica e failure behavior fra dipendenze richiedono evidence diverse dalla sola conformità allo schema.
 
 La quantità di contract test non sostituisce la qualità del contratto.
 
@@ -186,14 +163,7 @@ requestSupervisorEscalation
 
 se e soltanto se queste capability esistono davvero nel modello funzionale.
 
-L'agent tool contract dovrebbe rendere espliciti:
-
-- side effect;
-- authorization;
-- idempotency;
-- confirmation requirement;
-- blast radius;
-- stop condition.
+Un agent tool contract dovrebbe rendere espliciti side effect e authorization, idempotency e confirmation requirement, blast radius e stop condition. Un tool non diventa sicuro perché l'endpoint sottostante è ben documentato.
 
 Questo tema tornerà nei capitoli AI-native.
 
@@ -201,15 +171,7 @@ Questo tema tornerà nei capitoli AI-native.
 
 Non serve approvare manualmente ogni campo di ogni DTO.
 
-Serve concentrare il gate sulle decisioni che diventano costose da cambiare:
-
-- semantic meaning;
-- public surface;
-- authorization boundary;
-- breaking change;
-- side effect;
-- irreversible operation;
-- cross-team contract.
+Serve concentrare il gate sulle decisioni costose da cambiare: semantic meaning e public surface, authorization boundary e breaking change, side effect e operazioni irreversibili, fino ai contract che attraversano team diversi.
 
 L'obiettivo non è rallentare la generazione.
 

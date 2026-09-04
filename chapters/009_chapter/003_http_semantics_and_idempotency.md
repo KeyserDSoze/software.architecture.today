@@ -103,15 +103,7 @@ Confondere idempotenza con “stesso response body” porta a contratti sbagliat
 
 Sapere che un metodo è idempotente non autorizza retry illimitati.
 
-Dobbiamo considerare:
-
-- timeout;
-- budget totale di latency;
-- backoff;
-- jitter;
-- load sulla dipendenza;
-- rate limiting;
-- failure correlation.
+Un retry va letto insieme al timeout e al budget totale di latency, al backoff e al jitter, al carico prodotto sulla dipendenza e ai suoi rate limit. Conta anche la failure correlation: durante un outage, molti retry indipendenti possono trasformarsi in un amplificatore comune.
 
 Un retry localmente ragionevole può diventare parte di una retry storm.
 

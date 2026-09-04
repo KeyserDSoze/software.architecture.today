@@ -18,18 +18,7 @@ Il problema non è impedire il cambiamento.
 
 Una breaking change non è soltanto un URL diverso.
 
-Può essere:
-
-- rimuovere un campo;
-- cambiarne il tipo;
-- rendere obbligatorio un campo prima opzionale;
-- cambiare il significato di un valore;
-- modificare una regola di ordering;
-- cambiare la semantica di un errore;
-- ridurre un limite;
-- cambiare default;
-- introdurre una nuova autorizzazione necessaria;
-- modificare timing o consistency in modo osservabile.
+Una breaking change non è soltanto rimuovere un campo o cambiarne il tipo. Può essere rendere obbligatorio ciò che prima era opzionale, cambiare il significato di un valore o una regola di ordering, modificare la semantica di un errore, ridurre un limite o cambiare un default. Anche introdurre una nuova autorizzazione o modificare timing e consistency in modo osservabile può rompere un consumer senza cambiare apparentemente lo schema.
 
 Un contratto può restare sintatticamente valido e diventare semanticamente incompatibile.
 
@@ -63,14 +52,7 @@ Possiamo versionare con:
 
 oppure media type, header o altre convenzioni.
 
-La scelta del meccanismo conta meno di alcune domande:
-
-- che cosa costituisce una versione?
-- quanto supportiamo la precedente?
-- come annunciamo deprecation?
-- come misuriamo chi la usa ancora?
-- possiamo migrare i consumer gradualmente?
-- esistono client fuori dal nostro controllo?
+La scelta del meccanismo conta meno delle domande che governano l'evoluzione: che cosa costituisca una versione, per quanto tempo supportiamo la precedente e come annunciamo la deprecation. Dobbiamo poter misurare chi usi ancora il contratto, migrare gradualmente i consumer e riconoscere quando esistano client fuori dal nostro controllo.
 
 Microsoft sottolinea che il versioning consente a client differenti di usare versioni differenti, ma ogni approccio porta trade-off.
 
@@ -118,14 +100,7 @@ Il livello di governance deve essere proporzionato al blast radius.
 
 OpenAPI, JSON Schema, Protocol Buffers e GraphQL schema possono rendere il contratto machine-readable.
 
-Questo abilita:
-
-- code generation;
-- validation;
-- compatibility check automatizzati;
-- documentazione;
-- contract testing;
-- linting.
+Una descrizione machine-readable abilita code generation e validation, compatibility check automatizzati, documentazione, contract testing e linting. Il valore cresce quando questi meccanismi proteggono una semantica già decisa, non quando cercano di sostituirla.
 
 Ma uno schema non descrive automaticamente tutta la semantica.
 
@@ -136,12 +111,7 @@ status:
   type: string
 ```
 
-non ci dice:
-
-- quali transizioni sono valide;
-- chi può cambiarlo;
-- quanto è fresco;
-- cosa succede durante una failure.
+non ci dice quali transizioni siano valide, chi possa cambiarle, quanto il dato sia fresco né che cosa accada durante una failure.
 
 Per questo il nostro `API Contract` conterrà schema **e** significato.
 

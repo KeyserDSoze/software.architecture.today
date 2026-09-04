@@ -14,13 +14,7 @@ Un `404` comunica una classe di problema.
 
 Un `403` ne comunica un'altra.
 
-Ma un client spesso ha bisogno di informazioni applicative più precise:
-
-- quale regola è stata violata?
-- quale campo è invalido?
-- l'errore è transitorio?
-- il consumer può correggere la richiesta?
-- esiste un identifier utile per supporto o tracing?
+Un client spesso ha bisogno di informazioni applicative più precise: quale regola sia stata violata o quale campo sia invalido, se l'errore sia transitorio e se il consumer possa correggere la richiesta. Un identifier utile per supporto o tracing può essere altrettanto importante dello status code.
 
 RFC 9457 definisce **Problem Details for HTTP APIs**, un formato machine-readable pensato proprio per evitare che ogni API inventi un proprio envelope di errore generico.
 
@@ -82,14 +76,7 @@ GET /problematic-orders
 
 Che cosa succede con 3 milioni?
 
-Una collection API deve decidere almeno:
-
-- pagination;
-- ordering;
-- filtering;
-- limiti di page size;
-- stabilità del cursore;
-- comportamento quando i dati cambiano tra due pagine.
+Una collection API deve decidere pagination, ordering e filtering, i limiti della page size e la stabilità del cursore. Deve soprattutto definire che cosa accada quando i dati cambiano fra due pagine, perché quella semantica è parte dell'esperienza del consumer.
 
 Azure Architecture Center include pagination e filtering tra le considerazioni esplicite di design per API che devono evitare payload inutilmente grandi.
 
@@ -135,12 +122,7 @@ Se accettiamo:
 
 potremmo trasformare un'API di dominio in un query engine generico.
 
-Questo aumenta:
-
-- superficie di supporto;
-- complessità di authorization;
-- possibilità di query costose;
-- dipendenza del consumer dal modello interno.
+Più flessibilità aumenta la superficie di supporto e la complessità dell'authorization, rende possibili query più costose e può legare maggiormente il consumer al modello interno che volevamo nascondere.
 
 Meglio esporre filtri coerenti con use case reali.
 
