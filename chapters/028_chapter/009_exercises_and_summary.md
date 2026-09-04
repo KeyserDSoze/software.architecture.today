@@ -1,198 +1,30 @@
 # 28.9 — Esercizi, autovalutazione e sintesi
 
-Questo capitolo non propone una nuova tecnologia.
+Questo capitolo non propone una nuova tecnologia. Propone un cambio di baricentro professionale.
 
-Propone un cambio di identità professionale.
-
-L'architect nell'era dell'AI non perde valore perché diagrammi, codice, ADR o analisi possono essere prodotti più velocemente.
-
-Perde valore soltanto se il suo contributo era limitato alla produzione di quegli artefatti.
-
-Il ruolo che resta — e diventa più importante — è quello di chi sa:
-
-```text
-capire il problema
-costruire comprensione condivisa
-riconoscere decisioni significative
-bilanciare trade-off
-rimanere ancorato alla realtà tecnica
-chiedere evidence
-progettare boundary
-rendere execution delegabile
-mantenere accountability
-far evolvere il sistema
-```
+L'architect nell'era dell'AI perde valore soltanto se il suo contributo era limitato alla produzione di diagrammi, ADR, checklist o codice. Quando questi output diventano più economici, cresce invece il valore di chi sa capire il problema, costruire comprensione condivisa, riconoscere decisioni significative, restare vicino alla realtà tecnica, negoziare trade-off, chiedere evidence adeguata e rendere l'execution delegabile senza perdere accountability.
 
 > **L'architect del 2030 non è il proprietario dei diagrammi. È uno dei governor del sistema di decisioni che rende possibile costruire, cambiare e operare software.**
 
----
+## Una sintesi in cinque movimenti
 
-# Idee chiave
+Il primo movimento è funzionale: l'architettura non può nascere da ticket che nessuno collega a journey, stati, invariant e ownership. L'analisi funzionale può avere specialisti; la comprensione funzionale deve essere condivisa da chi prende decisioni significative.
 
-## 1. Architecture è una responsabilità prima di essere un titolo
+Il secondo è tecnico: l'architect non deve implementare tutto, ma deve poter scendere abbastanza in profondità da riconoscere quando codice, runtime o infrastructure contraddicono il modello mentale. Breadth senza technical credibility produce astrazione vuota; depth senza systems thinking produce local optimization.
 
-Il titolo formale può cambiare.
+Il terzo è decisionale: quando generare alternative costa poco, judgment e reversibility diventano più importanti. La governance deve essere proporzionale al blast radius e l'evidence proporzionata al claim.
 
-Le responsabilità no.
+Il quarto è organizzativo: il sistema comprende team, budget, support, platform, security, decision authority e costi di coordinamento. L'architect scala attraverso guardrail e paved road, non accumulando approvazioni.
 
-Un team deve comunque gestire:
+Il quinto riguarda l'AI stessa: agent governance, permission, verification e learning diventano architecture. L'AI deve aumentare leverage senza trasformare la professional accountability in un output delegato.
 
-```text
-trade-off
-boundary
-ownership
-risk
-evolution
-evidence
-```
+## Esercizi
 
----
+Gli esercizi di questo capitolo servono a verificare capacità, non memoria.
 
-## 2. L'analisi funzionale non può essere delegata a un solo ruolo
+### Esercizio 1 — Functional literacy
 
-Specialisti possono guidarla.
-
-Ma architect, developer e altre persone che prendono decisioni significative devono avere una visione d'insieme del prodotto.
-
-> **L'analisi funzionale può avere specialisti. La comprensione funzionale non può avere un solo proprietario.**
-
----
-
-## 3. Technical depth resta necessaria
-
-Non per implementare tutto.
-
-Per riconoscere quando:
-
-```text
-diagramma
-≠
-codice reale
-
-configurazione
-≠
-proprietà dimostrata
-
-model output
-≠
-verità
-```
-
----
-
-## 4. Judgment cresce di valore quando le alternative costano meno
-
-Generare cinque soluzioni è più economico.
-
-Decidere quale merita di esistere continua a richiedere:
-
-```text
-context
-trade-off
-risk
-reversibility
-evidence
-```
-
----
-
-## 5. Il sistema comprende anche l'organizzazione
-
-Un architecture decision cambia:
-
-```text
-costo
-team ownership
-incident surface
-coordination
-support
-skill requirement
-```
-
-non soltanto componenti.
-
----
-
-## 6. Il ruolo scala con guardrail, non con approvazioni
-
-Un architect che deve approvare tutto non scala.
-
-Un architect che costruisce:
-
-```text
-policy
-fitness function
-paved road
-review trigger
-```
-
-può aumentare autonomia senza perdere coerenza.
-
----
-
-## 7. Agent governance è architecture
-
-Quando gli executor diventano agenti dobbiamo progettare:
-
-```text
-context
-scope
-permission
-verification
-stop condition
-```
-
-Non basta imparare a scrivere prompt migliori.
-
----
-
-## 8. Studiare con l'AI richiede deliberate practice
-
-L'AI può accelerare enormemente l'apprendimento.
-
-Ma dobbiamo continuare a:
-
-```text
-prevedere
-verificare
-ricostruire
-applicare
-insegnare
-```
-
-per evitare outsourced intuition.
-
----
-
-## 9. Breadth e depth non sono alternative
-
-La direzione è:
-
-```text
-ampiezza sufficiente per vedere il sistema
-+
-profondità sufficiente per non farsi ingannare
-+
-specialist gate quando serve
-```
-
----
-
-## 10. Il valore finale è aumentare la qualità delle decisioni del sistema
-
-Non rendere tutti dipendenti dall'architect.
-
-> **L'architect più scalabile rende più decisioni sicure anche quando non è presente.**
-
----
-
-# Esercizi
-
-## Esercizio 1 — Functional literacy
-
-Prendi una feature recente del tuo prodotto.
-
-Senza guardare il codice, scrivi:
+Prendi una feature recente e, senza guardare subito il codice, ricostruisci:
 
 ```text
 Problem
@@ -206,363 +38,100 @@ Ownership
 Open questions
 ```
 
-Poi confronta con Product/Analyst e col sistema reale.
+Confronta poi il risultato con Product, Analyst e sistema reale. Registra le differenze fra il tuo modello e la realtà.
 
-### Domanda
+### Esercizio 2 — Dal diagramma al sistema
 
-Dove la tua comprensione differiva dalla realtà?
+Scegli un boundary importante e trova nel repository entry point, dependency, persistence, test e telemetry. Poi cerca evidence runtime quando esiste.
 
----
+Domanda: il boundary vive davvero nel sistema oppure soltanto nel diagramma?
 
-## Esercizio 2 — Dal diagramma al codice
+### Esercizio 3 — Claim-to-evidence
 
-Scegli un boundary importante in un diagramma architetturale.
+Scegli cinque claim come `secure`, `recoverable`, `highly available`, `fast` o `AI grounded`. Per ognuno separa evidence attuale, evidence realmente necessaria e gap.
 
-Trova nel codice:
+L'obiettivo è scoprire quanti aggettivi sono ancora hypothesis.
 
-- entry point;
-- dipendenze;
-- persistence;
-- test;
-- telemetry.
+### Esercizio 4 — Trade-off aziendale
 
-### Domanda
+Prendi una decisione tecnologica recente e ricostruisci chi guadagna, chi paga, quale property viene acquistata, quale rischio diminuisce, quale aumenta e quale trigger farà riaprire la scelta.
 
-Il boundary esiste davvero o soltanto nel diagramma?
+Se sai descrivere soltanto il componente scelto, non hai ancora ricostruito la decisione.
 
----
+### Esercizio 5 — Guardrail vs approval
 
-## Esercizio 3 — Claim-to-evidence
+Rivedi le ultime review architetturali del team e separa i casi che richiedevano human judgment da quelli che avrebbero potuto essere una policy meccanicamente verificabile, una paved road o una fitness function.
 
-Scegli cinque claim del tuo sistema:
+La domanda non è "come automatizziamo tutte le review?". È "quale conoscenza stabile stiamo facendo pagare ancora come coordinamento umano?".
 
-```text
-highly available
-secure
-fast
-recoverable
-AI grounded
-```
+### Esercizio 6 — Agent delegation
 
-Per ciascuno scrivi:
+Per un task adatto a un coding agent definisci outcome, scope, out-of-scope, permission, verification e stop condition. Poi identifica il peggior errore plausibile che l'agente può fare restando dentro quei limiti.
 
-```text
-Claim
-Evidence attuale
-Evidence realmente necessaria
-Gap
-```
+Se il blast radius è ancora troppo grande, il task non è ancora abbastanza bounded.
 
-### Obiettivo
+### Esercizio 7 — Deliberate manual mode
 
-Scoprire quanti aggettivi sono ancora ipotesi.
+Scegli una competenza core che deleghi spesso all'AI: SQL analysis, threat modeling, IaC review, distributed failure reasoning o altro. Esegui il primo passaggio senza AI e usa l'AI soltanto come reviewer/adversary.
 
----
+Registra quale parte del modello riuscivi ancora a ricostruire autonomamente.
 
-## Esercizio 4 — Trade-off aziendale
+### Esercizio 8 — Capability Map personale
 
-Prendi una decisione tecnologica recente.
+Usa le undici capability ESI e assegna un livello `L1 Understand`, `L2 Apply`, `L3 Govern` o `L4 Grow the system`. Per ogni livello aggiungi evidence concreta.
 
-Ricostruisci:
+Poi individua non soltanto le aree deboli, ma anche quelle in cui il team dipende troppo da una sola persona.
 
-```text
-chi guadagna
-chi paga
-property acquistata
-cost driver
-rischio ridotto
-rischio aumentato
-trigger di review
-```
+### Esercizio 9 — Specialist trigger
 
-Se non riesci, probabilmente hai documentato la tecnologia e non la decisione.
+Per le aree dove non hai depth sufficiente, definisci il confine fra decisione autonoma e specialist review: quale evento fa scattare l'escalation, chi possiede l'authority e quale evidence preparare prima di coinvolgerlo.
 
----
+Questo trasforma "non sono esperto" in una policy operativa.
 
-## Esercizio 5 — Guardrail vs approval
+### Esercizio 10 — Make yourself less necessary
 
-Elenca le ultime dieci review architetturali che hai fatto.
+Prendi una decisione o un processo per cui il team dipende troppo da te. Chiediti se serve documentazione, teaching, un test, una fitness function, ownership metadata o un runbook.
 
-Classificale:
+L'obiettivo è ridurre la dipendenza senza ridurre la qualità.
 
-```text
-human judgment realmente necessario
-policy meccanicamente verificabile
-paved road mancante
-informazione mancante
-```
+## Autovalutazione
 
-### Domanda
+Dovresti riuscire a spiegare con esempi concreti perché l'AI aumenta il valore del judgment; perché un architect deve comprendere la functional analysis; quale technical depth è sufficiente per falsificare un modello mentale; perché architecture è una responsabilità prima di un titolo; come si traduce una technical property in business consequence; quando un guardrail è migliore di un approval gate; perché un secondo agente non è necessariamente un verifier indipendente; che cosa significa outsourced intuition; quando una paved road diventa uniformità ideologica; e perché rendere l'architect meno necessario può essere evidence di successo.
 
-Quante review potrebbero sparire se trasformassimo il problema in feedback automatico?
+Se le risposte restano astratte, torna agli artifact del capstone. Il percorso è stato costruito proprio per collegare concetto, decisione ed evidence.
 
----
+## Artefatto operativo — Architect Capability Map
 
-## Esercizio 6 — Agent delegation
-
-Prendi un task adatto a un coding agent.
-
-Definisci:
-
-```text
-Outcome
-Scope
-Out of scope
-Permission
-Verification
-Stop condition
-```
-
-Poi chiediti:
-
-> Qual è il peggior errore plausibile che l'agente può fare restando dentro questi limiti?
-
-Se il blast radius è ancora troppo grande, ridisegna il boundary.
-
----
-
-## Esercizio 7 — Deliberate manual mode
-
-Scegli una competenza core che deleghi spesso all'AI.
-
-Per esempio:
-
-```text
-SQL query analysis
-threat modeling
-IaC review
-distributed failure reasoning
-```
-
-Completa un piccolo esercizio senza chiedere all'AI il primo passo.
-
-Poi usa l'AI come reviewer.
-
-### Domanda
-
-Quale parte riuscivi ancora a ricostruire autonomamente e quale no?
-
----
-
-## Esercizio 8 — Capability map personale
-
-Usa le undici capability ESI:
-
-1. Product & Functional Analysis
-2. System Boundaries & Domain Design
-3. Technical & Code Literacy
-4. Data & Distributed Systems
-5. Security, Reliability & Operability
-6. Economics & Cost
-7. Evolution, Legacy & Reversibility
-8. AI Runtime Architecture
-9. Agentic Engineering Governance
-10. Enterprise Systems & Communication
-11. Evidence, Learning & Teaching
-
-Per ciascuna assegna:
-
-```text
-L1 Understand
-L2 Apply
-L3 Govern
-L4 Grow the system
-```
-
-Poi aggiungi **evidence**, non soltanto il livello.
-
----
-
-## Esercizio 9 — Specialist trigger
-
-Per le aree dove sei meno forte, definisci:
-
-```text
-quando posso decidere autonomamente?
-quando devo chiedere review?
-chi è lo specialista?
-quale decision authority possiede?
-```
-
-Questo trasforma “non sono esperto” in una policy operativa.
-
----
-
-## Esercizio 10 — Make yourself less necessary
-
-Prendi una decisione o un processo per cui il team dipende troppo da te.
-
-Chiediti:
-
-```text
-serve documentazione?
-serve un test?
-serve una fitness function?
-serve ownership metadata?
-serve un runbook?
-serve insegnamento?
-```
-
-### Obiettivo
-
-Ridurre la dipendenza senza ridurre la qualità.
-
----
-
-# Autovalutazione
-
-Dovresti riuscire a rispondere con sufficiente precisione a queste domande.
-
-1. Perché l'AI aumenta il valore del judgment?
-2. Perché un architect deve saper fare functional analysis?
-3. Quale livello di technical depth è utile a un architect?
-4. Perché architecture è una responsabilità prima di un titolo?
-5. Qual è la differenza fra technical property e business consequence?
-6. Perché un architect non dovrebbe approvare ogni decisione?
-7. Che cosa significa evidence proportional to claim?
-8. Come può l'AI creare decision theatre?
-9. Perché capability e permission devono restare separate?
-10. Quando un secondo agente non è un verifier indipendente?
-11. Che cosa significa outsourced intuition?
-12. Come si può usare l'AI come tutor adversarial?
-13. Perché la standardizzazione non deve diventare uniformità?
-14. Che cosa rappresentano i livelli L1–L4 della Capability Map?
-15. Perché “rendere l'architect meno necessario” può essere un segno di successo?
-
-Se molte risposte restano vaghe, torna ai relativi artefatti del capstone.
-
-Il libro è stato costruito proprio per collegare concetto e decisione reale.
-
----
-
-# Artefatto operativo — Architect Capability Map
-
-L'artefatto company-level di questo capitolo è:
+L'artefatto company-level è:
 
 ```text
 capstone/example-software-industries/ARCHITECT_CAPABILITY_MAP.md
 ```
 
-Non deve essere usato come classifica personale.
+Serve a learning, staffing, specialist trigger, continuity e portfolio risk. Non deve diventare una classifica personale.
 
-Serve per:
-
-- crescita;
-- staffing;
-- specialist trigger;
-- continuity;
-- individuazione di single point of failure di competenza;
-- progettazione del learning plan.
-
----
-
-# Che cosa cambia con l'AI
-
-Prima:
+La direzione ESI resta:
 
 ```text
-architect bottleneck
-→ capacità di analizzare e produrre artifact
-```
-
-Sempre di più:
-
-```text
-artifact generation
-→ economica
-
-alternative generation
-→ economica
-
-implementation
-→ più economica
-
-quindi
-
-problem clarity
-judgment
-verification
-ownership
-learning
-→ relativamente più preziosi
-```
-
-L'AI permette all'architect di attraversare più domini e di sperimentare più rapidamente.
-
-Ma aumenta anche la probabilità di produrre rapidamente qualcosa che nessuno comprende abbastanza.
-
-Per questo il ruolo evolve da:
-
-```text
-artifact producer
-```
-
-verso:
-
-```text
-designer and governor
-of systems that can produce artifacts
-```
-
----
-
-# Il compromesso del capitolo
-
-ESI sceglie di non costruire:
-
-```text
-architect generalisti senza depth
-```
-
-né:
-
-```text
-architect specialisti che diventano gate universali
-```
-
-La direzione è:
-
-```text
-broad literacy
+broad functional/systems literacy
 + credible technical depth
 + explicit specialist triggers
 + executable guardrails
-+ continuous learning
++ continuous evidence-based learning
 ```
 
-Costo accettato:
+Il costo accettato è tempo di studio, exposure cross-funzionale, mentoring e documentazione. Il quality floor è functional understanding, technical credibility, human decision authority, primary evidence e nessuna `architecture-by-autocomplete`.
 
-- tempo di studio;
-- rotazione fra problemi;
-- maggiore esposizione cross-funzionale;
-- necessità di insegnare e documentare.
+## Corollario
 
-Quality floor:
-
-```text
-functional understanding
-technical credibility
-human decision authority
-primary evidence
-no architecture-by-autocomplete
-```
-
----
-
-# Corollario
-
-L'architect del 2030 non è la persona che conosce più tecnologie.
-
-Non è neppure quella che produce più diagrammi o prompt.
-
-È la persona capace di stare abbastanza vicina al business da capire che cosa conta, abbastanza vicina alla tecnologia da capire che cosa è vero e abbastanza lontana dall'implementazione locale da vedere le conseguenze sul sistema intero.
+L'architect del 2030 non è la persona che conosce più tecnologie. È quella capace di stare abbastanza vicina al business da capire che cosa conta, abbastanza vicina alla tecnologia da capire che cosa è vero e abbastanza lontana dall'implementazione locale da vedere le conseguenze sul sistema intero.
 
 > **Quando l'execution diventa abbondante, l'architecture diventa sempre meno il mestiere di produrre risposte e sempre più il mestiere di governare le domande, le decisioni e l'evidence.**
 
-Il prossimo capitolo chiude il libro.
+Il prossimo capitolo porta questa tesi alla sua conseguenza finale.
 
-Non aggiungerà un altro catalogo di tecniche.
+Se l'AI può produrre una parte crescente dell'execution, la domanda non è chi scrive più righe di codice.
 
-Tornerà alla domanda con cui siamo partiti:
+È:
 
-> **Se l'AI può scrivere una parte sempre più grande del software, chi tiene il timone?**
+> **Chi tiene il timone?**
