@@ -1,319 +1,118 @@
 # Evidenze reali e failure mode del leverage individuale
 
-Il One-Man Project è una tesi prospettica.
+Il One-Man Project è una tesi prospettica. Oggi non esiste una fonte seria che dimostri universalmente che “una persona con agenti equivale a un intero team software”.
 
-Non esiste oggi una fonte seria che dimostri universalmente:
+Possiamo però osservare alcuni pezzi del modello: l’AI può aumentare l’execution individuale, ampliare la varietà dei task affrontabili e ridurre il costo di delegare lavoro. Possiamo anche osservare che questi benefici dipendono da context, environment, task quality e scrutiny.
 
-> “una persona con agenti equivale a un intero team software”.
+La posizione del libro deve quindi restare più precisa del marketing:
 
-Non useremo quindi casi marketing per far sembrare già risolta una questione che è ancora in evoluzione.
+> **L’evidence disponibile supporta un aumento del leverage individuale. Non supporta l’idea che collaborazione, ownership e continuity siano diventate obsolete.**
 
-Possiamo però raccogliere evidenze su pezzi differenti del modello:
+## Più task completati non equivale automaticamente a più valore
 
-1. l'AI può aumentare l'execution individuale;
-2. può ampliare la varietà dei task affrontabili;
-3. il valore dipende da context, environment e task quality;
-4. productivity non è riducibile al volume;
-5. collaboration, ownership e continuity restano proprietà organizzative.
-
-## Caso 1 — Field experiment Microsoft, Accenture e Fortune 100
-
-Nel 2025 Microsoft Research ha pubblicato l'analisi aggregata di tre randomized field experiment condotti su 4.867 software developer.
-
-Il risultato aggregato riportato è un incremento medio del **26,08% dei task completati** per i developer con accesso all'AI coding assistant, con differenze di adozione e impatto fra gruppi di esperienza.
+Nel 2025 Microsoft Research ha aggregato tre randomized field experiment su 4.867 software developer e ha riportato un aumento medio del 26,08% dei task completati per i developer con accesso a un AI coding assistant.
 
 Fonte:
 
 - [Microsoft Research — The Effects of Generative AI on High-Skilled Work](https://www.microsoft.com/en-us/research/publication/the-effects-of-generative-ai-on-high-skilled-work-evidence-from-three-field-experiments-with-software-developers/)
 
-### Cosa supporta
-
-L'evidence rende credibile che il throughput individuale possa aumentare in real-world software work.
-
-### Cosa non supporta
-
-Non dimostra:
+Questo rende credibile l’aumento di throughput individuale. Non consente però il salto:
 
 ```text
-26% more tasks
-→ 26% more business value
-→ fewer people always needed
+more completed tasks
+→ more business value
+→ fewer people always required
 → one person can own every decision
 ```
 
-Il salto sarebbe metodologicamente scorretto.
-
-## Caso 2 — OpenAI usa Codex come task multiplier
-
-OpenAI descrive team che usano Codex per:
-
-- comprendere codebase non familiari;
-- refactoring e migration multi-file;
-- test;
-- incident investigation;
-- esplorazione di alternative;
-- task asincroni lanciati mentre l'engineer rimane sul lavoro principale.
-
-Una pratica descritta è proprio usare la task queue per delegare fix laterali e tornarci in seguito per review.
-
-Fonte:
-
-- [OpenAI — How OpenAI uses Codex](https://openai.com/business/guides-and-resources/how-openai-uses-codex/)
-
-Questo è un esempio diretto di **execution multiplication**.
-
-Ma la stessa guida raccomanda:
-
-```text
-well-scoped tasks
-structured context
-development environment setup
-iteration
-review
-```
-
-Quindi l'esperienza reale non suggerisce:
-
-```text
-more autonomy by default
-```
-
-Suggerisce:
-
-```text
-better execution system
-→ more useful delegation
-```
-
-## Caso 3 — Trust non cresce automaticamente con l'uso
-
-Un'altra ricerca Microsoft pubblicata nel 2025 ha studiato l'uso reale di strumenti generativi di coding attraverso survey, randomized trial e diary study.
-
-Gli autori riportano che l'uso sostenuto ha aumentato la percezione di utilità e piacevolezza dello strumento, mentre la percezione di **trustworthiness del codice generato è rimasta sostanzialmente invariata**; la ricerca raccomanda di bilanciare productivity gain con scrutiny e critical evaluation.
-
-Fonte:
-
-- [Microsoft Research — Dear Diary: A Randomized Controlled Trial of Generative AI Coding Tools in the Workplace](https://www.microsoft.com/en-us/research/publication/dear-diary-a-randomized-controlled-trial-of-generative-ai-coding-tools-in-the-workplace/)
-
-È un risultato particolarmente utile per il One-Man Project.
-
-Più familiarità con l'agente non deve trasformarsi automaticamente in meno verifica.
-
-> **Friction che diminuisce non è evidence che il rischio sia diminuito nella stessa misura.**
-
-## Caso 4 — Productivity è multidimensionale
-
-Il framework SPACE nasce proprio dalla critica alle misure di developer productivity basate su una singola dimensione.
-
-Considera:
-
-```text
-Satisfaction and well-being
-Performance
-Activity
-Communication and collaboration
-Efficiency and flow
-```
+Il framework SPACE ci ricorda la stessa cosa da un’altra direzione: developer productivity è multidimensionale e include performance, communication, satisfaction, activity ed efficiency/flow.
 
 Fonte:
 
 - [Microsoft Research / ACM Queue — The SPACE of Developer Productivity](https://www.microsoft.com/en-us/research/publication/the-space-of-developer-productivity-theres-more-to-it-than-you-think/)
 
-Per il One-Man Project la lezione è semplice:
+Quindi il pilot non può essere valutato dal numero di agent task o PR prodotti.
 
-```text
-more commits
-more PR
-more agent tasks
-```
+## Il task multiplier richiede ancora un execution system
 
-non sono una definizione sufficiente di successo.
+OpenAI descrive l’uso interno di Codex per codebase understanding, refactoring, migration, test, incident investigation e task asincroni. È un esempio concreto di execution multiplication.
 
-## Caso 5 — GitHub SERVICEOWNERS
+Fonte:
 
-GitHub ha descritto come `SERVICEOWNERS` renda esplicito il mapping fra componenti/servizi e maintainer, alimentando un service catalog e aiutando anche la risposta agli incidenti.
+- [OpenAI — How OpenAI uses Codex](https://openai.com/business/guides-and-resources/how-openai-uses-codex/)
+
+La parte più utile, per il nostro capitolo, è che questa capacità non viene presentata come autonomia illimitata. Well-scoped task, structured context, environment setup, iteration e review restano parte del sistema.
+
+Il leverage quindi non nasce soltanto dal modello. Nasce dall’engineering environment che rende delegabile il lavoro.
+
+Un’altra ricerca Microsoft del 2025, basata su survey, randomized trial e diary study, ha riportato che l’uso sostenuto aumentava utilità percepita e piacevolezza dello strumento, mentre la percezione della trustworthiness del codice generato restava sostanzialmente invariata. Gli autori raccomandano di bilanciare productivity gain e critical evaluation.
+
+Fonte:
+
+- [Microsoft Research — Dear Diary: A Randomized Controlled Trial of Generative AI Coding Tools in the Workplace](https://www.microsoft.com/en-us/research/publication/dear-diary-a-randomized-controlled-trial-of-generative-ai-coding-tools-in-the-workplace/)
+
+È un risultato particolarmente importante per il One-Man Project:
+
+> **Friction che diminuisce non è evidence che il rischio sia diminuito nella stessa misura.**
+
+## Ownership esplicita resta una proprietà del sistema
+
+GitHub ha descritto `SERVICEOWNERS` come un modo per mantenere esplicito il mapping fra componenti/servizi e maintainer, utile anche durante incidenti e cambi organizzativi.
 
 Fonte:
 
 - [GitHub Engineering — SERVICEOWNERS](https://github.blog/engineering/architecture-optimization/how-we-organize-and-get-things-done-with-serviceowners/)
 
-Questo non è un caso di One-Man Project.
+Non è un caso di One-Man Project. È utile proprio perché mostra che, quando i sistemi crescono, ownership e maintainership devono essere rintracciabili indipendentemente da chi ha scritto il codice.
 
-È utile proprio per il motivo opposto: mostra che quando i sistemi crescono, rendere ownership e maintainer **espliciti, versionati e rintracciabili** è una proprietà importante indipendentemente da quante persone producano il codice.
+Se il nostro operating model aumenta execution ma rende più difficile capire chi può decidere, chi può operare e chi prende il controllo in assenza del lead, abbiamo guadagnato velocità perdendo organizzazione.
 
-Se il nostro One-Man Project non riesce a produrre una continuity story equivalente, stiamo guadagnando execution perdendo organizzazione.
+## Prima famiglia — Il control plane collassa sotto il proprio data plane
 
----
+Il failure più immediato è **review collapse**.
 
-# Failure mode
+Gli agenti producono più output, il lead accumula review, inizia a campionare superficialmente e i green check sostituiscono progressivamente la comprensione. Lo stesso meccanismo produce attention fragmentation: continue notifiche, repair loop e context switch consumano il tempo che avrebbe dovuto essere liberato dall’automazione.
 
-## 1. Hero-loop amplification
+La radice è comune: execution throughput supera decision e verification throughput.
 
-```text
-lead understands everything
-→ agents ask lead everything
-→ lead resolves everything
-→ repository learns little
-→ next task again depends on lead
-```
+I guardrail sono WIP limit, batch review, task semanticamente più piccoli, deterministic evidence e una regola semplice: quando il review backlog cresce, si smette di lanciare lavoro.
 
-L'AI aumenta la velocità con cui il sistema diventa dipendente dall'hero developer.
+## Seconda famiglia — Il leverage concentra conoscenza e falsa competenza
 
-### Mitigazione
+Nel **hero loop**, ogni domanda torna al lead. Il lead risolve, il repository impara poco, e il task successivo dipende di nuovo dalla stessa persona. Gli agenti aumentano la velocità con cui il sistema diventa dipendente dall’hero developer.
 
-- canonical knowledge;
-- task/decision routing;
-- update docs after decision;
-- secondary maintainer;
-- continuity drill.
+Una variante è la **synthetic seniority**: l’output specialistico dell’AI rende meno visibile il fatto che il lead non possiede abbastanza competenza per giudicarne le conseguenze.
 
-## 2. Review collapse
+Entrambi i failure si combattono con knowledge externalization, explicit non-authorities, specialist trigger e continuity drill. Il lead deve anche continuare a studiare: delegation non sostituisce competence development.
 
-```text
-agent output grows
-→ review queue grows
-→ lead skims
-→ green checks replace understanding
-```
+## Terza famiglia — Il progetto confonde sviluppo con operabilità
 
-Il control plane non scala alla stessa velocità del data plane.
+Un progetto può essere sviluppato da una persona e diventare implicitamente un **one-person production pager**. Se ogni incidente richiede quel lead, l’operating model non è sostenibile.
 
-### Mitigazione
+Qui entra l’organizzazione invisibile: platform, identity, security tooling, managed service, CI/CD e incident management sono parte del leverage. Nasconderli nella narrativa “una persona ha costruito tutto” porta a decisioni sbagliate su staffing e support.
 
-- WIP limit;
-- risk-based independent verification;
-- smaller semantic tasks;
-- deterministic evidence;
-- stop launching work when review backlog grows.
+Il One-Man Project enterprise deve quindi rendere esplicite le capability condivise su cui si appoggia e definire operating-hours, escalation e secondary maintainer.
 
-## 3. Synthetic seniority
+## Quarta famiglia — Il modello sopravvive oltre il proprio fit
 
-Il lead usa AI output specialistico e smette di distinguere fra:
+Il failure più lento può arrivare dal successo.
 
-```text
-I can generate it
-```
+Il prodotto cresce, arrivano più utenti, contract, incidenti e stakeholder. Il lead continua a difendere la struttura originale perché fino a quel momento ha funzionato.
 
-e:
+Anche agent cost e rework possono invertire l’economia: il costo per token sembra basso, ma retry, repair, review e unused output fanno salire il **cost per verified outcome**.
 
-```text
-I understand the consequences enough to own it
-```
+In entrambi i casi la radice è la stessa: l’operating model non viene più trattato come una decisione versionata.
 
-### Mitigazione
+Per questo gli exit trigger sono parte della design, non una nota finale.
 
-- specialist trigger;
-- explicit non-authorities;
-- “explain the failure mode” review;
-- training/study, non soltanto delegation.
+> **Il successo che rende necessario un team è comunque successo. Cambiare operating model in quel momento è evoluzione, non sconfitta.**
 
-## 4. Attention fragmentation
+## Che cosa possiamo concludere
 
-Troppi agenti producono:
+Le fonti reali disponibili consentono di sostenere che l’AI può aumentare capacità e velocità su molte attività software e che l’uso efficace richiede task, context, environment e review progettati.
 
-```text
-constant notification
-partial result
-follow-up
-repair loop
-context switch
-```
+Non consentono ancora di sostenere che la scala organizzativa corretta del software futuro sia “una persona per prodotto”.
 
-La persona diventa orchestratore di microinterruzioni e perde deep work.
+La conclusione del capitolo resta quindi deliberatamente più sobria:
 
-### Mitigazione
-
-- batch review;
-- WIP;
-- async queue;
-- priority class;
-- protected thinking time.
-
-## 5. One-person production pager
-
-Il progetto viene sviluppato da una persona e si assume implicitamente che quella persona debba essere sempre disponibile anche per operarlo.
-
-Questo non scala.
-
-### Mitigazione
-
-- enterprise on-call/platform support;
-- runbook;
-- SLO;
-- alert ownership;
-- secondary maintainer;
-- operating-hours decision.
-
-## 6. Invisible organization
-
-La narrativa dice:
-
-> “una persona ha costruito tutto”.
-
-Ma ignora:
-
-- cloud platform;
-- authentication;
-- security tooling;
-- open-source dependencies;
-- managed database;
-- CI/CD;
-- product/domain expert;
-- legal/compliance;
-- operations.
-
-Questo produce decisioni organizzative sbagliate perché attribuisce all'individuo leverage che in realtà proviene dall'ecosistema.
-
-### Mitigazione
-
-Nel Cost Model e nell'Operating Model rendere esplicite le capability condivise utilizzate.
-
-## 7. Agent-cost inversion
-
-Lanciare molti agenti sembra economico perché ogni singolo task costa poco.
-
-Poi arrivano:
-
-```text
-retry
-repair
-review
-rework
-conflict
-unused output
-```
-
-Il costo per token resta basso mentre il costo per **verified outcome** cresce.
-
-### Mitigazione
-
-- unit economics agentiche;
-- cost per accepted/verified task;
-- retry budget;
-- WIP limit.
-
-## 8. The project cannot survive success
-
-Il One-Man Project funziona molto bene.
-
-Il prodotto cresce.
-
-Arrivano più utenti, contratti, incidenti e stakeholder.
-
-Il lead continua a difendere la struttura originale perché “finora ha funzionato”.
-
-### Mitigazione
-
-Exit trigger espliciti.
-
-> **Il successo che invalida il nostro operating model è comunque successo. Cambiare modello in quel momento è evoluzione, non sconfitta.**
-
-## La lezione delle fonti
-
-Le evidenze reali disponibili ci consentono di sostenere con buona confidenza che l'AI può aumentare capacità e velocità su molte attività software.
-
-Non ci consentono ancora di sostenere che la scala organizzativa corretta del software futuro sia “una persona per prodotto”.
-
-Quindi il libro prende una posizione più prudente e, secondo noi, più utile:
-
-> **Tratta l'aumento di leverage individuale come una nuova capability da governare, non come una prova che collaborazione, specializzazione e continuità siano diventate obsolete.**
+> **Tratta l’aumento di leverage individuale come una nuova capability da governare. Misura outcome, scrutiny, continuity e costo; poi lascia che l’evidence decida quanto piccolo può davvero diventare il control plane umano.**
