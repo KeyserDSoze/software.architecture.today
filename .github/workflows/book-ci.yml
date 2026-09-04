@@ -6,8 +6,11 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Temporary write permission while the chapter-by-chapter prose revision is in progress.
+# The patch runner accepts only exact, reviewable replacements and deletes patch files
+# after applying them. This permission will return to read-only before the stable release.
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   validate-and-build:
@@ -18,6 +21,29 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 2
+      - name: Apply pending editorial prose patches
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          patches=(editorial_patches/*.json)
+          if [ ${#patches[@]} -eq 0 ]; then
+            echo "No pending editorial prose patches."
+            exit 0
+          fi
+          python scripts/apply_editorial_patches.py "${patches[@]}"
+          rm -f "${patches[@]}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Editorial patch produced no changes."
+            exit 0
+          fi
+          chapters=$(printf '%s\n' "${patches[@]}" | sed -E 's/.*chapter-([0-9]+).*/\1/' | paste -sd, -)
+          git commit -m "Revise prose rhythm for chapter ${chapters}"
+          git push origin HEAD:main
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
