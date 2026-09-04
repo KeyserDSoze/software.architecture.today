@@ -27,7 +27,7 @@ come entry point tool-neutral.
 
 Il file non contiene l'intera architettura. Dichiara il purpose di Order Operations, indirizza alla Repository Map, mostra i golden command, richiama pochi boundary ad alto valore e definisce quando il task deve fermarsi.
 
-Questa scelta è intenzionale. GitHub potrebbe avere proprie superfici di custom instruction e altri agenti potrebbero usare formati differenti. Nel Capitolo 21 non abbiamo però una esigenza che giustifichi più copie della stessa conoscenza.
+Questa scelta è intenzionale. GitHub potrebbe avere proprie superfici di custom instruction e altri agenti potrebbero usare formati differenti. Nel Capitolo 21 non abbiamo però un'esigenza che giustifichi più copie della stessa conoscenza.
 
 ```text
 canonical operating entry point
