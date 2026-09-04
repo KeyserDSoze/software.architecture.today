@@ -1,293 +1,198 @@
-# Task boundary e issue readiness
+# 21.5 — Task boundary e issue readiness
 
-Un repository può essere perfettamente documentato e comunque ricevere task impossibili da delegare bene.
+Un repository può essere molto ben documentato e ricevere comunque task impossibili da delegare responsabilmente.
 
-Esempio:
+“**Migliora il sistema di priority**” è un buon esempio. Potrebbe significare cambiare una business rule, ridurre latency, rimuovere legacy, aggiungere persistenza, modificare UX o autorizzare il candidate rollout. Un agente può scegliere una di queste interpretazioni e implementarla in pochi minuti.
 
-```text
-Migliora il sistema di priority.
-```
+La velocità non rende la richiesta più chiara. Rende l'ambiguità più produttiva.
 
-Che cosa significa?
+> **Repository-ready e task-ready sono due proprietà diverse.**
 
-- modificare la business rule?
-- ottimizzare performance?
-- rimuovere legacy?
-- cambiare UX?
-- aggiungere persistenza?
-- fare rollout della candidate policy?
+Il repository rende persistente ciò che è normalmente vero. Il task descrive il delta: ciò che deve diventare vero adesso.
 
-Un agente può scegliere una interpretazione plausibile e implementarla molto velocemente.
+## Il task è un contratto temporaneo
 
-Questo non rende il task ben specificato.
+Se il repository contiene purpose, boundary, decision context e verification path, la issue non deve ricopiare tutta l'architettura. Deve aggiungere il cambiamento che quel contesto non può conoscere in anticipo.
 
-Rende l'ambiguità più produttiva.
-
-## Repository-ready e task-ready sono due proprietà diverse
-
-Un repository AI-ready fornisce contesto stabile.
-
-Un task AI-ready fornisce il delta.
-
-Possiamo rappresentarlo così:
+Possiamo rappresentare la relazione così:
 
 ```text
-Repository context
-  what is normally true
+repository context
+= stable operating model
 
-Task context
-  what must change now
+task context
+= requested delta
 ```
 
-Se il task ripete tutto il repository, il contesto persistente non sta funzionando.
+Una buona issue rende leggibili problema, outcome atteso, scope semantico, ciò che resta fuori scope, acceptance criteria, route verso il contesto rilevante, verification ed eventuali decisioni ancora aperte.
 
-Se il task contiene soltanto un titolo generico, manca il delta.
+Non serve trasformare ogni ticket in un template burocratico di otto sezioni. Serve che quelle informazioni siano recuperabili senza obbligare l'esecutore a inventarle.
 
-## Il task come contratto temporaneo
-
-Una issue efficace dovrebbe contenere almeno:
-
-```text
-Problem
-Desired outcome
-Scope
-Out of scope
-Acceptance criteria
-Relevant context
-Verification
-Stop conditions / open decisions
-```
-
-Non sempre servono otto sezioni formali.
-
-Serve però che l'informazione esista.
-
-GitHub raccomanda per il proprio coding agent task chiari e ben scoped, con descrizione del problema, acceptance criteria e indicazioni sui file rilevanti. OpenAI, descrivendo come usa Codex, suggerisce di strutturare i prompt come issue GitHub includendo percorsi, componenti, diff o riferimenti utili quando pertinenti.
+GitHub raccomanda per i coding agent task chiari e ben scoped, con problema, acceptance criteria e indicazioni utili sui componenti coinvolti. OpenAI, descrivendo il proprio uso di Codex, suggerisce analogamente task strutturati come issue, con riferimenti a file, componenti o diff quando aiutano l'esecuzione.
 
 Fonti:
 
 - [GitHub Docs — Responsible use of Copilot agents](https://docs.github.com/en/copilot/responsible-use/agents)
 - [OpenAI — How OpenAI uses Codex](https://openai.com/business/guides-and-resources/how-openai-uses-codex/)
 
-Queste pratiche non sono interessanti perché appartengono a due vendor.
+La convergenza non è interessante perché arriva da due vendor. È interessante perché ribadisce un principio di software engineering: **l'execution è più affidabile quando il lavoro ha un confine verificabile**.
 
-Sono interessanti perché convergono su un principio di software engineering già noto:
+## Scope semantico prima della file list
 
-> **l'execution è più affidabile quando il lavoro ha un confine verificabile.**
+Dire all'agente di modificare `src/priority/confirmed-priority-policy.ts` limita il luogo, non il significato.
 
-## Scope non è una lista di file
-
-Possiamo dare all'agente:
-
-```text
-Modify:
-src/priority/confirmed-priority-policy.ts
-```
-
-ma questo non spiega il boundary funzionale.
-
-Meglio:
-
-```text
-Goal:
-Add a new confirmed priority rule for X.
-
-Allowed semantic change:
-X -> Urgent before default rule.
-
-Preserve:
-Closed
-ManualHold
-RepeatedPaymentFailure
-ED-001
-
-Likely files:
-src/priority/*
-tests/priority-policy.test.mjs
-docs/priority-functional-analysis.md
-```
-
-I file sono hint.
-
-Il vero scope è semantico.
-
-## Out of scope
-
-L'out of scope è particolarmente utile con agenti molto capaci.
-
-Un engineer umano può intuire che non deve “sistemare anche” un'area laterale.
-
-Un agente può vedere cinque opportunità e trasformare un task locale in repository-wide cleanup.
-
-Esempio:
-
-```text
-Out of scope:
-- no database schema change
-- no public API change
-- no legacy deletion
-- no cloud topology change
-- no package/framework migration
-```
-
-Questo riduce il blast radius senza impedire all'agente di scegliere la soluzione locale migliore.
-
-## Acceptance criteria osservabili
-
-Un acceptance criterion deve essere verificabile.
-
-Debole:
-
-```text
-Priority should work better.
-```
-
-Migliore:
-
-```text
-Given an Open Payment case with 3 failed attempts,
-priority remains Urgent.
-
-Given Enterprise tier without another urgency condition,
-priority remains Standard.
-```
-
-Ancora migliore quando esiste anche il layer di evidence:
-
-```text
-Verification:
-npm run typecheck
-node --test tests/priority-policy.test.mjs
-node --test tests/architecture-fitness.test.mjs
-```
-
-## Unknown non nascosti
-
-Una issue non deve fingere di sapere ciò che non sappiamo.
-
-Esempio:
-
-```text
-Open decision:
-We do not yet know whether the new priority must be persisted.
-Do not add persistence in this task.
-Stop if implementation requires it.
-```
-
-Questa è una delle forme più utili di context engineering.
-
-L'agente non deve riempire il vuoto con una scelta tecnica.
-
-## One-way door
-
-Un task che attraversa una one-way door richiede un livello di authorization differente.
-
-Esempi:
-
-- distruzione di dati;
-- cambio incompatibile di contract pubblico;
-- cutover senza fallback;
-- apertura Internet;
-- cambio ownership del dato;
-- rimozione definitiva del legacy prima del completion gate.
-
-Una issue non dovrebbe poter autorizzare implicitamente una one-way door attraverso una frase vaga.
-
-Serve un decision record o un gate esplicito.
-
-## Issue-driven development
-
-Nel prossimo capitolo entreremo molto più a fondo nell'**Issue-driven development**.
-
-Qui ci interessa soltanto il rapporto con il repository.
-
-Un buon repository permette alla issue di essere corta.
+Una definizione migliore direbbe che vogliamo aggiungere una nuova regola confermata, quale precedence deve avere, quali behavior esistenti devono restare invariati e quali file sono probabilmente coinvolti.
 
 Per esempio:
 
 ```text
-Relevant context:
-See repository map -> Priority capability.
-Follow existing AGENTS.md stop conditions.
+Goal
+Add confirmed priority rule X before the default rule.
+
+Preserve
+Closed
+ManualReview
+RepeatedPaymentFailure
+ED-001
+
+Likely surfaces
+src/priority/*
+target tests
+priority functional analysis
 ```
 
-Questo è meglio di copiare 200 righe di architettura dentro ogni ticket.
+I path aiutano a navigare. Il vero scope è la **semantic surface** che il task è autorizzato a cambiare.
 
-## Handoff fra agenti
+Questa distinzione rende anche la review più forte: possiamo controllare se il diff soddisfa il delta richiesto invece di chiederci soltanto se ha modificato i file “giusti”.
 
-Il task boundary aiuta anche quando il lavoro passa fra più agenti.
+## Out of scope protegge dal task amplification
 
-Un discovery agent può produrre:
+Gli agenti capaci vedono facilmente opportunità laterali. Durante un change locale possono notare una dependency da aggiornare, un naming incoerente, una migration da ripulire o un pezzo di infrastruttura migliorabile.
+
+Questa capacità è utile. Diventa un failure mode quando ogni opportunità viene assorbita automaticamente nel task corrente.
+
+Chiamiamo questo fenomeno **task amplification**:
 
 ```text
-Relevant files
-Observed behavior
-Open questions
-Risk
-Recommended verification
+small scoped task
+→ adjacent improvement discovered
+→ scope expands
+→ more files / contracts / infra
+→ original acceptance becomes a small part of the diff
 ```
 
-Un implementation agent può lavorare sul delta.
+Il diff può essere tecnicamente buono e operativamente peggiore: più difficile da spiegare, verificare, rollbackare e attribuire a una singola decisione.
 
-Un reviewer agent può verificare acceptance criteria e architecture fitness.
+Per questo l'out of scope è particolarmente prezioso con esecutori veloci. Un task di priority può dire esplicitamente: niente schema, niente public API, niente legacy deletion, niente topology change.
 
-Se il task non ha boundary, ogni agente ricostruisce una versione diversa del problema.
+L'agente può ancora scoprire lavoro adiacente. Deve registrarlo come follow-up invece di trasformarlo in permission implicita.
 
-## Task amplification
+> **Scoprire lavoro fuori scope non autorizza ad assorbirlo.**
 
-Un failure mode nuovo è la **task amplification**.
+## Acceptance criteria: descrivere proprietà osservabili
+
+“Priority should work better” non è un acceptance criterion. Non ci dice quale cambiamento autorizziamo né quale comportamento dobbiamo preservare.
+
+Una forma osservabile è molto più forte:
 
 ```text
-small issue
-→ agent notices adjacent cleanup
-→ expands diff
-→ updates tests
-→ updates docs
-→ changes dependency
-→ changes infra
-→ original acceptance criteria become minor part of change
+Given Open + Payment + failedAttempts >= 3
+→ priority remains Urgent
+
+Given Enterprise tier without another urgency condition
+→ priority remains Standard
 ```
 
-Il diff può essere ottimo tecnicamente.
-
-Ma review e rollback diventano più difficili.
-
-La regola deve essere:
-
-> **Un agente può scoprire lavoro fuori scope. Non deve automaticamente assorbirlo nel task corrente.**
-
-Può registrarlo come follow-up.
-
-## Un task deve dichiarare il suo verification budget
-
-Non tutte le modifiche meritano un environment cloud completo.
-
-Una issue dovrebbe permettere di capire quali gate sono necessari.
+Queste frasi descrivono il risultato. La sezione Verification collega poi quel risultato agli oracle esistenti:
 
 ```text
-Verification budget:
+npm run typecheck
+npm test
+```
+
+oppure a gate più specifici quando il task tocca un boundary che il test locale non può verificare.
+
+Acceptance e verification restano concetti diversi: la prima dice **che cosa deve essere vero**, la seconda **come cerchiamo evidence che lo sia**.
+
+## Gli unknown devono restare unknown
+
+Una issue matura non finge di conoscere ogni dettaglio.
+
+Supponiamo di non aver ancora deciso se una nuova priority debba essere persistita. Il task può dichiararlo apertamente:
+
+```text
+Open decision
+Persistence ownership is unresolved.
+
+Task boundary
+Do not add persistence.
+Stop if the requested behavior cannot be implemented without it.
+```
+
+Questa frase vale molto più di una soluzione tecnica improvvisata. Impedisce a un agente di riempire un vuoto di dominio con un database change plausibile.
+
+È una continuazione naturale del vocabolario `Found → Inferred → Observed → Confirmed`: ciò che non è deciso non deve diventare vero soltanto perché l'esecuzione ha bisogno di una risposta.
+
+## One-way door richiede authority esplicita
+
+Alcuni task possono attraversare una soglia oltre la quale rollback e recovery cambiano natura: destructive migration, breaking contract, public ingress, data-ownership transfer, cutover senza fallback, rimozione definitiva del legacy.
+
+Una frase vaga in una issue non dovrebbe poter autorizzare queste decisioni per implicazione.
+
+Il task deve invece collegarsi al decision record, alla stop condition e all'owner autorizzato. Se manca uno di questi elementi, il problema non è “come implementiamo?”. È “chi può decidere che questo rischio è accettabile?”.
+
+Questo tema diventerà più esplicito nei capitoli sull'autonomia. Nel Capitolo 21 ci basta fissare il confine: **task specificity non crea authority**.
+
+## Verification budget: spendere evidence dove serve
+
+Il Capitolo 20 ci ha ricordato che anche la verifica ha un costo. Un task locale non deve necessariamente avviare un environment cloud completo; una modifica a identity o networking non può però accontentarsi di test puramente locali.
+
+Per questo una issue può dichiarare il proprio verification budget:
+
+```text
 local only
 ```
 
 oppure:
 
 ```text
-Verification budget:
 local + PostgreSQL integration
 ```
 
 oppure:
 
 ```text
-requires staging / real Azure identity
+requires Azure non-production evidence
 ```
 
-Questo collega Testing Architecture, cost model e agent execution.
+Il budget non è un tetto finanziario arbitrario. È il modo per collegare la claim al livello di fidelity necessario a verificarla.
 
-Il costo della verifica diventa parte del task.
+Se il gate richiesto non esiste, il task può ancora produrre codice. Ma il risultato deve restare `Codified` invece di essere promosso a `Verified` per convenienza.
 
-## La regola
+## Handoff e parallelismo hanno bisogno dello stesso boundary
 
-> **Il repository contiene ciò che resta vero fra i task. La issue contiene ciò che deve diventare vero in questo task.**
+Un task ben definito può attraversare più esecutori senza cambiare significato.
 
-Quando questa separazione funziona, possiamo aumentare l'autonomia senza aumentare nella stessa misura l'ambiguità.
+Un discovery agent può identificare file, behavior osservato, open question e verification candidate. Un implementation agent può lavorare sul delta. Un reviewer può confrontare diff, acceptance ed architecture fitness.
+
+Se il task non ha un boundary, ogni passaggio ricostruisce una versione diversa del problema e il parallelismo moltiplica l'ambiguità invece della capacità.
+
+Questo è uno dei motivi per cui nel Capitolo 22 useremo la issue come unità di orchestrazione.
+
+## La regola che prepara il capitolo successivo
+
+Il repository dovrebbe essere abbastanza ricco da rendere la issue **più corta**, non più lunga.
+
+La issue può dire:
+
+```text
+Relevant context
+Repository Map → Priority capability
+Follow AGENTS.md stop conditions
+```
+
+senza ricopiare duecento righe di architettura.
+
+Il repository contiene ciò che resta vero fra i task. La issue contiene ciò che deve cambiare in questo task.
+
+> **Quando questa separazione funziona, possiamo aumentare l'autonomia dell'execution senza aumentare nella stessa misura l'ambiguità del lavoro.**
