@@ -1,313 +1,85 @@
-## Secure SDLC: la security deve sopravvivere alla prossima commit
+## Secure SDLC: la security deve sopravvivere alla prossima modifica
 
-Un threat model perfetto non serve molto se il processo di sviluppo può introdurre vulnerabilità senza alcun controllo.
+Un threat model accurato serve poco se il normale processo di sviluppo può introdurre vulnerabilità senza accorgersene. Security by Design deve quindi attraversare requirements, design, code, dependency, build, test, artifact, deployment e operation.
 
-Security by Design deve quindi attraversare anche:
-
-```text
-requirements
-→ design
-→ code
-→ dependencies
-→ build
-→ test
-→ artifact
-→ deployment
-→ operation
-```
-
-NIST SSDF nasce proprio per integrare pratiche di secure software development nei diversi SDLC, con l'obiettivo di ridurre vulnerabilità, ridurne l'impatto quando restano e affrontarne le cause ricorrenti.
+NIST SSDF nasce proprio per integrare pratiche di secure software development nei diversi SDLC con l’obiettivo di ridurre vulnerabilità, limitarne l’impatto e affrontarne le cause ricorrenti.
 
 Fonte primaria:
 
 - [NIST SP 800-218 — Secure Software Development Framework](https://csrc.nist.gov/pubs/sp/800/218/final)
 
-## Security requirement verificabili
+La domanda del Secure SDLC non è “quanti scanner abbiamo?”. È **come trasformiamo le decisioni del threat model in proprietà che continuano a essere verificate mentre il repository cambia?**
 
-“L'app deve essere sicura” non è un requisito.
+## Requisiti security che possono fallire in modo osservabile
 
-Come nel Capitolo 6 con i quality attribute, anche qui gli aggettivi non bastano.
+“L’app deve essere sicura” non è un requirement verificabile. È molto più utile scrivere che un Operations Operator non può leggere un case di un tenant non autorizzato, che la runtime identity non può cambiare RBAC Azure, che un production secret non può entrare nel repository o che una vulnerability critica non accettata blocca la promotion.
 
-Meglio:
-
-```text
-una Operations Operator non può leggere OperationalCase di un tenant non autorizzato
-
-una runtime identity non può modificare RBAC Azure
-
-un secret non può essere committed nel repository
-
-un package con vulnerability critica non accettata non può essere promosso in produzione
-```
-
-OWASP ASVS è utile perché fornisce un riferimento strutturato per requisiti e verifiche di application security, utilizzabile come metrica e come guidance.
+OWASP ASVS offre un riferimento strutturato per requisiti e verifiche di application security.
 
 Fonte:
 
 - [OWASP — Application Security Verification Standard](https://owasp.org/www-project-application-security-verification-standard/)
 
-Non adotteremo ASVS come checklist totale in ogni capitolo.
+Non lo trasformiamo in una checklist totale. Lo usiamo per non affidare alla memoria del team le verifiche pertinenti al nostro scope.
 
-Lo useremo come una delle fonti per verificare che i controlli applicativi importanti non dipendano soltanto dalla memoria del team.
+## Review e scanning risolvono problemi diversi
 
-## Code review
+Una code review security-aware cerca authorization bypass, injection, unsafe deserialization, mass assignment, secret leakage, logging eccessivo, SSRF, path traversal, crypto impropria e permission amplification. Un agente AI può essere molto efficace nel primo pass, ma un finding non è automaticamente una vulnerabilità e l’assenza di finding non dimostra sicurezza.
 
-Una code review security-aware cerca anche:
+SAST può trovare pattern rischiosi nel codice; non conosce però da solo la regola secondo cui un Operator può creare una Payment Escalation, un Supervisor può avere override specifici e Payments rimane owner del refund. Lo static analysis e il domain understanding coprono failure differenti.
 
-- authorization bypass;
-- injection;
-- unsafe deserialization;
-- mass assignment;
-- secret leakage;
-- logging eccessivo;
-- path traversal;
-- SSRF;
-- weak crypto usage;
-- dependency non necessarie;
-- permission amplification.
+Lo stesso vale per Software Composition Analysis. Sapere che una dependency ha una CVE è importante, ma supply-chain risk comprende anche provenienza, maintainer, transitive dependency, codice eseguito in build/install, registry, determinismo delle versioni e capacità di aggiornare rapidamente.
 
-L'AI può fare un primo pass molto efficace.
+## Determinismo rende verificabile ciò che distribuiamo
 
-Ma un finding generato non equivale a una vulnerabilità reale e l'assenza di finding non equivale a sicurezza.
+Lockfile, build riproducibili e artifact provenance non rendono automaticamente sicure le dependency. Rendono però più deterministico **che cosa** stiamo verificando e distribuendo.
 
-Serve correlare il codice con il threat model.
+Una SBOM può rispondere a domande operative come “questa vulnerability riguarda davvero un componente presente nell’artifact in produzione?”. È uno strumento di conoscenza e response, non una certificazione di supply-chain security.
 
-## Static analysis
+Dovremmo inoltre poter ricondurre un artifact al commit e alla pipeline che l’ha prodotto, sapere quali dependency vi siano entrate e promuovere lo stesso artifact fra ambienti invece di ricostruirlo silenziosamente in ogni stage.
 
-SAST può trovare classi di problema nel codice prima dell'esecuzione.
+## Un secret committed va considerato compromesso
 
-Ma non può sapere da solo che:
+Secret scanning locale, in CI o tramite repository protection riduce la probabilità che una credenziale entri nella history. Se succede, cancellare la riga non basta: la credenziale può essere già stata copiata e deve essere ruotata o revocata.
 
-```text
-Operator può creare PaymentEscalation
-Supervisor può approvare override
-Payments possiede il refund
-```
+Questo è un buon esempio di `assume breach`: il controllo preventivo può fallire, quindi serve anche una response strategy.
 
-Quindi static analysis e domain understanding risolvono problemi diversi.
+## La pipeline è una identity privilegiata
 
-## Software Composition Analysis
+CI/CD può produrre artifact, cambiare infrastruttura, distribuire codice e modificare configuration. Un token pipeline con privilegi di subscription owner e lunga durata può quindi avere un blast radius superiore al runtime applicativo.
 
-Una parte crescente del software arriva da dependency.
+La direzione preferibile è federation/workload identity con deployment role scoped, audit e, dove il rischio lo giustifica, environment protection o approval mirate. Il dettaglio della pipeline arriverà più avanti, ma il threat model deve includerla già ora.
 
-Il rischio non è soltanto:
+Runtime identity e deployment identity rimangono separate proprio perché una compromissione nei due percorsi non deve aprire gli stessi poteri.
 
-```text
-questa library ha una CVE?
-```
+## Environment separation deve essere reale
 
-Ma anche:
+Dev, staging e production devono separare dati, permission, identity, secret e target di deployment. Una credential development capace di modificare production annulla gran parte del valore degli ambienti separati.
 
-- chi la mantiene?
-- è ancora necessaria?
-- quale codice esegue durante build/install?
-- quale transitive dependency introduce?
-- da quale registry arriva?
-- la versione è deterministica?
-- possiamo aggiornare rapidamente?
+Non è necessario che ogni ambiente abbia identica capacity, ma i boundary di privilegio e il deployment mechanism devono essere abbastanza simili da rendere attendibile ciò che testiamo.
 
-Supply chain security inizia anche dalla capacità di sapere cosa stiamo eseguendo.
+## Platform Engineering rende la strada sicura la strada facile
 
-## Lockfile e build riproducibile
-
-Nel capstone TypeScript usiamo un lockfile quando installeremo le dependency reali.
-
-L'obiettivo è ridurre la variabilità fra build.
-
-Non significa che un lockfile renda sicure le dependency.
-
-Significa che rende più deterministico ciò che stiamo verificando.
-
-## SBOM
-
-Una Software Bill of Materials può aiutare a conoscere i componenti inclusi in un artifact.
-
-Ma anche qui:
-
-```text
-SBOM presente
-≠ supply chain secure
-```
-
-Serve per rispondere meglio a domande come:
-
-> Questa vulnerability riguarda un componente che abbiamo distribuito?
-
-Il valore è operativo e investigativo.
-
-## Secret scanning
-
-Il repository deve impedire il più possibile che secret reali entrino nella history.
-
-Controlli possibili:
-
-- pre-commit/local scanning;
-- CI scanning;
-- repository secret scanning;
-- push protection;
-- policy sui file di configurazione.
-
-Ma se un secret viene committed, la correzione non è soltanto cancellare la riga.
-
-Serve assumere compromissione e ruotare/revocare la credenziale.
-
-## Pipeline identity
-
-La CI/CD pipeline è una identity privilegiata.
-
-Può potenzialmente:
-
-- produrre artifact;
-- modificare infrastruttura;
-- distribuire codice;
-- cambiare config.
-
-Quindi deve ricevere least privilege quanto il runtime.
-
-Pattern pericoloso:
-
-```text
-CI secret = subscription owner credential senza scadenza
-```
-
-Direzione migliore:
-
-```text
-federated identity / workload identity
-+ scoped deployment role
-+ environment approval dove giustificato
-+ audit
-```
-
-Il dettaglio della pipeline arriverà più avanti, ma il threat model deve includerla già adesso.
-
-## Artifact integrity
-
-Dobbiamo poter rispondere:
-
-- quale commit ha prodotto questo artifact?
-- quale pipeline?
-- con quali dependency?
-- è lo stesso artifact promosso fra ambienti?
-- è stato modificato dopo la build?
-
-La sicurezza della supply chain non è soltanto “scannerizzare il codice”.
-
-È preservare la provenienza dell'eseguibile.
-
-## Environment separation
-
-Dev, staging e production non devono differire soltanto per nome.
-
-Serve separare:
-
-- data;
-- access;
-- identity;
-- secret;
-- permission;
-- deployment target.
-
-Una credenziale dev che può modificare production annulla gran parte della separazione ambientale.
-
-## Security baseline automatizzata
-
-Microsoft Well-Architected raccomanda di definire baseline di sicurezza, documentare configurazioni, automatizzare i controlli quando possibile e includere threat modeling, scanning e testing nel processo di sviluppo.
+Microsoft Well-Architected raccomanda security baseline, configurazioni documentate, automation dei controlli e integrazione di threat modeling, scanning e testing nel processo di sviluppo.
 
 Fonte:
 
 - [Microsoft Learn — Establish a security baseline](https://learn.microsoft.com/azure/well-architected/security/establish-baseline)
 
-Per ESI, Platform Engineering deve quindi rendere facile la strada sicura:
+In ESI questo significa approved IaC modules, policy baseline, managed identity, central logging, private networking capability e security scanning default. Platform non decide l’authorization applicativa, ma evita che ogni workload debba reinventare TLS, identity foundation e log collection.
 
-```text
-approved IaC modules
-policy baseline
-managed identity
-central logging
-private DNS/network capability
-security scanning defaults
-```
+La distinzione fra guardrail e gate rimane importante. HTTPS-only, minimum TLS, secret scan o alcune public-access restriction sono buoni candidati all’enforcement automatico. Nuovo public ingress, nuovo privileged role, acceptance temporanea di una critical vulnerability o una nuova regulated data class possono invece meritare una decisione esplicita.
 
-La platform non deve chiedere a ogni team di reinventare TLS, identity e log collection.
+Mettere tutto dietro approvazione manuale non è maturity. Spesso è soltanto automazione insufficiente.
 
-## Guardrail vs gate
+## AI: difesa e velocità di errore crescono insieme
 
-Un guardrail impedisce o segnala automaticamente classi di configurazione pericolose.
-
-Un gate richiede una decisione esplicita prima di procedere.
-
-Servono entrambi.
-
-Esempio:
-
-### Guardrail
-
-```text
-HTTP disabled
-minimum TLS enforced
-public network disabled on protected resources
-secret scan in CI
-```
-
-### Gate
-
-```text
-new public ingress
-new privileged role
-critical vulnerability accepted temporarily
-new regulated data class
-```
-
-Mettere tutto dietro approvazione manuale non è maturity.
-
-È spesso soltanto bassa automazione.
-
-## AI e secure development
-
-L'AI aumenta sia la capacità difensiva sia la velocità con cui possiamo introdurre errori.
-
-Può generare:
-
-- security test;
-- IaC policy review;
-- secret scan rule;
-- threat candidate;
-- dependency analysis;
-- patch.
-
-Ma può anche generare:
-
-- authorization incompleta;
-- crypto improvvisata;
-- validation superficiale;
-- configurazioni cloud permissive;
-- dependency non necessarie;
-- security theater molto convincente.
-
-Quindi:
+L’AI può generare security test, policy review, dependency analysis e patch. Può anche produrre authorization incompleta, crypto improvvisata, configurazioni permissive o security theater estremamente plausibile.
 
 > **La generazione rende economico aggiungere controlli. Non rende economico capire se controllano la minaccia giusta.**
 
-## Definition of Done security-aware
+Per questo una feature che attraversa un trust boundary dovrebbe portarsi dietro una piccola Definition of Done security-aware: threat model aggiornato quando necessario, authorization esplicita, negative test, data classification dei log, impact su secret/dependency/IaC e detection operativa.
 
-Una feature che attraversa un trust boundary dovrebbe chiedere almeno:
-
-```text
-[ ] threat model aggiornato se necessario
-[ ] authorization decision esplicita
-[ ] negative test definiti
-[ ] log data classification verificata
-[ ] secret/credential impact verificato
-[ ] dependency impact verificato
-[ ] IaC/network impact verificato
-[ ] operational detection considerata
-```
-
-Non serve trasformare ogni pull request in un audit completo.
-
-Serve impedire che le modifiche ad alto impatto sembrino normali modifiche locali.
-
-## La frase da ricordare
+Non trasformiamo ogni pull request in un audit. Rendiamo riconoscibili le modifiche che cambiano il rischio.
 
 > **La security che esiste solo nel documento di design scompare alla prima modifica non governata.**
