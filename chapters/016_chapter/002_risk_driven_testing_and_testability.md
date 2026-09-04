@@ -1,6 +1,6 @@
-# 16.2 — Risk-driven testing e testability
+## Risk-driven testing e testability
 
-Il modo più semplice per sprecare tempo nei test è iniziare dall'elenco degli strumenti.
+Il modo più semplice per progettare male una suite è iniziare dal framework:
 
 ```text
 Jest?
@@ -12,342 +12,205 @@ JMeter?
 Chaos Studio?
 ```
 
-È la stessa inversione che abbiamo già incontrato con database, cloud e pattern.
+È la stessa inversione incontrata con database, cloud e pattern. Prima viene il rischio. Poi la property che vogliamo mantenere vera. Solo dopo decidiamo quale boundary debba essere attraversato per produrre una prova credibile e, infine, quale strumento abbia il fit migliore.
 
-Prima viene il rischio.
+## Dal requisito alla evidence chain
 
-Poi la property da verificare.
-
-Solo dopo viene il tipo di test e infine lo strumento.
-
-## Dal requisito al rischio
-
-Consideriamo un requisito di Order Operations:
+Consideriamo una property di Order Operations:
 
 ```text
-la stessa Payment Escalation
-non deve creare due intent business
-quando il client ripete la stessa richiesta
+same EscalationId
+→ same business intent
 ```
 
-Questa frase contiene già molto più valore di:
+Il failure che vogliamo impedire non è “un metodo viene chiamato due volte”. È la creazione di un secondo intent business per una richiesta che il sistema dovrebbe riconoscere come replay.
 
-```text
-serve un unit test
-```
-
-Dal requisito possiamo derivare:
+Da qui possiamo derivare la catena:
 
 ```text
 property
 → same EscalationId = same business intent
 
 failure
-→ duplicate PaymentEscalation
+→ duplicate/conflicting PaymentEscalation
 
 impact
-→ duplicate operational workflow / downstream confusion
+→ workflow duplicato o semantica incoerente downstream
 
-boundary
-→ API + persistence + downstream contract
-
-best cheap evidence
+cheap evidence
 → deterministic application test
 
-additional evidence
-→ persistence/integration constraint test
-→ contract/redelivery test downstream
+real-boundary evidence
+→ PostgreSQL/API integration
+
+cross-domain evidence
+→ duplicate delivery test lato Payments & Risk
 ```
 
-Una singola property può quindi richiedere più test a livelli diversi.
+Questa è una differenza importante: più layer possono proteggere la stessa area senza duplicare la stessa assertion. Ognuno falsifica una claim diversa.
 
-Non perché vogliamo duplicare coverage.
+L’application test può dimostrare la regola. PostgreSQL può dimostrare constraint e transaction semantics. Il consumer test può dimostrare che una redelivery tecnica non crea un secondo workflow business.
 
-Perché livelli diversi rispondono a domande diverse.
+## Risk class come spiegazione, non come burocrazia
 
-## Risk matrix minimale
-
-Non serve trasformare ogni repository in un sistema GRC.
-
-Una classificazione leggera è spesso sufficiente.
-
-Per esempio:
+Non serve costruire un sistema GRC per ogni pull request. Una classificazione leggera basta se rende leggibile perché chiediamo evidence diversa.
 
 | Risk class | Esempio Order Operations | Evidence direction |
 |---|---|---|
-| low | rendering di una label | unit/UI mirato se utile |
-| medium | mapping di uno status | unit + contract/integration se attraversa boundary |
-| high | tenant authorization | negative application/integration + security evidence |
-| high | idempotency escalation | unit/application + DB integration + downstream duplicate test |
-| critical | futuro refund economico | multi-layer + audit + failure/retry + possibly manual review |
+| low | testo/label interna | test mirato soltanto se utile |
+| medium | mapping di status | application + boundary se condiviso |
+| high | tenant authorization | negative application + authenticated integration |
+| high | escalation idempotency | application + PostgreSQL/API |
+| critical | futura operazione economica | multi-layer + audit + failure/retry + domain gate |
 
-La classificazione non è universale.
+La classificazione non è universale. Serve a evitare che due change della stessa dimensione vengano trattati come equivalenti quando reversibilità, detectability e blast radius sono completamente diversi.
 
-Serve a rendere esplicito perché una modifica merita più o meno evidence.
-
-## Likelihood × impact non basta sempre
-
-La classica formula:
+Oltre a likelihood e impact, per il software chiediamo almeno:
 
 ```text
-Risk = likelihood × impact
+Quanto è reversibile?
+Quanto è rilevabile prima del danno?
+Quanto può espandersi il blast radius?
+Quale trust/business boundary attraversa?
 ```
 
-è utile, ma nei sistemi software conviene aggiungere almeno altre tre domande:
+Un `500` è spesso evidente. Un cross-tenant read può sembrare un normale `200`. Un errore locale può essere rollbackabile; un event già trasformato in side effect economico potrebbe richiedere compensazione o human review.
 
-### Quanto è reversibile?
+## Testability: poter produrre evidence senza deformare il design
 
-Un errore in un'etichetta è facile da correggere.
+Se una property importante è quasi impossibile da verificare, il problema può essere architetturale.
 
-Un evento già consegnato a un sistema economico può non esserlo.
+Clock globale non controllabile, network call dentro domain logic, database statico usato ovunque, business rule nel controller, identity ricostruita da global context implicito e broker SDK mischiato alla semantica dell’evento rendono difficile isolare le cause del comportamento.
 
-### Quanto è rilevabile?
-
-Un `500` può essere molto visibile.
-
-Un cross-tenant data leak può apparire come una normale `200`.
-
-### Quanto è ampio il blast radius?
-
-Un bug locale può colpire una singola schermata.
-
-Un errore in un contratto condiviso può colpire più consumer.
-
-Quindi il nostro ranking operativo considera:
-
-```text
-impact
-+ likelihood
-+ reversibility
-+ detectability
-+ blast radius
-```
-
-Non per produrre un numero scientifico finto, ma per confrontare rischi.
-
-## La testability è una proprietà architetturale
-
-Se una property importante è quasi impossibile da verificare, il problema potrebbe non essere il framework di test.
-
-Potrebbe essere l'architettura.
-
-Esempi:
-
-- clock globale non sostituibile;
-- random non controllabile;
-- rete chiamata direttamente dal domain code;
-- business logic dentro controller;
-- database access statico ovunque;
-- broker SDK mischiato alla semantica dell'evento;
-- environment-dependent singleton state;
-- identity ricostruita da global context implicito.
-
-Tutti questi design rendono più difficile produrre evidence deterministica.
-
-Per questo testability e modularità sono collegate.
-
-Order Operations ha già fatto alcune scelte utili:
+Order Operations ha già creato alcune porte utili:
 
 ```text
 PaymentEscalationUnitOfWork
-MessageBroker port
+MessageBroker
 OutboxPublisherClock
 OutboxPublisherPolicy
-Telemetry port
+Telemetry
 ```
 
-Queste porte non esistono “per fare mocking”.
+Non esistono per soddisfare un mocking framework. Rappresentano boundary reali: persistenza atomica, broker, tempo, policy di retry e osservabilità.
 
-Esistono perché rappresentano boundary reali e rendono controllabili tempo, persistence, broker e telemetry.
+Questa distinzione separa un **test seam** da abstraction theater.
 
-Se invece introducessimo un'interfaccia per ogni funzione soltanto per poter mockare tutto, staremmo facendo abstraction-driven testing.
+Un `Clock` ha senso se retry, expiry o reconciliation dipendono dal tempo. Un’interfaccia attorno a una pura concatenazione di stringhe probabilmente aggiunge design complexity soltanto per permettere un mock.
 
-Il test non deve deformare il design.
+> **La testability non è quante cose possiamo sostituire con fake. È quanto facilmente possiamo controllare le cause rilevanti e osservare l’outcome che ci interessa.**
 
-Deve aiutarci a vedere dove il design contiene dipendenze significative.
-
-## Test seam vs abstraction theater
-
-Un **test seam** è un punto in cui possiamo controllare una dipendenza necessaria al comportamento.
-
-Esempio:
-
-```ts
-interface Clock {
-  now(): Date;
-}
-```
-
-ha senso se il tempo influenza retry, expiry, SLA o scheduling.
-
-Un'interfaccia come:
-
-```ts
-interface StringConcatenator {
-  concat(a: string, b: string): string;
-}
-```
-
-probabilmente non protegge alcun boundary architetturale.
-
-La domanda è:
-
-> **questa abstraction esiste perché rappresenta una responsabilità o soltanto perché il test framework preferisce mockarla?**
-
-Se la risposta è la seconda, stiamo pagando design complexity per un dettaglio della suite.
-
-## Testability prima della produzione
-
-Microsoft Well-Architected tratta la testing strategy come parte della progettazione del workload e raccomanda di collegare test, critical user flow, SLO, risk area, environment e ownership già durante il design.
+Microsoft Well-Architected tratta la testing strategy come una parte del workload design, collegando risk area, critical user flow, environment e ownership già in fase architetturale.
 
 Fonte:
 
 - [Microsoft Learn — Build confidence in Azure workloads with effective testing practices](https://learn.microsoft.com/en-us/azure/well-architected/design-guides/testing)
 
-Questa posizione ha una conseguenza importante:
-
-```text
-architecture review
-```
-
-non dovrebbe chiedere soltanto:
+La conseguenza pratica è che un’architecture review dovrebbe chiedere, per una decisione importante:
 
 ```text
 come scala?
 come fallisce?
-come è protetto?
+come è protetta?
+come la osserveremo?
+come la falsifichiamo prima del deployment?
 ```
 
-ma anche:
+Se l’ultima risposta richiede “lo vedremo in produzione”, abbiamo trovato un gap di testability o un rischio deliberatamente accettato che deve essere dichiarato.
 
-```text
-come dimostriamo queste proprietà?
-```
-
-Se una decisione significativa non ha una risposta plausibile, la decisione non è ancora completamente governata.
-
-## Il test layer è una decisione economica
+## Il boundary più piccolo sufficiente
 
 Supponiamo di voler verificare:
 
-> una Payment Escalation con categoria `Shipping` deve essere rifiutata.
+> un case `Shipping` non può generare una Payment Escalation.
 
-Possiamo farlo con:
+Possiamo costruire application test, PostgreSQL integration, HTTP test o browser E2E. Tutti potrebbero fallire quando la regola viene violata. Ma il realismo aggiunto da database, network e browser non cambia la causa della property se la decisione vive interamente nel use case.
 
-1. unit/application test;
-2. integration test con PostgreSQL;
-3. HTTP test dell'app completa;
-4. end-to-end browser test.
+Il layer più economico è quindi quello piccolo.
 
-Tutti potrebbero rilevare lo stesso difetto.
+La regola generale è:
 
-Ma hanno costi diversi.
+> **Usa il layer più piccolo che contiene tutte le cause capaci di rendere falsa la property.**
 
-Se il comportamento vive interamente nel use case, il primo layer è probabilmente il miglior fit.
+Quando la property attraversa un boundary reale, saliamo.
 
-Un browser test non aggiunge automaticamente qualità.
+Se vogliamo dimostrare che una unique constraint protegge davvero una race, serve PostgreSQL. Se vogliamo verificare il wire contract reale, serve serialization/contract evidence. Se vogliamo sapere che la runtime identity non può modificare RBAC, serve Azure. Se vogliamo provare un failover, serve un environment capace di produrlo.
 
-Aggiunge realismo in parti del sistema che per quella property forse non sono rilevanti.
+Un fake può dimostrare che il nostro codice reagirebbe a una condizione simulata. Non dimostra che la tecnologia reale abbia esattamente quelle semantics.
 
-La regola è:
+## Determinismo: ridurre il numero di cose che il test sta accidentalmente misurando
 
-> **usa il layer più piccolo che contiene tutte le cause del comportamento che vuoi verificare.**
+Più una suite dipende da clock reale, Internet, servizi condivisi, test data globali, execution order, race temporali o state non isolato, più è facile che un failure racconti l’ambiente invece del prodotto.
 
-Quando il rischio attraversa boundary, sali di livello.
-
-## Dove il test piccolo non basta
-
-Alcune proprietà non possono essere provate con un fake.
-
-### SQL constraint
-
-Se vogliamo sapere che una unique constraint impedisce davvero due active escalation incompatibili, dobbiamo coinvolgere PostgreSQL o una semantica sufficientemente equivalente.
-
-### Serialization
-
-Se vogliamo sapere che il messaggio pubblicato soddisfa il contract wire reale, dobbiamo testare la serializzazione.
-
-### Azure RBAC
-
-Se vogliamo sapere che la runtime identity non può modificare RBAC, serve una negative verification sul vero permission boundary.
-
-### Zone failover
-
-Se vogliamo sapere che il workload recupera da un failover reale, serve un environment capace di produrre quell'evidence.
-
-Il fake può verificare che il nostro codice *reagirebbe* a un errore.
-
-Non dimostra che il sistema reale produrrà quell'errore nel modo che immaginiamo.
-
-## Hermeticity e determinismo
-
-Più una suite dipende da:
-
-- clock reale;
-- internet;
-- servizi esterni;
-- shared environment;
-- test data non isolati;
-- ordine di esecuzione;
-- race temporali;
-
-più aumenta il rischio che il test misuri l'ambiente invece del comportamento.
-
-Google ha storicamente promosso test piccoli e hermetic proprio per ottenere feedback più veloce e affidabile; ha anche pubblicato dati interni che mostrano una correlazione crescente fra dimensione del test e probabilità di flakiness.
+Google ha promosso a lungo test piccoli e hermetic per ottenere feedback veloce e affidabile e ha pubblicato dati interni che mostrano un aumento della flakiness nei test più grandi.
 
 Fonti:
 
 - [Google Testing Blog — Just Say No to More End-to-End Tests](https://testing.googleblog.com/2015/04/just-say-no-to-more-end-to-end-tests.html)
 - [Google Testing Blog — Test Sizes](https://testing.googleblog.com/2017/04/)
 
-Questo non significa evitare test grandi.
+Questo non vieta i test grandi. Chiede che il loro costo compri una evidence impossibile da ottenere più economicamente.
 
-Significa farli esistere quando comprano evidence che un test più piccolo non può comprare.
+## Test debt: anche il sistema di prova può perdere qualità
 
-## Test debt
+Una suite può accumulare debt sotto forme molto riconoscibili:
 
-Il test code può accumulare debito quanto il production code.
+```text
+fixture incomprensibili
+mock chain lunghe
+test duplicati
+snapshot approvati meccanicamente
+test disabilitati
+flaky test ignorati
+setup condiviso fragile
+coverage-driven test senza property
+suite lenta senza ownership
+```
 
-Segnali:
-
-- suite lenta senza motivo chiaro;
-- fixture incomprensibili;
-- mock chain lunghissime;
-- test duplicati;
-- assertion poco informative;
-- test disabilitati;
-- flaky test ignorati;
-- setup condiviso fragile;
-- snapshot approvati automaticamente;
-- coverage target che produce test senza property.
-
-Microsoft Well-Architected include esplicitamente il concetto di **test debt**: flaky test, coverage duplicata, test obsoleti e poor design possono erodere l'efficacia della suite nel tempo.
+Microsoft include esplicitamente flaky, duplicated e obsolete test nel concetto di test debt.
 
 Fonte:
 
 - [Microsoft Learn — Build confidence in Azure workloads with effective testing practices](https://learn.microsoft.com/en-us/azure/well-architected/design-guides/testing)
 
-Quindi una test strategy deve includere anche la manutenzione della propria evidence.
+Il problema è che questo debt degrada la qualità della evidence. Una pipeline lenta viene bypassata; un test che nessuno capisce viene aggiornato finché torna verde; un flake abituale smette di segnalare qualcosa.
 
-## Il test architecture review
+## Una review semplice prima di aggiungere un test
 
-Prima di aggiungere una suite chiediamo:
+Prima di aggiungere nuova suite code vogliamo poter rispondere a queste domande:
 
-1. quale rischio protegge?
-2. quale property verifica?
-3. perché questo layer è necessario?
-4. quale dipendenza reale deve includere?
-5. quale dipendenza può essere controllata?
-6. come fallisce quando il prodotto è sbagliato?
-7. come evitiamo che fallisca quando il prodotto è giusto?
-8. quanto costa eseguirlo?
-9. chi lo possiede quando diventa flaky?
-10. quale evidence produce per una decisione di release?
+```text
+Quale rischio/property protegge?
+Quale bug realistico dovrebbe farlo fallire?
+Perché questo boundary è necessario?
+Quale dipendenza deve essere reale?
+Quale può essere controllata?
+Come evitiamo false failure?
+Quanto costa eseguirlo?
+Chi lo possiede se diventa flaky?
+Quale gate usa questa evidence?
+```
 
-Se non sappiamo rispondere, forse non stiamo progettando un test.
+Se la risposta è soltanto “aumenta la coverage”, non abbiamo ancora spiegato il valore del test.
 
-Stiamo soltanto aggiungendo codice alla suite.
+## Cosa cambia con l’AI
 
-## Corollario
+Gli agenti possono generare test seam, mock e fixture in modo quasi automatico. Questo rende ancora più importante non lasciargli deformare il design per rendere facile la suite.
 
-> **La testability non è la facilità con cui possiamo mockare il sistema. È la facilità con cui possiamo produrre evidence sulle proprietà che contano.**
+Una buona richiesta AI non è:
+
+```text
+make this code easy to test
+```
+
+ma:
+
+```text
+Given this property and risk, identify the smallest boundary that can falsify it.
+Propose seams only where they represent real responsibilities.
+Flag abstractions introduced solely to satisfy mocking.
+```
+
+L’obiettivo non è massimizzare la sostituibilità dei componenti. È massimizzare la qualità della evidence con il minimo coupling artificiale.
+
+> **La testability è la facilità con cui possiamo produrre evidence sulle proprietà che contano senza trasformare il production design in una collezione di mock seam.**
