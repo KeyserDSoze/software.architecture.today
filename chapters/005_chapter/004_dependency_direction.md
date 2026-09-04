@@ -1,22 +1,12 @@
 ## Dependency direction: chi deve conoscere chi
 
-Due componenti possono avere responsabilità ragionevoli e restare comunque accoppiati nel verso sbagliato.
-
-La domanda non è soltanto:
-
-> “Esiste una dipendenza?”
-
-Ma:
-
-> **“In quale direzione punta e quale parte del sistema costringe a cambiare?”**
+Due componenti possono avere responsabilità sensate e rimanere comunque accoppiati nel verso sbagliato. La domanda non è soltanto se esista una dipendenza, ma **in quale direzione punti e quale parte del sistema venga costretta a cambiare quando cambia l'altra**.
 
 Questa è l'idea operativa dietro il dependency inversion principle.
 
-### Policy e dettagli
+## Proteggere la policy dai dettagli
 
-Supponiamo che una regola di dominio debba inviare una notifica quando un ordine viene annullato.
-
-Un'implementazione ingenua potrebbe essere:
+Supponiamo che il caso d'uso di cancellazione debba notificare il cliente. Un'implementazione diretta potrebbe far dipendere il servizio dal client di uno specifico provider:
 
 ```ts
 import { SendGridClient } from "@vendor/sendgrid";
@@ -25,7 +15,7 @@ class OrderCancellationService {
   constructor(private readonly sendGrid: SendGridClient) {}
 
   async cancel(orderId: string): Promise<void> {
-    // aggiorna l'ordine
+    // regole di annullamento
     // ...
 
     await this.sendGrid.send(/* payload vendor-specific */);
@@ -33,11 +23,9 @@ class OrderCancellationService {
 }
 ```
 
-Il problema non è che SendGrid sia una cattiva tecnologia.
+Il problema non è SendGrid. Il problema è che una policy del dominio conosce direttamente classi, payload e convenzioni di un dettaglio infrastrutturale.
 
-Il problema è che una policy importante — annullare un ordine e notificare il cliente — conosce direttamente un dettaglio infrastrutturale specifico.
-
-La direzione della conoscenza può essere invertita:
+Possiamo invertire quella conoscenza:
 
 ```ts
 interface CustomerNotifier {
@@ -56,41 +44,23 @@ class OrderCancellationService {
 }
 ```
 
-Ora l'infrastruttura può implementare il contratto.
+A runtime il caso d'uso continua a invocare una capability esterna. A livello di dipendenze sorgente, però, il dominio dipende dal proprio concetto di notifica e l'adapter del vendor dipende da quel contratto.
 
-La policy non conosce il vendor.
+Il dettaglio può cambiare senza trascinare la policy.
 
-### Non è “aggiungi sempre un'interfaccia”
+## Dependency inversion non significa “una interface per classe”
 
-Questo principio viene spesso ridotto a una ricetta:
+Ridurre il principio a una ricetta produce spesso soltanto file in più. Creare `UserServiceInterface` perché esiste `UserService` non dimostra che abbiamo protetto nessuna decisione.
 
-> “Metti una interface davanti a ogni classe.”
+La domanda da porre prima dell'astrazione è:
 
-Non è questo il punto.
+> **Quale parte rappresenta la capacità o policy che vogliamo mantenere stabile rispetto a un dettaglio che può cambiare per una ragione diversa?**
 
-Se creiamo:
+Se non sappiamo rispondere, l'interfaccia rischia di essere rituale.
 
-```ts
-interface UserServiceInterface {
-  getUser(id: string): Promise<User>;
-}
-```
+## Direction of execution e direction of dependency
 
-soltanto perché esiste `UserService`, potremmo non aver invertito nulla.
-
-Abbiamo aggiunto un file.
-
-La domanda vera è:
-
-> **Quale parte rappresenta una policy stabile e quale parte è un dettaglio che vogliamo poter sostituire, isolare o testare indipendentemente?**
-
-L'astrazione dovrebbe nascere da quella tensione.
-
-### Direction of dependency vs direction of execution
-
-Il controllo può fluire in una direzione mentre la dipendenza del codice punta nell'altra.
-
-Per esempio:
+È utile distinguere il flusso di esecuzione dalla direzione della conoscenza:
 
 ```text
 Use case
@@ -100,71 +70,29 @@ PaymentGateway
 StripePaymentGateway
 ```
 
-A runtime il caso d'uso invoca il gateway.
+Il caso d'uso chiama il gateway, ma il dominio non importa il client Stripe. È l'adapter Stripe a conoscere il contratto richiesto dal dominio.
 
-A livello di dipendenze sorgente, il dominio dipende dal proprio contratto e l'adapter Stripe dipende da quel contratto.
+Questa forma permette alla parte che rappresenta il significato del business di non essere trascinata da dettagli che cambiano per motivi infrastrutturali.
 
-Questo permette alla parte più stabile di non essere trascinata dai dettagli più volatili.
+## A chi appartiene il contratto?
 
-### Dove mettere il contratto?
+Non esiste una regola universale, ma un criterio utile è lasciare che il contratto esprima **ciò di cui il consumer ha bisogno**, non automaticamente tutto ciò che il provider sa fare.
 
-Non esiste una regola universale.
+Se Orders deve autorizzare un pagamento, potrebbe aver bisogno del concetto `AuthorizePayment`, non dell'intera API interna di Payments. Questa differenza riduce il rischio che il provider esporti il proprio modello completo e costringa i consumer a conoscerlo.
 
-Ma un criterio utile è:
+La dependency direction si applica anche tra moduli e sistemi. Un componente di reporting potrebbe leggere direttamente le tabelle Orders oppure dipendere da un contratto stabile che espone soltanto il significato necessario. La seconda soluzione introduce costi e non è sempre preferibile; rende però esplicito che Reporting dipende da **un contratto di Orders**, non dalla sua struttura interna.
 
-> il contratto dovrebbe appartenere alla parte che ha bisogno della capacità, non automaticamente a quella che la implementa.
+## Stabilità non significa immobilità
 
-Se `Orders` ha bisogno di autorizzare un pagamento, il concetto di cui ha bisogno potrebbe essere:
+Una policy è “stabile” nel senso che vogliamo proteggerla da cambiamenti appartenenti a un'altra dimensione, non perché sia eterna.
 
-```text
-AuthorizePayment
-```
+La regola “un ordine già spedito non può essere annullato” potrebbe cambiare per una nuova policy commerciale. Non dovrebbe però cambiare perché sostituiamo framework HTTP, ORM o provider email.
 
-non l'intera API interna del modulo `Payments`.
+Questa è la separazione che la dependency direction prova a proteggere.
 
-Questo riduce il rischio di esporre un provider-style interface troppo ampia.
+## Testabilità come conseguenza, non come giustificazione
 
-### Dependency inversion tra moduli
-
-Il principio non vale soltanto tra classi.
-
-Può applicarsi tra moduli, servizi o sistemi.
-
-Supponiamo che un componente di reporting abbia bisogno di conoscere gli ordini completati.
-
-Potrebbe leggere direttamente il database Orders.
-
-Oppure Orders potrebbe pubblicare un contratto stabile — API o evento — che espone il significato necessario senza rivelare la persistenza interna.
-
-La seconda soluzione non è automaticamente migliore.
-
-Introduce costi.
-
-Ma rende esplicita la direzione della dipendenza.
-
-Reporting dipende da un contratto di Orders, non dalla sua struttura interna.
-
-### Stabilità non significa immobilità
-
-Una policy non è “stabile” perché non cambia mai.
-
-Significa che vogliamo proteggerla da cambiamenti che appartengono a un'altra dimensione.
-
-La regola:
-
-> “un ordine già spedito non può essere annullato”
-
-potrebbe cambiare in futuro.
-
-Ma non dovrebbe cambiare perché sostituiamo il framework HTTP o il provider di email.
-
-Questa è la separazione che cerchiamo.
-
-### Dependency direction e testabilità
-
-Un effetto collaterale utile è la testabilità.
-
-Se la logica dipende da capability espresse come contratti, possiamo verificare la policy senza avviare ogni dettaglio infrastrutturale.
+Quando la logica dipende da capability espresse come contratti, possiamo spesso testare la policy senza avviare tutta l'infrastruttura:
 
 ```ts
 const notifier = new FakeCustomerNotifier();
@@ -175,19 +103,11 @@ await service.cancel(order.id);
 expect(notifier.cancelledOrders).toContain(order.id);
 ```
 
-Ma attenzione: la testabilità non è prova automatica di buon design.
+È un vantaggio, ma non la prova automatica di buon design. Possiamo costruire sistemi perfettamente testabili e pieni di astrazioni inutili. Il criterio resta la direzione della conoscenza e il costo del cambiamento.
 
-Possiamo costruire un sistema molto testabile ma pieno di astrazioni inutili.
+## Dependency direction come guardrail per gli agenti
 
-Il test è un beneficio.
-
-Il criterio resta la direzione della conoscenza.
-
-### Dependency inversion e agenti
-
-Per un coding agent, una dependency direction esplicita è preziosa.
-
-Se il repository contiene regole come:
+Per un coding agent, regole come:
 
 ```text
 domain/ non importa infrastructure/
@@ -195,12 +115,6 @@ orders/ non accede direttamente alle tabelle shipping
 adapters/ implementa contratti definiti dai moduli consumer
 ```
 
-l'agente ha guardrail strutturali.
+sono molto più utili di una raccomandazione vaga a “rispettare la clean architecture”. Possono essere comprese e, in molti casi, verificate automaticamente con architecture test o lint rule.
 
-Possiamo perfino verificarli con architecture test.
-
-Questo riduce la quantità di supervisione necessaria per ogni diff.
-
-> **Una buona dependency direction trasforma un principio architetturale in una proprietà verificabile del repository.**
-
-Ne parleremo più avanti quando affronteremo architecture fitness functions e testing architecture.
+> **Una buona dependency direction trasforma una scelta di design in una proprietà leggibile e, quando possibile, verificabile del repository.**
