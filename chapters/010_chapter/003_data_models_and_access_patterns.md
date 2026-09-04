@@ -1,247 +1,69 @@
 ## Scegliere il modello dai pattern di accesso
 
-Una volta chiarita l'ownership, arriva una domanda inevitabile:
+Una volta chiarita l’ownership, arriva una domanda inevitabile: **come dobbiamo memorizzare e interrogare questo dato?** La tentazione è rispondere con un prodotto. “PostgreSQL o MongoDB?” è una domanda familiare, ma arriva troppo presto.
 
-> **come dobbiamo memorizzare e interrogare questo dato?**
-
-La risposta non dovrebbe partire dal nome del database.
-
-Dovrebbe partire dal comportamento del workload.
-
-Microsoft Azure Architecture Center suggerisce esplicitamente di valutare access pattern, relazioni, consistency, concorrenza, lifecycle, latency, scale, governance e cost prima di scegliere un data store.
+Microsoft Azure Architecture Center suggerisce di valutare access pattern, relazioni, consistency, concorrenza, lifecycle, latency, scale, governance e cost prima di scegliere un data store.
 
 Fonti:
 
 - [Microsoft Learn — Prepare to choose a data store](https://learn.microsoft.com/azure/architecture/guide/technology-choices/data-stores-getting-started)
 - [Microsoft Learn — Understand data models](https://learn.microsoft.com/azure/architecture/data-guide/technology-choices/understand-data-store-models)
 
-La domanda quindi non è:
+La domanda utile diventa quindi: **quali access pattern e invarianti dobbiamo servire, e quale modello li sostiene con il miglior fit complessivo?**
 
-> PostgreSQL o MongoDB?
+## Quando il modello relazionale coincide con il problema
 
-È:
+Per molti workload operativi, le relazioni non sono un incidente dello schema: sono parte del dominio. Order, Payment, Shipment, OperatorAssignment, Tenant e AuditEvent non sono semplicemente documenti indipendenti; tra loro esistono vincoli, ownership e transazioni che il sistema deve proteggere.
 
-> **quali access pattern e invarianti dobbiamo servire, e quale modello li sostiene con il miglior fit complessivo?**
+In questo contesto un modello relazionale rimane un candidato forte perché offre relazioni esplicite, vincoli di integrità, transazioni, query articolate e tooling maturo. Microsoft cita proprio workload come order management, inventory, billing e operational reporting tra gli esempi naturali per modelli relazionali.
 
-## Relazionale: quando le relazioni sono parte del problema
+Questo non significa che “gli ordini devono stare in SQL”. Significa che il modello deve pagare bene le forze presenti. Se un assignment appartiene a un ordine, un ordine a un tenant e una transizione deve rispettare un invariant, il modello relazionale parte con un fit credibile.
 
-Un database relazionale ha un fit forte quando contano:
+## Document store: flessibilità quando l’aggregato è davvero l’unità naturale
 
-- relazioni tra entità;
-- vincoli di integrità;
-- transazioni multi-row;
-- query articolate;
-- schema e semantica relativamente strutturati;
-- tooling maturo per amministrazione e reporting.
+Un document store può avere molto senso quando il principale pattern di accesso riguarda aggregati letti e scritti come unità relativamente autonome. Un catalog item con attributi variabili o un profilo con sezioni opzionali possono adattarsi bene a questa forma.
 
-Microsoft cita workload come order management, inventory, billing e operational reporting tra gli esempi naturali per modelli relazionali.
+La flessibilità dello schema, però, non elimina la semantica. Se tre consumer interpretano lo stesso campo in modi diversi, il fatto che viva in JSON non ci ha resi più flessibili: ci ha soltanto resi meno espliciti. Anche in un document database lo schema esiste; può essere imposto più dall’applicazione che dal motore, ma deve comunque essere progettato.
 
-Questo non significa che un ordine “deve” vivere in SQL.
+## Key-value: specializzazione utile quando la domanda è semplice
 
-Significa che dobbiamo riconoscere le forze presenti.
-
-Per Order Operations abbiamo:
-
-```text
-Order
-Payment
-Shipment
-OperatorAssignment
-Tenant
-AuditEvent
-```
-
-con relazioni e vincoli che non sono dettagli accidentali.
-
-Per esempio:
-
-- un assignment appartiene a un ordine;
-- un ordine appartiene a un tenant;
-- un operatore deve essere autorizzato per quel perimetro;
-- alcuni stati devono rispettare transizioni valide;
-- l'audit deve poter essere ricondotto all'azione.
-
-Un modello relazionale rimane quindi un candidato molto forte per la prima fase.
-
-## Document: aggregati naturali e forma flessibile
-
-Un document store può avere fit quando il principale pattern di accesso riguarda aggregati che vengono letti e scritti come unità relativamente autonome.
-
-Esempio astratto:
-
-```json
-{
-  "orderId": "ORD-42",
-  "customer": {...},
-  "items": [...],
-  "shippingAddress": {...}
-}
-```
-
-Può essere molto comodo se la forma del documento coincide bene con il boundary dell'aggregato.
-
-Ma la flessibilità dello schema non elimina la semantica.
-
-Se tre servizi interpretano lo stesso campo in tre modi diversi, un documento JSON non ci ha resi più flessibili.
-
-Ci ha resi meno espliciti.
-
-Un document database non è una scusa per evitare schema design.
-
-Lo schema esiste comunque, anche se viene imposto più dall'applicazione che dal motore.
-
-## Key-value: quando la domanda è “dammi il valore per questa chiave”
-
-Un key-value store è particolarmente efficace quando il pattern dominante è semplice:
+Un key-value store è potente proprio perché restringe il problema a una forma simile a:
 
 ```text
 key → value
 ```
 
-Esempi:
+Session state, deduplication key, rate-limit counter, cache entry e alcuni lookup ad alta frequenza possono beneficiarne. La specializzazione diventa invece un limite quando il workload richiede continuamente join, filtri dinamici, traversal fra relazioni o aggregazioni complesse.
 
-- session state;
-- cache;
-- feature state;
-- deduplication key;
-- rate-limit counter;
-- alcuni lookup ad altissima frequenza.
+La domanda non è se il key-value store sia veloce. È se il nostro workload assomigli davvero a una lookup per chiave.
 
-Il vantaggio nasce proprio dalla specializzazione.
+## Graph: quando la relazione è la query
 
-Se invece abbiamo bisogno continuamente di:
+Un graph database diventa interessante quando percorsi e connessioni sono il centro della domanda: account collegati a device, payment method e merchant; componenti collegati da dipendenze e ownership; reti di relazione in cui il traversal multi-hop è un’operazione primaria.
 
-- join;
-- filtri dinamici;
-- navigazione tra relazioni;
-- aggregazioni complesse;
+In questi casi un graph model può essere più naturale di join complessi o denormalizzazioni crescenti. Ma Order Operations non ha oggi un problema di questo tipo abbastanza forte da giustificare un graph database. Conoscere il modello ci dà un’opzione, non un obbligo.
 
-stiamo chiedendo al modello di risolvere un problema per cui forse non è stato scelto.
+## Store specializzati: quando un access pattern diventa abbastanza diverso
 
-## Graph: quando la relazione è il centro
+Search index, time-series store e vector store esistono perché alcuni workload sono sufficientemente specifici da meritare strutture differenti. Full-text search e ranking, finestre temporali su telemetria o similarity search sugli embedding sono problemi reali con proprietà proprie.
 
-Un graph database può avere fit quando la domanda principale non riguarda soltanto entità, ma percorsi e connessioni.
+Il rischio è trasformare ogni nuovo access pattern in un nuovo datastore. Microsoft osserva che sistemi reali possono usare più modelli, ma il valore emerge quando access pattern o lifecycle divergono davvero. La parola importante è **davvero**.
 
-Per esempio:
+## Polyglot persistence: specializzazione in cambio di una tassa operativa
 
-```text
-account → device → payment method → merchant → fraud signal
-```
+Un sistema può usare PostgreSQL come source of truth transazionale, un search index per la ricerca testuale, object storage per documenti e un warehouse per analytics. Non c’è nulla di sbagliato in questa topologia se ogni store svolge un lavoro specifico.
 
-oppure:
+Il costo, però, continua dopo l’adozione. Ogni nuovo datastore porta provisioning, access control, backup e recovery, observability, data movement, schema evolution, failure mode, competenze e costi da possedere. **Polyglot persistence è utile quando la specializzazione del workload paga questa tassa operativa.**
 
-```text
-component → depends_on → component → owned_by → team
-```
+## L’access pattern viene prima dello schema
 
-Se il workload richiede traversal complessi e relazioni molto connesse, un modello graph può essere più naturale di una sequenza di join o documenti denormalizzati.
+Prendiamo la lista futura degli ordini problematici. Potremmo dover leggere per tenant, ordinare per anzianità, filtrare per categoria, mostrare ciò che è assegnato a un operatore e aprire il dettaglio per `orderId`. Queste domande influenzano index, ordering, pagination, eventuale denormalizzazione e forma del read model.
 
-Ma anche qui vale il principio del capitolo precedente:
-
-> conoscere un pattern non ci obbliga ad adottarlo.
-
-Order Operations non ha oggi un problema graph sufficientemente forte da introdurre un graph database.
-
-## Specialized store: search, time-series, vector
-
-Alcuni workload sono abbastanza specifici da meritare un modello specializzato.
-
-Un search index serve quando il problema è:
-
-- full-text search;
-- ranking;
-- ricerca fuzzy;
-- analisi testuale.
-
-Un time-series store può essere adatto a metriche o eventi ordinati temporalmente con query di finestre e aggregazioni.
-
-Un vector store risponde a pattern di similarity search su embedding.
-
-Il rischio è trasformare ogni nuovo access pattern in un nuovo datastore.
-
-Microsoft osserva che sistemi reali possono usare più modelli, ma raccomanda di combinarli quando access pattern o lifecycle divergono davvero.
-
-La parola importante è **davvero**.
-
-## Polyglot persistence: capacità o tassa?
-
-Usare più data store può essere perfettamente ragionevole.
-
-Per esempio:
-
-```text
-PostgreSQL
-  → transactional source of truth
-
-Search index
-  → full-text operational search
-
-Object storage
-  → document/archive
-
-Warehouse
-  → analytics
-```
-
-Ogni store svolge un lavoro diverso.
-
-Ma ogni nuovo datastore introduce anche:
-
-- provisioning;
-- access control;
-- backup e recovery;
-- observability;
-- patch/upgrade o gestione managed service;
-- data movement;
-- schema evolution;
-- competenza del team;
-- failure mode;
-- costi.
-
-Quindi possiamo formulare una regola:
-
-> **Polyglot persistence è utile quando la specializzazione del workload paga la tassa operativa della diversità.**
-
-Non quando vogliamo usare una tecnologia per capitolo.
-
-## Access pattern prima dello schema
-
-Prendiamo la futura lista di ordini problematici.
-
-Le query potrebbero essere:
-
-```text
-- ordini problematici per tenant
-- ordinati per anzianità
-- filtrati per categoria
-- aperti da un operatore specifico
-- dettaglio per orderId
-```
-
-Questi pattern influenzano:
-
-- indice;
-- ordinamento;
-- partizione;
-- eventuale denormalizzazione;
-- pagination;
-- forma del read model.
-
-Se invece il requisito diventasse:
-
-> “cerca qualsiasi frase nei messaggi del customer support associati agli ordini”
-
-avremmo un access pattern diverso.
-
-Potrebbe emergere un search index.
-
-Non perché il sistema è cresciuto abbastanza da “meritarselo”.
-
-Perché è cambiata la domanda.
+Se domani arrivasse invece il requisito “cerca qualsiasi frase nelle conversazioni del customer support associate agli ordini”, sarebbe cambiato l’access pattern. A quel punto potrebbe emergere un search index. Non perché il prodotto è diventato abbastanza maturo da meritare una nuova tecnologia, ma perché è cambiata la domanda.
 
 ## Il test di fit del datastore
 
-Prima di aggiungere un nuovo data store, useremo una scheda minima:
+Per i datastore non banali manteniamo una piccola scheda operativa:
 
 ```text
 Access pattern
@@ -272,29 +94,12 @@ Exit
 Come migriamo se il fit cambia?
 ```
 
-Questa scheda non produce automaticamente la risposta.
+La scheda non produce automaticamente una risposta. Serve a rendere difficile scegliere una tecnologia perché è popolare, nuova o presente nella reference architecture di qualcun altro.
 
-Ma rende molto più difficile scegliere un database perché:
+## ESI: PostgreSQL resta perché il contesto non è cambiato abbastanza
 
-> “lo usano tutti.”
+Nel contesto corrente di Order Operations non esiste ancora un access pattern che giustifichi un secondo datastore operativo. Il modello relazionale sostiene bene dati strutturati, assignment, audit, relazioni, access control e le query oggi note.
 
-## ESI: per ora PostgreSQL resta
+Questo non significa che PostgreSQL sarà l’unico store per sempre. Significa che **oggi la complessità di aggiungerne un altro non è ancora pagata da un requisito reale**.
 
-Nel contesto corrente di Order Operations non abbiamo ancora un requisito che giustifichi un secondo datastore operativo.
-
-Il modello relazionale continua ad avere un buon fit per:
-
-- dati strutturati;
-- relazioni;
-- assignment;
-- audit;
-- access control;
-- query operative note.
-
-Non significa che PostgreSQL sarà l'unico store per sempre.
-
-Significa che **oggi non esiste ancora un access pattern che paghi in modo sufficiente la complessità di aggiungerne un altro**.
-
-Quando quel pattern emergerà, rivaluteremo.
-
-Non prima.
+Quando cambieranno access pattern, scale o lifecycle, rivaluteremo. Non prima.
