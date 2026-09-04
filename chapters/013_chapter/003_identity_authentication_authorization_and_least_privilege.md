@@ -1,317 +1,107 @@
 ## Identity, authentication e authorization
 
-Nel cloud la rete non è più un perimetro sufficiente.
-
-Microsoft raccomanda esplicitamente di considerare l'identità come primary security perimeter per le applicazioni cloud e di applicare least privilege sia agli utenti sia ai workload.
+Nel cloud la rete non è più un perimetro sufficiente. Microsoft raccomanda di considerare l’identità come primary security perimeter e di applicare least privilege sia agli utenti sia ai workload.
 
 Fonte:
 
 - [Microsoft Learn — Design secure applications on Azure](https://learn.microsoft.com/azure/security/develop/secure-design)
 
-Per Order Operations questo significa distinguere almeno tre domande:
+Per Order Operations questo significa separare tre domande che spesso vengono confuse: **chi sei?**, **che cosa puoi fare?** e **con quale identità il workload parla agli altri servizi?**. Authentication, authorization e workload identity rispondono a problemi differenti.
+
+## Un token valido non contiene tutta la decisione
+
+Un utente autenticato non diventa automaticamente autorizzato a vedere ogni tenant, creare una Payment Escalation, leggere dati economici o modificare configurazione. Il server deve verificare issuer, audience e validità del token, ma deve anche correlare l’attore con la risorsa e con la capability richiesta.
+
+Un `tenantId` inviato dal browser, per esempio, non crea alcun diritto. La decisione corretta nasce da security context e ownership autorevole della risorsa:
 
 ```text
-Chi sei?
-→ authentication
-
-Che cosa puoi fare?
-→ authorization
-
-Con quale identità il workload parla agli altri servizi?
-→ workload identity
-```
-
-Confonderle produce sistemi che sembrano protetti ma non lo sono.
-
-## Authentication non è authorization
-
-Un utente autenticato non è automaticamente autorizzato a:
-
-- vedere ogni tenant;
-- creare una Payment Escalation;
-- vedere dati economici;
-- amministrare il sistema;
-- modificare configurazione;
-- accedere ai log;
-- eseguire deployment.
-
-Quindi:
-
-```text
-valid token
-≠ valid permission
-```
-
-L'applicazione deve verificare almeno:
-
-- issuer;
-- audience;
-- validità temporale;
-- identity;
-- ruoli/claim necessari;
-- relazione dell'attore con la risorsa richiesta.
-
-## Authorization server-side
-
-Il client può dire:
-
-```json
-{
-  "tenantId": "tenant-b"
-}
-```
-
-ma questo non rende l'utente membro di `tenant-b`.
-
-La regola deve essere:
-
-```text
-security context
-+ authoritative resource ownership
+identity verificata
++ case risolto server-side
++ tenant/resource relationship
++ capability richiesta
 → authorization decision
 ```
 
-Non:
+Questo è uno dei punti in cui l’analisi funzionale e la security architecture coincidono: per autorizzare correttamente dobbiamo conoscere la semantica del journey.
 
-```text
-campo inviato dal browser
-→ authorization decision
-```
+## Least privilege è containment
 
-Per il capstone questo significa che `caseId` viene risolto server-side e il tenant effettivo viene verificato rispetto all'identità autorizzata.
+Least privilege viene spesso sintetizzato come “non dare più permessi del necessario”. È più utile leggerlo come meccanismo di contenimento: se una identity viene compromessa, i suoi permission definiscono la massima estensione del danno immediato.
 
-## Least privilege come riduzione del blast radius
-
-Least privilege viene spesso presentato come principio morale:
-
-> non dare più permessi del necessario.
-
-È meglio leggerlo come proprietà di containment.
-
-Se una identity viene compromessa, il privilegio che possiede determina il blast radius.
-
-Quindi un ruolo corretto deve essere definito rispetto a:
-
-```text
-identity
-+ resource
-+ action
-+ scope
-+ duration
-```
-
-Microsoft Well-Architected raccomanda privilegi minimi per identità corrette, permission corrette, durata corretta e asset corretti; raccomanda inoltre di ridurre standing privilege dove possibile.
+Microsoft Well-Architected raccomanda di allineare identity, permission, scope, asset e durata, riducendo standing privilege quando possibile.
 
 Fonte:
 
 - [Microsoft Learn — Architecture strategies for identity and access management](https://learn.microsoft.com/azure/well-architected/security/identity-access)
 
-## Human identity
+Il ruolo corretto non è quindi un’etichetta generica `admin/user`. È la combinazione di **chi**, **su quale risorsa**, **quale azione**, **in quale scope** e, per i privilegi elevati, **per quanto tempo**.
 
-Per ESI, gli operatori usano Microsoft Entra ID.
+## Human identity: capability prima dei ruoli generici
 
-Il modello iniziale distingue:
+Nel modello iniziale ESI un Operations Operator può leggere i case autorizzati, investigare e richiedere una Payment Escalation quando le precondizioni sono soddisfatte. Non ottiene per questo accesso ai secret, al control plane Azure, al refund o a tenant arbitrari.
 
-### Operations Operator
+Un Supervisor può ricevere capability ulteriori — reassignment, visibility più ampia o override operativi documentati — ma non vogliamo trasformare `Supervisor` in un sinonimo di `admin = true`. Ogni privilegio aggiuntivo deve corrispondere a un comportamento del prodotto.
 
-Può:
+Questa granularità rende più leggibile anche il threat model: sappiamo quale escalation of privilege avrebbe un impatto reale.
 
-- leggere i casi autorizzati;
-- investigare;
-- creare una Payment Escalation quando le precondizioni sono soddisfatte.
+## Workload identity: chiedere prima se la password può sparire
 
-Non può:
+Order Operations deve parlare con Key Vault, Service Bus, PostgreSQL, observability e potenzialmente altre API aziendali. La domanda meno utile è dove conservare la password del service principal. La domanda migliore è se possiamo evitare la password.
 
-- modificare infrastruttura;
-- leggere secret;
-- cambiare RBAC cloud;
-- eseguire refund;
-- cambiare arbitrariamente tenant.
-
-### Operations Supervisor
-
-Può avere capability aggiuntive di:
-
-- escalation;
-- reassignment;
-- visibility più ampia;
-- override operativi esplicitamente documentati.
-
-Non significa `admin = true`.
-
-Ogni capability privilegiata deve avere un significato.
-
-## Workload identity
-
-Order Operations deve parlare con:
-
-- Key Vault;
-- Service Bus;
-- PostgreSQL;
-- observability services;
-- eventuali API interne.
-
-La domanda sbagliata è:
-
-> Dove mettiamo la password del service principal?
-
-La domanda migliore è:
-
-> **Possiamo evitare di avere una password?**
-
-Microsoft App Service supporta managed identity per autenticarsi verso altri servizi Azure senza memorizzare credenziali nel codice o nella configurazione.
+Microsoft App Service supporta managed identity per autenticarsi verso servizi Azure senza memorizzare credenziali nel codice o nella configurazione.
 
 Fonte:
 
 - [Microsoft Learn — Secure your Azure App Service deployment](https://learn.microsoft.com/azure/app-service/overview-security)
 
-Quindi la runtime identity di Order Operations deve essere una managed identity con accesso soltanto alle capability necessarie.
+La runtime identity riceve quindi accesso soltanto alle capability necessarie. Managed identity elimina una classe di secret, non la necessità di least privilege.
 
-## Runtime identity ≠ deployment identity
+## Runtime e deployment identity non devono condividere il potere
 
-Questo boundary è fondamentale.
+Il runtime deve poter leggere o scrivere i dati necessari, recuperare gli eventuali secret, inviare Payment Escalation e produrre telemetry. Non dovrebbe poter assegnare RBAC, cambiare network exposure, creare infrastruttura o sostituire arbitrariamente il package in produzione.
 
-La runtime identity deve poter:
+La deployment identity ha il problema opposto: ha bisogno di privilegi sul control plane necessari al rilascio, ma non dovrebbe ereditare automaticamente accesso ai business data.
 
-```text
-read required secrets
-send messages
-read/write workload data
-emit telemetry
-```
+> **Il processo che esegue il software e il processo che modifica l’infrastruttura non devono avere lo stesso potere.**
 
-Non dovrebbe poter:
+Questa separazione protegge sia da runtime compromise sia da supply-chain/pipeline compromise.
 
-```text
-create App Service
-change network topology
-assign RBAC
-modify Key Vault policy
-replace deployment package arbitrariamente
-```
+## La scelta App Service + WebJob ha un costo di privilege envelope
 
-La deployment identity, viceversa, ha bisogno di privilegi sul control plane ma non dovrebbe avere automaticamente accesso ai business data.
-
-Quindi:
-
-> **Il processo che esegue il software e il processo che modifica l'infrastruttura non devono avere lo stesso potere.**
-
-## Identity per componente
-
-Microsoft Well-Architected per App Service raccomanda identity distinte per mantenere isolation boundary ed evitare il riuso indiscriminato della stessa identity fra applicazioni.
+Microsoft Well-Architected per App Service raccomanda identity distinte quando servono isolation boundary differenti.
 
 Fonte:
 
 - [Microsoft Learn — App Service architecture best practices](https://learn.microsoft.com/azure/well-architected/service-guides/app-service-web-apps)
 
-Per Order Operations questo apre una decisione interessante.
+Nel capstone API e WebJob vivono però nello stesso lifecycle App Service. Le loro esigenze non sono perfettamente identiche: l’API gestisce request utente e operational state; il publisher legge l’outbox e invia a Service Bus. Finché restano nello stesso runtime accettiamo un privilege envelope comune come costo della semplicità scelta nel Capitolo 12.
 
-API e WebJob potrebbero condividere la stessa identity perché vivono nello stesso App Service lifecycle.
+Questa decisione ha trigger chiari: se il publisher viene estratto, i messaging privilege diventano più sensibili o nuovi worker richiedono capability differenti, dovremo separare anche le identity.
 
-Ma i privilegi non sono identici:
+## Administrative access: il privilegio permanente è un rischio proprio
 
-```text
-API
-→ read/write operational state
-→ receive user requests
+Workload operator, Platform administrator, Security operator, deployment automation e break-glass identity svolgono lavori differenti. Il fatto che qualcuno sia developer non implica accesso permanente alla produzione; poter fare deployment non implica poter leggere Key Vault; amministrare Azure non implica dover leggere dati di tutti i tenant.
 
-Outbox Publisher
-→ read outbox
-→ publish to Service Bus
-```
+Una break-glass identity può essere necessaria per recuperare il sistema, ma deve essere rara, fortemente protetta, monitorata e fuori dal lavoro ordinario. Una porta di emergenza usata ogni settimana è semplicemente una porta principale con controlli peggiori.
 
-Finché restano nello stesso runtime, accettiamo un privilege envelope comune.
+## Una sessione valida può comunque essere ostile
 
-Questo è un costo esplicito della scelta App Service + WebJob.
-
-Trigger di revisione:
-
-- publisher diventa processo separato;
-- messaging privilege diventa più sensibile;
-- nuovi worker ricevono privilegi differenti;
-- blast radius della identity condivisa diventa inaccettabile.
-
-## Administrative identity
-
-Gli amministratori sono spesso le identity più pericolose perché possiedono capability ad alto impatto.
-
-Dobbiamo quindi distinguere:
-
-```text
-workload operator
-platform operator
-security operator
-deployment automation
-break-glass identity
-```
-
-Il fatto che una persona sia developer non implica che debba avere accesso permanente alla produzione.
-
-Il fatto che una persona possa fare deployment non implica che debba poter leggere Key Vault secret.
-
-Il fatto che una persona amministri Azure non implica che debba vedere i business data di tutti i tenant.
-
-## Break-glass
-
-Least privilege non deve impedirci di recuperare il sistema.
-
-Per questo può servire una break-glass identity.
-
-Ma deve essere:
-
-- rara;
-- fortemente protetta;
-- monitorata;
-- non usata per il lavoro quotidiano;
-- soggetta a procedure e alert.
-
-Una porta di emergenza che viene usata ogni martedì è semplicemente la porta principale con meno controlli.
-
-## Sessione compromessa
-
-Il caso Cloudflare/Okta del 2023 mostra perché identity architecture non può fermarsi alla login page.
-
-Cloudflare riferì che un attaccante utilizzò una sessione Okta compromessa con privilegi amministrativi; la società descrisse però la capacità di rilevare e contenere l'incidente e di impedire accesso alla production network.
+Il caso Cloudflare/Okta del 2023 ricorda che una sessione apparentemente valida può essere stata rubata. Cloudflare descrisse un accesso alla propria istanza Okta tramite sessione amministrativa compromessa e la capacità di contenere l’incidente prima dell’accesso alla production network.
 
 Fonte primaria:
 
 - [Cloudflare — How Cloudflare mitigated yet another Okta compromise](https://blog.cloudflare.com/how-cloudflare-mitigated-yet-another-okta-compromise/)
 
-Il punto per ESI è:
+La lezione per ESI è `valid-looking identity ≠ trust illimitata`. Ogni richiesta sensibile continua ad attraversare authorization, tenant boundary e permission scope anche dopo l’autenticazione.
 
-```text
-identity valid-looking
-≠ trust illimitata
-```
+## Authorization deve diventare evidence
 
-Verify explicitly e assume breach significano che una sessione valida continua ad attraversare boundary e permission check.
+Per ogni capability sensibile vogliamo negative test, non soltanto happy path. Un attore corretto sul tenant corretto deve essere ammesso; lo stesso attore sul tenant sbagliato deve essere negato; un ruolo insufficiente deve essere negato; assenza o invalidità dell’identità devono essere negate.
 
-## Authorization testable
+Questi scenari diventeranno executable security requirements nel capitolo sul testing.
 
-L'authorization non è completa finché non può essere verificata.
+La domanda pratica che chiude la sezione è semplice:
 
-Per ogni capability sensibile dobbiamo avere test almeno per:
+> **Se questa identity viene compromessa oggi, qual è la cosa peggiore che può fare?**
 
-```text
-allowed actor + allowed tenant → allowed
-allowed actor + wrong tenant   → denied
-wrong role + allowed tenant    → denied
-no identity                    → denied
-stale/invalid token            → denied
-```
-
-Quando entrerà il Capitolo Testing, questi scenari diventeranno executable security requirements.
-
-## Una regola pratica
-
-Per ogni identity nel sistema chiediamo:
-
-> **Se questa identità viene compromessa oggi, qual è la cosa peggiore che può fare?**
-
-Se la risposta è:
-
-```text
-"praticamente tutto"
-```
-
-least privilege non è ancora stato progettato.
+Se la risposta è “praticamente tutto”, il least privilege non è ancora un principio applicato: è soltanto una parola nel documento.
