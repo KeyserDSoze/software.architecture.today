@@ -1,91 +1,35 @@
-# Workflow reali e failure mode agentici
+# 23.7 — Workflow reali e failure mode agentici
 
-Quando una tecnologia è nuova, è facile raccontarla attraverso demo perfette.
+Le demo multi-agent sono quasi sempre lineari: arriva un task, più agenti collaborano, la soluzione esce.
 
-Un task entra.
+Le piattaforme che stanno portando coding agent e agent framework dentro workflow reali raccontano invece un problema più interessante. Appena l'execution diventa concreta emergono permission, isolation, review, approval, tracing, context transfer e overreliance.
 
-Gli agenti collaborano.
+Non useremo GitHub, OpenAI o Microsoft come prova che esista una sola architettura agentica corretta. Li usiamo come evidence che **governare l'execution è una parte esplicita del problema, non un dettaglio successivo al modello**.
 
-La soluzione esce.
+## L'agent execution entra nel normale change-control surface
 
-Il mondo reale è meno lineare.
+GitHub descrive il proprio cloud coding agent come executor che lavora in un ambiente effimero, produce cambiamenti su branch/pull request e opera con limitazioni attorno a permission e secret. La documentazione insiste inoltre sul fatto che l'output debba essere reviewato e testato prima del merge.
 
-Le piattaforme che stanno portando coding agent e agent framework in produzione stanno rendendo visibili gli stessi problemi che abbiamo discusso finora:
-
-- permission;
-- review;
-- isolation;
-- human approval;
-- tracing;
-- context;
-- cost;
-- overreliance.
-
-Non useremo questi prodotti come prova che esista un'unica architettura agentica corretta.
-
-Li useremo come evidence che **governare l'execution è parte del problema**.
-
-## GitHub: agent output dentro un PR workflow
-
-GitHub documenta il proprio cloud coding agent come executor che lavora in un ambiente di sviluppo effimero e produce modifiche tramite branch/pull request, con permission e secret limitati.
-
-La stessa documentazione insiste sul fatto che il contenuto generato debba essere reviewato e testato prima del merge.
-
-Fonte:
+Fonti:
 
 - [GitHub Docs — Application card: GitHub Copilot Agents](https://docs.github.com/en/copilot/responsible-use/agents)
-
-La documentazione dedicata alla review dell'output dice inoltre che una pull request prodotta dall'agente merita la stessa review rigorosa di qualsiasi altro contributo.
-
-Fonte:
-
 - [GitHub Docs — Review output from Copilot](https://docs.github.com/en/copilot/how-tos/copilot-on-github/use-copilot-agents/review-copilot-output)
 
-La lezione per ESI non è:
+La lezione per ESI non è “usa quel prodotto”. È più generale:
 
-```text
-use GitHub Copilot coding agent
-```
+> **l'execution agentica è più governabile quando attraversa gli stessi artifact di change control — diff, branch, review, policy ed evidence — invece di ottenere un canale privilegiato verso main o produzione.**
 
-È:
-
-> **l'agent execution diventa più governabile quando entra in un normale change-control surface con diff, review e policy, invece di avere un canale privilegiato verso main o produzione.**
-
-## GitHub: AI review è signal, non infallibilità
-
-GitHub documenta che Copilot code review può commettere errori e raccomanda di validarne il feedback e integrarlo con review umana.
+La stessa cosa vale per la review. GitHub documenta che Copilot code review può sbagliare e raccomanda di validarne il feedback e affiancarlo alla review umana.
 
 Fonte:
 
 - [GitHub Docs — About GitHub Copilot code review](https://docs.github.com/en/copilot/concepts/agents/code-review)
 
-Questo sostiene una posizione importante del capitolo:
+Quindi `AI Implementer → AI Reviewer` può essere molto utile, ma non crea da solo una proof chain indipendente. Il valore cresce quando il reviewer può interrogare evidence primaria e quando policy e final authority restano separate dal producer.
 
-```text
-AI implementer
-→ AI reviewer
-```
+## Handoff, guardrail e tracing non sono decorazioni di framework
 
-può essere utile.
-
-Ma non crea magicamente una proof chain indipendente.
-
-Il valore aumenta quando la review è accompagnata da:
-
-- deterministic gates;
-- evidence primaria;
-- repository policy;
-- human escalation per claim ad alto impatto.
-
-## OpenAI: handoff, guardrail, tracing e human intervention
-
-OpenAI Agents SDK espone come primitive distinte:
-
-- agenti;
-- handoff;
-- guardrail;
-- human-in-the-loop;
-- tracing.
+OpenAI Agents SDK espone agenti, handoff, guardrail, human-in-the-loop e tracing come primitive distinte. Microsoft Agent Framework documenta più topologie di orchestration e approval human-in-the-loop.
 
 Fonti:
 
@@ -93,280 +37,138 @@ Fonti:
 - [OpenAI Agents SDK — Handoffs](https://openai.github.io/openai-agents-python/handoffs/)
 - [OpenAI Agents SDK — Human in the loop](https://openai.github.io/openai-agents-python/human_in_the_loop/)
 - [OpenAI Agents SDK — Tracing](https://openai.github.io/openai-agents-python/tracing/)
-
-La guida pratica OpenAI alla costruzione di agenti raccomanda di prevedere human intervention per high-risk actions e quando vengono superate soglie di fallimento.
-
-Fonte:
-
 - [OpenAI — A practical guide to building agents](https://cdn.openai.com/business-guides-and-resources/a-practical-guide-to-building-agents.pdf)
-
-La lezione non è che ogni workflow debba usare questi componenti.
-
-È che:
-
-> **routing, permission, guardrail, approval e observability sono responsabilità diverse e meritano di essere progettate separatamente.**
-
-## Microsoft: orchestration pattern differenti
-
-Microsoft Agent Framework documenta orchestration:
-
-```text
-Sequential
-Concurrent
-Handoff
-Group Chat
-Magentic / manager-driven
-```
-
-con supporto per human-in-the-loop e approval di tool all'interno dei workflow.
-
-Fonti:
-
 - [Microsoft Learn — Workflow orchestrations](https://learn.microsoft.com/en-us/agent-framework/workflows/orchestrations/)
 - [Microsoft Learn — Human-in-the-loop](https://learn.microsoft.com/en-us/agent-framework/workflows/human-in-the-loop)
 
-Il fatto che esistano più pattern è già un indizio importante:
+Queste primitive separano responsabilità che nel failure reale hanno cause diverse: routing sbagliato, permission eccessiva, approval mancante, context perso o run non ricostruibile.
 
-> non esiste una topologia multi-agent che sia migliore per ogni problema.
+La topologia resta una decisione di fit. Il fatto che un framework supporti `Sequential`, `Concurrent`, `Handoff` o manager-driven workflow non significa che dobbiamo usarli tutti.
 
-Come con monolite, microservizi e cloud compute, la domanda rimane:
+## Prima famiglia — Moltiplicare una misconception condivisa
+
+Il primo failure mode nasce **prima** del parallelismo.
+
+Un Planner interpreta male una requirement e genera sei task. Sei agenti li eseguono in parallelo in modo impeccabile. I branch mergiano, i test locali passano e il risultato è sbagliato nella stessa direzione.
 
 ```text
-quale proprietà compra questa topologia?
+shared misconception
+→ fan-out
+→ coherent parallel execution
+→ larger wrong result
 ```
 
-## Failure mode: shared misconception amplification
+Il problema non è il singolo agent. È che abbiamo parallelizzato prima di sincronizzare la decisione.
 
-Scenario:
+Lo stesso fenomeno appare negli handoff. Agent A conosce un'Expected Difference, una stop condition e un ownership boundary; il summary passato ad Agent B dice soltanto “completa la migration”. Il secondo agente tratta l'Expected Difference come bug e “corregge” target behavior verso il legacy.
 
-```text
-Planner misunderstands requirement
-→ creates 6 tasks
-→ 6 agents execute correctly
-→ all outputs are wrong in the same direction
-```
+Entrambi i failure condividono la stessa radice: **il context boundary ha perso una informazione che governava il significato del task**.
 
-Il parallelismo ha moltiplicato un errore di comprensione.
+Il guardrail non è aggiungere più agenti. È preservare work item, canonical context, evidence state e stop condition prima del fan-out o dell'handoff.
 
-Guardrail:
+> **Il parallelismo amplifica la qualità dell'intent che riceve, compresi i suoi errori.**
 
-```text
-shared decision synchronization
-before fan-out
-```
+## Seconda famiglia — Falsa indipendenza e verification theatre
 
-## Failure mode: verifier capture
+Un Verifier può essere formalmente separato e restare completamente dipendente dal producer.
 
-Scenario:
+L'Implementer scrive codice, test e summary. Il Verifier legge soltanto il summary e dice `PASS`. Abbiamo creato una seconda opinione senza una seconda source di evidence.
+
+Un'altra variante è il **green-by-editing-the-oracle**: il test o la fitness rule falliscono, l'executor modifica il criterio, la suite diventa verde e il reviewer vede soltanto il risultato finale.
+
+Una terza variante è il consensus theatre:
 
 ```text
-Implementer creates code + tests + explanation
-Verifier reads only implementer explanation
-→ PASS
-```
-
-Il verifier è formalmente separato ma epistemicamente dipendente.
-
-Guardrail:
-
-```text
-access to primary evidence
-+ adversarial rubric
-+ raw result sampling
-```
-
-## Failure mode: handoff erosion
-
-Scenario:
-
-```text
-Agent A knows:
-- ED-001 expected difference
-- migration stop condition
-- ownership boundary
-
-handoff summary:
-"Implement priority migration"
-
-Agent B receives summary only
-→ treats ED-001 as bug
-→ changes target behavior back to legacy
-```
-
-Guardrail:
-
-```text
-handoff carries work item ID
-+ canonical context
-+ stop conditions
-+ current evidence state
-```
-
-## Failure mode: delegation escalation
-
-Scenario:
-
-```text
-agent cannot complete task
-→ asks for more permission
-→ permission granted ad hoc
-→ still cannot complete
-→ asks for more
-```
-
-Dopo alcuni passaggi l'agente possiede capability molto più ampie di quelle previste dal threat model.
-
-Guardrail:
-
-```text
-permission change
-→ new decision
-→ explicit owner
-→ expiry/review
-```
-
-Non:
-
-```text
-just this once
-```
-
-## Failure mode: autonomous oracle weakening
-
-Scenario:
-
-```text
-architecture test fails
-→ agent changes architecture test
-→ verifier sees green suite
-→ merge
-```
-
-È il nostro:
-
-> **green-by-editing-the-oracle**
-
-Guardrail:
-
-- verification oracle fuori scope;
-- policy change separata;
-- human/architecture approval;
-- diff-aware review.
-
-## Failure mode: infinite repair loop
-
-Scenario:
-
-```text
-build fails
-→ agent patches
-→ different test fails
-→ agent patches
-→ architecture fitness fails
-→ agent patches
-→ behavior drifts
-```
-
-Il sistema continua perché non esiste una stop condition.
-
-Guardrail:
-
-```text
-retry / repair budget
-→ stop
-→ report evidence
-→ escalate
-```
-
-## Failure mode: consensus theatre
-
-Scenario:
-
-```text
-5 agents review
-4 say PASS
-1 finds cross-tenant leakage
+5 reviewers
+4 PASS
+1 critical cross-tenant finding
 → majority PASS
 ```
 
-Abbiamo applicato voto democratico a severità non comparabili.
+Qui il problema è trattare signal con severità diversa come voti equivalenti.
 
-Guardrail:
+Questi failure hanno una radice comune: **confondere quantità di review con qualità della verification**.
+
+La mitigazione combina primary evidence, read-only/independent verification quando serve, oracle governance e risk-weighted gate. Un singolo finding critico può bloccare il passaggio anche contro dieci review positive su aspetti minori.
+
+> **La verifica non diventa indipendente perché aumentano i reviewer. Diventa indipendente quando il giudizio può contraddire il producer sulla base di una evidence che non dipende soltanto da lui.**
+
+## Terza famiglia — Permission e authority che crescono per inerzia
+
+Un task non si chiude. L'agente chiede una capability in più. La concediamo “solo per questa volta”. Il nuovo tentativo incontra un altro boundary e richiede un'altra permission.
+
+Dopo qualche iterazione il workflow possiede molto più potere di quanto il Threat Model iniziale prevedesse.
 
 ```text
-risk-weighted gate
+blocked execution
+→ ad-hoc permission
+→ new blocked execution
+→ broader permission
+→ accidental privilege growth
 ```
 
-Un finding critico può bloccare anche contro una maggioranza positiva.
+Lo stesso failure può avvenire sul piano della policy: l'executor aumenta il proprio livello nell'Autonomy Matrix, modifica il Delegation Contract o allenta una stop condition per poter continuare.
 
-## Failure mode: expensive swarm
+La radice è la stessa: **l'incapacità di completare il task viene trattata come giustificazione sufficiente per allargare l'authority**.
 
-Scenario:
+Il modello corretto è opposto:
 
-Un task di due file usa:
+```text
+permission/autonomy change
+→ new decision
+→ explicit owner
+→ threat/cost/evidence review
+→ bounded grant or rejection
+```
+
+Una capability temporanea deve inoltre avere expiry o review trigger quando applicabile. `Just this once` non è una policy.
+
+## Quarta famiglia — Repair loop e coordination cost che superano il valore
+
+Gli agenti rendono economico iniziare execution, non necessariamente finirla bene.
+
+Un workflow può entrare in un repair loop: il build fallisce, l'agente modifica; fallisce un altro test, modifica ancora; scatta architecture fitness, modifica ancora; il behavior si allontana progressivamente dall'intent originale.
+
+Senza repair budget e stop condition il sistema ottimizza il verde locale invece della property.
+
+All'estremo opposto possiamo costruire uno swarm costoso per un task piccolo:
 
 ```text
 planner
 implementer
-unit-test agent
+test agent
 security agent
 architecture agent
 review agent
 synthesis agent
 ```
 
-Il workflow funziona.
+Tutto funziona, ma token, latency, handoff e review cost superano il valore del cambiamento.
 
-Ma costa più tempo, token e coordinamento del task stesso.
+Questi due failure sembrano diversi, ma condividono una radice economica: **non esiste un budget esplicito per il costo di coordinare e riparare l'execution**.
 
-Guardrail:
+Il Cost Model del Capitolo 20 vale anche qui. Le metriche interessanti non sono soltanto token o numero di agent call, ma `cost per accepted task`, `cost per verified change`, repair loop e human review minutes per risultato accettato.
 
-> **multi-agent topology must justify its coordination cost.**
+> **Un workflow multi-agent deve giustificare il proprio coordination cost come qualunque altra scelta architetturale.**
 
-La Cost Model del Capitolo 20 vale anche qui.
+## Deskilling: il failure più lento
 
-Possiamo misurare in futuro:
+Esiste infine un failure che non appare in una singola run.
 
-```text
-cost per accepted task
-cost per verified change
-human review minutes per accepted change
-agent repair loops per task
-```
+Il team può aumentare throughput fino al punto in cui nessuno sa più spiegare perché una policy esista, quale evidence renda valido un gate o quale agente abbia introdotto un boundary. L'essere umano diventa coordinatore di output che non comprende abbastanza da contestarli.
 
-non soltanto token.
+Questo è il contrario della tesi del libro.
 
-## Failure mode: deskilling through invisible management
+Gestire agenti non significa rinunciare alla competenza. Significa usare quella competenza in un punto di leva diverso: formulare il mandato, capire i trade-off, progettare permission ed evidence, riconoscere contradiction e decidere quando il rischio cambia.
 
-Un team può diventare molto produttivo senza riuscire più a spiegare:
+> **L'execution può essere delegata. La capacità dell'organizzazione di capire perché accetta un risultato non può essere esternalizzata senza creare un nuovo failure mode.**
 
-- perché una policy esiste;
-- quale agent ha introdotto un boundary;
-- come una verification viene interpretata;
-- quali failure mode il workflow copre.
+## I casi reali non decidono per ESI
 
-Il manager umano diventa coordinatore di output che non comprende.
+GitHub, OpenAI e Microsoft mostrano capability e mitigazioni reali. Non dicono quale livello di autonomia debba usare Order Operations.
 
-Questo è esattamente ciò che il libro vuole evitare.
+La decisione resta funzione di business impact, security boundary, reversibilità, verification maturity, team capability, cost e observed failure history.
 
-> **Gestire agenti non significa smettere di capire software. Significa usare la comprensione per governare una quantità di execution che prima non potevamo permetterci.**
+È ancora la stessa disciplina che attraversa tutto il libro:
 
-## Il caso reale non elimina il giudizio
-
-GitHub, OpenAI e Microsoft ci mostrano capability e mitigazioni reali.
-
-Non ci dicono quale autonomia debba concedere ESI.
-
-Quella decisione dipende da:
-
-```text
-business impact
-security boundary
-reversibility
-verification maturity
-team capability
-cost
-failure history
-```
-
-È ancora Software Architecture.
+> **fit before fashion, evidence before confidence, trade-off before shortcut.**
