@@ -19,8 +19,6 @@ Un agente vede:
 - alcuni handler;
 - eventi di dominio;
 
-ed è tentato di completare la figura.
-
 Può proporre:
 
 - interface comune;
