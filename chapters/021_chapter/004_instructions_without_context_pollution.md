@@ -12,7 +12,7 @@ Il problema non è soltanto estetico. Più informazioni carichiamo sempre, più 
 
 ## Che cosa merita il livello globale
 
-Una informazione globale ha senso quando si applica a molte classi di task, una sua violazione ha costo elevato, non è ovvia dal codice e resta abbastanza stabile da giustificare manutenzione continua.
+Un'informazione globale ha senso quando si applica a molte classi di task, una sua violazione ha costo elevato, non è ovvia dal codice e resta abbastanza stabile da giustificare manutenzione continua.
 
 Per Order Operations appartengono a questo livello il purpose del prodotto, il fatto che Payments & Risk possieda gli effetti economici, i golden command, il divieto di inventare una seconda authority per dati esterni, il routing verso la Repository Map e poche stop condition ad alto impatto.
 
