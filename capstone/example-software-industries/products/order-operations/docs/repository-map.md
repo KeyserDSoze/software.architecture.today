@@ -20,7 +20,8 @@ order-operations/
 ├── docs/
 ├── infra/
 ├── src/
-└── tests/
+├── tests/
+└── work-items/
 ```
 
 ## `src/`
@@ -195,6 +196,7 @@ priority-policy.test.mjs
 architecture-fitness.test.mjs
 cost-fitness.test.mjs
 agent-context-fitness.test.mjs
+issue-readiness-fitness.test.mjs
 ```
 
 Additional legacy characterization lives outside the product directory:
@@ -210,6 +212,43 @@ docs/testing-strategy.md
 ```
 
 Do not infer that a local green suite proves PostgreSQL, Azure, runtime observability, recovery or production behavior unless that boundary was actually exercised.
+
+## `work-items/`
+
+Responsibility:
+
+- bounded discovery/execution task contracts;
+- current task-specific outcome, scope, acceptance, verification and stop conditions;
+- closure evidence after execution.
+
+Current files:
+
+```text
+TEMPLATE.md
+OO-001-postgresql-escalation-outbox-atomicity.md
+```
+
+`OO-001` exists because `TST-005` in the Testing Strategy still lacks higher-fidelity PostgreSQL evidence.
+
+Important distinction:
+
+```text
+repository canonical context
+→ docs/
+
+task-specific execution context
+→ work-items/
+```
+
+A work item should route to canonical documents rather than duplicating their full content.
+
+Mechanical readiness is checked by:
+
+```text
+tests/issue-readiness-fitness.test.mjs
+```
+
+The test checks structure and references; human/reviewer judgment still decides whether outcome, acceptance and stop conditions are semantically sufficient.
 
 ## `docs/` — canonical context routes
 
@@ -275,12 +314,14 @@ Use when changing topology or revisiting an architecturally significant decision
 | Priority rule | Priority Functional Analysis, Legacy Understanding Map, Refactoring Safety Plan |
 | Payment Escalation semantics | API Contract, Event Contract, Data Ownership, Failure Mode Map |
 | New persisted fact | Data Ownership Map, schema/migration, NFR |
+| PostgreSQL transaction evidence | Testing Strategy, Data Ownership, migrations, relevant work item |
 | Cloud resource/topology | Cloud Deployment, Threat Model, Reliability Contract, Cost Model |
 | New security boundary | Threat Model, Security Control Matrix, relevant ADR |
 | New retry/failure behavior | Failure Mode Map, Reliability Contract, Testing Strategy |
 | New telemetry | Observability Contract, Cost Model |
 | Architecture rule | Architecture Fitness Checklist + executable test where mechanical |
 | Legacy retirement | Legacy Understanding Map, Refactoring Safety Plan, characterization evidence |
+| New discovery/execution task | `work-items/TEMPLATE.md` + canonical context links |
 
 ## Golden commands
 
@@ -327,6 +368,8 @@ Do not collapse these dimensions.
 
 The operational stop conditions are canonical in `../AGENTS.md`.
 
+A work item may add narrower stop conditions specific to the task.
+
 This map intentionally does not duplicate the full list.
 
 ## Maintenance rule
@@ -337,6 +380,7 @@ Update this map when:
 - a canonical document is added/renamed/retired;
 - golden commands change;
 - a new capability creates a new navigation path;
-- a former temporary migration boundary becomes permanent or is removed.
+- a former temporary migration boundary becomes permanent or is removed;
+- the work-item model or task-routing rules change materially.
 
 > **The map describes where knowledge and responsibility live. It must not become a second copy of that knowledge.**
