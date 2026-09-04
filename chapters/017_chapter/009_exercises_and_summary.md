@@ -1,39 +1,35 @@
 # 17.9 — Esercizi, autovalutazione e sintesi
 
-Il legacy non è un problema da risolvere con una singola tecnica.
+Il Capitolo 17 non ha risolto il legacy.
 
-È un contesto in cui la qualità della prossima modifica dipende dalla qualità della conoscenza che siamo riusciti a ricostruire.
+Ha fatto qualcosa di più importante prima di qualsiasi trasformazione: ha ridotto l'incertezza abbastanza da rendere possibile una decisione successiva più sicura.
 
-## Idee chiave
+La tesi può essere riassunta così:
 
-1. **Legacy non significa semplicemente vecchio.** Un sistema diventa legacy-like quando non riusciamo più a modificarlo con sufficiente comprensione e confidence.
-2. La modernization parte da **assessment e inventory**, non dal target tecnologico.
-3. Il repository è una fonte importante, ma non coincide con il sistema operativo reale.
-4. Code archaeology deve seguire **journey, state change e side effect**, non soltanto directory e call graph.
-5. Una dependency può vivere in shared table, job ordering, file format, config, permission o procedura umana.
-6. Usiamo gli stati **Found → Inferred → Observed → Confirmed** per non confondere ipotesi e conoscenza.
-7. Un characterization test protegge il comportamento osservato. Non dichiara automaticamente che quel comportamento sia corretto.
-8. Ogni comportamento legacy significativo dovrebbe diventare progressivamente `required`, `compatibility` oppure `accidental`.
-9. Un golden master è utile quando protegge output semanticamente importante; diventa rumore quando fotografa implementation detail.
-10. Un seam permette a vecchio e nuovo comportamento di coesistere e rende il cambiamento più reversibile.
-11. Branch by Abstraction è utile quando la capability vive in profondità nel sistema e non può essere intercettata facilmente dal perimetro.
-12. Un Anti-Corruption Layer protegge il modello nuovo dalla semantica legacy, ma introduce una responsabilità di traduzione da governare.
-13. Shared database e data migration richiedono ownership transition, reconciliation e cutover espliciti.
-14. Retain, retire, rehost, replatform, refactor e rebuild sono strategie contestuali, non una scala di maturità.
-15. Lo Strangler Fig riduce transformation risk attraverso sostituzione incrementale e coexistence.
-16. Una big-bang rewrite rischia di inseguire un target che continua a cambiare mentre il legacy resta vivo.
-17. La conoscenza operativa può vivere in runbook, query manuali, incidenti e workaround umani.
-18. L'AI può accelerare molto l'archaeology, ma deve conservare provenance e grado di evidence.
-19. **Documentation laundering** trasforma un'inferenza in falsa verità quando documenti generati vengono riletti come fonte autorevole.
-20. L'autonomia degli agenti può crescere quando crescono characterization, test, quality gate e rollback.
-21. Modernization progress si misura anche in dependency eliminate, traffic migrato, legacy responsibility rimossa ed evidence aggiunta.
-22. Prima di refactorizzare dobbiamo sapere almeno quali comportamenti non possiamo cambiare accidentalmente.
+```text
+legacy uncertainty
+→ evidence collection
+→ Found / Inferred / Observed / Confirmed
+→ behavior classification
+→ candidate seam
+→ safe next decision
+```
+
+Legacy non significa semplicemente software vecchio. Significa che il sistema non è più comprensibile e verificabile in misura sufficiente rispetto al rischio del change che vogliamo fare.
+
+Per questo la modernization non parte dal target tecnologico. Parte da inventory, journey, data, runtime, Operations e owner.
+
+Il repository è una fonte importante, ma non coincide con il sistema. Una dependency può essere una shared table, un job che deve finire prima di un altro, un file, una feature flag, un certificato o una procedura umana durante gli incidenti.
+
+Una characterization suite può rendere questi behavior osservabili. Non può trasformarli automaticamente in requisiti. Un seam può rendere sostituibile una capability. Non può dirci da solo quale semantica debba sopravvivere.
+
+E l'AI può accelerare enormemente inventory, test e mappe. Non può eliminare la necessità di distinguere evidence, inferenza e decisione.
 
 ## Artefatto operativo — Legacy Understanding Map
 
-Il capitolo introduce la **Legacy Understanding Map**.
+L'artefatto del capitolo serve a governare la slice corrente, non a descrivere tutto il passato dell'applicazione.
 
-Template:
+Una versione minima può contenere:
 
 ```markdown
 # Legacy Understanding Map
@@ -46,7 +42,7 @@ Template:
 
 ## Current behavior
 
-## State and data ownership
+## State / data ownership
 
 ## Dependencies
 
@@ -79,35 +75,39 @@ Template:
 ## Decision blockers
 ```
 
-Non deve diventare un'enciclopedia del legacy.
+Il valore dell'artefatto non è la quantità di righe.
 
-Deve contenere la conoscenza necessaria per governare la modernization slice corrente.
+È la possibilità di rispondere a domande come:
+
+```text
+che cosa sappiamo davvero?
+quale behavior è soltanto Observed?
+quale consumer è ancora Inferred?
+chi può confermare la semantica?
+quale unknown blocca il cutover?
+```
 
 ## Esercizio 1 — Legacy senza età
 
-Prendi un sistema recente su cui hai lavorato.
+Prendi un sistema recente e cerca segnali legacy-like:
 
-Cerca segnali legacy-like:
+```text
+ownership non chiara
+business rule senza provenance
+dipendenza fuori repository
+test poco affidabili
+configuration manuale
+workaround umano
+deploy non ripetibile
+```
 
-- ownership non chiara;
-- business rule non documentate;
-- dipendenza fuori repository;
-- test poco affidabili;
-- configurazione manuale;
-- deploy non ripetibile;
-- workaround umano.
+Poi chiedi:
 
-Domanda:
-
-> quanti anni deve avere davvero il codice per diventare difficile da cambiare?
+> Il problema è davvero l'età del codice o la perdita di comprensione e verificabilità?
 
 ## Esercizio 2 — Journey archaeology
 
-Scegli una feature di un sistema esistente.
-
-Parti dall'azione utente o dall'evento che la attiva.
-
-Ricostruisci:
+Scegli una capability reale e ricostruiscila partendo dall'azione o evento iniziale:
 
 ```text
 entry point
@@ -118,123 +118,128 @@ entry point
 → recovery
 ```
 
+Per ogni passaggio indica la fonte dell'evidence.
+
 Non fermarti alla call graph.
 
-## Esercizio 3 — Evidence state
+## Esercizio 3 — Found, Inferred, Observed, Confirmed
 
-Scrivi dieci affermazioni sul sistema.
+Scrivi dieci claim sul sistema e classificane ciascuna.
 
-Classificale:
+Per ogni `Inferred`, indica che cosa servirebbe per arrivare a `Observed`.
 
-```text
-Found
-Inferred
-Observed
-Confirmed
-```
+Per ogni `Observed`, indica chi o quale decisione potrebbe trasformarla in `Confirmed`.
 
-Per ogni `Inferred`, indica quale evidence servirebbe per promuoverla a `Observed`.
+L'obiettivo è rendere visibile quanto della tua “conoscenza” sia in realtà inferenza.
 
 ## Esercizio 4 — Hidden dependency hunt
 
-Cerca dependency che non siano import o package:
-
-- table;
-- cron;
-- file;
-- environment variable;
-- DNS;
-- certificate;
-- feature flag;
-- shared cache key;
-- manual process.
-
-Quale ha il blast radius maggiore?
-
-## Esercizio 5 — Characterization test
-
-Prendi una funzione legacy poco chiara.
-
-Scrivi almeno cinque characterization test che coprano:
-
-- normal behavior;
-- boundary;
-- historical special case;
-- invalid input;
-- time-dependent behavior.
-
-Non refactorizzare ancora.
-
-## Esercizio 6 — Behavior classification
-
-Per ogni behavior caratterizzato chiedi:
+Cerca dependency che il compilatore non vede:
 
 ```text
-Required?
-Compatibility?
-Accidental?
-Unknown?
+table
+cron / scheduler
+file format
+environment variable
+DNS
+certificate
+feature flag
+shared cache key
+manual process
 ```
 
-Quale stakeholder può confermarlo?
+Per ognuna stima blast radius, owner ed evidence corrente.
 
-## Esercizio 7 — Golden master review
+## Esercizio 5 — Characterization prima del refactor
 
-Prendi uno snapshot test esistente.
+Scegli una funzione legacy poco chiara e costruisci almeno cinque casi:
 
-Segna quali campi sono:
+```text
+normal behavior
+boundary value
+legacy special case
+invalid input
+time-dependent behavior
+```
 
-- semantic outcome;
-- implementation detail;
-- nondeterministic noise;
-- security/privacy risk.
+Non correggere ancora ciò che ti sembra strano.
 
-Riduci lo snapshot alla parte realmente utile.
+Registra soltanto ciò che osservi.
 
-## Esercizio 8 — Candidate seam
+## Esercizio 6 — Classificare i behavior
 
-Trova una capability legacy con molti caller.
+Per ogni comportamento caratterizzato prova a scegliere:
 
-Disegna un seam che permetta:
+```text
+Required
+Compatibility
+Accidental
+Unknown
+```
+
+Poi scrivi l'evidence che giustifica la classificazione.
+
+Se non esiste, torna a `Unknown`.
+
+## Esercizio 7 — Golden master senza snapshot theater
+
+Prendi un golden master o snapshot esistente.
+
+Classifica ogni campo come:
+
+```text
+semantic outcome
+compatibility surface
+implementation detail
+nondeterministic noise
+privacy/security risk
+```
+
+Riduci il baseline a ciò che un consumer può davvero distinguere.
+
+## Esercizio 8 — Creare un seam
+
+Scegli una capability con molti caller e disegna un punto di scelta fra:
 
 ```text
 legacy implementation
-+
-new implementation
+candidate implementation
 ```
 
-senza migrare tutti i caller contemporaneamente.
+Specifica:
 
-Indica:
+```text
+contract
+state dependencies
+side effects
+routing control
+rollback
+removal condition
+```
 
-- contract;
-- state;
-- side effect;
-- rollback.
+Se il seam non racchiude ciò che determina la semantica, probabilmente è soltanto un'interfaccia sintattica.
 
 ## Esercizio 9 — Strangler slice
 
-Scegli una capability da modernizzare.
-
-Definisci:
+Progetta una modernization slice e scrivi:
 
 ```text
 why now
-boundary
+capability boundary
+users / consumers
+data authority
 coexistence
 verification
-traffic/cutover strategy
+cutover
 rollback
 legacy removal condition
 ```
 
-Se non riesci a definire `removal condition`, il piano rischia di creare un altro layer permanente.
+Se non sai quando il path vecchio può essere eliminato, il piano non ha ancora definito il proprio completamento.
 
-## Esercizio 10 — AI archaeology
+## Esercizio 10 — AI archaeology con provenance
 
-Chiedi a un agente di mappare una capability legacy.
-
-Impone questo formato:
+Chiedi a un agente di mappare una capability legacy imponendo il formato:
 
 ```text
 Claim
@@ -244,44 +249,45 @@ Alternative explanation
 Missing evidence
 ```
 
-Poi fai revisionare il risultato da un secondo agente con ruolo scettico.
+Poi fai revisionare l'output da un secondo agente con ruolo scettico.
 
-Conta quante affermazioni iniziali erano troppo forti.
+Conta quante claim iniziali erano formulate con più certezza di quella sostenuta dall'evidence.
 
 ## Esercizio 11 — Documentation laundering
 
-Prendi una pagina architetturale del tuo progetto.
+Prendi una pagina architetturale esistente.
 
 Per ogni affermazione chiedi:
 
-- è stata osservata?
-- è una decisione?
-- è un'ipotesi?
-- chi la mantiene?
-- quando è stata verificata?
+```text
+è una decisione?
+è Found?
+è Inferred?
+è Observed?
+è Confirmed?
+chi la mantiene?
+quando è stata verificata?
+```
 
-Evidenzia ciò che appare autorevole ma non ha provenance.
+Evidenzia le frasi che sembrano autorevoli ma non conservano provenance.
 
-## Esercizio 12 — Operations knowledge
+## Esercizio 12 — Operations come architecture source
 
-Intervista una persona on-call o Operations.
+Intervista una persona on-call o Operations e chiedi:
 
-Chiedi:
+> Qual è una cosa che fai durante un incidente che non è rappresentata nel codice?
 
-> “Qual è una cosa che fai durante un incidente e che non è scritta nel codice?”
-
-Trasforma la risposta in:
+Trasforma la risposta in uno fra:
 
 - failure mode;
 - runbook step;
+- requirement;
 - missing automation;
-- oppure requirement di modernization.
+- modernization blocker.
 
 ## Esercizio 13 — Data ownership transition
 
-Disegna la migrazione di una tabella legacy condivisa.
-
-Rispondi:
+Disegna la migrazione di una tabella condivisa e rispondi:
 
 ```text
 old writer?
@@ -292,129 +298,125 @@ dual-write window?
 reconciliation?
 cutover point?
 rollback?
-old writer removal?
+old writer retirement?
 ```
+
+Se vecchio e nuovo possono essere authoritative contemporaneamente senza una regola, hai trovato il rischio principale.
 
 ## Esercizio 14 — Rewrite challenge
 
-Per una rewrite proposta nel tuo contesto, elenca ciò che il nuovo sistema deve ancora conoscere:
+Prendi una proposta di rewrite e separa:
 
-- business rule;
-- integration;
-- history;
-- consumer;
-- security;
-- migration;
-- operating procedure.
+```text
+code complexity removed
+```
+
+da:
+
+```text
+business / integration / data / operational complexity still required
+```
 
 Poi chiedi:
 
-> la rewrite elimina davvero questa complessità o elimina soltanto il codice che la rendeva visibile?
+> La rewrite elimina davvero la complessità o elimina soltanto il codice che la rendeva visibile?
 
 ## Esercizio 15 — ESI Operations Desk Classic
 
-Usa la Legacy Understanding Map del capstone.
+Usa la baseline del Capitolo 17.
 
-Per ogni behavior `LB-*`:
+Per ogni `LB-*`:
 
-1. indica una fonte di evidence aggiuntiva;
-2. assegna un owner che potrebbe confermarlo;
-3. proponi una classificazione provvisoria;
-4. definisci quale rischio avrebbe eliminarlo per errore.
+1. proponi una nuova fonte di evidence;
+2. identifica un possibile owner della semantica;
+3. assegna una classificazione provvisoria;
+4. descrivi il rischio di eliminarlo per errore;
+5. indica che cosa impedisce ancora di chiamarlo `Confirmed`.
 
-Non progettare ancora la nuova implementazione.
+Non progettare la target policy.
+
+L'obiettivo è resistere alla tentazione di trasformare la discovery in design troppo presto.
 
 ## Autovalutazione
 
-Sai rispondere senza guardare il capitolo?
+Dovresti riuscire a spiegare senza consultare il capitolo perché legacy non significhi semplicemente vecchio; la differenza fra repository intelligence e system intelligence; ciò che separa `Inferred`, `Observed` e `Confirmed`; perché un characterization test non dimostri correttezza; quando un golden master diventi rumore; che cosa renda un seam veramente utile; quando Branch by Abstraction abbia senso; quale ruolo abbia un Anti-Corruption Layer; perché un shared database complichi la modernization; come una big-bang rewrite possa perdere conoscenza; che cosa sia il documentation laundering; perché Operations sia una fonte di architecture knowledge; quali task siano adatti agli agenti AI; quali one-way door richiedano human judgment; e come si misuri davvero il progresso di una modernization.
 
-1. Perché legacy non è sinonimo di software vecchio?
-2. Qual è la differenza fra repository intelligence e system intelligence?
-3. Che differenza c'è fra `Inferred` e `Observed`?
-4. Perché un characterization test non prova che il comportamento sia corretto?
-5. Quando un golden master diventa pericoloso?
-6. Che cosa rende un seam utile?
-7. Quando Branch by Abstraction è preferibile a un'intercettazione al perimetro?
-8. Che cosa protegge un Anti-Corruption Layer?
-9. Perché un shared database complica la modernization?
-10. Quali rischi introduce una big-bang rewrite?
-11. Che cosa misura realmente il progresso di una modernization?
-12. Che cos'è il documentation laundering?
-13. Quali task di legacy discovery sono adatti agli agenti AI?
-14. Quali decisioni non dovrebbero essere delegate autonomamente?
-15. Perché Operations è una fonte di architecture knowledge?
+Se una risposta resta vaga, prova a riscriverla così:
 
-Se molte risposte sono vaghe, prova a produrre una Legacy Understanding Map di un sistema che conosci.
+```text
+claim
+→ evidence
+→ state
+→ missing evidence
+```
+
+Questa forma spesso rivela immediatamente dove la comprensione non è ancora sufficiente.
 
 ## Cosa cambia con l'AI
 
-Prima dell'AI, il costo di esplorare una codebase molto grande limitava quante ipotesi potevamo formulare.
+Prima dell'AI il costo di esplorare una codebase grande limitava quante ipotesi potevamo formulare e verificare.
 
-Ora possiamo generare rapidamente:
+Ora possiamo produrre rapidamente inventory, dependency map, characterization candidate, seam hypothesis e modernization plan.
 
-- mappe;
-- spiegazioni;
-- characterization test;
-- candidate seam;
-- modernization plan;
-- dependency inventory.
+La nuova scarsità è:
 
-Questo riduce il costo della discovery.
+```text
+provenance
+runtime evidence
+domain confirmation
+risk judgment
+safe stop conditions
+```
 
-Aumenta però il rischio di confondere **velocità della spiegazione** con **qualità della comprensione**.
+Il rischio non è avere poche spiegazioni.
 
-La competenza importante diventa saper chiedere:
+È avere troppe spiegazioni plausibili e nessun modo chiaro per sapere quali siano vere.
+
+Per questo le domande più importanti diventano:
 
 ```text
 Da dove lo sappiamo?
-È codice o comportamento runtime?
-È osservato o inferito?
-Chi può confermare la semantica?
 Che cosa potrebbe smentirlo?
+È repository evidence o runtime behavior?
+Chi può confermare il significato?
+Quale decisione diventerebbe pericolosa se questa claim fosse falsa?
 ```
 
-## Ponte verso il Capitolo 18
+## Stato ESI dopo il Capitolo 17
 
-Alla fine di questo capitolo Operations Desk Classic non è stato modernizzato.
+Operations Desk Classic non è stato ancora refactorizzato o modernizzato.
 
 Abbiamo però:
 
-- capability scope;
-- legacy inventory;
-- characterization suite;
-- hidden contract candidate;
-- evidence ledger;
-- unknown espliciti;
-- candidate seam;
-- compromise ESI governato.
+```text
+capability scope
+legacy inventory
+characterization baseline
+Evidence Ledger
+hidden-consumer hypotheses
+data-ownership unknowns
+candidate seam
+decision blockers
+```
 
-Adesso possiamo affrontare il **Capitolo 18 — Refactoring nell'era dell'AI**.
+Questo è sufficiente per affrontare il passo successivo senza fingere di conoscere più di quanto sappiamo.
 
-Lì la domanda cambia.
+## Ponte al Capitolo 18 — Refactoring nell'era dell'AI
 
-Non sarà più:
+Il Capitolo 18 cambierà domanda.
 
-> “Che cosa fa questo sistema?”
+Non più:
 
-Sarà:
+> Che cosa fa il sistema?
 
-> **“Come cambiamo la struttura mantenendo sotto controllo il comportamento che abbiamo deciso di preservare?”**
+Ma:
 
-Ed entreranno:
+> **Come cambiamo la struttura mantenendo sotto controllo i behavior che abbiamo deciso di preservare e rendendo deliberate le differenze che vogliamo introdurre?**
 
-- Refactoring Safety Plan;
-- small steps;
-- semantic diff;
-- branch by abstraction applicato;
-- adapter/ACL;
-- test-first change;
-- migration flag;
-- shadow comparison;
-- AI-generated refactor;
-- verification bundle;
-- stop condition;
-- rollback.
+Entreranno Refactoring Safety Plan, small batch, semantic diff, Branch by Abstraction applicato, adapter/ACL, shadow comparison, Expected Difference, stop condition e rollback.
+
+La baseline del Capitolo 17 sarà ciò che impedirà al refactoring di riscrivere accidentalmente anche la semantica.
 
 ## Corollario
 
-> **Il legacy non diventa sicuro quando lo abbiamo spiegato bene. Diventa più sicuro quando sappiamo distinguere ciò che abbiamo osservato, ciò che abbiamo confermato e ciò che resta ancora sconosciuto.**
+> **Il legacy non diventa sicuro quando abbiamo una spiegazione convincente. Diventa più governabile quando sappiamo quali parti della spiegazione sono osservate, quali sono confermate e quali restano ancora abbastanza incerte da dover bloccare il prossimo one-way door.**
