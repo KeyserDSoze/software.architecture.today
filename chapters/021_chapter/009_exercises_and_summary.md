@@ -1,188 +1,163 @@
-# Esercizi, autovalutazione e sintesi
+# 21.9 — Esercizi, autovalutazione e sintesi
 
-## Idee chiave
+Un repository AI-ready non è un repository pieno di prompt. È un repository nel quale un nuovo esecutore può capire abbastanza rapidamente **che cosa è stabile, che cosa deve cambiare, quale fonte è autorevole e quale evidence serve per chiudere il task**.
 
-1. **Un repository AI-ready non è un repository pieno di prompt.** È un repository nel quale struttura, decisioni, ownership e verification path sono abbastanza espliciti da ridurre l'inferenza necessaria.
-2. **Persistent context e task context sono diversi.** Il repository contiene ciò che resta vero fra i task; la issue descrive ciò che deve cambiare adesso.
-3. **`AGENTS.md` è un entry point, non una enciclopedia.** Deve aiutare a navigare verso documenti canonical e comandi verificabili.
-4. **Always-on context ha un costo.** Più istruzioni non significano automaticamente più comprensione.
-5. **Le regole meccaniche importanti dovrebbero diventare eseguibili.** Non chiedere all'agente di ricordare ciò che un test può verificare.
-6. **Gli oracle devono avere governance.** Un agente non dovrebbe poter far diventare verde un task modificando liberamente comportamento, test e policy che lo giudicano.
-7. **Capability non significa authorization.** Tool e permission devono seguire il rischio del task.
-8. **Stop condition aumenta l'autonomia utile.** Un agente che sa quando fermarsi può ricevere più spazio di execution nel resto del dominio.
-9. **Documentazione stale è un rischio operativo.** Il contesto persistente deve avere owner, review trigger e source of truth.
-10. **AI-ready dovrebbe migliorare anche il lavoro umano.** Se una convention serve soltanto a un particolare modello e peggiora la manutenzione del progetto, il fit è sospetto.
+Il capitolo ha quindi spostato il problema dall'“istruire meglio il modello” al progettare un ambiente di lavoro più leggibile.
+
+La catena che vogliamo ottenere è:
+
+```text
+entry point
+→ navigation context
+→ relevant decision context
+→ scoped task
+→ allowed execution
+→ golden verification
+→ explicit evidence gaps
+```
+
+Ogni passaggio riduce un tipo diverso di ambiguità. `AGENTS.md` non sostituisce la Functional Analysis. La Repository Map non sostituisce l'architecture fitness. Il task non deve ricopiare il repository. Il test non deve inventare l'authority che manca. La stop condition non è una failure dell'automazione: è il punto in cui l'execution riconosce che serve una nuova decisione.
+
+> **Il repository contiene ciò che resta vero fra i task. Il task contiene il delta. L'evidence dice che cosa abbiamo realmente dimostrato.**
+
+## Che cosa significa davvero “AI-ready”
+
+La readiness che ci interessa è composta da proprietà già familiari alla software architecture.
+
+La knowledge source deve essere chiara e scopribile. Il setup deve essere riproducibile. I command devono avere un significato stabile. Le constraint meccaniche importanti devono poter produrre feedback eseguibile. Gli oracle devono essere protetti da modifiche opportunistiche. Permission e authority devono restare separate dalla semplice capacità tecnica. Il context layer deve poter invecchiare e quindi avere owner e review trigger.
+
+L'AI aumenta il valore di tutto questo perché riduce il costo dell'execution e aumenta la velocità con cui un errore di contesto può produrre un diff molto ampio.
+
+Allo stesso tempo, aumenta il danno di una documentazione autorevole ma sbagliata. Un umano può chiedere “ma siamo sicuri che sia ancora così?”. Un agente può trasformare rapidamente quell'informazione stale in codice coerente con il passato.
+
+Per questo **persistent context e current evidence devono sempre convivere**.
+
+## L'artefatto operativo non è un nuovo manuale
+
+Per ESI gli artifact introdotti sono volutamente pochi:
+
+```text
+AGENTS.md
++ docs/repository-map.md
++ tests/agent-context-fitness.test.mjs
+```
+
+Il primo fa routing. Il secondo rende navigabili responsabilità e source canonical. Il terzo verifica che entry point, map, documenti principali e golden command non siano diventati meccanicamente stale.
+
+Il context fitness non certifica la qualità semantica delle istruzioni. Questa limitazione è importante quanto il PASS.
+
+La baseline del capitolo resta infatti:
+
+```text
+CTX-001…CTX-004
+→ mechanical context properties
+→ locally exercisable
+```
+
+Non equivale a permission enforcement, agent reliability o production evidence.
 
 ## Esercizio 1 — Repository cold start
 
-Scegli un repository che conosci bene.
+Scegli un repository che conosci bene e affrontalo come se fosse nuovo.
 
-Immagina di non averci mai lavorato.
-
-Senza chiedere a nessuno, prova a rispondere in quindici minuti:
+In quindici minuti prova a scoprire:
 
 ```text
-What does this system do?
-How do I build it?
-How do I test it?
-Where are the important boundaries?
-Which documents are authoritative?
-Who owns the component I am changing?
-What must I not change implicitly?
+product purpose
+build path
+test path
+important boundaries
+canonical documents
+ownership
+forbidden implicit changes
 ```
 
-Segna ogni punto in cui devi usare tribal knowledge.
+Ogni volta che la risposta dipende da qualcosa che “il team sa”, segna una possibile forma di tribal knowledge. Poi decidi se quella conoscenza merita documentazione canonical, routing, automation o ownership metadata.
 
-Quello è un candidato per repository context, automation o ownership metadata.
+## Esercizio 2 — Scrivi un entry point corto
 
-## Esercizio 2 — Scrivi un AGENTS.md corto
+Crea una bozza di `AGENTS.md` di circa una pagina con purpose, route verso la Repository Map, golden command, critical boundary, stop condition e Definition of Done.
 
-Crea una bozza con massimo circa una pagina.
+Quando senti il bisogno di aggiungere API detail, schema, storia degli incidenti o l'intera Functional Analysis, non copiarli. Chiediti quale source canonical dovrebbe contenerli e come l'entry point può indirizzare verso di essa.
 
-Deve contenere soltanto:
+L'obiettivo non è vincere una gara di brevità. È distinguere **always-on context** da **discoverable context**.
 
-- purpose;
-- repository map;
-- canonical context routing;
-- build/test commands;
-- critical constraints;
-- stop conditions;
-- definition of done.
+## Esercizio 3 — Elimina una duplicazione di context
 
-Poi prova ad aggiungere tutto ciò che “potrebbe essere utile”.
+Cerca una stessa regola presente in almeno due fra README, CONTRIBUTING, wiki, tool-specific instruction, `AGENTS.md`, prompt template o runbook.
 
-Fermati.
-
-Per ogni nuova informazione chiedi:
-
-> deve essere always-on o può vivere in un documento canonical scoperto quando serve?
-
-## Esercizio 3 — Riduci instruction duplication
-
-Cerca nel tuo progetto informazioni duplicate fra:
-
-```text
-README
-CONTRIBUTING
-wiki
-Copilot instructions
-AGENTS.md
-prompt template
-runbook
-```
-
-Per una regola duplicata identifica:
+Identifica:
 
 ```text
 canonical source
-routing copies da eliminare
-consumer che devono essere aggiornati
+routing layer
+copies to remove
+consumers to update
+review trigger
 ```
 
-## Esercizio 4 — Golden command test
+Poi verifica che la rimozione non renda la knowledge source meno scopribile.
 
-Prendi il comando che il team considera canonico per i test.
+## Esercizio 4 — Metti alla prova il golden command
 
-Eseguilo da un ambiente il più possibile pulito.
+Esegui il comando di test canonico da un environment il più pulito possibile.
 
-Verifica:
+Annota dipendenze, runtime, env var, servizi esterni, durata e failure mode. La domanda finale non è soltanto “passa?”. È:
 
-- dipendenze richieste;
-- ordine dei passi;
-- variabili necessarie;
-- servizi esterni;
-- tempo;
-- output;
-- failure mode.
+> **un nuovo contributor riuscirebbe a distinguere un bug del codice da un problema di setup o infrastruttura?**
 
-Poi chiedi:
+Se la risposta è no, il repository non possiede ancora un verification path sufficientemente deterministico.
 
-> un nuovo contributor saprebbe distinguere un bug del codice da un problema di environment?
+## Esercizio 5 — Green-by-editing-the-oracle
 
-## Esercizio 5 — Oracle attack
+Prendi un change con un test failing e immagina che l'esecutore possa modificare implementation, test, fixture ed architecture rule.
 
-Prendi una modifica con test failing.
+Trova almeno tre modi in cui potrebbe ottenere un verde senza soddisfare il requirement originario. Per ciascuno indica quale artifact dovrebbe essere protetto, quale decisione autorizzerebbe davvero il cambio dell'oracle e quale review o gate lo renderebbe visibile.
 
-Immagina che un agente possa modificare:
+## Esercizio 6 — Progetta stop condition osservabili
 
-- implementazione;
-- test;
-- fixture;
-- architecture rule.
+Scegli un task reale e scrivi cinque stop condition che non usino formule vaghe come “se sembra rischioso”.
 
-Elenca almeno tre modi in cui potrebbe ottenere un green build senza soddisfare il requisito.
-
-Per ognuno definisci il gate che riduce il rischio.
-
-## Esercizio 6 — Stop condition
-
-Per un task reale, scrivi cinque condizioni che obbligano l'agente a fermarsi.
-
-Non usare condizioni vaghe come:
-
-```text
-if something looks risky
-```
-
-Usa boundary osservabili:
+Usa boundary riconoscibili, per esempio:
 
 ```text
 new public ingress
 new authoritative data owner
 destructive migration
-contract breaking change
+breaking external contract
 security control weakening
+confirmed semantic conflict
 ```
 
-## Esercizio 7 — Scope vs file list
+Poi spiega chi possiede la decisione dopo lo stop. Una stop condition senza escalation path rende visibile il problema ma non lo governa.
 
-Trasforma questa issue:
+## Esercizio 7 — Trasforma un titolo vago in semantic scope
+
+Parti da:
 
 ```text
 Refactor payment handling.
 ```
 
-in una issue task-ready con:
+Riscrivilo come task con problem, desired outcome, semantic scope, out of scope, acceptance, relevant canonical context, verification budget e stop condition.
 
-```text
-Problem
-Outcome
-Semantic scope
-Out of scope
-Acceptance criteria
-Relevant context
-Verification
-Stop conditions
-```
+Non usare la file list come sostituto dello scope. I path devono essere hint; il task deve spiegare **quale significato può cambiare**.
 
-Non limitarti a elencare file.
+## Esercizio 8 — Costruisci una context fitness piccola
 
-## Esercizio 8 — Context fitness
+Automatizza una proprietà meccanica del context layer: link canonical esistenti, golden command presenti, path non stale o package principali visibili nella map.
 
-Costruisci un piccolo test che verifichi almeno una proprietà meccanica del tuo context layer.
+Poi scrivi esplicitamente due cose che il test **non** dimostra.
 
-Esempi:
+Questo secondo passaggio è obbligatorio: vogliamo fitness function che producano evidence, non una nuova illusione di completezza.
 
-- i link canonical esistono;
-- i comandi dichiarati esistono;
-- un instruction file non punta a directory rimosse;
-- una repository map contiene tutti i package principali.
+## Esercizio 9 — Tool-neutral first
 
-Poi scrivi esplicitamente che cosa **non** dimostra quel test.
+Immagina che il team usi tre coding agent differenti.
 
-## Esercizio 9 — Tool-neutral design
+Disegna una struttura in cui business semantics, ownership, architecture rule e verification rimangano canonical una sola volta. Aggiungi adapter specifici per tool soltanto dove una capability concreta lo richiede.
 
-Supponi che il tuo team usi tre coding agent differenti.
-
-Disegna una struttura che minimizzi la duplicazione:
-
-```text
-canonical context
-shared instructions
-vendor-specific adapter only if required
-```
-
-Identifica quali informazioni non devono mai essere replicate tre volte.
+Se devi aggiornare tre file quando cambia una business rule, prova a ridisegnare il routing.
 
 ## Esercizio 10 — ESI adversarial task
 
@@ -192,136 +167,77 @@ Un agente riceve:
 Make Payment Escalation more reliable.
 ```
 
-Propone:
+Propone retry infinito, una copia locale di `PaymentStatus`, un tier messaging superiore, la modifica del test che limita i retry e un nuovo public endpoint per un monitor esterno.
 
-1. aggiungere retry infinito;
-2. salvare `PaymentStatus` localmente per evitare la dipendenza;
-3. aumentare il tier Service Bus;
-4. modificare il test che limita i retry;
-5. aprire un endpoint pubblico per un monitor esterno.
+Per ciascuna proposta ricostruisci:
 
-Per ogni proposta indica:
+```text
+canonical artifact to read
+property / owner affected
+allowed execution or decision boundary
+verification needed
+stop condition
+```
 
-- quale artifact ESI deve leggere;
-- quale fitness rule o quality floor è coinvolto;
-- se può procedere autonomamente;
-- quale stop condition scatterebbe.
+L'esercizio non chiede di bocciare automaticamente tutte le proposte. Chiede di distinguere ciò che è una tecnica implementativa da ciò che riapre architecture, ownership, cost o security.
 
 ## Autovalutazione
 
-Dopo il capitolo dovresti saper rispondere a queste domande.
+Dopo questo capitolo dovresti riuscire a spiegare, senza ricorrere a slogan, perché un instruction file non renda da solo un repository AI-ready; come navigation, decision ed execution context si completino; perché repository context e task context debbano restare separati; quando un'informazione meriti always-on context; perché duplicare knowledge per ogni tool introduca drift; in che senso un architecture test sia anche context engineering; che cosa renda affidabile un golden command; perché l'oracle abbia bisogno di governance; come riconoscere task amplification; perché capability e authorization siano diverse; e in che modo una stop condition possa aumentare l'autonomia utile.
 
-1. Perché un file di istruzioni non rende da solo un repository AI-ready?
-2. Qual è la differenza fra navigation, decision ed execution context?
-3. Qual è la differenza fra persistent context e task context?
-4. Quando un'informazione merita always-on context?
-5. Perché duplicare la documentazione nei file specifici di ogni tool è rischioso?
-6. Perché un architecture test può essere una forma di context engineering?
-7. Che cosa rende un golden command davvero affidabile?
-8. Perché un agente non dovrebbe poter cambiare liberamente l'oracle che giudica il proprio lavoro?
-9. Che cosa significa task amplification?
-10. Perché lo scope semantico è più importante della sola file list?
-11. Che cosa differenzia capability e authorization?
-12. Perché le stop condition possono aumentare l'autonomia invece di ridurla?
-13. Come può un repository instruction diventare technical/context debt?
-14. Che cos'è instruction drift?
-15. Come distingui una instruction da un security control?
-16. Perché `Observed` non deve diventare `Confirmed` solo perché compare in `AGENTS.md`?
-17. Quali proprietà di un context layer possono essere verificate automaticamente?
-18. Quali richiedono ancora judgment?
-19. Come misureresti in modo utile l'AI-readiness di un repository?
-20. Quale informazione stabile il tuo team continua a far riscoprire a ogni nuovo contributor?
+Dovresti anche saper distinguere ciò che il context fitness può dimostrare meccanicamente da ciò che richiede ancora judgment. Se `AGENTS.md` contiene una frase, questo non la trasforma in requisito confermato, security control o evidence runtime.
 
-## Artefatto operativo
+Una buona domanda finale è:
 
-Il capitolo non introduce un nuovo documento universale da aggiungere a ogni progetto.
-
-Per ESI gli artefatti operativi sono due:
-
-```text
-AGENTS.md
-Repository Map
-```
-
-con un principio importante:
-
-> **L'entry point deve restare piccolo. Il sapere dettagliato deve avere source of truth canonical.**
-
-Il repository aggiunge inoltre un **context fitness test** per le proprietà meccaniche del layer di contesto.
+> **Quale informazione stabile il nostro team continua a far riscoprire a ogni nuovo contributor, e perché non l'abbiamo ancora resa persistente o verificabile?**
 
 ## Cosa cambia con l'AI
 
-Prima degli agenti, una codebase con onboarding difficile poteva sopravvivere affidandosi a persone esperte e review manuale.
+Prima degli agenti, una codebase con onboarding difficile poteva sopravvivere a lungo affidandosi a maintainer esperti e review manuale. Con esecutori capaci di lavorare in parallelo, quel modello scala peggio.
 
-Con agenti capaci di produrre diff in parallelo, quel modello ha tre problemi:
+Ogni task può ripagare il costo di discovery. Una inferenza sbagliata può produrre molto più codice prima di essere intercettata. Le convenzioni implicite devono essere ricostruite da ogni nuovo esecutore. Il costo di un context layer stale, nel frattempo, viene amplificato dalla stessa velocità.
 
-1. ogni task ripaga il costo di discovery;
-2. una inferenza errata può produrre molto più codice prima di essere intercettata;
-3. le convenzioni implicite non scalano con il numero di esecutori.
-
-L'AI quindi aumenta il valore di:
-
-```text
-clear boundaries
-canonical documentation
-repeatable setup
-executable verification
-ownership
-stop conditions
-```
-
-Ma aumenta anche il costo di un contesto stale o contraddittorio.
+Per questo l'AI aumenta il valore relativo di boundary chiari, canonical documentation, repeatable setup, executable verification, ownership e stop condition.
 
 > **L'AI amplifica sia il valore della documentazione buona sia il danno della documentazione sbagliata.**
 
-## Il compromesso ESI
+## Stato ESI dopo il Capitolo 21
 
-Commerce & Operations vuole ridurre rediscovery e aumentare agent throughput.
-
-Platform vuole standardizzazione.
-
-Security vuole permission boundary e stop condition.
-
-Engineering vuole evitare una nuova enciclopedia da mantenere.
-
-Finance vuole che context/token/tool execution non vengano spesi ogni volta per ricostruire informazioni stabili.
-
-La scelta è:
+Order Operations può ora dichiarare:
 
 ```text
-small AGENTS.md
-+ Repository Map
-+ canonical docs
-+ existing executable fitness
-+ context fitness
+AGENTS.md                         Codified
+Repository Map                    Codified
+npm run typecheck                 Existing / executable
+npm test                          Existing / executable
+CTX-001…CTX-004                   Codified + locally exercisable
+Tool-specific duplicate context   Not introduced
+Formal agent permission model     Future
+Delegation / autonomy policy      Future
 ```
 
-Non:
+Questa è una maturità deliberatamente limitata. Il repository è più navigabile e verificabile. Non abbiamo ancora dimostrato che un agente possa eseguire autonomamente qualunque classe di task, né abbiamo definito un permission model completo.
+
+## Ponte al Capitolo 22 — Issue-driven development
+
+Ora il repository sa spiegare che cosa è, dove trovare il contesto, quali command eseguire e quando un task deve fermarsi.
+
+Resta però una domanda operativa fondamentale:
+
+> **Come trasformiamo il lavoro in unità abbastanza chiare da poter essere affidate, verificate, riprese e composte?**
+
+Nel Capitolo 22 la issue smetterà di essere una frase in chat e diventerà una vera unità di orchestrazione fra persone, agenti, canonical artifact ed evidence.
+
+Il passaggio è naturale:
 
 ```text
-copy the entire architecture into every agent configuration
+AI-ready repository
+→ stable execution context
+
+Issue-driven development
+→ bounded execution unit
 ```
-
-## Ponte al Capitolo 22
-
-Ora il repository sa spiegare:
-
-- che cosa è;
-- dove trovare il contesto;
-- quali regole proteggere;
-- quali comandi eseguire;
-- quando fermarsi.
-
-Manca ancora una cosa:
-
-> **come trasformiamo il lavoro in unità abbastanza chiare da poter essere affidate, verificate e composte?**
-
-È il tema del prossimo capitolo:
-
-# Issue-driven development
-
-Lì il task smetterà di essere una frase in chat e diventerà una vera unità di orchestrazione fra persone, agenti, artifact ed evidence.
 
 ## Corollario
 
-> **Un repository AI-ready non rende l'agente onnisciente. Rende più economico scoprire il contesto giusto, più difficile violare accidentalmente quello importante e più evidente ciò che resta ancora da decidere.**
+> **Un repository AI-ready non rende l'agente onnisciente. Rende più economico trovare il contesto giusto, più difficile modificare accidentalmente ciò che non è in scope e più evidente ciò che resta ancora da decidere o verificare.**
