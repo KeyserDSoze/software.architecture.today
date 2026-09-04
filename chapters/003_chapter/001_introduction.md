@@ -1,48 +1,16 @@
 # Capitolo 3 — Pensare per sistemi
 
-Una feature non vive mai da sola.
+Una feature può sembrare locale per quasi tutto il tempo in cui la discutiamo e la implementiamo. Vive in una issue, in una cartella, magari in tre file soltanto. Appena entra in produzione, però, smette di essere locale: usa dati creati altrove, attraversa identità, rete, configurazione e storage, introduce nuovi stati, modifica carico e dipendenze e può fallire in modi che coinvolgono componenti che il developer della feature non ha mai aperto nel proprio editor.
 
-Può sembrare indipendente mentre la stiamo discutendo in una issue. Può sembrare circoscritta mentre la implementiamo in una cartella. Può persino sembrare locale quando il diff modifica soltanto tre file.
+È qui che comincia il pensiero sistemico. Non quando disegniamo un diagramma più grande, ma quando smettiamo di domandarci soltanto come implementare una feature e iniziamo a chiederci:
 
-Ma appena entra in produzione diventa parte di qualcosa di più grande.
-
-Usa dati creati altrove. Dipende da identità, rete, configurazione e storage. Introduce nuovi stati. Cambia il carico su altri componenti. Produce eventi osservabili. Può fallire in modi che coinvolgono sistemi che il developer della feature non ha mai aperto nel proprio editor.
-
-È qui che comincia il pensiero sistemico.
-
-Non quando disegniamo un diagramma grande.
-
-Quando smettiamo di chiedere soltanto:
-
-> “Come implementiamo questa feature?”
-
-E iniziamo a chiedere:
-
-> **“Che cosa cambia nel comportamento del sistema quando questa feature esiste?”**
+> **Che cosa cambia nel comportamento del sistema quando questa feature esiste?**
 
 ## Dal rettangolo al comportamento
 
-Nei progetti software è facile ragionare per rettangoli.
+Nel software è naturale ragionare per componenti: frontend, backend, database, queue, identity provider, cloud. È utile, perché abbiamo bisogno di confini per poter lavorare. Gli utenti, però, non consumano rettangoli. Attraversano **journey**.
 
-Frontend.
-
-Backend.
-
-Database.
-
-Queue.
-
-Identity provider.
-
-Cloud.
-
-Ogni rettangolo sembra avere una responsabilità relativamente chiara.
-
-Il problema è che gli utenti non attraversano rettangoli.
-
-Attraversano **journey**.
-
-Quando un cliente annulla un ordine, il comportamento reale potrebbe coinvolgere:
+Quando un cliente annulla un ordine, il comportamento end-to-end può attraversare interfaccia, API, autorizzazione, dominio ordini, persistenza, pagamento, logistica, notifiche e analytics. La feature si chiama “annulla ordine”; il sistema è la rete di responsabilità necessaria affinché quell’azione sia corretta anche quando una parte rallenta, fallisce o risponde in un ordine diverso da quello che avevamo immaginato.
 
 ```text
 utente
@@ -57,138 +25,50 @@ utente
 → analytics
 ```
 
-La feature è “annulla ordine”.
+Guardare soltanto il controller HTTP può quindi portarci a dichiarare completato un lavoro che ha lasciato indefinito il comportamento più importante.
 
-Il sistema è la catena di responsabilità necessaria affinché quell'azione sia corretta.
+### Le proprietà emergono nelle relazioni
 
-Se osserviamo soltanto il controller HTTP, possiamo dichiarare completato un lavoro che in realtà ha lasciato metà del comportamento indefinito.
+Due componenti possono essere corretti individualmente e produrre insieme un risultato sbagliato. Il servizio di pagamento può rimborsare correttamente e quello ordini può annullare correttamente un ordine; il problema emerge se il rimborso riesce e il salvataggio dell’ordine fallisce, oppure se lo stato cambia prima che la logistica possa essere fermata.
 
-### Il sistema è più della somma dei componenti
+A quel punto dobbiamo capire quale verità mostrare all’utente, se l’operazione possa essere ripetuta senza un secondo rimborso, come rappresentare uno stato intermedio e chi debba recuperare il workflow. Nessuna di queste proprietà appartiene interamente a un singolo servizio. Esiste **nell’interazione**.
 
-Due componenti possono essere corretti individualmente e produrre insieme un comportamento sbagliato.
-
-Un servizio di pagamento può rimborsare correttamente.
-
-Un servizio ordini può marcare correttamente un ordine come annullato.
-
-Ma se il rimborso fallisce dopo che lo stato dell'ordine è già cambiato, quale verità mostriamo all'utente?
-
-Oppure il contrario.
-
-Se il rimborso riesce ma il salvataggio dell'ordine fallisce, possiamo ripetere l'operazione senza rischiare un secondo rimborso?
-
-Il problema non è contenuto interamente in nessuno dei due servizi.
-
-Emergerebbe soltanto osservando l'interazione.
-
-Questa è una caratteristica fondamentale dei sistemi: alcune proprietà esistono **nelle relazioni**, non nei singoli elementi.
+Questa è una caratteristica fondamentale dei sistemi: alcune proprietà diventano visibili soltanto quando osserviamo le relazioni tra le parti.
 
 ## Il rischio del pensiero locale
 
-Il pensiero locale è molto utile.
+Il pensiero locale non è un errore. È necessario per poter ragionare su una funzione, un modulo o un servizio senza tenere l’intero mondo in testa. Diventa pericoloso quando scambiamo la correttezza locale per correttezza end-to-end.
 
-Dobbiamo poter isolare una funzione, un modulo o un servizio e ragionare su di esso.
+Un indice aggiunto per accelerare una query può aumentare il costo delle write. Un retry introdotto per migliorare l’affidabilità può moltiplicare il carico durante un outage. Una cache può ridurre latency e contemporaneamente introdurre dati stantii nel punto in cui una decisione richiede freshness. Un timeout più lungo può nascondere errori a breve termine e consumare risorse fino a peggiorare una cascata di failure. Lo stesso vale per locking, ordering, autorizzazioni, side effect, osservabilità e costi operativi: una modifica apparentemente locale può cambiare il comportamento di una rete molto più ampia.
 
-Diventa pericoloso quando lo confondiamo con il comportamento complessivo.
+La riga modificata raramente contiene da sola tutte le sue conseguenze.
 
-Un cambiamento locale può produrre effetti sistemici attraverso:
+## L’AI amplifica il bisogno di vedere il sistema
 
-- carico;
-- latenza;
-- locking;
-- schema dati;
-- retry;
-- cache;
-- autorizzazione;
-- ordering;
-- side effect;
-- failure propagation;
-- costi;
-- observability.
+Gli agenti sono particolarmente efficaci quando il task ha un perimetro locale chiaro. Possiamo indicare una directory, una issue, un test fallito o una funzione e ottenere rapidamente una modifica plausibile. La domanda architetturale viene prima: **quel perimetro rappresenta davvero il problema?**
 
-Un indice aggiunto per accelerare una query modifica il costo delle write.
-
-Un retry aggiunto per aumentare affidabilità può moltiplicare il carico durante un outage.
-
-Una cache aggiunta per ridurre latency può introdurre stale data su una decisione critica.
-
-Un timeout aumentato per “evitare errori” può occupare risorse più a lungo e peggiorare una cascata di failure.
-
-La maggior parte di queste conseguenze non è visibile guardando soltanto la riga modificata.
-
-## L'AI rende ancora più importante vedere il sistema
-
-Gli agenti sono molto bravi a lavorare su perimetri locali.
-
-Possiamo indicare una directory, una issue, una funzione o un test fallito e ottenere rapidamente una modifica plausibile.
-
-Ma la velocità locale può nascondere una domanda più importante:
-
-> il task che abbiamo delegato rappresenta davvero il problema sistemico?
-
-Un agente può ottimizzare una query senza sapere che quella tabella viene usata da una pipeline batch notturna.
-
-Può introdurre un retry senza conoscere il rate limit del servizio a valle.
-
-Può estrarre un modulo senza capire che il confine nuovo attraversa una transazione che prima era locale.
-
-Può aggiungere una cache senza conoscere il requisito di freshness.
-
-Non è necessariamente un limite del modello.
-
-Spesso è un limite del contesto che gli abbiamo fornito.
+Un agente può ottimizzare una query senza sapere che la tabella alimenta una pipeline batch notturna, aggiungere un retry senza conoscere il rate limit a valle o estrarre un modulo senza rendersi conto che il nuovo confine attraversa una transazione che prima era locale. Può introdurre una cache senza conoscere il requisito di freshness. In molti casi non è un limite della capacità di generazione, ma del contesto che abbiamo reso disponibile.
 
 > **Un agente vede il sistema nella misura in cui il sistema è stato reso visibile.**
 
-Per questo nei capitoli precedenti abbiamo insistito sulla foundation e sul context engineering.
+Nei capitoli precedenti abbiamo costruito una foundation e discusso di context engineering. Ora allarghiamo quel contesto: non più soltanto file, requisiti e documenti, ma responsabilità, dipendenze, flussi, ownership, trust boundary e failure domain.
 
-Qui facciamo un passo ulteriore.
+## Quanto deve essere grande il sistema che osserviamo?
 
-Dobbiamo imparare a rappresentare il contesto non come una lista di file, ma come una rete di responsabilità, dipendenze, flussi e failure domain.
+Pensare per sistemi non significa modellare tutta l’azienda prima di cambiare una riga di codice. Il sistema rilevante dipende dalla decisione. Per correggere il testo di un’etichetta basta un perimetro minimo; per cambiare il processo di pagamento bisogna seguire una catena molto più ampia di dati, attori, dipendenze e conseguenze.
 
-## Pensare per sistemi non significa progettare tutto
-
-C'è un equivoco da evitare subito.
-
-System thinking non significa cercare di modellare ogni relazione dell'organizzazione prima di scrivere una riga di codice.
-
-Non significa produrre diagrammi enormi.
-
-Non significa anticipare tutti i failure mode possibili.
-
-Significa sapere **quanto allargare lo sguardo per la decisione che stiamo prendendo**.
-
-Se stiamo correggendo il testo di un'etichetta, il contesto necessario è minimo.
-
-Se stiamo modificando il processo di pagamento, lo sguardo deve essere molto più ampio.
-
-La profondità dell'analisi deve seguire il rischio.
-
-Possiamo usare una domanda semplice:
+Una domanda ci aiuta a scegliere il livello di zoom:
 
 > **Se questa modifica fosse sbagliata, fin dove potrebbe propagarsi?**
 
-La risposta ci suggerisce quanto grande deve essere il sistema che consideriamo.
+Più ampia è la risposta, più ampio deve diventare il contesto che prendiamo in considerazione. Non cerchiamo completezza assoluta; cerchiamo **sufficiente ampiezza rispetto al rischio**.
 
-## Le domande del capitolo
+## Ciò che cercheremo nel capitolo
 
-In questo capitolo useremo alcune domande ricorrenti:
+Nei prossimi passaggi impareremo a scegliere il system of interest e a distinguere ciò che controlliamo dal suo ambiente. Vedremo come rendere visibili dependency e coupling che un diagramma di chiamate può non mostrare, come seguire un critical user journey dal punto di vista dell’utente e come riconoscere feedback loop e failure domain che cambiano il comportamento complessivo.
 
-1. Dove inizia e dove finisce il sistema che stiamo considerando?
-2. Quali attori esterni lo influenzano?
-3. Quali dipendenze sono sincrone e quali asincrone?
-4. Qual è il critical user journey?
-5. Dove sono le fonti di verità?
-6. Quali feedback loop esistono?
-7. Quali componenti condividono lo stesso failure domain?
-8. Dove esiste coupling che il diagramma non mostra?
-9. Quali cambiamenti locali possono avere conseguenze non locali?
-10. Quale parte di questo contesto deve essere resa esplicita agli agenti?
+L’obiettivo sarà condensare queste informazioni in una **Architecture Context Map**: non una fotografia totale del sistema, ma una vista costruita per sostenere una decisione. Nel caso Order Operations useremo la mappa per far emergere ownership, freshness, dipendenze e failure topology prima di scegliere una tecnologia. Infine vedremo come l’AI possa accelerare questa discovery senza trasformare una mappa generata in una verità non verificata.
 
-Il nostro obiettivo non è creare una mappa perfetta.
+Il principio di partenza è semplice:
 
-È costruire una mappa abbastanza buona da prendere decisioni migliori.
-
-Il principio di partenza è:
-
-> **Una feature è locale soltanto finché non interagisce con il resto del sistema. In produzione, quasi nulla rimane davvero locale.**
+> **Una feature può essere locale nel diff. In produzione, le sue conseguenze raramente lo sono.**
