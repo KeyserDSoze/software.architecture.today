@@ -1,164 +1,57 @@
-# 20.8 — ESI: Order Operations costruisce il proprio cost model
+# 20.8 — ESI: Order Operations costruisce il proprio Cost Model
 
 A questo punto ESI ha abbastanza architettura da avere anche abbastanza costi da governare.
 
-Il rischio è reagire tardi.
+Finance vede crescere la cost surface e chiede dove sia possibile ridurla. Engineering potrebbe rispondere con una lista di SKU, ma perderebbe il punto. Prima di decidere che cosa tagliare, il team deve mostrare **che cosa compra ogni componente importante della spesa e quale requisito lo giustifica**.
 
-Finance vede crescere il run rate e chiede:
+Il Capitolo 20 non inventa prezzi Azure. Non abbiamo billing production e i prezzi dipendono da region, contratto, tier e momento. Costruiamo quindi un modello qualitativo e parametrico che potrà essere popolato con evidence reale quando esisterà.
 
-> dove possiamo tagliare?
+## La cost surface corrente
 
-Engineering potrebbe rispondere con una lista di SKU.
+La baseline di Order Operations può essere letta come una mappa fra meccanismo e proprietà acquistata.
 
-Ma sarebbe una risposta insufficiente.
+| Area | Meccanismo corrente / direzione | Proprietà comprata | Forma prevalente del costo |
+|---|---|---|---|
+| Runtime | App Service, capacity >= 2, zone direction | application runtime + headroom + intra-region resilience | base + step |
+| Database | managed PostgreSQL, HA/backup/PITR direction | durable business state + recovery | base + storage/usage |
+| Messaging | Service Bus Premium | durable async delivery + private data plane + resilience | premium base + usage |
+| Security | private connectivity, identity, Key Vault | reduced public reachability + workload identity + secret governance | base/shared |
+| Observability | metrics, logs, traces, retention | SLI measurement + investigation + correlation | usage + retention |
+| Non-production | local/integration/staging | evidence con fidelity proporzionata | time + fidelity |
+| Legacy overlap | Operations Desk Classic + Order Operations + shadow structures | reversibility + semantic evidence | transition |
 
-Il team deve prima mostrare **che cosa compra ogni componente importante della spesa**.
+La tabella non ci dice se una voce è cara. Ci dice quale conversazione dobbiamo riaprire se vogliamo cambiarla.
 
-## Cost surface corrente
+## Service Bus Premium: dal prezzo alla proprietà
 
-Order Operations possiede oggi almeno queste categorie.
+Immaginiamo che Finance individui Service Bus Premium come una voce importante e proponga un tier più economico.
 
-### Runtime
+La risposta debole sarebbe:
 
-```text
-App Service Premium-compatible baseline
-+ >= 2 instances
-```
+> “No, Security vuole Premium.”
 
-Proprietà comprata:
-
-```text
-application runtime
-+ capacity headroom
-+ zonal resilience direction
-```
-
-### Database
+La risposta governabile è diversa:
 
 ```text
-Azure Database for PostgreSQL direction
-+ HA / backup / PITR requirements
-```
-
-Proprietà comprata:
-
-```text
-durable local business state
-+ recovery capability
-```
-
-### Messaging
-
-```text
-Service Bus Premium
-```
-
-Proprietà comprata:
-
-```text
-durable async delivery
-+ private data-plane direction
-+ zonal resilience
-```
-
-### Security
-
-```text
-private connectivity
-identity integration
-Key Vault
-security verification
-```
-
-Proprietà comprata:
-
-```text
-reduced public reachability
-+ workload identity
-+ secret governance
-```
-
-### Observability
-
-```text
-Application Insights / Log Analytics direction
-telemetry ingestion
-retention
-traces
-alerts
-```
-
-Proprietà comprata:
-
-```text
-SLI measurement
-incident investigation
-correlation
-operational evidence
-```
-
-### Migration overlap
-
-```text
-Operations Desk Classic
-+ Order Operations
-+ shadow comparison
-```
-
-Proprietà comprata:
-
-```text
-reversibility
-+ semantic evidence
-+ safer retirement
-```
-
-## Il primo errore da evitare
-
-Finance potrebbe notare che Service Bus Premium è una voce relativamente importante e chiedere di passare a un tier più economico.
-
-La risposta corretta non è:
-
-> no, Security ha detto Premium.
-
-La risposta corretta è:
-
-```text
-Current property
+Property currently purchased
 private data-plane direction
 
 Current mechanism
-Service Bus Private Link
-
-Cost implication
-Premium tier
+Service Bus Premium + private endpoint direction
 
 Alternative
-public endpoint + identity/network controls
+cheaper mechanism with different network exposure/capability
 
-Decision required
-reopen Threat Model + Security Control Matrix
+Decision impact
+Threat Model + Security Control Matrix + Cloud Deployment Map
+must be reopened
 ```
 
-Questo rende la discussione architetturale.
+A questo punto Finance può chiedere se il premium è ancora proporzionato al rischio, Security può spiegare quale threat sta mitigando ed Engineering può valutare alternative. Nessuno tratta più il costo come se fosse separato dall'architettura.
 
-Finance può ancora chiedere se il premium vale il rischio ridotto.
+## Il modello parametrico
 
-Security può spiegare il threat.
-
-Engineering può proporre alternative.
-
-Ma nessuno tratta il costo come se fosse separato dalla proprietà.
-
-## Cost model v0
-
-Order Operations introduce quindi un primo modello qualitativo e parametrico.
-
-Non inventiamo prezzi Azure.
-
-I prezzi cambiano per region, contratto, tier e data.
-
-Il modello contiene variabili.
+La prima versione del Cost Model usa variabili, non prezzi simulati:
 
 ```text
 MonthlyCost =
@@ -173,7 +66,7 @@ MonthlyCost =
   + MigrationOverlap
 ```
 
-E un secondo layer:
+Per ricordare che la cloud bill non esaurisce il TCO aggiungiamo una seconda vista:
 
 ```text
 FullyLoadedCost =
@@ -184,253 +77,163 @@ FullyLoadedCost =
   + MigrationEngineeringCost
 ```
 
-Non pretendiamo che tutte queste variabili siano immediatamente monetizzate con precisione.
+Non tutte queste variabili saranno immediatamente monetizzabili. Il vantaggio è che smettono di essere invisibili.
 
-Le rendiamo visibili.
+## Cost driver: che cosa muove la curva
 
-## Cost driver
+Per ogni area registriamo il driver principale e una forza secondaria che può cambiare il comportamento economico.
 
-Per ogni voce definiamo il driver principale.
-
-| Area | Primary driver | Secondary driver |
+| Area | Driver principale | Driver secondario |
 |---|---|---|
-| App runtime | traffic / concurrency | headroom / resilience |
+| App runtime | traffic / concurrency | reliability headroom |
 | PostgreSQL | data + query load | HA / retention |
-| Service Bus | baseline tier + messaging | isolation / availability |
+| Service Bus | tier + message volume | isolation / availability |
 | Observability | telemetry volume | retention / cardinality |
 | Backup | retained data | recovery policy |
-| Nonprod | environment hours | fidelity |
-| Legacy overlap | coexistence duration | shadow volume |
+| Non-production | environment hours | fidelity |
+| Legacy overlap | coexistence duration | shadow + engineering effort |
 
-Il valore della tabella non è predire ogni euro.
+Questa tabella è più utile di un catalogo di prezzi perché rende evidente dove una decisione futura cambierà la curva.
 
-È far vedere dove una decisione futura sposterà la curva.
+Se observability cresce, per esempio, dobbiamo capire se il driver è più traffico utile, retention troppo lunga, una dimensione ad alta cardinalità o un nuovo requisito diagnostico. Ridurre ingestion senza questa distinzione potrebbe eliminare evidence necessaria invece di waste.
 
-## Unit metrics candidate
+## Le prime unit metric
 
-ESI sceglie tre metriche iniziali.
+ESI sceglie tre unità che possano collegare cost e outcome senza fingere dati che non possiede.
 
-### UM-01 — Cost per OperationalCase handled
+### UM-01 — Cost per `OperationalCase` handled
 
 ```text
-allocated monthly Order Operations cost
+allocated Order Operations cost
 /
 OperationalCase handled
 ```
 
-Serve a capire se la crescita di costo segue il lavoro operativo.
+Serve a capire se la crescita della spesa segue il lavoro operativo. Deve essere letta insieme alla qualità del journey, non isolatamente.
 
-### UM-02 — Cost per Payment Escalation delivered
+### UM-02 — Cost per `Payment Escalation` delivered
 
 ```text
-allocated messaging + publisher + relevant telemetry cost
+allocated messaging + publisher + relevant telemetry
 /
-Payment Escalation delivered
+delivered Payment Escalation
 ```
 
-Non viene usata da sola: deve essere letta insieme allo SLI di delivery.
+La metrica viaggia con il publication SLI. Risparmiare sulla capability e peggiorare la delivery non è automaticamente un miglioramento.
 
-### UM-03 — Observability cost per 1,000 critical journeys
+### UM-03 — Observability cost per 1.000 critical journeys
 
-Serve per capire se telemetry volume cresce più rapidamente dell'utilità operativa.
+```text
+allocated observability cost
+/
+critical journey count
+* 1000
+```
 
-Stato di tutte:
+Serve a intercettare telemetry che cresce più rapidamente del bisogno operativo.
+
+Lo stato di tutte e tre è:
 
 ```text
 Designed
-not yet measured from production billing
+not measured from production billing
 ```
 
-## Cost allocation metadata
+Questa distinzione è importante quanto la formula.
 
-Il team definisce la direzione per i resource metadata:
+## Allocation: non inventiamo Finance metadata
+
+L'IaC può già proteggere metadata utili come workload, environment e owner. La direzione economica aggiunge `businessUnit` e `product`.
 
 ```text
 workload = order-operations
-environment = prod|staging|dev
-business-unit = commerce-operations
-owner = order-operations
-cost-center = <ESI simulated finance mapping>
+owner = commerce-operations
+environment = <dev|staging|prod>
+businessUnit = commerce-operations
+product = order-operations
 ```
 
-La parte `cost-center` non viene hardcodata nel libro come valore reale.
+`cost-center` resta deliberatamente non valorizzato nel manoscritto. Appartiene a un mapping Finance reale o esplicitamente simulato, non a una stringa inventata per rendere l'esempio più completo.
 
-È un mapping simulato che dovrà essere configurato quando avremo una pipeline di deployment completa.
+## Non-production: la prima ottimizzazione a basso rischio
 
-## Non-production
+Il test environment più costoso deve dimostrare qualcosa che quello più economico non può dimostrare.
 
-Qui troviamo una ottimizzazione a basso rischio.
-
-Non tutti gli environment devono mantenere:
+Per ESI la direzione è quindi:
 
 ```text
-2 instances
-zone redundancy
-full telemetry retention
+business rules
+→ local
+
+PostgreSQL semantics
+→ integration with real PostgreSQL
+
+Azure identity/network properties
+→ targeted Azure staging
+
+production quality baseline
+→ production only
 ```
 
-se il test che devono eseguire non richiede quelle proprietà.
+Non è necessario che ogni ambiente mantenga due istanze, zone resilience e la stessa retention di production se l'evidence che deve produrre non richiede quelle caratteristiche.
 
-Quindi ESI decide:
+Questa è una riduzione di waste che non cambia automaticamente il quality floor.
+
+## Observability: ridurre il rumore, non la spiegabilità
+
+ESI non decide “meno tracing” in astratto. Mantiene bounded metric dimensions, sampling policy e retention per signal class e introduce un review trigger qualitativo:
 
 ```text
-local
-→ fast test only
-
-integration
-→ real PostgreSQL where needed
-
-security/network staging
-→ Azure fidelity when the property requires it
-
-production
-→ full quality baseline
+observability cost grows materially faster
+than critical journey volume / diagnostic need
 ```
 
-Questo collega direttamente cost model e Testing Strategy.
+Quando il trigger scatta, la domanda è quale segnale o retention non compra più evidence utile. Non partiamo eliminando proprio la telemetria che serve a dimostrare SLI o investigare failure.
 
-## Observability cost guardrail
+## Legacy overlap: il tempo diventa un cost driver
 
-Non eliminiamo tracing.
+Operations Desk Classic crea una voce particolare: `MigrationOverlap`.
 
-Manteniamo invece:
+Qui il driver principale non è il traffico. È la **durata della coesistenza**.
+
+Il Refactoring Safety Plan ci ha già dato la removal condition tecnica. Il Cost Model aggiunge la review economica: ogni periodo ulteriore di dual run deve continuare a comprare reversibilità o evidence che non possiamo ancora ottenere in altro modo.
+
+Se il legacy resta perché nessuno sa chi può spegnerlo, non stiamo più comprando safety. Stiamo pagando indecisione.
+
+## Ordine di ottimizzazione ESI
+
+Il team decide di partire dalle leve che possono ridurre waste senza cambiare direttamente le proprietà già approvate:
 
 ```text
-bounded metric dimensions
-sampling policy
-retention by signal class
-no arbitrary high-cardinality metric dimension
+visibility / allocation
+→ unused and non-production runtime
+→ unnecessary telemetry volume / retention
+→ rightsizing with verified headroom
+→ rate optimization when demand is predictable
+→ legacy coexistence duration
+→ only then reconsider architectural premiums
 ```
 
-Il trigger di review diventa:
+L'ordine non è una legge universale. Esprime una preferenza: **prima togliere spesa priva di valore evidente, poi discutere se ridurre qualità che oggi ha un requisito e un owner.**
 
-```text
-observability cost growth
-> critical journey growth
-without corresponding new diagnostic requirement
-```
+## Quality-changing cost cut = decision reopening
 
-Non assegniamo una percentuale simulata.
+Il Cost Model definisce una regola semplice. Se una proposta cambia tenant isolation, authentication/authorization, backup, SLO, recovery evidence, minimum diagnostic capability o migration rollback, deve riaprire l'artefatto che governa quella proprietà.
 
-Definiamo il confronto.
+Finance può avviare la domanda. Non può trasformarla in una modifica neutrale soltanto perché l'obiettivo è il risparmio.
 
-## Legacy coexistence budget
+## Compromesso ESI del capitolo
 
-Operations Desk Classic crea una voce particolare:
+**Esigenza:** Finance vuole rendere il run rate prevedibile e sostenibile.
 
-```text
-MigrationOverlapCost
-```
+**Tensione:** cost efficiency contro security, reliability, operability, migration safety e focus del team.
 
-La regola ESI diventa:
+**Decisione:** introdurre Cost Model, driver map, unit metric, allocation direction e review trigger prima di autorizzare quality cut.
 
-> ogni quarter di coexistence deve avere una reason, una removal condition o una nuova decisione di retain.
+**Costo accettato:** Order Operations non è il workload più economico possibile. Continua a pagare premium intenzionali per proprietà già giustificate.
 
-Questo evita che:
+**Quality floor:** correctness, security, reliability richiesta, recoverability e operability minima restano invarianti finché i relativi requirement non vengono riaperti.
 
-```text
-temporary dual run
-```
-
-diventi:
-
-```text
-permanent dual ownership
-```
-
-## Cosa ESI non taglia
-
-Il primo cost review non autorizza automaticamente a ridurre:
-
-```text
-tenant isolation
-required authentication / authorization
-required backup
-required SLO
-recovery evidence
-minimum diagnostic capability
-```
-
-Se vogliamo cambiarli, dobbiamo cambiare i relativi requirement.
-
-Non possiamo fingere che sia semplice optimization.
-
-## Cosa ESI prova a ottimizzare per prima
-
-Ordine iniziale:
-
-1. visibility e allocation;
-2. unused/non-production runtime;
-3. telemetry volume/retention fuori bisogno;
-4. rightsizing con headroom verificato;
-5. rate optimization quando il workload diventa prevedibile;
-6. legacy coexistence duration;
-7. soltanto dopo, redesign di quality premium significativi.
-
-Perché?
-
-Perché i primi punti possono ridurre waste senza cambiare direttamente il quality floor.
-
-Gli ultimi richiedono trade-off architetturali più forti.
-
-## Il compromesso del capitolo
-
-### Esigenza
-
-Finance vuole controllare il run rate e rendere prevedibile la crescita.
-
-### Tensione
-
-```text
-cost efficiency
-vs
-security
-reliability
-operability
-migration safety
-team focus
-```
-
-### Decisione
-
-ESI introduce:
-
-```text
-Cost Model
-+ unit metrics
-+ allocation metadata direction
-+ cost review triggers
-```
-
-prima di eliminare capability.
-
-### Costo accettato
-
-Il sistema non è il più economico possibile.
-
-Continua a pagare premium intenzionali per qualità già giustificate.
-
-### Quality floor
-
-```text
-correctness
-security
-required reliability
-recoverability
-operability
-```
-
-### Guardrail
-
-```text
-cost driver per major spend
-property purchased
-owner
-unit metric
-review trigger
-architecture artifact reopening when quality changes
-```
-
-## Formula finale
+**Guardrail:** ogni major cost deve poter essere collegato a property purchased, owner, driver, unit metric ed evidence necessaria per modificarlo.
 
 > **ESI non ottimizza il costo togliendo qualità alla cieca. Ottimizza il rapporto fra ciò che paga e ciò che il sistema deve garantire.**
