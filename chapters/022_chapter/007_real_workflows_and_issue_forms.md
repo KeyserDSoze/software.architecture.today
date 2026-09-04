@@ -1,196 +1,142 @@
-# 22.7 — Workflow reali, Issue Form e agenti
+# 22.7 — Workflow reali: quando la issue diventa parte del sistema di engineering
 
-Issue-driven development non nasce con l'AI.
+Issue-driven development non nasce con l'AI. I team usano backlog, ticket e work item da decenni.
 
-Ma i coding agent rendono molto più visibile la qualità — o la debolezza — del work definition.
+Quello che cambia con i coding agent è la distanza fra **come definiamo il lavoro** e **chi lo esegue**.
 
-## GitHub: issue come input del coding agent
+Quando la issue può essere assegnata direttamente a un agente che pianifica, modifica il repository, esegue test e apre una pull request, la qualità del testo iniziale non resta più confinata al project management. Entra nel path tecnico che produce il diff.
 
-GitHub documenta esplicitamente un workflow in cui una issue può essere assegnata a un coding agent, che da quel contesto pianifica il lavoro, apre una pull request, modifica il codice, esegue test e torna per review.[^github-agent]
-
-La guidance ufficiale insiste su tre elementi:
-
-- problema o lavoro richiesto chiaro;
-- acceptance criteria completi;
-- indicazioni utili sui file da modificare.[^github-best-practice]
-
-È interessante perché rende concreta una tesi del capitolo:
-
-> **quando la issue diventa input diretto dell'executor, la qualità della issue entra nel sistema di engineering.**
-
-Non è più soltanto qualità del project management.
-
-## Il caso WRAP di GitHub
-
-GitHub ha raccontato anche l'esperienza maturata internamente nell'uso del coding agent attraverso l'acronimo **WRAP**:
+Questo rende molto visibile una relazione che esisteva già:
 
 ```text
-Write effective issues
-Refine your instructions
-Atomic tasks
-Pair with the coding agent
+work definition quality
+→ execution quality
+→ verification cost
+→ review quality
 ```
 
-Il punto che ci interessa non è adottare l'acronimo come metodo universale.
+## GitHub: la issue come input diretto dell'executor
 
-È osservare che due elementi ritornano esattamente nel nostro modello:
+GitHub documenta esplicitamente workflow in cui un coding agent riceve una issue, lavora in background e restituisce una pull request da rivedere.[^github-agent]
+
+Nella guidance ufficiale ricorrono elementi molto vicini al modello che abbiamo costruito: problema chiaro, acceptance criteria completi, scope ragionevole e riferimenti utili al repository.[^github-best-practice]
+
+La parte interessante non è che GitHub “raccomandi buone issue”. È la conseguenza operativa: **la issue può diventare un vero input di execution**.
+
+Se contiene un'ambiguità, non resta necessariamente ferma in backlog in attesa di una domanda. Un executor capace può interpretarla e produrre rapidamente un'implementazione coerente con quella interpretazione.
+
+La qualità del task boundary diventa quindi una proprietà del workflow di sviluppo.
+
+## WRAP: il backlog visto dal punto di vista dell'execution
+
+GitHub ha raccontato anche la propria esperienza interna con il coding agent attraverso l'acronimo **WRAP**: *Write effective issues, Refine your instructions, Atomic tasks, Pair with the coding agent*.[^github-wrap]
+
+Non lo adottiamo come framework universale e non ci interessa trasformare il capitolo in una collezione di acronimi.
+
+Ci interessa la convergenza su due idee che abbiamo già motivato indipendentemente:
 
 ```text
 issue quality
 +
-atomic task size
+atomic task boundary
 ```
 
-Quando l'execution è delegabile, il backlog smette di essere soltanto priorità.
+Se l'execution può essere delegata e parallelizzata, il backlog non contiene più soltanto priorità. Contiene **unità potenziali di execution context**.
 
-Diventa anche **execution context inventory**.[^github-wrap]
+Una issue non pronta non è soltanto “scritta male”. Può essere una unità di lavoro che non dovrebbe ancora entrare nel sistema di delegazione.
 
-## OpenAI: prompt strutturato come issue
+## OpenAI: task strutturati e context pointer
 
-OpenAI descrive fra le proprie pratiche interne con Codex l'uso di task ben circoscritti e suggerisce di strutturare il prompt come una GitHub Issue, includendo quando utili file path, nomi dei componenti, diff e snippet di documentazione.[^openai-codex]
+OpenAI, descrivendo l'uso interno di Codex, suggerisce task ben circoscritti e prompt strutturati in modo simile a issue o pull request, includendo quando utile path, componenti, diff e riferimenti alla documentazione.[^openai-codex]
 
-Anche qui il valore non è il formato GitHub in sé.
+Anche qui non interessa il formato come convenzione di vendor.
 
-Il pattern è:
+Il pattern è più generale:
 
 ```text
-work intent
-+ concrete context pointers
-+ bounded scope
-→ better execution context
+intent chiaro
++ context pointer concreti
++ boundary di cambiamento
+→ meno inferenza prima dell'execution
 ```
 
-Questo è coerente con ciò che abbiamo costruito nei Capitoli 21 e 22.
+Questo si collega direttamente al Capitolo 21. Se il repository possiede già `AGENTS.md`, Repository Map e documenti canonical, la issue non deve diventare un prompt enorme. Deve aggiungere il delta e indirizzare verso il contesto persistente.
 
-## Issue Form: struttura senza trasformare tutto in burocrazia
+## Issue Form: struttura utile soltanto quando riduce ambiguità
 
-GitHub Issue Forms permettono di rendere alcuni campi strutturati e obbligatori tramite form YAML.[^github-forms]
+GitHub Issue Forms permette di trasformare alcuni campi in una struttura YAML con input obbligatori e guidati.[^github-forms]
 
-Possono essere utili per chiedere sempre, per esempio:
+Può essere molto utile quando una classe di lavoro ha sempre bisogno delle stesse domande: per esempio `Problem`, `Outcome`, `Acceptance`, `Relevant context` e `Risk/stop condition` per un execution task ad alto impatto.
+
+Ma la struttura ha un costo.
+
+Se obblighiamo ogni typo a compilare trenta campi, non otteniamo più informazione. Otteniamo `N/A`, testo copiato e una falsa sensazione di rigore.
+
+> **Il form è utile quando comprime l'ambiguità più di quanto aumenti il ceremony.**
+
+Questo suggerisce una regola semplice: non serve un unico template universale.
+
+Un bug, una discovery, un execution task e una decision request hanno domande diverse. Un bug ha bisogno di current behavior, expected behavior e reproduction. Una discovery ha bisogno di uncertainty, evidence source ed exit criteria. Un execution task ha bisogno soprattutto di outcome, scope, acceptance, verification e stop condition.
+
+La struttura deve seguire la classe di rischio, non la voglia di standardizzare tutto.
+
+## L'AI può aiutare a preparare la issue senza diventare la source of truth
+
+GitHub supporta anche l'uso di Copilot per generare o aggiornare issue e raccomanda di rivedere il draft prima della creazione.[^github-create-issue]
+
+È una divisione del lavoro sensata.
+
+Un agente può trasformare note sparse in una bozza, estrarre candidate acceptance criteria, cercare documenti correlati, proporre sub-issue o segnalare campi mancanti. Può perfino fare red-team del work item cercando decisioni che l'executor sarebbe costretto a inventare.
+
+Non dovrebbe però promuovere automaticamente un desiderio ambiguo a requisito approvato.
+
+Se da una conversazione emergono due interpretazioni possibili di una business rule, la generazione della issue non deve scegliere quella più plausibile e nascondere l'incertezza. Deve renderla visibile.
+
+Questa è la stessa disciplina usata per la documentazione del repository:
+
+> **l'AI può comprimere il lavoro di strutturazione; non deve riciclare un'inferenza come authority.**
+
+## La issue come living record, non come testo congelato
+
+Un'altra proprietà utile dei workflow reali è la provenance.
+
+Supponiamo che OO-001 inizi con migration `001` e `002` considerate baseline. Durante execution il test dimostra che `002` contiene un problema semantico e la stop condition scatta.
+
+Una issue viva può registrare:
 
 ```text
-Problem
-Outcome
-Risk class
-Acceptance criteria
-Relevant context
+Stopped
+→ evidence attached
+→ decision requested
+→ scope updated after decision
+→ execution resumed
 ```
 
-Ma un form può anche diventare un anti-pattern.
+La cronologia rende ricostruibile il cambiamento del boundary.
 
-Se contiene trenta campi obbligatori per ogni typo, gli utenti iniziano a scrivere:
+Questo è molto più forte di una chat in cui la decisione viene presa informalmente e il diff finale non spiega perché il task abbia cambiato direzione.
 
-```text
-N/A
-N/A
-N/A
-```
+La issue non deve restare immutabile. Deve restare **tracciabile**.
 
-A quel punto abbiamo ottenuto struttura senza informazione.
+## Il tool non è il metodo
 
-> **La struttura deve comprimere l'ambiguità, non moltiplicare il ceremony.**
+Usiamo GitHub perché è il repository reale del progetto e perché offre esempi contemporanei di agent workflow. Ma nessuna delle proprietà del capitolo dipende da GitHub Issues.
 
-## Template diversi per classi di lavoro
-
-Una strategia più utile è distinguere almeno:
+Lo stesso modello può vivere in Jira, Azure Boards, Linear o un sistema interno:
 
 ```text
-Bug
-Execution task
-Discovery task
-Architecture decision request
-Security finding
-```
-
-Non perché ogni categoria richieda un workflow completamente differente.
-
-Ma perché alcune domande cambiano.
-
-Un bug richiede:
-
-- current behavior;
-- expected behavior;
-- reproduction/evidence.
-
-Una discovery richiede:
-
-- uncertainty;
-- evidence sources;
-- exit criteria.
-
-Una execution issue richiede:
-
-- outcome;
-- scope;
-- acceptance;
-- verification;
-- stop conditions.
-
-## Generazione AI della issue
-
-GitHub oggi permette anche di usare Copilot per generare o aggiornare issue, sfruttando template e form esistenti, ma raccomanda di rivedere e rifinire il draft prima della creazione.[^github-create-issue]
-
-È una buona divisione del lavoro.
-
-L'AI può aiutare a:
-
-- estrarre acceptance criteria da una conversazione;
-- trasformare note sparse in campi strutturati;
-- proporre sub-issue;
-- trovare documenti correlati;
-- individuare campi mancanti.
-
-Ma non dovrebbe promuovere automaticamente un desiderio ambiguo a requisito approvato.
-
-## Issue come living record
-
-Una issue utile conserva anche il percorso decisionale del task.
-
-Se durante execution scopriamo:
-
-```text
-PostgreSQL integration test requires changing migration 002
-```
-
-possiamo registrare:
-
-```text
-Stopped: migration semantic change required.
-Decision requested.
-```
-
-Quando arriva una decisione:
-
-```text
-Scope updated on <date>
-ADR linked
-Execution resumed
-```
-
-Questo crea provenance.
-
-La chat può scomparire.
-
-La issue resta collegata al cambiamento.
-
-## Non confondere il tool con il metodo
-
-Il libro userà GitHub perché è il repository reale del progetto e perché offre esempi contemporanei di agent workflow.
-
-Ma il metodo resta portabile:
-
-```text
-work item
-+ context links
+intent
++ scope
++ canonical context
 + acceptance
 + verification
-+ scope boundary
-+ evidence
++ stop conditions
++ closure evidence
 ```
 
-può essere implementato in molti sistemi.
+Quello che conta è che il work item riesca a fare da handoff fra decisione ed execution senza dipendere dalla memoria di una conversazione.
 
-> **Issue-driven development non significa usare GitHub Issues. Significa rendere il lavoro abbastanza esplicito da poter essere eseguito, verificato e ricostruito senza dipendere dalla memoria di una conversazione.**
+> **Quando la issue diventa un input eseguibile, scriverla bene non è più burocrazia attorno al codice. È parte del design del sistema che produce il codice.**
 
 ---
 
