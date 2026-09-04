@@ -1,56 +1,30 @@
 # Capitolo 21 — AI-ready repository
 
-Un repository può essere perfettamente comprensibile a chi ci lavora da tre anni e quasi inutilizzabile per chi entra oggi.
+Un repository può essere perfettamente comprensibile a chi ci lavora da tre anni e quasi indecifrabile per chi entra oggi.
 
-Succede perché una parte della conoscenza non vive davvero nel repository.
+La ragione è semplice: una parte della conoscenza necessaria a modificare il sistema non vive davvero nel repository. Vive nelle persone, nelle abitudini e nelle frasi che iniziano con “ricordati che…”.
 
-Vive nelle persone.
+Il team sa che una migration richiede un ordine preciso, che un certo package contiene semantica di Payments anche se il nome sembra generico, che un warning è tollerabile in locale ma non in produzione, che un test lento non può essere saltato quando cambia un contratto, che una classe apparentemente ridondante esiste per tenere il legacy dietro un boundary intenzionale.
 
-Nel modo in cui sanno che:
+Per un nuovo engineer questo diventa onboarding costoso. Per un coding agent può diventare qualcosa di più pericoloso: **execution molto veloce costruita sopra un modello incompleto del sistema**.
 
-- prima di lanciare i test bisogna generare un file locale;
-- quella cartella non va modificata direttamente;
-- quel package sembra shared ma contiene semantica di Payments;
-- quella migration richiede un ordine preciso;
-- quel warning è normale in sviluppo ma bloccante in produzione;
-- quel test lento non va saltato quando cambia il contratto;
-- quella configurazione cloud è intenzionale anche se sembra più costosa;
-- quella classe esiste per isolare il legacy e non va “semplificata” importando direttamente il vecchio codice.
-
-Per un nuovo engineer questo produce onboarding lento.
-
-Per un agente produce qualcosa di ancora più pericoloso:
-
-> un'implementazione plausibile costruita sopra un modello incompleto del sistema.
+> **Un repository AI-ready non deve dire tutto all'agente. Deve rendere economico trovare ciò che è autorevole, difficile inventare ciò che manca e semplice verificare ciò che è stato cambiato.**
 
 ## Il repository come ambiente operativo
 
-Un repository AI-ready non è un repository che contiene molti file Markdown dedicati all'AI.
+Siamo abituati a pensare al repository come a source code, configuration e test. Nel lavoro agentico questa definizione è troppo stretta.
 
-È un repository nel quale una persona o un agente può rispondere rapidamente a domande come:
+Chi esegue un task deve anche capire dove vivono le decisioni, quali boundary sono intenzionali, chi possiede la semantica, quali comandi preparano e verificano il progetto, quali failure indicano un problema del codice e quali invece un problema dell'ambiente, quali azioni possono essere eseguite e quali trasformano il task in una nuova decisione.
 
-1. che cosa fa questo sistema?
-2. quali sono i suoi confini?
-3. quali directory contengono la semantica importante?
-4. quali comandi preparano l'ambiente?
-5. quali test dimostrano che una modifica è accettabile?
-6. quali decisioni non devo cambiare implicitamente?
-7. quali file o componenti richiedono un owner specifico?
-8. quali azioni sono proibite senza approvazione?
-9. quando devo fermarmi e chiedere evidence o decisione?
-10. come distinguo una failure della mia modifica da una failure dell'ambiente?
+Questo era già vero per gli umani. L'AI rende il problema più visibile perché aumenta il numero e la velocità degli esecutori che entrano nel codice senza possedere tutta la memoria storica del team.
 
-Se per rispondere dobbiamo affidarsi alla memoria del senior più vicino, il repository non è ancora una buona unità di lavoro autonoma.
+La domanda quindi non è “come scriviamo prompt migliori?”. È:
 
-Questo era già un problema prima dei coding agent.
+> **quanto del modello necessario a lavorare responsabilmente sul sistema è persistente, scopribile e verificabile?**
 
-L'AI lo rende più visibile perché aumenta la frequenza con cui qualcuno — umano o artificiale — entra nel codice senza possedere tutto il contesto storico.
+## Context engineering non significa prompt sempre più grandi
 
-## Context engineering non è prompt engineering
-
-Nel Capitolo 1 abbiamo introdotto il context engineering.
-
-Qui lo rendiamo concreto.
+Nel Capitolo 1 abbiamo introdotto il context engineering come disciplina più ampia del prompt engineering. Qui la differenza diventa concreta.
 
 Un prompt come:
 
@@ -58,47 +32,26 @@ Un prompt come:
 Implementa l'endpoint di escalation.
 ```
 
-contiene pochissimo contesto.
+contiene troppo poco. Possiamo reagire aggiungendo ogni volta TypeScript conventions, ownership di Payments, outbox pattern, architecture rule, test command, security boundary e migration constraint. Ma a quel punto ogni task ricopia una versione privata del repository.
 
-Possiamo compensare con un prompt enorme:
+È un modello fragile perché il contesto stabile viene riscritto continuamente, può divergere fra task e costa ogni volta rediscovery, review e token.
 
-```text
-Il sistema usa TypeScript strict.
-Payments possiede la semantica economica.
-Order Operations possiede soltanto l'intenzione di escalation.
-Usa transactional outbox.
-Non aggiungere Azure SDK nel domain.
-Esegui questi test.
-Non modificare la migration precedente.
-...
-```
-
-Ma se dobbiamo ripetere tutto a ogni task abbiamo costruito un workflow fragile.
-
-Il contesto stabile dovrebbe vivere vicino al sistema che descrive.
-
-Il task dovrebbe aggiungere soprattutto ciò che cambia.
-
-Possiamo pensarlo così:
+Una separazione più sana è:
 
 ```text
 persistent repository context
-+ task-specific context
++ task-specific delta
 + current evidence
 = execution context
 ```
 
-Il primo termine appartiene al repository.
+Il repository contiene ciò che resta vero fra i task. La issue descrive ciò che deve cambiare adesso. Test, diff, log e runtime evidence descrivono lo stato corrente e il risultato dell'esecuzione.
 
-Il secondo appartiene alla issue o al task.
-
-Il terzo arriva da test, runtime, diff, log, metriche e altri strumenti di verifica.
-
-Confondere questi livelli porta a prompt sempre più grandi, contraddittori e difficili da mantenere.
+Quando questi tre livelli vengono confusi, le istruzioni crescono, diventano contraddittorie e iniziano a comportarsi come una seconda architettura non governata.
 
 ## Non esiste il file magico
 
-GitHub documenta le repository custom instructions come un modo per dare a Copilot contesto persistente su struttura del progetto, convenzioni, build, test e validazione. OpenAI descrive `AGENTS.md` con una funzione simile: indicare come navigare il repository, quali comandi eseguire e quali pratiche rispettare. Entrambe le guidance insistono però su una condizione più ampia: l'agente lavora meglio quando l'ambiente è configurabile, i test sono affidabili e la documentazione è chiara.
+GitHub documenta le custom instructions come un modo per rendere persistenti informazioni su struttura, convenzioni, build, test e validation. OpenAI descrive `AGENTS.md` con un ruolo analogo per agenti che devono orientarsi e lavorare nel repository. Entrambe le direzioni diventano utili soltanto se sotto le istruzioni esistono setup riproducibile, test affidabili e documentazione scopribile.
 
 Fonti:
 
@@ -106,193 +59,72 @@ Fonti:
 - [GitHub Docs — Best practices for using GitHub Copilot to work on tasks](https://docs.github.com/en/copilot/tutorials/cloud-agent/get-the-best-results)
 - [OpenAI — Introducing Codex](https://openai.com/index/introducing-codex/)
 
-Quindi:
+Per questo `AGENTS.md` può essere un ottimo **entry point operativo**, ma non può compensare un repository che non sa costruirsi, testarsi o spiegare i propri confini.
 
-> **`AGENTS.md` può essere un ottimo indice operativo. Non può compensare un repository che non sa costruirsi, testarsi o spiegare i propri confini.**
+Una instruction come “scrivi codice pulito, usa best practice, aggiungi test” contiene quasi zero informazione specifica. Un entry point che indica il purpose del prodotto, i documenti canonical, i golden command, i boundary non negoziabili e le stop condition riduce invece ambiguità reale.
 
-Un file di istruzioni che dice:
+## Il contesto ha tre lavori diversi
 
-```text
-scrivi codice pulito
-segui le best practice
-aggiungi test
-```
+Nel Capitolo 21 separeremo tre forme di contesto, non per creare tre nuovi documenti ma per capire che cosa deve fare ciascuna informazione.
 
-aggiunge quasi zero informazione.
+Il **navigation context** risponde a “dove devo guardare?”. Una repository map, un indice dei documenti canonical e una mappa delle responsabilità appartengono qui.
 
-Un file che dice:
+Il **decision context** risponde a “perché questa forma del sistema è intenzionale?”. ADR, Data Ownership Map, Threat Model, Architecture Fitness Checklist e Refactoring Safety Plan sono esempi già costruiti nei capitoli precedenti.
 
-```text
-npm test
+L'**execution context** risponde a “come lavoro e come dimostro il risultato?”. Bootstrap, build, test, verification tier, oracle protetti e stop condition appartengono a questo livello.
 
-src/application non può importare src/integration.
-Payments & Risk possiede gli effetti economici.
-Non aggiungere una seconda source of truth per PaymentStatus.
-Ogni modifica di priority deve aggiornare la Functional Analysis.
-Se il task richiede cambiare queste regole, fermati: serve decisione architetturale.
-```
+Un repository pieno di comandi ma senza decision context può produrre modifiche verdi e semanticamente sbagliate. Un repository pieno di documenti ma senza verification path è istruttivo e poco delegabile.
 
-contiene invece contesto operativo specifico.
+AI-readiness nasce dalla relazione fra i due.
 
 ## AI-ready non significa AI-only
 
-Se miglioriamo il repository soltanto per un agente, probabilmente stiamo ottimizzando la cosa sbagliata.
+Una repository map chiara aiuta anche un nuovo developer, un reviewer, chi interviene durante un incident, Security, l'architect che valuta un boundary e il maintainer che torna su una decisione sei mesi dopo.
 
-Una repository map chiara aiuta anche:
+Questo è un test importante per evitare il cargo cult: se una convenzione esiste soltanto per un particolare modello o tool e rende peggiore il lavoro umano, il suo fit è sospetto.
 
-- il nuovo developer;
-- chi fa incident response;
-- il reviewer;
-- chi deve capire una PR sei mesi dopo;
-- il team Security;
-- l'architect che valuta un nuovo boundary;
-- il maintainer che deve aggiornare una dipendenza;
-- chi sta cercando di capire se una decisione è ancora valida.
-
-Molte caratteristiche di un repository AI-ready sono semplicemente caratteristiche di un repository ben governato rese più importanti dall'aumento della execution automation.
-
-## Tre categorie di contesto
-
-Per questo capitolo distingueremo tre categorie.
-
-### 1. Navigation context
-
-Dice dove guardare.
-
-Esempi:
-
-```text
-repository map
-component ownership
-document index
-entry point
-important paths
-```
-
-### 2. Decision context
-
-Dice perché alcune forme del sistema sono intenzionali.
-
-Esempi:
-
-```text
-ADR
-Data Ownership Map
-Architecture Fitness Checklist
-Threat Model
-Refactoring Safety Plan
-```
-
-### 3. Execution context
-
-Dice come lavorare e come dimostrare il risultato.
-
-Esempi:
-
-```text
-bootstrap
-build
-test
-lint
-migration verification
-architecture gate
-stop conditions
-```
-
-Un repository che contiene soltanto execution context può generare modifiche tecnicamente verdi ma semanticamente sbagliate.
-
-Un repository che contiene soltanto decision context può essere molto istruttivo ma difficilissimo da eseguire.
-
-Servono entrambi.
+Molte proprietà di un repository AI-ready sono semplicemente proprietà di un repository ben governato rese più importanti dall'aumento della execution automation: source of truth chiara, ownership, setup ripetibile, task bounded ed evidence leggibile.
 
 ## Il problema ESI
 
-Order Operations ha ormai accumulato:
+Order Operations è il caso ideale perché ha già accumulato molta conoscenza: Functional Analysis, Requirements, contract, ownership, failure, security, reliability, observability, testing, legacy understanding, refactoring safety, architecture fitness, Cost Model, codice, migration e IaC.
 
-- Functional Analysis;
-- Requirements;
-- ADR;
-- API ed event contract;
-- Data Ownership Map;
-- Failure Mode Map;
-- Threat Model;
-- Reliability Contract;
-- Observability Contract;
-- Testing Strategy;
-- Legacy Understanding Map;
-- Refactoring Safety Plan;
-- Architecture Fitness Checklist;
-- Cost Model;
-- codice TypeScript;
-- migration;
-- IaC;
-- test.
+Il lettore del libro li conosce perché li ha visti nascere. Un agente che entra oggi nel repository no.
 
-Per un lettore del libro tutto questo è comprensibile perché ha seguito i capitoli.
+Quindi ESI non deve produrre altra conoscenza. Deve costruire **un percorso attraverso la conoscenza che esiste già**.
 
-Un agente che entra oggi nel repository non ha seguito i capitoli.
+Commerce & Operations vuole ridurre il costo di onboarding dei coding agent. Platform vuole una convenzione riusabile. Security non vuole che una instruction venga confusa con permission o authorization. Engineering non vuole mantenere la stessa architettura in cinque file diversi per cinque tool. Finance, dopo il Capitolo 20, vede anche il costo economico della rediscovery ripetitiva.
 
-Questo produce il nuovo problema ESI:
+La tensione è evidente: troppo poco persistent context aumenta inferenza e rediscovery; troppo contesto always-on aumenta staleness, duplicazione, conflitto e context cost.
 
-> **Come facciamo a rendere il contesto accumulato navigabile senza copiare tutto dentro un prompt o dentro un unico file di istruzioni gigantesco?**
+## Il compromesso del Capitolo 21
 
-Commerce & Operations vuole aumentare l'uso di coding agent.
-
-Platform vuole una convention riusabile.
-
-Security non vuole che istruzioni generiche autorizzino deployment, secret access o modifica di boundary sensibili.
-
-Gli engineer non vogliono mantenere cinque copie delle stesse regole per cinque tool differenti.
-
-Finance, dopo il Capitolo 20, aggiunge un'altra domanda:
-
-> quanto costa far esplorare ripetutamente a ogni agente lo stesso repository perché il contesto non è organizzato?
-
-## Il compromesso del capitolo
-
-La tensione è:
-
-```text
-più persistent context
-↕
-meno rediscovery
-ma
-più instruction/documentation maintenance
-```
-
-Troppo poco contesto produce esplorazione ripetitiva e decisioni incoerenti.
-
-Troppo contesto produce:
-
-- instruction conflict;
-- stale documentation;
-- context pollution;
-- token cost;
-- regole obsolete replicate ovunque;
-- falsa fiducia nel fatto che “l'agente lo sappia”.
-
-La scelta ESI sarà:
+ESI sceglierà una struttura piccola:
 
 ```text
 short operational AGENTS.md
-+ explicit repository map
-+ canonical decision documents
-+ executable verification commands
-+ architecture/security stop conditions
-+ no duplicated domain encyclopedia
+→ repository map
+→ canonical documents
+→ executable verification
+→ explicit stop conditions
 ```
 
-Il quality floor resta:
+`AGENTS.md` farà routing, non enciclopedia. La repository map descriverà responsabilità, non ogni file. Le regole meccaniche già comprese resteranno nei fitness test. Le decisioni semantiche continueranno a vivere nei loro documenti canonical.
 
-- il repository deve continuare a funzionare bene per gli umani;
-- le istruzioni non possono superare i controlli di security;
-- una instruction non trasforma una decisione in evidence;
-- una instruction non autorizza one-way door;
-- una regola importante deve avere una source of truth chiara;
-- ciò che può essere verificato automaticamente non deve dipendere soltanto dalla memoria dell'agente.
+Il quality floor resta coerente con tutto il libro: una instruction non diventa evidence, non autorizza una one-way door, non contiene secret, non può promuovere un'inferenza a requisito confermato e non deve duplicare una source of truth importante.
 
-## Una formula da ricordare
+Alla fine del capitolo Order Operations avrà un entry point operativo, una Repository Map, golden command realmente esistenti e un piccolo context-fitness gate che verifica soltanto le proprietà meccaniche verificabili.
 
-> **Un repository AI-ready non dice all'agente tutto ciò che deve sapere. Gli permette di trovare rapidamente ciò che deve sapere e di dimostrare che non lo ha capito male.**
+Non avrà ancora una politica completa di autonomia degli agenti. Quello arriverà dopo.
 
-Nel resto del capitolo costruiremo precisamente questo.
+## La domanda del capitolo
+
+Non è:
+
+> Quale file di prompt dobbiamo aggiungere?
+
+È:
+
+> **Come trasformiamo un repository pieno di conoscenza in un ambiente nel quale un nuovo esecutore può trovare il contesto giusto, capire il proprio boundary e produrre evidence senza dipendere dalla memoria privata del team?**
+
+Questa è l'AI-readiness che ci interessa.
