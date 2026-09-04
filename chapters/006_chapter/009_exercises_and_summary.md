@@ -4,65 +4,19 @@ Questo capitolo introduce una regola che useremo in quasi tutte le decisioni tec
 
 > **Prima definiamo la qualità richiesta. Poi scegliamo la tecnologia.**
 
-Gli aggettivi non sono requisiti.
+“Veloce”, “sicuro”, “scalabile”, “resiliente” ed “enterprise-ready” non sono ancora requisiti. Devono diventare target, invarianti, scenari o condizioni osservabili che permettano di distinguere una soluzione accettabile da una che non lo è.
 
-“Veloce”, “sicuro”, “scalabile”, “resiliente” e “enterprise-ready” devono essere trasformati in target, invarianti, scenari o condizioni verificabili.
+Le quality attribute acquistano significato soltanto dentro un contesto. Il critical journey, il rischio, il profilo di traffico, il costo del downtime, il team, l'operabilità e il budget cambiano radicalmente il livello di qualità che vale la pena comprare. Per questo non possiamo massimizzare tutto contemporaneamente: ogni architettura paga trade-off e deve rendere esplicito ciò che privilegia.
 
-Le quality attribute non esistono nel vuoto.
+Da qui deriva **fit before fashion**. Una tecnologia nuova non è automaticamente migliore; una tecnologia vecchia non è automaticamente peggiore. Popolarità, prestigio e familiarità sono elementi del contesto, non prove conclusive. La scelta ha valore quando soddisfa le proprietà che contano pagando un costo di ownership compatibile con il sistema e l'organizzazione.
 
-Cambiano rispetto al critical journey e al rischio, agli utenti e alla scala, al valore economico e al costo del downtime. Team, operabilità e budget completano il contesto. Non possiamo massimizzarle tutte contemporaneamente.
+La Non-Functional Requirements Card traduce questo principio in un artefatto operativo. Parte dai critical journey, dichiara target e priorità, rende espliciti non-goal, metodo di verifica e review trigger. Non deve scegliere la tecnologia al posto nostro: deve restringere abbastanza il design space da rendere il confronto meno arbitrario.
 
-Ogni architettura paga trade-off.
+Con l'AI la sofisticazione diventa molto più economica da generare. Questo aumenta il rischio di confondere la quantità di infrastruttura con la qualità del design. Il controllo più importante diventa quindi chiedere, per ogni componente aggiunto: **quale requisito sta pagando questa complessità?**
 
-Per questo la tecnologia deve essere scelta per **fit**, non per moda.
+## Artefatto operativo — Non-Functional Requirements Card
 
-Una tecnologia nuova non è automaticamente migliore.
-
-Una tecnologia vecchia non è automaticamente peggiore.
-
-Una tecnologia popolare non è automaticamente appropriata.
-
-Una tecnologia familiare non è automaticamente sufficiente.
-
-La scelta migliore è quella che soddisfa bene ciò che conta nel contesto reale pagando un prezzo che siamo disposti ad accettare.
-
-### Il vocabolario del capitolo
-
-Abbiamo introdotto o consolidato:
-
-- latency;
-- percentile;
-- throughput;
-- capacity;
-- availability;
-- reliability;
-- correctness;
-- consistency;
-- durability;
-- operability;
-- maintainability;
-- security;
-- privacy;
-- cost;
-- RTO;
-- RPO;
-- graceful degradation;
-- quality priority;
-- explicit non-goal;
-- technology fit;
-- fashion-driven architecture;
-- copy-paste architecture;
-- quality trade-off.
-
-### Artefatto operativo
-
-L'artefatto principale del capitolo è la:
-
-## Non-Functional Requirements Card
-
-Serve a trasformare qualità generiche in input di decisione.
-
-Una forma sintetica può contenere:
+La forma sintetica del capitolo rimane:
 
 ```text
 critical journey
@@ -74,19 +28,15 @@ critical journey
 → trigger di revisione
 ```
 
-Non deve diventare una checklist universale.
-
-Un piccolo tool interno può aver bisogno di poche righe.
-
-Un sistema mission-critical può richiedere analisi molto più profonda.
-
-Il peso dell'artefatto deve seguire il rischio.
+Un piccolo tool interno può aver bisogno di poche righe. Un sistema ad alto rischio può richiedere analisi molto più profonde. Il peso dell'artefatto segue il costo dell'errore, non il desiderio di completezza documentale.
 
 ---
 
 # Esercizi
 
-## Esercizio 1 — Distruggi gli aggettivi
+Gli esercizi restano strutturati perché servono come strumenti di pratica e confronto.
+
+## 1. Distruggi gli aggettivi
 
 Ricevi questi requisiti:
 
@@ -99,16 +49,9 @@ Il sistema deve essere:
 - economico.
 ```
 
-Per ciascuno:
+Per ciascuno spiega perché la frase non basta, formula almeno due domande di chiarimento, trasformala in una proprietà verificabile e indica quale decisione architetturale potrebbe cambiare in funzione della risposta. Non scegliere ancora tecnologie.
 
-1. spiega perché non è ancora un requisito sufficiente;
-2. scrivi almeno due domande di chiarimento;
-3. trasformalo in una proprietà verificabile;
-4. indica quale scelta architetturale potrebbe cambiare in funzione della risposta.
-
-Non scegliere ancora tecnologie.
-
-## Esercizio 2 — Percentili contro media
+## 2. Percentili contro media
 
 Un endpoint ha:
 
@@ -119,61 +62,21 @@ p95 = 280 ms
 p99 = 2.8 s
 ```
 
-Il team dichiara:
+Il team conclude: “Siamo sotto 150 ms, quindi la performance è ottima.” Critica l'affermazione, proponi almeno tre ipotesi che potrebbero spiegare la coda del p99 e indica quali dati raccoglieresti prima di intervenire.
 
-> “Siamo sotto 150 ms, quindi la performance è ottima.”
+## 3. Scrivi una NFR Card
 
-Critica l'affermazione.
+Scegli un e-commerce, un sistema di prenotazioni, un SaaS B2B, un'applicazione bancaria, una piattaforma media o un tool interno.
 
-Descrivi almeno tre scenari che potrebbero spiegare la coda del p99 e quali dati raccoglieresti prima di intervenire.
+Compila una Non-Functional Requirements Card con almeno due critical journey, latency, capacity, availability, consistency, recovery, security, cost, tre explicit non-goal, metodo di verifica e review trigger. Per ogni numero non derivato da una misura reale dichiara origine e livello di confidence.
 
-## Esercizio 3 — Scrivi una NFR Card
+## 4. Availability non uniforme
 
-Scegli un prodotto reale o inventato:
+Una piattaforma contiene checkout, catalogo, raccomandazioni, area amministrativa, reportistica e newsletter. Non puoi permetterti lo stesso livello di availability per tutto.
 
-- e-commerce;
-- sistema prenotazioni;
-- SaaS B2B;
-- applicazione bancaria;
-- piattaforma media;
-- tool interno.
+Ordina i journey per criticità e descrivi comportamenti differenti durante un incidente. Per almeno due capability definisci una graceful degradation semanticamente accettabile.
 
-Compila una **Non-Functional Requirements Card** con almeno:
-
-- due critical journey;
-- latency;
-- capacity;
-- availability;
-- consistency;
-- recovery;
-- security;
-- cost;
-- tre explicit non-goal;
-- verification method;
-- review trigger.
-
-Per ogni numero inventato dichiara il livello di confidence.
-
-## Esercizio 4 — Availability non uniforme
-
-Una piattaforma contiene:
-
-```text
-checkout
-catalogo
-raccomandazioni
-area amministrativa
-reportistica
-newsletter
-```
-
-Non puoi permetterti lo stesso livello di disponibilità per tutto.
-
-Ordina i journey per criticità e proponi livelli differenti di comportamento durante un incidente.
-
-Per almeno due funzioni definisci una graceful degradation.
-
-## Esercizio 5 — RTO e RPO
+## 5. RTO e RPO
 
 Un team dichiara:
 
@@ -182,113 +85,37 @@ RTO = 15 minuti
 RPO = zero
 ```
 
-ma:
+ma il backup viene eseguito ogni sei ore, il restore non è mai stato provato, il failover richiede tre console manuali e una sola persona conosce l'intera procedura.
 
-- il backup viene fatto ogni 6 ore;
-- il restore non è mai stato provato;
-- il failover richiede accesso manuale a tre console;
-- una sola persona conosce la procedura completa.
+Spiega le contraddizioni e proponi il minimo necessario per rendere credibili quei target oppure target più realistici coerenti con la capacità operativa esistente.
 
-Spiega quali contraddizioni vedi.
+## 6. Fit before fashion
 
-Produci un piano minimo per rendere gli obiettivi credibili oppure proponi target più realistici.
+Il CTO vuole introdurre Kubernetes perché “è lo standard del settore e dobbiamo essere cloud-native”. Il sistema ha tre developer, una singola applicazione, due deploy al mese, traffico prevedibile, nessun requisito di deploy indipendente e può tollerare pochi minuti di downtime durante maintenance pianificata.
 
-## Esercizio 6 — Fit before fashion
+Costruisci il caso più forte contro Kubernetes e il caso più forte a favore. Poi identifica quali nuovi requirement potrebbero cambiare la decisione. Non fermarti alla frase “è troppo complesso”: confronta proprietà, costi e trigger.
 
-Il CTO vuole introdurre Kubernetes perché:
+## 7. La tecnologia noiosa
 
-> “È lo standard del settore e dobbiamo essere cloud-native.”
+Confronta PostgreSQL già presente nel sistema con un nuovo database specializzato che offre query più naturali per un particolare tipo di dato.
 
-Il sistema ha:
+Costruisci una Technology Fit Matrix usando capability, latency, scale, team skill, operability, backup, observability, cost, lock-in, migration e failure mode. La scelta può essere la tecnologia nuova, ma deve essere giustificata dal fit, non dall'interesse tecnico.
 
-- tre developer;
-- una singola applicazione;
-- due deploy al mese;
-- traffico prevedibile;
-- nessun requisito di deploy indipendente;
-- downtime di pochi minuti tollerabile durante manutenzione pianificata.
+## 8. Copy-paste architecture
 
-Costruisci:
+Scegli una architecture story pubblica di una grande organizzazione. Ricostruisci problema originale, scala, vincoli, team, failure precedenti e trade-off accettati. Poi immagina una startup di sei persone e separa ciò che è trasferibile da ciò che sarebbe probabilmente cargo cult.
 
-1. il caso più forte **contro** Kubernetes;
-2. il caso più forte **a favore**;
-3. i requisiti che, se emergessero, potrebbero cambiare la decisione.
+L'esercizio è riuscito se riesci a spiegare **quale parte del contesto rendeva razionale la soluzione originale**.
 
-Non limitarti a dire “Kubernetes è troppo complesso”.
+## 9. Adversarial technology review con AI
 
-## Esercizio 7 — La tecnologia noiosa
+Scegli una tecnologia che ti piace molto. Fornisci a un agente un contesto realistico e chiedigli di assumere che introdurla sia una cattiva idea e di costruire il caso tecnico più forte contro la scelta. Poi chiedi il contrario.
 
-Confronta due soluzioni per un nuovo modulo:
+Confronta le due risposte cercando assunzioni non supportate, requirement mancanti, trade-off dimenticati e argomenti di moda. Non chiedere all'agente di votare il vincitore.
 
-### A
+## 10. Order Operations cresce
 
-PostgreSQL già presente nel sistema.
-
-### B
-
-Un nuovo database specializzato che offre query più naturali per quel tipo di dato.
-
-Costruisci una Technology Fit Matrix considerando:
-
-- capability;
-- latency;
-- scale;
-- team skill;
-- operability;
-- backup;
-- observability;
-- cost;
-- lock-in;
-- migration;
-- failure modes.
-
-Poi scegli.
-
-La scelta può essere B, ma deve essere giustificata dal fit.
-
-## Esercizio 8 — Copy-paste architecture
-
-Trova una architecture story pubblica di una grande azienda oppure usa un caso fornito dal docente.
-
-Identifica:
-
-- problema originale;
-- scala;
-- vincoli;
-- team;
-- failure precedenti;
-- trade-off accettati.
-
-Poi immagina una startup di sei persone.
-
-Quali parti della soluzione sarebbero trasferibili?
-
-Quali sarebbero probabilmente cargo cult?
-
-## Esercizio 9 — Adversarial technology review con AI
-
-Scegli una tecnologia che ti piace molto.
-
-Fornisci a un agente AI un contesto realistico e chiedigli:
-
-> “Assumi che introdurre questa tecnologia sia una cattiva idea. Costruisci il caso tecnico più forte contro la scelta.”
-
-Poi chiedi il contrario.
-
-Confronta le due risposte e identifica:
-
-- assunzioni non supportate;
-- requisiti mancanti;
-- trade-off dimenticati;
-- argomenti emotivi o di moda.
-
-Non chiedere all'agente di decidere al posto tuo.
-
-## Esercizio 10 — Order Operations cresce
-
-Modifica il caso Order Operations.
-
-Ora il business richiede:
+Modifica il caso Order Operations:
 
 ```text
 3.000 req/s sostenute
@@ -299,17 +126,11 @@ RTO < 10 minuti
 RPO prossimo a zero
 ```
 
-Rivedi la Non-Functional Requirements Card.
+Rivedi prima la Non-Functional Requirements Card. Poi identifica quali decisioni dei capitoli precedenti devono essere riaperte. Non saltare direttamente a Redis, Kafka, multi-region o un read model: elenca prima quali assunzioni non sono più valide.
 
-Poi individua quali decisioni dei capitoli precedenti devono essere rivalutate.
+## 11. Quality conflict
 
-Non saltare direttamente a una soluzione.
-
-Elenca prima le decisioni che non reggono più.
-
-## Esercizio 11 — Quality conflict
-
-Hai questi obiettivi:
+Hai contemporaneamente questi obiettivi:
 
 ```text
 consistency forte
@@ -319,34 +140,13 @@ costo minimo
 zero complessità operativa
 ```
 
-Spiega perché l'insieme è sospetto.
+Spiega perché l'insieme è sospetto. Costruisci una priorità esplicita e descrivi quali proprietà accetteresti di degradare e sotto quali condizioni.
 
-Costruisci una priorità esplicita e descrivi quali proprietà accetteresti di degradare.
+## 12. La soluzione che l'AI ha reso troppo facile
 
-## Esercizio 12 — La soluzione che l'AI ha reso troppo facile
+Un agente ha generato in poche ore broker, cache distribuita, workflow engine, service mesh, tre database e deployment multi-region. Tutto funziona nella demo.
 
-Un agente ha generato in poche ore:
-
-- broker;
-- cache distribuita;
-- workflow engine;
-- service mesh;
-- tre nuovi database;
-- multi-region deployment.
-
-Tutto funziona nella demo.
-
-Prepara una **complexity audit**.
-
-Per ogni componente chiedi:
-
-1. quale requisito risolve;
-2. quale alternativa più semplice esiste;
-3. quale failure mode introduce;
-4. chi lo opera;
-5. come viene aggiornato;
-6. come viene rimosso;
-7. che cosa accade se non lo introduciamo.
+Prepara una **complexity audit**. Per ogni componente chiedi quale requisito risolva, quale alternativa più semplice esista, quale failure mode introduca, chi debba operarlo, come venga aggiornato e rimosso e che cosa accadrebbe se non lo introducessimo.
 
 ---
 
@@ -355,40 +155,27 @@ Per ogni componente chiedi:
 1. So trasformare un aggettivo di qualità in un requisito osservabile?
 2. So distinguere latency media da tail latency?
 3. So distinguere throughput e capacity?
-4. So spiegare la differenza tra availability e reliability?
-5. So spiegare la differenza tra availability e durability?
-6. So usare RTO e RPO senza ridurli a sigle?
-7. So progettare una graceful degradation?
-8. So dichiarare quali qualità non sto ottimizzando?
-9. So riconoscere una scelta tecnologica guidata dalla moda?
-10. So riconoscere anche il dogma opposto: usare sempre ciò che conosco?
-11. So collegare una tecnologia a un requisito concreto?
-12. So spiegare quale nuovo failure mode introduce una soluzione?
-13. So considerare il team e l'operabilità nel technology fit?
-14. So distinguere costo di costruzione da costo di ownership?
-15. So usare l'AI per confrontare alternative senza delegarle la decisione?
+4. So spiegare la differenza tra availability, reliability e durability?
+5. So usare RTO e RPO come input di design e non soltanto come sigle?
+6. So progettare una graceful degradation senza inventarla durante l'incidente?
+7. So dichiarare quali qualità non sto ottimizzando?
+8. So riconoscere una scelta guidata dalla moda e anche il dogma opposto del “usiamo sempre ciò che conosciamo”?
+9. So collegare una tecnologia a un requisito concreto e a un failure mode nuovo?
+10. So considerare operability e costo di ownership nel technology fit?
+11. So distinguere costo di costruzione da costo di convivenza con la tecnologia?
+12. So usare l'AI per confrontare alternative senza delegarle la priorità tra le qualità?
 
----
+## Cosa cambia con l'AI
 
-# Cosa cambia con l'AI
+Un agente può generare rapidamente infrastruttura, configurazione, benchmark e proof of concept. La velocità di costruzione rende ancora più facile introdurre componenti prima di aver dimostrato che servano.
 
-L'AI rende molto più economico produrre soluzioni sofisticate.
-
-Questo aumenta il rischio che la sofisticazione venga confusa con qualità.
-
-Un agente può generare rapidamente infrastruttura e configurazione, deployment e test, integrazioni e benchmark. Ma il costo futuro di possedere quei componenti rimane reale.
-
-Per questo, nell'era degli agenti, diventa ancora più importante chiedere:
+Per questo il nuovo controllo di qualità è quasi economico nella sua semplicità:
 
 > **Quale requisito sta pagando questa complessità?**
 
-L'AI può aiutarci a generare alternative, benchmark e critiche.
+Se la risposta non esiste, la velocità dell'AI non è un vantaggio: sta soltanto rendendo più economico creare debito.
 
-Non può decidere automaticamente quali conseguenze il nostro prodotto sia disposto a comprare.
-
----
-
-# Corollario
+## Corollario
 
 > **Non scegliere la tecnologia più impressionante. Scegli la risposta che ha il fit migliore con il problema reale.**
 
