@@ -9,7 +9,6 @@ ROOT = Path(__file__).resolve().parents[1]
 CHAPTERS_DIR = ROOT / "chapters"
 FRONT_MATTER_DIR = ROOT / "front_matter"
 REFERENCE_DIR = ROOT / "reference"
-NUMERIC_H1_RE = re.compile(r"^# (\d+\.\d+\b.*)$")
 INLINE_CODE_RE = re.compile(r"(`[^`]*`)")
 URL_RE = re.compile(r"https?://[^\s)>]+")
 TRACKING_KEYS = {"fbclid", "gclid", "mc_cid", "mc_eid"}
@@ -40,8 +39,6 @@ def normalize_prose_segment(segment: str) -> str:
 
 def normalize_line(line: str, in_fence: bool) -> str:
     if in_fence: return line
-    match = NUMERIC_H1_RE.match(line)
-    if match: line = "## " + match.group(1)
     parts = INLINE_CODE_RE.split(line)
     for index in range(0, len(parts), 2): parts[index] = normalize_prose_segment(parts[index])
     return "".join(parts)
@@ -65,7 +62,7 @@ def source_paths() -> list[Path]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Normalizza convenzioni Markdown, accenti e URL editoriali."); parser.add_argument("--check", action="store_true"); args = parser.parse_args(); changed: list[Path] = []
+    parser = argparse.ArgumentParser(description="Normalizza solo trasformazioni editoriali sicure e idempotenti: accenti ASCII noti e tracking URL."); parser.add_argument("--check", action="store_true"); args = parser.parse_args(); changed: list[Path] = []
     for path in source_paths():
         original = path.read_text(encoding="utf-8"); normalized = normalize_text(original)
         if normalized == original: continue
