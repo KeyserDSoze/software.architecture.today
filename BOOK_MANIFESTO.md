@@ -240,13 +240,17 @@ Il vocabolario verrà raffinato durante la scrittura e validato attraverso i cap
 
 ## La chiusura
 
-I **Dieci comandamenti della Software Architecture nell'era dell'AI** non saranno usati come impalcatura del libro.
+I **Dieci comandamenti della Software Architecture nell'era dell'AI** non sono usati come impalcatura del libro.
 
-Arriveranno soltanto nell'ultimo capitolo e nell'ultima parte di quel capitolo.
+Il Capitolo 29, **Il timone resta a noi**, chiude il percorso argomentativo in prosa.
 
-Il lettore dovrà incontrarli dopo aver già discusso decisioni, sistemi distribuiti, dati, security, cloud, failure, agenti, costi e produzione.
+Solo dopo quella chiusura arriva il **Capitolo 30 — I Dieci comandamenti della Software Architecture nell'era dell'AI**: un capitolo autonomo, breve e interamente dedicato al decalogo.
 
-Solo allora potranno funzionare come devono: una sintesi riconoscibile, seria nella sostanza ma con un tono volutamente goliardico.
+Il lettore li incontra dopo aver già discusso decisioni, sistemi distribuiti, dati, security, cloud, failure, agenti, costi, produzione e professione.
+
+Solo allora funzionano come devono: una sintesi riconoscibile, seria nella sostanza ma con un tono volutamente goliardico.
+
+Il Capitolo 30 resta l'ultimo contenuto del manoscritto principale.
 
 L'ultima sensazione del libro non deve essere quella di una checklist.
 
