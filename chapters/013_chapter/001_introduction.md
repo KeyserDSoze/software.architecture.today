@@ -1,263 +1,103 @@
 # Capitolo 13 — Security by Design
 
-Nel capitolo precedente abbiamo preso una decisione cloud concreta per Order Operations.
+Nel capitolo precedente abbiamo finalmente dato a Order Operations una topologia cloud concreta: App Service, WebJob, PostgreSQL gestito, Service Bus, managed identity, Key Vault e una prima strategia single-region. Poi ci siamo fermati prima di decidere ingress, privilegi, private connectivity, logging sensibile e accesso al control plane.
 
-Abbiamo scelto Azure App Service, un WebJob continuo per il publisher dell'outbox, PostgreSQL gestito, Service Bus, managed identity, Key Vault e una prima topologia single-region.
+Non era incompletezza. Era sequenza corretta del reasoning. Un template IaC può essere generato in pochi secondi; decidere **che cosa stiamo proteggendo, da chi, attraverso quali boundary e con quale impatto sul business** richiede prima una comprensione del rischio.
 
-Poi ci siamo fermati.
+Questo è il punto di partenza della Security by Design.
 
-Non abbiamo ancora deciso:
+## Security è architettura quando modifica i confini
 
-- come entra il traffico;
-- quali componenti possono essere raggiunti dalla rete pubblica;
-- quali identity possono leggere secret;
-- chi può modificare infrastruttura e runtime;
-- come separare runtime identity e deployment identity;
-- quali dati possono finire nei log;
-- quali percorsi di egress sono ammessi;
-- come ridurre il danno se una credenziale, una sessione o un componente viene compromesso.
-
-Fermarsi lì non era incompletezza.
-
-Era una decisione architetturale.
-
-Un template IaC può essere generato in pochi secondi.
-
-Un threat model no.
-
-O meglio: anche un threat model può essere generato velocemente dall'AI, ma non può essere considerato corretto finché non abbiamo capito quali asset stiamo proteggendo, da chi, attraverso quali boundary e con quali conseguenze business.
-
-Questa differenza è il tema del capitolo.
-
-## Security non è una feature
-
-Trattare la security come una feature porta quasi sempre a una sequenza sbagliata:
+Trattare la sicurezza come una fase finale produce un workflow pericoloso:
 
 ```text
 costruiamo
 → integriamo
 → deployiamo
 → facciamo security review
-→ scopriamo che il boundary è sbagliato
+→ scopriamo che identity, authorization o topology sono sbagliate
 ```
 
-A quel punto correggere può significare cambiare:
+A quel punto correggere può significare cambiare API contract, data ownership, permission model, network topology, pipeline e perfino il deployment boundary. Non è quindi soltanto una review arrivata tardi: alcune decisioni di sicurezza **sono decisioni architetturali**.
 
-- identity model;
-- API contract;
-- data ownership;
-- network topology;
-- pipeline;
-- permission model;
-- observability;
-- deployment process.
-
-Quindi il problema non è soltanto che la security review arriva tardi.
-
-È che alcune decisioni di sicurezza **sono decisioni architetturali**.
-
-Microsoft include il threat modeling nel proprio Security Development Lifecycle e lo presenta come modo per identificare e mitigare problemi quando sono ancora relativamente economici da correggere.
+Microsoft integra il threat modeling nel proprio Security Development Lifecycle proprio per identificare e mitigare problemi quando sono ancora relativamente economici da correggere.
 
 Fonte:
 
 - [Microsoft Learn — Threat Modeling Tool](https://learn.microsoft.com/azure/security/develop/threat-modeling-tool)
 
-NIST SSDF parte dallo stesso principio operativo: le pratiche di secure software development devono essere integrate nel ciclo di sviluppo, non aggiunte come attività isolata alla fine.
+NIST SSDF esprime lo stesso principio dal punto di vista del software lifecycle: le pratiche di secure development devono entrare nel processo di sviluppo, non essere aggiunte come attività isolata alla fine.
 
 Fonte primaria:
 
 - [NIST SP 800-218 — Secure Software Development Framework](https://csrc.nist.gov/pubs/sp/800/218/final)
 
-## Secure by design non significa massimizzare ogni controllo
+## Secure by design non significa massimizzare i controlli
 
-Anche qui dobbiamo evitare una religione.
+Una security architecture matura non è quella con il maggior numero di firewall, WAF, private endpoint, scanner e approvazioni manuali. È quella in cui asset, trust boundary, privilegi, minacce e mitigazioni sono abbastanza espliciti da poter spiegare **quale rischio riduce ogni controllo e quale rischio residuo resta**.
 
-Security by Design non significa:
+A volte il controllo corretto sarà un private endpoint. A volte una managed identity. A volte server-side authorization. A volte la scelta più sicura sarà non raccogliere affatto un dato. In altri casi un endpoint pubblico, autenticato e strettamente governato può essere più appropriato di una rete privata e piatta in cui qualunque workload può muoversi lateralmente.
 
-```text
-private endpoint ovunque
-+ WAF ovunque
-+ zero public access ovunque
-+ approvazione manuale ovunque
-+ segreti centralizzati ovunque
-+ quindici scanner per pipeline
-```
+Il controllo viene dopo il rischio, esattamente come la tecnologia viene dopo il requisito.
 
-Significa qualcosa di più difficile:
+## Assume breach cambia la domanda
 
-> **Il sistema deve rendere espliciti asset, trust boundary, privilegi, minacce e mitigazioni prima che le scelte accidentali diventino superficie d'attacco.**
-
-A volte il controllo giusto sarà un private endpoint.
-
-A volte sarà una managed identity.
-
-A volte sarà una policy di authorization applicativa.
-
-A volte sarà semplicemente non raccogliere un dato che non ci serve.
-
-A volte sarà impedire che un account amministrativo abbia privilegi permanenti.
-
-A volte sarà accettare un endpoint pubblico ma autenticato, monitorato, rate-limited e con una superficie stretta.
-
-Il controllo deve rispondere al rischio.
-
-Non alla moda security del momento.
-
-## Il compromesso ESI
-
-Nel nostro scenario, Security chiede che Order Operations riduca il rischio di:
-
-- accesso non autorizzato ai dati operativi;
-- escalation di privilegio;
-- uso improprio delle Payment Escalation;
-- furto di credenziali o secret;
-- movimento laterale da un componente compromesso;
-- accesso amministrativo eccessivo;
-- esfiltrazione attraverso log o egress;
-- deployment malevoli o accidentali.
-
-Platform Engineering vuole che i controlli siano:
-
-- riusabili;
-- automatizzabili;
-- coerenti con la landing zone;
-- verificabili tramite policy e IaC.
-
-Commerce & Operations vuole invece preservare:
-
-- velocità di delivery;
-- operabilità;
-- debugging;
-- semplicità del deploy;
-- autonomia del team.
-
-Queste esigenze non sono incompatibili.
-
-Ma non coincidono automaticamente.
-
-Il compromesso del capitolo sarà quindi:
-
-```text
-ridurre esposizione e privilegio
-senza trasformare ogni deploy in un progetto di security engineering separato
-```
-
-Il quality floor non è negoziabile:
-
-- autenticazione forte;
-- authorization esplicita;
-- least privilege;
-- nessun secret statico nel repository;
-- tenant isolation;
-- audit delle operazioni sensibili;
-- separazione runtime/deployment identity;
-- capacità di revoca;
-- logging utile all'incident response senza leakage intenzionale;
-- deployment verificabile;
-- controlli coerenti con il threat model.
-
-## Verify explicitly, least privilege, assume breach
-
-Il Microsoft Azure Well-Architected Framework usa il modello Zero Trust come bussola e sintetizza tre principi:
-
-1. verify explicitly;
-2. use least privilege access;
-3. assume breach.
+Microsoft Azure Well-Architected usa i principi Zero Trust `verify explicitly`, `use least privilege access` e `assume breach`.
 
 Fonte:
 
 - [Microsoft Learn — Security design principles](https://learn.microsoft.com/azure/well-architected/security/principles)
 
-Il terzo punto è quello che cambia davvero il modo di progettare.
+Il terzo principio cambia davvero il modo di pensare. Se una sessione, un token, una workstation o una runtime identity possono essere compromessi, la domanda non è più soltanto “come impediamo il primo accesso?”. Diventa:
 
-Se assumiamo che una identità, una sessione, un token, un workload o una workstation possano essere compromessi, la domanda non è più soltanto:
+> **Quanto può fare un attaccante dopo che un primo controllo ha fallito?**
 
-> Come impediamo l'accesso?
-
-Diventa anche:
-
-> **Quanto può fare un attaccante dopo il primo accesso?**
-
-Questa è architettura.
+È qui che least privilege, tenant isolation, separation of duties, private reachability, audit e revocation diventano parti dello stesso problema: **contenere il blast radius**.
 
 ## Il caso Cloudflare / Okta del 2023
 
-Un esempio reale è utile proprio qui.
-
-Nell'ottobre 2023 Cloudflare descrisse un incidente originato da un token di sessione compromesso nell'ambiente Okta. Secondo il postmortem pubblico, l'attaccante riuscì ad accedere all'istanza Okta di Cloudflare con una sessione amministrativa compromessa.
-
-Cloudflare dichiarò però che nessun sistema o dato dei clienti fu impattato e attribuì la capacità di contenimento a detection rapida, risposta immediata e alla propria architettura Zero Trust, che contribuì a impedire l'accesso alla production network.
+Cloudflare ha descritto pubblicamente un incidente del 2023 in cui una sessione amministrativa Okta compromessa permise accesso alla propria istanza identity. Nel postmortem l’azienda dichiarò che customer system e production network non furono impattati e collegò il contenimento alla detection rapida, alla risposta e alla propria architettura Zero Trust.
 
 Fonte primaria:
 
 - [Cloudflare — How Cloudflare mitigated yet another Okta compromise](https://blog.cloudflare.com/how-cloudflare-mitigated-yet-another-okta-compromise/)
 
-La lezione non è:
+Non ci interessa copiare i prodotti o l’architettura Cloudflare. Ci interessa una proprietà generale: **una identity compromessa non dovrebbe trasformarsi automaticamente nel controllo dell’intero sistema**. Il danno possibile dipende dai boundary progettati prima dell’incidente.
+
+## ESI: sicurezza contro friction, non sicurezza contro delivery
+
+Security identifica per Order Operations rischi concreti: accesso cross-tenant, abuso della Payment Escalation, credential theft, lateral movement, runtime identity troppo privilegiata, deployment malevoli, leakage nei log e accesso amministrativo eccessivo.
+
+Platform Engineering vuole trasformare i controlli ripetibili in capability e policy condivise. Commerce & Operations vuole continuare a fare delivery e troubleshooting senza trasformare ogni modifica in un progetto security separato.
+
+Queste esigenze non sono opposte. Il compromesso del capitolo è ridurre reachability e privilegio **senza sostituire automazione e ownership con una coda permanente di approvazioni**.
+
+Il quality floor è chiaro: autenticazione forte, authorization esplicita, tenant isolation, least privilege, nessun production secret nel repository, separazione runtime/deployment identity, audit delle operazioni sensibili, revocation path, logging utile all’incident response senza leakage intenzionale e deployment security-sensitive verificabile.
+
+## Security è una capacità condivisa
+
+Possiamo avere specialisti Security, ma la conoscenza del rischio non può essere esternalizzata interamente a un team. Developer, architect, Platform, Security e Operations devono condividere asset, trust boundary, identity flow, privilege model, dati sensibili, operazioni pericolose e recovery.
+
+Se soltanto Security sa perché un controllo esiste, il controllo tenderà a degradare con il tempo. Se soltanto il workload team conosce il journey, il threat model perderà proprio la semantica necessaria a distinguere un rischio reale da una checklist generica.
+
+## Il percorso del capitolo
+
+Procediamo con una sequenza causale:
 
 ```text
-usa il prodotto X
-```
-
-È:
-
-> **Una identità compromessa non deve implicare automaticamente il controllo di tutto il sistema.**
-
-Il blast radius dipende dai boundary che abbiamo progettato prima dell'incidente.
-
-## Security come capacità condivisa
-
-Come per l'analisi funzionale, la sicurezza può avere specialisti.
-
-Ma la comprensione del rischio non può essere posseduta da un unico team.
-
-Developer, architect, Platform, Security e Operations devono condividere almeno:
-
-- asset;
-- trust boundary;
-- identity flow;
-- privilege model;
-- dati sensibili;
-- operazioni pericolose;
-- failure mode di sicurezza;
-- procedure di revoca e recovery.
-
-Se soltanto Security sa perché un controllo esiste, il controllo sarà fragile.
-
-Se soltanto il team applicativo conosce davvero il journey, il threat model sarà incompleto.
-
-## Cosa costruiremo
-
-In questo capitolo passeremo da:
-
-```text
-cloud topology ancora security-neutral
-```
-
-a:
-
-```text
-threat model
-→ identity model
-→ authorization boundary
-→ data/secrets protection
-→ ingress/egress decision
-→ secure development controls
+asset e abuse case
+→ trust boundary
+→ identity e privilege
+→ dati / secrets / logging
+→ network reachability
+→ secure development e supply chain
+→ Threat Model
 → Security Control Matrix
-→ first deployable security baseline in IaC
+→ baseline ESI
 ```
 
-Order Operations riceverà quindi:
+Order Operations produrrà Threat Model, Security Control Matrix, ADR della security topology e una prima baseline IaC coerente con il rischio che abbiamo modellato.
 
-- un **Threat Model**;
-- una **Security Control Matrix**;
-- un ADR sulla security topology;
-- una prima baseline Bicep concreta;
-- controlli espliciti su identity, secret e access path.
-
-Non proveremo a rendere il sistema “sicuro per sempre”.
-
-Proveremo a renderlo **difendibile, verificabile e migliorabile**.
-
-## Prima frase da ricordare
+Non proveremo a dichiarare il sistema “sicuro”. Una definizione molto più utile è: **security modeled, controls traceable, privilege boundaries explicit, evidence producibile e residual risk visibile**.
 
 > **Security by Design non significa aggiungere più controlli. Significa fare in modo che il sistema conosca i propri confini prima che li scopra un attaccante.**
