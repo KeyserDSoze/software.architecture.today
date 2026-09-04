@@ -93,7 +93,7 @@ Lo stesso vale per i log. Una dependency indisponibile può produrre migliaia di
 
 Possiamo aggregare, rate-limitare, deduplicare o campionare diagnostic event ripetitivi.
 
-Non possiamo applicare la stessa leggerezza a un audit event di una operazione sensibile. Il tipo di evidence cambia la policy.
+Non possiamo applicare la stessa leggerezza a un audit event di un’operazione sensibile. Il tipo di evidence cambia la policy.
 
 ## Separare le classi di telemetry prima di scegliere la retention
 
