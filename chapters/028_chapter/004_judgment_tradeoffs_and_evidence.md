@@ -1,347 +1,89 @@
 # 28.4 — Judgment: decidere quando l'execution è abbondante
 
-Se l'AI riduce il costo di produrre alternative, prototipi, documenti e implementazioni, il collo di bottiglia si sposta.
+Quando l'AI riduce il costo di produrre alternative, prototipi, documenti e implementazioni, il collo di bottiglia non scompare. Si sposta.
 
-Non scompare.
+Diventa più importante decidere quale problema vale la pena risolvere, quale alternativa ha fit migliore, quale rischio possiamo accettare, quanta evidence serve e quando una decisione deve essere riaperta.
 
-Si sposta verso:
+Possiamo chiamare tutto questo **judgment**, purché non lo trasformiamo in una parola mistica.
 
-```text
-quale problema vale la pena risolvere?
-quale alternativa ha fit migliore?
-quale rischio accettiamo?
-quale evidence è sufficiente?
-quando fermarsi?
-quando cambiare direzione?
-```
+Nel contesto del libro, judgment significa prendere decisioni esplicite sotto vincoli incompleti sapendo quali assunzioni stiamo facendo e quale evidence potrebbe farci cambiare idea.
 
-Questo insieme di capacità può essere riassunto con una parola difficile da misurare:
+> **Il judgment non è avere sempre ragione. È costruire decisioni che possono essere corrette quando la realtà dimostra che avevano torto.**
 
-> **judgment**
+## Preferenza e decisione non sono la stessa cosa
 
-Non significa intuito infallibile.
+"Preferisco PostgreSQL" è una preferenza. "Questo workload richiede transazioni locali forti, access pattern relazionali noti, competence disponibile e managed operation; PostgreSQL ha il fit migliore oggi e la scelta va riaperta se cambiano scala, isolation requirement o access pattern" è una decisione governabile.
 
-Non significa esperienza usata come autorità.
+La differenza non sta nella lunghezza del documento. Sta nel fatto che context, forces, consequences, assumptions, evidence e review trigger sono abbastanza visibili da permettere a qualcun altro di ricostruire il ragionamento.
 
-Nel contesto di questo libro significa:
+È per questo che abbiamo usato gli ADR lungo il libro. Non per accumulare verbali, ma per rendere le preferenze contestabili e aggiornabili.
 
-> **capacità di prendere decisioni esplicite sotto vincoli incompleti, sapendo quali assunzioni stiamo facendo e quale evidence potrebbe farci cambiare idea.**
+## Trade-off significa proteggere il floor e scegliere dove ottimizzare
 
----
+Product può chiedere time-to-market, Security maggiore isolation, Operations recovery semplice, Finance un run rate più basso, Platform standardizzazione e il team minore cognitive load. Sono tutte richieste legittime e non sempre esiste una soluzione che le massimizzi contemporaneamente.
 
-## Una decisione non è una preferenza
+Il lavoro architetturale non consiste nel trovare la "best practice" che chiude la discussione. Consiste nel proteggere il quality floor e rendere esplicito quale costo stiamo pagando per ottimizzare ciò che conta di più nel contesto attuale.
 
-Confrontiamo:
+Questo è `fit before fashion` applicato alla decisione professionale.
 
-```text
-Preferisco PostgreSQL.
-```
+## Reversibility cambia il livello di evidence necessario
 
-con:
+Non tutte le scelte meritano lo stesso processo. Una decisione locale e reversibile può essere delegata rapidamente. Una one-way door richiede più attenzione perché il costo dell'errore non coincide con il costo del diff.
 
-```text
-Il workload richiede transazioni locali forti,
-query relazionali note,
-team competence esistente,
-managed operation disponibile
-ed evoluzione prevedibile.
-
-PostgreSQL ha il fit migliore oggi.
-
-Trigger di review:
-access pattern radicalmente diverso,
-scala non più sostenibile,
-nuovo requirement di isolation,
-nuova constraint operativa.
-```
-
-La prima è una preferenza.
-
-La seconda è una decisione governabile.
-
-L'architect deve trasformare opinioni in decisioni che espongono:
-
-```text
-Context
-Forces
-Alternatives
-Decision
-Consequences
-Assumptions
-Evidence
-Review triggers
-```
-
-È il motivo per cui abbiamo usato ADR lungo tutto il libro.
-
----
-
-## Il judgment è soprattutto selezione dei trade-off
-
-Ogni stakeholder può avere una richiesta legittima.
-
-Per esempio:
-
-```text
-Product
-→ time-to-market
-
-Security
-→ stronger isolation
-
-Operations
-→ simpler recovery
-
-Finance
-→ lower run rate
-
-Platform
-→ standardization
-
-Team
-→ lower cognitive load
-```
-
-Non esiste sempre una soluzione che massimizzi tutto.
-
-L'architect non deve quindi chiedere:
-
-> “Qual è la best practice?”
-
-ma:
-
-> **“Quale compromesso protegge le proprietà non negoziabili e ottimizza ciò che conta di più in questo contesto?”**
-
-Questa è la differenza fra architecture e technology selection.
-
----
-
-## Reversibility come leva di decisione
-
-Quando l'incertezza è alta, una delle proprietà più utili è la reversibilità.
-
-Ma il libro ha insistito su una distinzione:
-
-```text
-reversible in code
-≠
-reversible in system
-```
-
-Un cambio di libreria può essere semplice da revertire.
-
-Una migration che ha trasformato dati, un nuovo public contract o una nuova business semantics possono non esserlo.
-
-L'architect deve riconoscere:
-
-```text
-Two-way door
-→ possiamo sperimentare con costo controllato
-
-One-way door
-→ serve evidence più forte prima del passo
-```
-
-E soprattutto deve evitare che l'AI renda invisibile la one-way door semplicemente perché il diff che la implementa è piccolo.
+Una migration che trasforma dati, un public contract, una nuova business semantics o l'assegnazione di write authority a un sistema AI possono essere difficili da invertire anche se il codice che le implementa è piccolo.
 
 > **La dimensione del diff non misura la reversibilità della decisione.**
 
----
+Per questo la governance dovrebbe essere proporzionale al blast radius: autonomia locale per small two-way door, review focalizzata per decisioni architetturalmente significative, authority esplicita ed evidence più forte per one-way door ad alto impatto.
 
 ## Evidence proportional to claim
 
-Il Capitolo 26 ha reso questa disciplina esplicita.
+Il Capitolo 26 ha reso esplicita una regola che qui diventa una competenza dell'architect: usare la prova più economica che riesce davvero a sostenere il claim.
 
-Se il claim è:
+Un typecheck può bastare per dire che TypeScript compila. Non basta per dire che una transazione è atomica su PostgreSQL. Una configurazione di backup non dimostra l'RTO. Un eval seed non dimostra model quality finché non viene eseguito contro candidati reali.
 
-```text
-TypeScript compila
-```
-
-un typecheck può bastare.
-
-Se il claim è:
-
-```text
-transaction atomic su PostgreSQL
-```
-
-serve PostgreSQL reale.
-
-Se il claim è:
-
-```text
-restore rispetta RTO
-```
-
-serve un restore drill.
-
-Se il claim è:
-
-```text
-AI grounded enough for production
-```
-
-serve model execution contro eval appropriata e runtime evidence.
-
-L'architect deve saper scegliere il livello di evidence.
-
-Troppa evidence per ogni decisione rende il delivery inutilmente lento.
-
-Troppo poca rende le decisioni una collezione di speranze.
+Troppa evidence per ogni decisione rallenta inutilmente. Troppo poca trasforma il design in speranza documentata.
 
 > **La qualità del judgment si vede anche da quanto costa dimostrare ciò che stiamo affermando.**
 
----
+## Il nuovo rischio: decision theatre
 
-## Il rischio del decision theatre
+Con l'AI possiamo generare rapidamente alternative analysis, risk register, ADR, cost comparison, threat analysis e test. La quantità di artefatti può dare un'impressione di profondità che non esiste.
 
-Con strumenti AI possiamo produrre rapidamente:
+Se la stessa assunzione sbagliata viene usata dall'agente che propone le alternative, da quello che le valuta, dal test che verifica l'oracle e dalla review che riassume il risultato, possiamo ottenere una catena molto coerente e molto sbagliata.
 
-- alternative analysis;
-- trade-off table;
-- risk register;
-- ADR;
-- cost comparison;
-- threat analysis.
+La risposta non è rinunciare all'AI. È introdurre **evidence diversity**: primary source, runtime evidence, test indipendenti, review adversarial, specialist authority e verifica su boundary reali quando il claim lo richiede.
 
-Questo può creare un nuovo anti-pattern:
+Un secondo storyteller non è automaticamente un verifier.
 
-> **decision theatre**
+## AI come decision support
 
-Molti artefatti danno l'impressione che la decisione sia stata approfondita.
+L'AI è eccellente per ampliare lo spazio delle alternative e per red-teamare una scelta preferita. Può chiedere quali assumptions stiamo ignorando, quale failure mode rompe il design e quale evidence discriminerebbe davvero fra due opzioni.
 
-Ma possono essere tutti derivati dalle stesse assunzioni non verificate.
+Questo aumenta la qualità del processo finché decision authority e accountability restano dove vive il rischio.
 
-Per esempio:
+Un agente può proporre una security exception. Non può accettarla per conto di Security. Può suggerire una nuova business rule. Non diventa Product authority. Può preparare un launch report. Non trasforma un blocker in Accepted Risk.
 
-```text
-AI genera 5 alternative
-AI valuta le 5 alternative
-AI scrive ADR
-AI genera test
-AI conclude che ADR è corretta
-```
+La distinzione fra **supportare una decisione** e **possedere una decisione** diventa ancora più importante quando l'output è eloquente e veloce.
 
-Se tutto il ciclo condivide la stessa misconception, abbiamo prodotto una catena coerente ma non necessariamente vera.
+## Decision velocity senza decision anarchy
 
-Da qui il valore di:
+Execution veloce richiede anche un sistema di decisioni che non si blocchi. Il rischio è oscillare fra due estremi: tutto passa da una review centrale oppure ogni executor decide localmente.
 
-```text
-primary source
-independent evidence
-adversarial review
-runtime signal
-human/domain authority
-```
+L'architect deve contribuire a costruire una governance in cui la classe della decisione è riconoscibile prima che il processo cominci. Le scelte reversibili restano locali; quelle che cambiano boundary, authority, contract o one-way door ricevono il livello di review appropriato.
 
----
-
-## AI come decision support, non decision owner
-
-Un agente può essere un eccellente strumento per ampliare lo spazio delle alternative.
-
-Per esempio:
-
-```text
-Generate three plausible architectures.
-For each:
-- assumptions
-- failure modes
-- operating cost
-- irreversible decisions
-- team implications
-- evidence needed
-```
-
-Può anche fare red-team della scelta preferita:
-
-```text
-Argue why this design is wrong.
-Identify the first assumption most likely to fail.
-```
-
-Questo è molto utile.
-
-Ma la decision authority resta dove vive la responsabilità.
-
-Se una scelta cambia:
-
-```text
-business semantics
-risk acceptance
-security policy
-data authority
-production commitment
-```
-
-un output AI non sostituisce la persona o il gruppo che possiede quella decisione.
-
----
-
-## Decision velocity
-
-Quando l'execution è veloce, anche le decisioni devono fluire bene.
-
-Non significa decidere tutto velocemente.
-
-Significa evitare due fallimenti opposti:
-
-```text
-Decision paralysis
-→ ogni scelta aspetta una review centrale
-
-Decision anarchy
-→ ogni executor decide localmente
-```
-
-L'architect deve costruire un sistema in cui:
-
-```text
-small reversible decision
-→ team / local autonomy
-
-architecturally significant decision
-→ ADR / focused review
-
-high-impact one-way door
-→ explicit authority + stronger evidence
-```
-
-Questo rende la governance proporzionale al blast radius.
-
----
-
-## Microsoft: decision framework e stakeholder context
-
-La guidance Microsoft sul ruolo dell'architect insiste proprio su questo punto: comprendere business outcomes e constraint, identificare le decisioni importanti, valutare trade-off, effort, reversibilità e rischio, usando benchmark o altri strumenti senza confonderli con il judgment.
+Microsoft Well-Architected insiste sul comprendere business outcomes e constraint, identificare le decisioni importanti e valutarne trade-off, effort, reversibilità e rischio.
 
 Fonte:
 
-- Microsoft Learn — *Solution Architect's Responsibilities and Guiding Principles*: https://learn.microsoft.com/en-us/azure/well-architected/architect-role/fundamentals
+- [Microsoft Learn — Solution Architect's Responsibilities and Guiding Principles](https://learn.microsoft.com/en-us/azure/well-architected/architect-role/fundamentals)
 
-Non prendiamo questa fonte come definizione universale del ruolo.
-
-La usiamo come evidenza che anche una guidance enterprise contemporanea considera il lavoro dell'architect molto più ampio della selezione tecnologica.
-
----
+La usiamo come riscontro di una proprietà, non come definizione universale del ruolo.
 
 ## ESI: Decision Quality Review
 
-Nel modello ESI, una decisione architetturale importante viene valutata attraverso cinque domande:
+Nel modello ESI una decisione architetturale importante deve permettere di rispondere a cinque domande: il problema è abbastanza chiaro; le alternative sono realmente differenti; quale costo o rischio stiamo spostando; quale evidence sostiene la scelta; quale trigger farà riaprire la decisione.
 
-```text
-1. Il problema è abbastanza chiaro?
-2. Le alternative sono realmente differenti o variazioni cosmetiche?
-3. Quale costo/rischio stiamo spostando?
-4. Quale evidence sostiene la scelta?
-5. Quale trigger ci farà riaprire la decisione?
-```
+Non serve trasformare ogni scelta in un documento lungo. Serve che il ragionamento sopravviva alla persona che lo ha formulato.
 
-Non richiediamo un documento lungo.
-
-Richiediamo che una persona possa ricostruire il ragionamento.
-
-La regola è:
-
-> **L'architect non deve essere la persona che ha sempre ragione. Deve costruire decisioni che possono essere corrette quando la realtà dimostra che avevano torto.**
+Quando l'execution diventa abbondante, questa capacità vale più della produzione di un'altra alternativa.
