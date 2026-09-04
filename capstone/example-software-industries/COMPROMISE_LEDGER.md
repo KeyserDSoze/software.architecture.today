@@ -233,14 +233,23 @@ Trigger
 **Guardrail:** `ARCHITECT_CAPABILITY_MAP.md`, Functional Literacy Baseline, L1–L4 capability-specific, Specialist Trigger, ESI Learning Loop, deliberate manual mode.  
 **Evidence:** Microsoft Well-Architected architect-role guidance, DORA 2025, Microsoft Research SPACE of AI, OpenAI Codex workflow/security; audit in `reference/CHAPTER_028_EVIDENCE.md`.
 
-## Capitolo finale — Il timone resta a noi
+## 29 — Il timone resta a noi
 
-**Esigenza:** chiudere il libro con una sintesi memorabile senza ridurre ventinove capitoli a slogan scollegati dal contesto.  
-**Tensione:** principles memorabili vs architecture context-dependent; AI leverage vs accountable authority; sintesi vs oversimplification.  
-**Decisione:** chiusura completa in prosa su outcome, functional understanding, decision system, evidence, AI authority, enterprise compromise e professione; i Dieci comandamenti vengono scelti soltanto dopo questa sintesi.  
-**Costo accettato:** la chiusura definitiva resta intenzionalmente incompleta finché non selezioniamo i dieci principi finali.  
-**Quality floor:** niente nuovo claim tecnico nei comandamenti; niente tool/vendor dependence; nessuna contraddizione con fit/trade-off/evidence/accountability.  
-**Guardrail:** `reference/CHAPTER_029_EVIDENCE.md`; `chapters/029_chapter/009_*` deve restare assente finché i comandamenti non vengono scelti e, una volta creato, deve essere l'ultimo contenuto del manoscritto principale.
+**Esigenza:** chiudere il percorso argomentativo senza ridurre ventinove capitoli a slogan scollegati dal contesto.  
+**Tensione:** sintesi memorabile vs oversimplification; AI leverage vs accountable authority; principi forti vs architecture context-dependent.  
+**Decisione:** chiusura completa in prosa su outcome, functional understanding, decision system, evidence, AI authority, enterprise compromise, professione e Architecture Operating Model personale.  
+**Costo accettato:** il decalogo viene separato dalla chiusura narrativa invece di essere inglobato come ultima sezione.  
+**Quality floor:** niente nuovo claim tecnico; nessuna finta production closure; fit/trade-off/evidence/accountability restano coerenti con il resto del libro.  
+**Guardrail:** `reference/CHAPTER_029_EVIDENCE.md`; il Capitolo 29 termina con `008_before_the_commandments.md`.
+
+## 30 — I Dieci comandamenti della Software Architecture nell'era dell'AI
+
+**Esigenza:** lasciare al lettore una sintesi finale riconoscibile e memorabile dopo che la sostanza è già stata costruita.  
+**Tensione:** memorabilità e tono goliardico vs rischio di trasformare principi contestuali in slogan o dogmi.  
+**Decisione:** un Capitolo 30 autonomo contiene soltanto i dieci principi selezionati; nessuna nuova tecnologia, nessun nuovo claim e nessuna nuova decisione ESI.  
+**Costo accettato:** ripetizione deliberata di concetti già sviluppati, in forma molto più compressa.  
+**Quality floor:** tool/vendor independence, responsabilità, evidence, fit e autorità semantica non vengono sacrificati alla battuta.  
+**Guardrail:** `reference/CHAPTER_030_EVIDENCE.md`; `chapters/030_chapter/001_i_dieci_comandamenti.md` è l'ultimo contenuto del manoscritto principale.
 
 ## Regola di continuità
 
