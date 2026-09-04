@@ -1,48 +1,37 @@
-# Esercizi, autovalutazione e sintesi
+## Sintesi: reliability come contratto verificabile
 
-La reliability diventa architettura quando smette di essere un desiderio e diventa un contratto verificabile.
+Il capitolo ha trasformato una parola vaga — “affidabile” — in una sequenza di decisioni verificabili.
 
-Questo capitolo ha costruito quel passaggio.
+Il punto di partenza è il critical journey. Da lì scegliamo SLI e SLO, definiamo quale error budget siamo disposti a consumare, costruiamo un health model, decidiamo come il prodotto può degradare, individuiamo i propagation path, associamo RTO/RPO ai failure domain e infine proviamo recovery e containment con drill che producono evidence.
 
-## Idee chiave
+La relazione può essere riassunta così:
 
-1. **Failure è inevitabile; cascading failure non deve esserlo.**
-2. Availability, reliability e resilienza non sono sinonimi.
-3. Il prodotto può essere unhealthy anche quando ogni componente infrastrutturale appare verde.
-4. SLI e SLO devono partire dai critical user journey.
-5. Un SLO è una decisione di business e engineering, non un numero decorativo.
-6. L'error budget rende esplicito il trade-off fra reliability e change velocity.
-7. `Healthy`, `Degraded` e `Unhealthy` devono avere semantica misurabile.
-8. Graceful degradation significa continuare a fornire valore senza fingere che dati o capability mancanti siano affidabili.
-9. Retry consuma capacity; retry incontrollato può amplificare il failure.
-10. Queue e backlog disaccoppiano nel tempo, ma non creano capacità downstream.
-11. Bulkhead, circuit breaker, throttling e load shedding proteggono failure domain diversi.
-12. Ridondanza utile significa copie che non condividono il failure che vogliamo tollerare.
-13. HA, backup/restore e disaster recovery proteggono classi di failure differenti.
-14. RTO e RPO devono essere associati a scenari di failure e business impact.
-15. Un backup non è una recovery capability finché il restore non viene provato.
-16. Reliability testing deve includere failure injection, game day e recovery drill.
-17. Un postmortem deve ridurre il propagation path, non soltanto identificare il trigger.
-18. La reliability ha un costo visibile che Product, Platform, Operations e Finance devono poter discutere.
-19. L'AI può accelerare reliability engineering ma anche produrre reliability theater.
-20. La resilienza non verificata resta un'ipotesi.
+```text
+critical journey
+→ measurable contract
+→ expected failure behavior
+→ containment/recovery
+→ verification evidence
+```
+
+Availability, reliability e resilienza non sono sinonimi. Una risorsa può essere online mentre il prodotto restituisce dati sbagliati o inutilizzabili. Una queue può assorbire un burst ma trasformarlo in backlog. Una replica può tollerare un node failure e replicare perfettamente una corruption logica. Un backup può esistere e non essere ripristinabile dentro l’RTO.
+
+Per questo il numero di meccanismi non è la misura della reliability. Ci interessa sapere **quale failure copre ogni meccanismo, quale parte del contratto protegge e quale evidence dimostra che funziona**.
+
+Per Order Operations la conseguenza è concreta: il workload resta single-region, ma compra resilience intra-region tramite App Service zone-redundant con capacity minima multipla, PostgreSQL zone-redundant HA e Service Bus regionalmente resiliente; mantiene backup/PITR e rende espliciti degraded mode, recovery source, ownership e drill. Active-active multi-region rimane fuori perché gli RTO/RPO simulati correnti non ne giustificano ancora costo e complessità.
 
 ## Artefatto operativo — Reliability Contract
 
-Il nuovo artefatto del capitolo è il **Reliability Contract**.
-
-Template minimo:
+Il nuovo artefatto collega ciò che i precedenti documenti tenevano separato:
 
 ```markdown
 # Reliability Contract
 
 ## Critical flows
 
-## SLI
+## SLI / SLO
 
-## SLO
-
-## Error budget policy
+## Error budget direction
 
 ## Health states
 
@@ -58,18 +47,14 @@ Template minimo:
 
 ## Ownership
 
+## Evidence status
+
 ## Review triggers
 ```
 
-Non sostituisce:
+Non sostituisce NFR, Failure Mode Map, Cloud Deployment Map, Observability Contract o runbook. Li collega attorno a una domanda comune:
 
-- NFR;
-- Failure Mode Map;
-- Cloud Deployment Map;
-- Observability Contract;
-- runbook.
-
-Li collega.
+> **Che cosa deve restare vero del prodotto quando qualcosa va storto?**
 
 ## Esercizio 1 — Da “affidabile” a SLO
 
@@ -77,17 +62,7 @@ Prendi questo requisito:
 
 > “Il sistema ordini deve essere molto affidabile.”
 
-Trasformalo in almeno due SLI/SLO distinti.
-
-Per ciascuno specifica:
-
-- consumer;
-- critical journey;
-- good event;
-- valid event;
-- measurement window;
-- target;
-- perché quel target ha senso per il business.
+Trasformalo in almeno due SLI/SLO distinti. Per ciascuno specifica consumer, critical journey, good event, valid event, measurement window, target e ragione business.
 
 Poi chiediti:
 
@@ -95,33 +70,13 @@ Poi chiediti:
 
 ## Esercizio 2 — Component green, product red
 
-Disegna un sistema con almeno cinque componenti.
+Disegna un sistema con almeno cinque componenti e costruisci uno scenario in cui ogni health check infrastrutturale sia verde ma il critical user journey fallisca.
 
-Costruisci uno scenario in cui:
-
-```text
-ogni health check infrastrutturale = green
-```
-
-ma:
-
-```text
-critical user journey = failed
-```
-
-Identifica il signal che manca.
+Identifica il signal che manca e spiega dove dovrebbe essere misurato.
 
 ## Esercizio 3 — Graceful degradation
 
-Per un'applicazione che usa:
-
-- catalogo;
-- prezzi;
-- recommendation;
-- checkout;
-- payment provider;
-
-classifica quali capability possono degradare e quali devono fermarsi.
+Per un’applicazione che usa catalogo, prezzi, recommendation, checkout e payment provider, classifica quali capability possano degradare e quali debbano fermarsi.
 
 Per ogni fallback indica:
 
@@ -133,6 +88,8 @@ actions blocked
 user communication
 ```
 
+L’obiettivo non è mantenere sempre una risposta, ma mantenere una risposta ancora utilizzabile in sicurezza.
+
 ## Esercizio 4 — Retry storm
 
 Scenario:
@@ -143,23 +100,11 @@ Scenario:
 × dependency al 20% della capacità normale
 ```
 
-Spiega qualitativamente perché il retry può peggiorare il recovery.
-
-Progetta:
-
-- retry budget;
-- backoff;
-- jitter;
-- concurrency limit;
-- stop condition.
-
-Non serve calcolare numeri perfetti.
-
-Serve mostrare la dinamica.
+Spiega qualitativamente perché il retry può peggiorare il recovery e progetta retry budget, backoff, jitter, concurrency limit e stop condition.
 
 ## Esercizio 5 — Bulkhead
 
-Prendi un'applicazione con:
+Prendi un’applicazione con:
 
 ```text
 interactive API
@@ -167,15 +112,11 @@ report generation
 background synchronization
 ```
 
-Mostra come un workload può saturare gli altri.
+Mostra come uno dei workload possa saturare gli altri. Proponi un capacity boundary che protegga il critical path e descrivi la nuova complessità introdotta.
 
-Proponi un boundary di capacità che protegga il critical path.
+## Esercizio 6 — HA non è backup
 
-Poi spiega quale complessità aggiunge.
-
-## Esercizio 6 — HA ≠ backup
-
-Per ognuno di questi failure scegli il meccanismo principale:
+Per ognuno di questi failure scegli il meccanismo principale e motivane il fit:
 
 ```text
 process crash
@@ -187,21 +128,7 @@ region loss
 credential compromise
 ```
 
-Puoi scegliere fra:
-
-```text
-restart
-replica/failover
-zone redundancy
-rollback
-PITR
-cross-region recovery
-identity revocation
-```
-
-Una risposta può usare più meccanismi.
-
-L'importante è spiegare perché.
+Puoi usare più meccanismi fra restart, replica/failover, zone redundancy, rollback, PITR, cross-region recovery e identity revocation.
 
 ## Esercizio 7 — RTO/RPO
 
@@ -213,41 +140,17 @@ Definisci RTO/RPO distinti per:
 4. telemetry analytics;
 5. payment reconciliation.
 
-Non cercare valori “standard”.
-
-Scrivi prima il business impact e soltanto dopo i target.
+Scrivi prima il business impact e soltanto dopo i target. Non cercare valori “standard”.
 
 ## Esercizio 8 — Restore drill
 
-Scrivi un restore drill per PostgreSQL.
+Scrivi un restore drill PostgreSQL che includa failure scenario, restore point, permission, recovery target, validation query, application validation, reconciliation, misura dell’RTO/RPO reale e cleanup.
 
-Deve includere:
-
-- failure scenario;
-- restore point;
-- permission;
-- restore target;
-- validation query;
-- application validation;
-- reconciliation;
-- misura dell'RTO reale;
-- misura dell'RPO reale;
-- cleanup.
+Il drill deve produrre evidence, non soltanto una checklist eseguita.
 
 ## Esercizio 9 — Failure Mode Map di un deployment
 
-La nuova versione applicativa viene rilasciata.
-
-Elenca failure possibili:
-
-- startup;
-- schema compatibility;
-- config;
-- secret;
-- identity;
-- network;
-- latency;
-- functional correctness.
+Una nuova versione viene rilasciata. Considera failure di startup, schema compatibility, config, secret, identity, network, latency e functional correctness.
 
 Per ciascuno indica:
 
@@ -260,9 +163,7 @@ owner
 
 ## Esercizio 10 — Postmortem avversariale
 
-Prendi il caso GitHub della migration che ha contribuito alla saturation nel maggio 2026.
-
-Fonte:
+Leggi:
 
 - [GitHub Availability Report — May 2026](https://github.blog/news-insights/company-news/github-availability-report-may-2026/)
 
@@ -276,7 +177,7 @@ mitigation
 follow-up control
 ```
 
-Poi identifica quali decisioni architetturali del nostro libro avrebbero potuto aiutare a formulare domande prima dell'incidente.
+Poi identifica quali decisioni del libro avrebbero aiutato a formulare domande utili prima dell’incidente.
 
 ## Esercizio 11 — Cloudflare e failure domain
 
@@ -284,24 +185,13 @@ Leggi:
 
 - [Cloudflare — Outage on July 17, 2020](https://blog.cloudflare.com/cloudflare-outage-on-july-17-2020/)
 
-Ricostruisci:
+Ricostruisci failure origin, traffic concentration, blast radius, ciò che rimase healthy, mitigation e structural follow-up.
 
-```text
-failure origin
-traffic concentration
-blast radius
-what remained healthy
-mitigation
-structural follow-up
-```
+Non trasformare il caso in una regola universale su BGP: estrai il principio di containment.
 
-Non trasformare il caso in una regola universale su BGP.
+## Esercizio 12 — Difendere la single-region decision ESI
 
-Estrai invece una regola più generale sulla containment.
-
-## Esercizio 12 — ESI: togliamo la multi-region
-
-Difendi davanti a un architecture review board la scelta ESI:
+Difendi davanti a un architecture review board la scelta:
 
 ```text
 zone redundancy + HA + restore drills
@@ -309,13 +199,7 @@ ma
 no active-active multi-region
 ```
 
-Devi convincere:
-
-- Product;
-- Security;
-- Platform;
-- Operations;
-- Finance.
+Devi rispondere a Product, Security, Platform, Operations e Finance.
 
 Poi cambia il requisito regionale da:
 
@@ -323,19 +207,19 @@ Poi cambia il requisito regionale da:
 RTO <= 8 h
 ```
 
-a:
+in:
 
 ```text
 RTO <= 15 min
 ```
 
-Spiega quali decisioni devi riaprire.
+Spiega quali decisioni cloud, data, messaging, deployment e recovery devono essere riaperte.
 
-## Esercizio 13 — Reliability con AI
+## Esercizio 13 — Reliability review con AI
 
-Chiedi a un agente di analizzare un architecture diagram e generare failure mode.
+Fornisci a un agente architecture diagram, Reliability Contract e Failure Mode Map. Chiedigli di enumerare failure mode e classificare per ognuno expected health, propagation path e recovery source.
 
-Poi classifica ogni output:
+Poi classifica ogni output dell’agente:
 
 ```text
 verified from architecture
@@ -344,11 +228,11 @@ unknown
 requires runtime evidence
 ```
 
-Conta quante assunzioni l'agente ha trasformato implicitamente in fatti.
+Conta quante assunzioni sono state implicitamente trasformate in fatti.
 
 ## Esercizio 14 — Il test della rimozione
 
-Scegli tre meccanismi di reliability presenti nella tua architettura:
+Scegli tre meccanismi presenti in una architettura:
 
 ```text
 replica
@@ -362,58 +246,23 @@ Per ciascuno chiedi:
 
 > Se lo rimuovo, quale SLO o failure mode peggiora materialmente?
 
-Se non sai rispondere, potrebbe essere reliability theater.
+Se non sai rispondere, hai trovato un possibile caso di reliability theater.
 
 ## Esercizio 15 — Reliability Contract
 
-Produci un Reliability Contract per un sistema che conosci.
+Produci un Reliability Contract per un sistema che conosci. Mantienilo inizialmente compatto: deve rendere leggibili critical flow, target, degraded mode, RTO/RPO, recovery source, ownership ed evidence.
 
-Non superare inizialmente due pagine.
-
-Se servono trenta pagine per capire che cosa significa “healthy”, probabilmente il modello non è ancora abbastanza chiaro.
+Se servono trenta pagine solo per capire che cosa significa `Healthy`, il modello probabilmente deve ancora essere semplificato.
 
 ## Autovalutazione
 
-Dovresti riuscire a rispondere senza consultare il capitolo:
+Dovresti riuscire a spiegare senza consultare il capitolo la differenza tra availability e reliability; tra SLI e SLO; perché il 100% sia spesso un cattivo target; che cosa rappresenti un error budget; perché CPU e RAM non definiscano la health del prodotto; che cosa significhi `Degraded`; quando una cache possa diventare un fallback pericoloso; come nasca un retry storm; che cosa protegga un bulkhead; perché due replica possano fallire insieme; la differenza tra HA e PITR; che cosa misurino RTO e RPO; perché un backup non testato sia insufficiente; che evidence debba produrre un game day; perché un postmortem debba studiare il propagation path; che failure copra App Service zone redundancy; perché PostgreSQL HA non protegga da logical corruption; che ruolo abbia l’outbox durante un broker outage; perché private DNS sia un failure domain; e quali trigger debbano riaprire la scelta multi-region.
 
-1. Qual è la differenza fra availability e reliability?
-2. Che cosa distingue un SLI da un SLO?
-3. Perché un SLO del 100% è spesso una cattiva scelta?
-4. Che cosa rappresenta un error budget?
-5. Perché CPU e RAM non bastano per definire la health del prodotto?
-6. Che cosa significa `Degraded`?
-7. Quando una cache può essere un fallback pericoloso?
-8. Come nasce un retry storm?
-9. Che cosa protegge un Bulkhead?
-10. Perché due replica possono fallire insieme?
-11. Qual è la differenza fra HA e PITR?
-12. Che cosa misurano RTO e RPO?
-13. Perché un backup non testato è insufficiente?
-14. Che cosa deve produrre un game day?
-15. Perché un postmortem non deve fermarsi all'errore umano?
-16. Quale failure copre la zone redundancy di App Service?
-17. Perché la HA PostgreSQL non protegge necessariamente da corruption logica?
-18. Che cosa protegge l'outbox durante una indisponibilità del broker?
-19. Perché il DNS può diventare un failure domain?
-20. Quando dovremmo riaprire una decisione multi-region?
+## Cosa cambia con l’AI
 
-## Cosa cambia con l'AI
+L’AI rende economico produrre retry policy, health endpoint, circuit breaker, Bicep multi-region, dashboard, synthetic check, chaos script, runbook e postmortem draft.
 
-L'AI abbassa drasticamente il costo di produrre meccanismi di resilienza.
-
-Possiamo generare velocemente:
-
-- retry policy;
-- health endpoint;
-- circuit breaker;
-- Terraform/Bicep multi-region;
-- dashboard;
-- synthetic check;
-- chaos script;
-- runbook;
-- postmortem draft.
-
-Il rischio diventa confondere:
+Il rischio è confondere:
 
 ```text
 quantità di reliability code
@@ -425,79 +274,37 @@ con:
 reliability del sistema
 ```
 
-Un sistema con dieci fallback generati può essere meno affidabile di uno con due failure path compresi e testati.
+Un sistema con dieci fallback generati può essere meno affidabile di uno con due failure path compresi e provati.
 
-### Verification senza rifare tutto
-
-Per verificare lavoro AI-assisted non dobbiamo necessariamente riscrivere manualmente il meccanismo.
-
-Possiamo chiedere evidence:
+La verification AI-assisted dovrebbe quindi chiedere evidence invece di riscrivere manualmente tutto:
 
 ```text
 quale SLO protegge?
 quale failure simula il test?
-qual è l'expected degraded behavior?
+qual è l’expected degraded behavior?
 come viene limitato il blast radius?
 qual è il rollback?
-quale metrica prova il recovery?
+quale metrica dimostra il recovery?
 ```
 
-Il focus passa dalla produzione dell'artefatto alla dimostrazione del suo effetto.
+## Il compromesso ESI
 
-## Il compromesso ESI del capitolo
+Order Operations vuole restare utilizzabile durante failure comuni e recuperabile durante failure più ampi. ESI accetta un costo maggiore su compute e database per comprare resilience intra-region, ma non introduce ancora multi-region active-active.
 
-**Esigenza:** mantenere Order Operations utilizzabile durante failure comuni e recuperabile durante failure più ampi.
+Il quality floor resta: committed local state preservato nei failure coperti dalla HA, degradation osservabile, recovery source nota, restore e reconciliation con owner, security boundary mai disabilitato per mantenere availability.
 
-**Tensione:** availability/recovery più forti vs costo, operational complexity e delivery speed.
-
-**Decisione:** zone-redundant App Service con almeno due istanze, PostgreSQL zone-redundant HA, backup/PITR, Service Bus zonal resilience, health model, SLO ed esercizi di recovery; il workload resta single-region.
-
-**Costo accettato:** maggior costo compute/database e regional disaster recovery non immediato.
-
-**Quality floor:** committed local state non viene perso nei failure HA coperti; failure e degradation sono osservabili; restore e recovery hanno owner; tenant/security boundary non vengono disabilitati per mantenere availability.
-
-**Guardrail:** Reliability Contract, Failure Mode Map, error budget, restore drill, game day, IaC, health model e review trigger.
-
-**Evidence:** Google SRE per SLI/SLO/error budget; Microsoft Azure Well-Architected e reliability documentation per health model, graceful degradation, App Service, PostgreSQL e Service Bus; GitHub e Cloudflare per failure/cascading/postmortem reali.
-
-**Trigger:** SLO miss persistenti, business criticality maggiore, RTO/RPO regionali più severi, recovery exercise non soddisfacenti, capacity divergence API/worker, nuovi contractual requirement o costo non più giustificato.
+Gli artefatti di guardrail sono Reliability Contract, Failure Mode Map, IaC, error-budget direction, restore drill, game day ed evidence bundle.
 
 ## Ponte al Capitolo 15 — Observability
 
-Ora sappiamo che cosa significa `Healthy`, `Degraded` e `Unhealthy`.
+Ora sappiamo che cosa dovrebbe significare `Healthy`, `Degraded` e `Unhealthy`. Abbiamo SLO, failure domain, recovery target e drill.
 
-Sappiamo quali SLO vogliamo.
+Ci manca ancora il linguaggio operativo per sapere, durante un incidente, **che cosa sta realmente succedendo**.
 
-Sappiamo quali failure dobbiamo rilevare.
-
-Ma non abbiamo ancora costruito il linguaggio operativo necessario per osservarli.
-
-Il Capitolo 15 entrerà in:
-
-```text
-metrics
-logs
-traces
-correlation
-structured events
-SLI measurement
-burn-rate alerts
-synthetic journeys
-business telemetry
-cardinality
-sampling
-alert fatigue
-Observability Contract
-```
-
-Non partiremo da:
-
-> “Installiamo Application Insights.”
-
-Partiremo da:
+Il Capitolo 15 entrerà in metrics, logs, traces, correlation, SLI measurement, burn-rate alert, synthetic journey, cardinality, sampling e business telemetry. Non partiremo da “installiamo Application Insights”. Partiremo da una domanda più importante:
 
 > **Quale domanda dobbiamo riuscire a rispondere durante un incidente senza aprire il codice sorgente e indovinare?**
 
 ## Corollario
 
-> **Non progettare un sistema che non fallisce. Progetta un sistema che sa come fallire senza perdere il proprio significato, e sa dimostrare come torna indietro.**
+> **Non progettare un sistema che non fallisce. Progetta un sistema che sa come fallire senza perdere il proprio significato, e sa mostrare l’evidence di come torna indietro.**
