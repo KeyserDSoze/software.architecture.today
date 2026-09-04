@@ -233,6 +233,15 @@ Trigger
 **Guardrail:** `ARCHITECT_CAPABILITY_MAP.md`, Functional Literacy Baseline, L1–L4 capability-specific, Specialist Trigger, ESI Learning Loop, deliberate manual mode.  
 **Evidence:** Microsoft Well-Architected architect-role guidance, DORA 2025, Microsoft Research SPACE of AI, OpenAI Codex workflow/security; audit in `reference/CHAPTER_028_EVIDENCE.md`.
 
+## Capitolo finale — Il timone resta a noi
+
+**Esigenza:** chiudere il libro con una sintesi memorabile senza ridurre ventinove capitoli a slogan scollegati dal contesto.  
+**Tensione:** principles memorabili vs architecture context-dependent; AI leverage vs accountable authority; sintesi vs oversimplification.  
+**Decisione:** chiusura completa in prosa su outcome, functional understanding, decision system, evidence, AI authority, enterprise compromise e professione; i Dieci comandamenti vengono scelti soltanto dopo questa sintesi.  
+**Costo accettato:** la chiusura definitiva resta intenzionalmente incompleta finché non selezioniamo i dieci principi finali.  
+**Quality floor:** niente nuovo claim tecnico nei comandamenti; niente tool/vendor dependence; nessuna contraddizione con fit/trade-off/evidence/accountability.  
+**Guardrail:** `reference/CHAPTER_029_EVIDENCE.md`; `chapters/029_chapter/009_*` deve restare assente finché i comandamenti non vengono scelti e, una volta creato, deve essere l'ultimo contenuto del manoscritto principale.
+
 ## Regola di continuità
 
 Lo scenario ESI dà il contesto; fonti, test, eval, review e runtime evidence impediscono di trasformare il compromesso in opinione non verificata.
