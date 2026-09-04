@@ -1,141 +1,154 @@
-## Compatibility: progettare per il cambiamento
+## Compatibility: progettare per cambiare senza muoversi tutti insieme
 
-un'API utile cambia.
+Un'API utile cambia.
 
-Nuovi campi arrivano.
-
-Nuove capability vengono aggiunte.
-
-Alcuni comportamenti diventano obsoleti.
+Arrivano nuovi campi e nuove capability. Alcuni comportamenti vengono corretti, altri deprecati. Cambiano requisiti di sicurezza, limiti, performance e perfino interpretazioni del dominio.
 
 Il problema non è impedire il cambiamento.
 
-È evitare che ogni cambiamento richieda una migrazione simultanea di tutti i consumer.
+È impedire che ogni cambiamento richieda una migrazione simultanea di tutti i consumer.
 
-> **Un contratto evolvibile riduce il bisogno di coordinamento temporale.**
+> **La compatibility è una strategia per ridurre il coordinamento temporale.**
 
-### Breaking change
+Questa proprietà diventa tanto più preziosa quanto più i consumer sono indipendenti dal provider.
 
-Una breaking change non è soltanto un URL diverso.
+## Una breaking change può lasciare intatto lo schema
 
-Una breaking change non è soltanto rimuovere un campo o cambiarne il tipo. Può essere rendere obbligatorio ciò che prima era opzionale, cambiare il significato di un valore o una regola di ordering, modificare la semantica di un errore, ridurre un limite o cambiare un default. Anche introdurre una nuova autorizzazione o modificare timing e consistency in modo osservabile può rompere un consumer senza cambiare apparentemente lo schema.
+Rimuovere un campo o cambiarne il tipo è chiaramente rischioso.
 
-Un contratto può restare sintatticamente valido e diventare semanticamente incompatibile.
+Ma molte incompatibilità sono più sottili.
 
-### Additive non significa sempre innocuo
+Rendere obbligatorio ciò che prima era opzionale può rompere richieste esistenti. Cambiare il significato di un enum può lasciare il JSON perfettamente valido e rendere sbagliato il comportamento del client. Modificare l'ordering di default, ridurre un limite, introdurre una nuova authorization requirement o passare da dati live a una proiezione con trenta secondi di ritardo può cambiare ciò che il consumer osserva senza modificare apparentemente la struttura del payload.
 
-Aggiungere un campo JSON spesso è compatibile quando i client ignorano proprietà sconosciute.
+Un contratto può quindi rimanere sintatticamente compatibile e diventare semanticamente incompatibile.
 
-Azure Architecture Center usa proprio questo come esempio di modifica che può essere backward compatible, mentre rimuovere campi può rompere client esistenti.
+Questo è il motivo per cui la review non può fermarsi allo schema diff.
 
-Fonte:
+## Anche una modifica additiva può avere blast radius
 
-- [Microsoft Learn — API design](https://learn.microsoft.com/azure/architecture/microservices/design/api-design)
+Aggiungere un campo JSON è spesso backward compatible quando i consumer ignorano proprietà sconosciute. Azure Architecture Center usa proprio questo come esempio di evoluzione potenzialmente compatibile, in contrasto con la rimozione di informazioni su cui i client possono dipendere: [Microsoft Learn — API design](https://learn.microsoft.com/azure/architecture/microservices/design/api-design).
 
-Ma “aggiungere” non è sempre innocuo.
+Ma “additivo” non significa automaticamente innocuo.
 
-Aggiungere un enum value può rompere un consumer che implementa uno switch esaustivo senza fallback.
+Un nuovo valore di enum può rompere uno switch esaustivo. Nuovi elementi in una collection possono violare assunzioni su cardinalità o pagination. Un nuovo side effect dentro un'operazione esistente è una modifica semantica anche se request e response sono identiche.
 
-Aggiungere risultati a una collection può cambiare assunzioni di pagination.
+La domanda utile è quindi:
 
-Aggiungere un nuovo side effect a un'operazione esistente è chiaramente una modifica semantica.
+> **Che cosa potrebbe aver ragionevolmente assunto un consumer del contratto precedente?**
 
-La compatibility deve essere letta dal punto di vista del consumer.
+La compatibilità va valutata da quella prospettiva, non soltanto dalla nostra intenzione di provider.
 
-### Versionare è una tecnica, non la strategia completa
+## Versioning è un meccanismo di convivenza
 
-Possiamo versionare con:
+Quando una modifica incompatibile è necessaria possiamo introdurre una nuova versione:
 
 ```text
 /v1/orders
+/v2/orders
 ```
 
-oppure media type, header o altre convenzioni.
+oppure usare header, media type o altre convenzioni.
 
-La scelta del meccanismo conta meno delle domande che governano l'evoluzione: che cosa costituisca una versione, per quanto tempo supportiamo la precedente e come annunciamo la deprecation. Dobbiamo poter misurare chi usi ancora il contratto, migrare gradualmente i consumer e riconoscere quando esistano client fuori dal nostro controllo.
+Il meccanismo conta.
 
-Microsoft sottolinea che il versioning consente a client differenti di usare versioni differenti, ma ogni approccio porta trade-off.
+Ma non è la strategia completa.
 
-Fonte:
+La vera decisione è quanto a lungo due contratti debbano convivere, come i consumer scoprano la nuova versione, come venga comunicata la deprecation e come sappiamo chi stia ancora usando quella precedente.
 
-- [Microsoft Learn — RESTful web API design](https://learn.microsoft.com/azure/architecture/best-practices/api-design)
+Microsoft sottolinea che il versioning permette a client differenti di adottare versioni differenti, ma ogni approccio introduce trade-off propri: [Microsoft Learn — RESTful web API design](https://learn.microsoft.com/azure/architecture/best-practices/api-design).
 
-### Compatibilità prima del versioning
-
-Un errore frequente è usare nuove major version troppo presto.
-
-Se possiamo aggiungere una capability mantenendo compatibilità, spesso è preferibile farlo.
-
-Ogni versione parallela introduce costo:
-
-```text
-code path
-+ test
-+ documentation
-+ monitoring
-+ security fixes
-+ support
-+ deprecation
-```
-
-Versionare non elimina il costo del cambiamento.
+In altre parole, versionare non elimina il costo della breaking change.
 
 Lo distribuisce nel tempo.
 
-### Consumer-driven thinking
+## Prima provare a evolvere compatibilmente
 
-Prima di cambiare un contratto chiediamo:
+Creare una nuova major version per ogni cambiamento può sembrare prudente.
 
-1. chi consuma questa parte?
-2. quali assunzioni osservabili fa?
-3. possiamo vedere il traffico dei consumer?
-4. esistono consumer sconosciuti?
-5. quale finestra di migrazione è realistica?
+In realtà moltiplica code path, test, documentazione, monitoring, security fix, supporto e processi di deprecation.
 
-un'API interna con tre consumer nello stesso repository è diversa da un'API pubblica usata da migliaia di integrazioni.
+Se una capability può essere introdotta in modo backward compatible, spesso è meno costoso farla evolvere nello stesso contratto.
 
-Il livello di governance deve essere proporzionato al blast radius.
+La versione parallela diventa utile quando la compatibilità non è ragionevolmente preservabile o quando mantenere la vecchia semantica renderebbe il nuovo modello troppo ambiguo.
 
-### Schemi e code generation
+Quindi la sequenza sana è:
 
-OpenAPI, JSON Schema, Protocol Buffers e GraphQL schema possono rendere il contratto machine-readable.
+```text
+cambiamento richiesto
+→ possiamo mantenerlo compatibile?
+→ se no, quale convivenza serve?
+→ versioning
+→ migrazione
+→ deprecation
+→ rimozione
+```
 
-Una descrizione machine-readable abilita code generation e validation, compatibility check automatizzati, documentazione, contract testing e linting. Il valore cresce quando questi meccanismi proteggono una semantica già decisa, non quando cercano di sostituirla.
+non:
 
-Ma uno schema non descrive automaticamente tutta la semantica.
+```text
+qualcosa cambia
+→ nuova v2
+```
 
-Questo:
+## Il blast radius dipende dai consumer
+
+Un'API usata da tre consumer nello stesso monorepo non richiede la stessa governance di un'API pubblica usata da migliaia di integrazioni.
+
+Prima di cambiare un contratto dobbiamo sapere chi ne dipenda, quali versioni siano ancora attive e quanto possiamo osservare il traffico reale. Dobbiamo anche considerare consumer che non controlliamo o che non conosciamo direttamente.
+
+Più ownership e release cadence divergono, più una breaking change diventa costosa.
+
+Questo è un **compatibility budget**: ogni dipendenza esterna riduce la libertà di cambiare unilateralmente il contratto.
+
+Non significa che le API pubbliche non debbano evolvere.
+
+Significa che il costo del coordinamento è parte dell'architettura.
+
+## Gli schemi rendono visibile una parte della promessa
+
+OpenAPI, JSON Schema, Protocol Buffers e GraphQL schema rendono una parte importante del contratto machine-readable.
+
+Questo abilita code generation e validation, schema diff, linting, documentazione e contract test. Possiamo automatizzare la scoperta di campi rimossi, tipi cambiati o nuove required property.
+
+Ma uno schema come:
 
 ```yaml
 status:
   type: string
 ```
 
-non ci dice quali transizioni siano valide, chi possa cambiarle, quanto il dato sia fresco né che cosa accada durante una failure.
+non racconta chi possa cambiare lo status, quali transizioni siano valide, quanto il valore sia fresco o se un nuovo enum value richieda un comportamento diverso nel consumer.
 
-Per questo il nostro `API Contract` conterrà schema **e** significato.
+La machine-readable spec protegge bene la forma.
 
-### Deprecation come lifecycle
+La semantica deve continuare a essere governata.
 
-Una deprecation utile ha almeno:
+Per questo l'API Contract del capitolo conterrà entrambe.
 
-- ciò che viene deprecato;
-- alternativa;
-- data o condizione di rimozione;
-- consumer coinvolti;
-- telemetria sull'uso;
-- owner della migrazione.
+## Deprecation è un processo, non un'etichetta
 
-Senza queste informazioni “deprecated” può significare semplicemente “nessuno osa toccarlo”.
+Scrivere `deprecated: true` non sposta automaticamente nessun consumer.
 
-### Compatibility budget
+Una deprecation credibile deve dire che cosa venga sostituito, quale alternativa esista e quale data o condizione governi la rimozione. Servono visibilità sui consumer coinvolti, telemetria sull'uso e ownership della migrazione.
 
-Possiamo pensare alla compatibilità come a un budget di coordinamento.
+Senza queste informazioni “deprecated” può significare semplicemente “vecchio ma ancora troppo rischioso da rimuovere”.
 
-Più consumer indipendenti abbiamo, più una breaking change costa.
+La deprecation chiude quindi il ciclo di evoluzione:
 
-Più il contratto è pubblico, persistente o asincrono, più quel costo aumenta.
+```text
+introduci
+→ osserva adozione
+→ migra
+→ verifica uso residuo
+→ rimuovi
+```
 
-Per questo:
+## Progettare per la seconda versione
 
-> **l'evolvibilità di un'API è parte dell'architettura del sistema, non manutenzione futura da lasciare a chi verrà dopo.**
+Un contratto evolvibile non prevede ogni futuro possibile.
+
+Preserva la capacità di cambiare senza obbligare provider e consumer a una release coordinata permanente.
+
+Questo è esattamente lo stesso valore che cercavamo nei boundary di modulo e nei service boundary: rendere locale un cambiamento finché il significato condiviso non è davvero cambiato.
+
+> **L'evolvibilità di un'API è la capacità di modificare l'implementazione e ampliare la capability senza trasformare ogni evoluzione in un progetto di sincronizzazione fra tutti i consumer.**
