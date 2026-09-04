@@ -2,44 +2,35 @@
 
 L'AI cambia molto il costo di trasformare una topologia.
 
-Può esplorare un codebase, individuare dipendenze, proporre moduli, generare API, creare client, preparare Dockerfile, aggiornare pipeline e perfino produrre una prima migrazione verso servizi separati.
+Può esplorare un codebase, costruire dependency map, individuare accessi cross-boundary, generare API e client, creare contract test, preparare Dockerfile, aggiornare pipeline e produrre una prima migrazione verso deployable separati.
 
-Questo è utile.
+Questo è un vantaggio reale.
 
-Ma introduce un rischio importante:
+Ma crea anche un rischio nuovo:
 
 > **confondere la facilità di eseguire una migrazione con la bontà della decisione di farla.**
 
-### Estrarre è diventato più economico
+## Estrarre costa meno. Possedere continua a costare
 
-Prima, separare un modulo poteva richiedere settimane di lavoro meccanico.
+Prima separare un modulo poteva richiedere settimane di lavoro meccanico.
 
-Ora una parte significativa di quel lavoro può essere accelerata.
-
-Per esempio un agente può:
-
-1. costruire la dependency map;
-2. individuare accessi cross-boundary;
-3. generare un'interfaccia;
-4. sostituire chiamate interne con un adapter;
-5. creare un endpoint;
-6. generare contract test;
-7. creare il nuovo deployable;
-8. aggiornare la documentazione.
+Ora una parte consistente di quel lavoro può essere automatizzata. Un agente può introdurre adapter, spostare file, creare endpoint, sostituire call in-process con client e aggiornare centinaia di import senza fatica apparente.
 
 Questo riduce il costo di execution.
 
-L'AI non riduce automaticamente latency, failure distribuiti o problemi di consistency. Non elimina operational ownership, observability burden, security surface né complessità dell'on-call. Può rendere più economico creare i componenti, non possederne le conseguenze.
+Non riduce automaticamente latency, failure distribuiti o problemi di consistency. Non elimina security surface, observability burden, operational ownership, on-call e costi di recovery.
 
-Quindi ancora una volta:
+Il codice del nuovo servizio può essere generato in un'ora.
 
-> **il codice costa meno. Le conseguenze restano.**
+Il servizio dovrà essere operato per anni.
 
-### AI-assisted extraction discovery
+Quindi la riduzione del costo di creazione rende ancora più importante distinguere **build cost** da **ownership cost**.
 
-Prima di estrarre un servizio possiamo usare agenti per cercare evidenza.
+## Prima dell'estrazione, chiedere evidenza
 
-Per esempio:
+Un uso molto più interessante dell'AI è costruire la superficie di reasoning prima di modificare il sistema.
+
+Per esempio possiamo chiedere:
 
 > “Mappa tutte le dipendenze del modulo `payments`. Classifica accessi in ingresso e in uscita, tabelle lette o modificate, shared library utilizzate, transazioni cross-module e test che attraversano il boundary.”
 
@@ -47,37 +38,41 @@ Poi:
 
 > “Quali dipendenze impedirebbero oggi un deploy indipendente?”
 
-Poi ancora:
+E ancora:
 
-> “Se trasformassimo `payments` in un servizio, quali failure mode nuovi introdurremmo?”
+> “Se trasformassimo `payments` in un servizio, quali failure mode, costi operativi e problemi di consistency introdurremmo?”
 
-Questo è un uso molto più interessante dell'AI rispetto a:
+Questa sequenza produce evidenza utile anche se la decisione finale è **non estrarre**.
 
-> “Trasforma payments in microservizio.”
+La richiesta opposta:
 
-### Boundary critique
+> “Trasforma Payments in microservizio.”
 
-Possiamo anche chiedere a un agente di contestare la separazione.
+salta direttamente alla soluzione e lascia all'agente il compito di inventare le ragioni che avrebbero dovuto precederla.
 
-Per esempio:
+## Far attaccare entrambe le opzioni
 
-> “Assumi che estrarre questo modulo sia una cattiva idea. Trova tutte le ragioni concrete per cui il boundary non è ancora maturo.”
+Una topologia significativa beneficia di review avversariali.
 
-Oppure:
+Possiamo chiedere a un agente:
 
-> “Assumi che mantenere questo modulo nel monolite sia una cattiva idea. Quali requisiti attuali supportano invece l'estrazione?”
+> “Assumi che estrarre questo modulo sia una cattiva idea. Trova evidenze che mostrino boundary immaturo, transazioni troppo strette, ownership ambigua o benefici operativi deboli.”
 
-Confrontare i due report aiuta a ridurre confirmation bias.
+Poi invertire:
 
-### Architecture-by-generation
+> “Assumi che mantenerlo nel monolite sia una cattiva idea. Quali requisiti attuali indicano che deployable condiviso, scaling o failure domain stanno diventando un limite reale?”
 
-Un anti-pattern emergente è generare direttamente una topologia completa.
+Le due analisi non sostituiscono il judgment.
 
-Prompt:
+Ci aiutano a vedere dove il nostro entusiasmo o la nostra familiarità stanno influenzando la scelta.
 
-> “Progetta un ecommerce scalabile a microservizi.”
+## Architecture by generation
 
-Output:
+Un anti-pattern emergente è chiedere direttamente una topologia completa:
+
+> “Progetta un e-commerce scalabile a microservizi.”
+
+L'output tipico può essere:
 
 ```text
 API Gateway
@@ -92,65 +87,77 @@ Cache
 Service Mesh
 ```
 
-Potrebbe sembrare plausibile.
+La struttura è riconoscibile.
 
-Ma non conosciamo ancora volume e team, transaction boundary e availability target, consistency requirement e failure tolerance. Mancano security constraint, budget e deployment model. Senza questo contesto, una topologia generata è soltanto una possibilità ben disegnata.
+Ma non conosciamo volume, team, transaction boundary, availability target, consistency requirement, failure tolerance, security constraint, budget o deployment model.
 
-È una risposta senza una domanda abbastanza precisa.
+Senza queste informazioni, l'architettura generata è una possibilità, non una decisione.
 
-L'AI è particolarmente brava a produrre architetture riconoscibili.
+È il corrispettivo topologico della pattern-shaped architecture: il sistema prende la forma degli esempi noti al modello invece che delle forze del problema.
 
-Non dobbiamo confondere riconoscibilità con fit.
+## Generated infrastructure illusion
 
-### Generated infrastructure illusion
+L'effetto psicologico aumenta quando l'agente genera anche l'infrastruttura.
 
-C'è poi un effetto psicologico.
+Kubernetes manifest, Helm chart, policy di rete, tracing, dashboard e CI/CD fanno apparire la soluzione “production-ready”.
 
-Se un agente genera velocemente Kubernetes manifest, Helm chart, service mesh policy, tracing e CI/CD,
+Ma completezza sintattica e maturità operativa non sono la stessa cosa.
 
-la soluzione sembra più pronta.
+Un file di alerting generato non dimostra che qualcuno sappia interpretare l'alert. Una pipeline non dimostra che il deploy sia realmente indipendente. Una policy di retry non dimostra che l'operazione sia idempotente. Una dashboard non dimostra che il failure domain sia compreso.
 
-Ma quantità di infrastruttura non significa maturità operativa.
+Possiamo automatizzare la superficie.
 
-Può significare soltanto che abbiamo automatizzato la produzione di superficie da possedere.
+Non possiamo automatizzare via la responsabilità.
 
-### Usare l'AI per semplificare
+## L'AI come amplificatore di sottrazione
 
-Una domanda molto potente è l'opposto:
+Gli agenti non devono essere usati soltanto per aggiungere componenti.
 
-> “Quali componenti di questa architettura potremmo rimuovere mantenendo i requisiti attuali?”
+Possiamo chiedere:
+
+> “Quali deployable di questa proposta possono essere riuniti senza violare i requisiti?”
 
 Oppure:
 
 > “Proponi la topologia più semplice che soddisfa questi NFR e preserva questi boundary.”
 
-L'AI non deve essere soltanto un amplificatore di costruzione.
+Oppure ancora:
 
-Può essere un amplificatore di sottrazione.
+> “Per ogni servizio proposto, indica quale proprietà verrebbe persa se tornasse un modulo in-process.”
 
-### Verification bundle per una decisione di estrazione
+Queste domande trasformano l'AI in un amplificatore di sottrazione.
 
-Prima di approvare un'estrazione potremmo richiedere un piccolo bundle:
+Sono particolarmente importanti perché il costo marginale di generare un nuovo servizio è diventato artificialmente basso.
+
+## Verification bundle per l'estrazione
+
+Per una decisione importante possiamo chiedere all'agente di preparare un bundle prima del codice:
 
 ```text
 Boundary evidence
 Dependency map
-Expected benefit
+Expected property purchased
+Current pain / requirement
 New failure modes
 Data ownership plan
 Contract strategy
 Operational owner
 Migration plan
-Rollback/fallback
+Rollback or fallback
+Verification method
 Review triggers
 ```
 
-Questo non elimina il judgment umano.
+Se non sappiamo compilare `Expected property purchased` o `Operational owner`, il servizio probabilmente non è ancora pronto a esistere come unità operativa.
 
-Lo rende più informato.
+Il bundle può diventare input dell'ADR e della review umana.
 
-### Il principio
+## Il principio
+
+L'AI rende più economico provare una separazione, costruire spike e perfino eseguire una migrazione.
+
+Questo è prezioso perché possiamo testare ipotesi che prima sarebbero costate troppo anche solo da esplorare.
+
+Ma la capacità di generare microservizi non è un requisito per averli.
 
 > **Usa l'AI per rendere più economico verificare una separazione, non per rendere inevitabile la separazione.**
-
-La capacità di generare microservizi non è un requisito per averli.
