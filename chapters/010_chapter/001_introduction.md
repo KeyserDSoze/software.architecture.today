@@ -1,87 +1,46 @@
 # Capitolo 10 — I dati sono architettura
 
-Nel capitolo precedente abbiamo progettato il primo contratto API di Order Operations.
+Nel capitolo precedente abbiamo trattato l'API come una promessa.
 
-Potremmo essere tentati di considerare il problema quasi risolto.
+Ma ogni promessa che contiene dati nasconde una domanda ancora più fondamentale:
 
-Abbiamo endpoint, error model, compatibility rule e una prima semantica condivisa.
+> **chi è autorizzato a dire che quel dato è vero?**
 
-Ma ogni contratto che espone informazione nasconde una domanda più profonda:
+Finché esistono un solo database, un solo team e pochi consumer, la domanda può sembrare teorica. Quando il sistema cresce smette di esserlo.
 
-> **da dove arriva quella verità?**
+Payments conosce il significato economico del pagamento. Shipping conosce il fulfillment. Orders possiede il lifecycle commerciale dell'ordine. Order Operations vuole comporre una vista unica. Finance vuole riconciliare valori, Data & AI costruire dataset derivati, Platform governare backup e retention.
 
-La domanda sembra semplice finché esiste un solo database, una sola applicazione e un solo team.
+A quel punto “il dato” non è più una riga.
 
-Poi il sistema cresce.
+È una rete di ownership, copie, trasformazioni, access pattern, transazioni, failure e regole di evoluzione.
 
-Payments conosce lo stato economico.
+## Lo storage arriva dopo il significato
 
-Shipping conosce lo stato di fulfillment.
+Quando parliamo di data architecture è facile saltare subito a una tecnologia:
 
-Orders conosce il lifecycle commerciale dell'ordine.
+```text
+SQL o NoSQL?
+PostgreSQL o document database?
+Cache?
+Replica?
+Sharding?
+Data lake?
+Vector store?
+```
 
-Order Operations vuole mostrare una vista unica.
+Sono domande legittime.
 
-Marketing vuole analizzare gli eventi.
+Arrivano però dopo altre domande che cambiano materialmente la risposta: chi possiede la semantica? Quale copia è autorevole? Quali fatti devono diventare veri insieme? Quale staleness è accettabile? Come leggiamo e scriviamo il dato? Quanto cresce? Quanto lo conserviamo? Chi può accedervi? Come migriamo lo schema mentre versioni differenti del sistema continuano a funzionare?
 
-Finance vuole riconciliare valori.
+Microsoft Azure Architecture Center propone proprio questo ordine: identificare access pattern e modello, poi valutare consistency, latency, scale, governance, cost e capacità operative prima di scegliere un prodotto concreto. La guida più recente raccomanda inoltre di combinare modelli differenti soltanto quando access pattern o lifecycle divergono davvero: [Microsoft Learn — Prepare to choose a data store](https://learn.microsoft.com/azure/architecture/guide/technology-choices/data-stores-getting-started) e [Microsoft Learn — Understand data models](https://learn.microsoft.com/azure/architecture/data-guide/technology-choices/understand-data-store-models).
 
-Data & AI vuole costruire dataset derivati.
+È ancora **fit before fashion**.
 
-Mobile vuole funzionare anche con connettività intermittente.
+Questa volta applicato alla parte del sistema che tende a sopravvivere più a lungo del codice che la usa.
 
-Platform vuole standardizzare backup, retention e accesso.
+## Una response semplice può nascondere molte autorità
 
-A quel punto “il dato” non è più un record.
-
-È una rete di responsabilità, copie, sincronizzazioni, vincoli e significati.
-
-## Lo schema è soltanto una parte
-
-Quando parliamo di data architecture è facile scivolare immediatamente verso:
-
-- SQL vs NoSQL;
-- PostgreSQL vs document database;
-- sharding;
-- replica;
-- cache;
-- data lake;
-- event store.
-
-Sono tecnologie importanti.
-
-Ma arrivano dopo alcune domande più fondamentali:
-
-- chi possiede il significato di questo dato?
-- qual è la source of truth?
-- quali copie sono autorevoli e quali derivate?
-- quali operazioni devono essere atomiche?
-- quanta staleness è accettabile?
-- quali access pattern dobbiamo sostenere?
-- quale volume e quale crescita dobbiamo gestire?
-- chi può leggere e modificare il dato?
-- quanto a lungo dobbiamo conservarlo?
-- come cambia lo schema senza interrompere il prodotto?
-- che cosa succede quando due copie divergono?
-
-La tecnologia viene dopo.
-
-Microsoft Azure Architecture Center raccomanda di scegliere il modello e il data store in funzione di access pattern, consistency, scale, governance, security, cost e capacità operative del team, non partendo dal prodotto preferito.
-
-Fonti:
-
-- [Microsoft Learn — Prepare to choose a data store](https://learn.microsoft.com/azure/architecture/guide/technology-choices/data-stores-getting-started)
-- [Microsoft Learn — Understand data models](https://learn.microsoft.com/azure/architecture/data-guide/technology-choices/understand-data-store-models)
-
-È esattamente la stessa regola che abbiamo già incontrato nel Capitolo 6:
-
-> **Fit before fashion.**
-
-Vale anche per i dati.
-
-## Il dato è una promessa
-
-Supponiamo che l'API restituisca:
+Supponiamo che Order Operations restituisca:
 
 ```json
 {
@@ -92,96 +51,78 @@ Supponiamo che l'API restituisca:
 }
 ```
 
-Quattro campi.
+Il payload è piccolo.
 
-Ma dietro quella risposta esistono almeno quattro domande di ownership.
+La semantica dietro di lui non lo è.
 
-`orderId` è soltanto un identificatore o ha una semantica globale nell'azienda?
+`orderStatus` appartiene a Orders oppure Order Operations può cambiarne il significato? `paymentStatus` può essere copiato localmente e, se sì, quanto può essere vecchio? `shipmentStatus` è il valore del carrier o una normalizzazione di Shipping? `orderId` è un identifier globale oppure ha validità soltanto dentro un boundary?
 
-`orderStatus` è calcolato da Order Operations oppure appartiene a Orders?
+L'API appare semplice perché qualcuno deve aver già risposto a queste domande.
 
-`paymentStatus` può essere copiato localmente? Se sì, con quale freshness?
+Se le risposte restano implicite, la semplicità è soltanto temporanea.
 
-`shipmentStatus` è uno stato di business interno o una traduzione dello stato del carrier?
+## Possiamo duplicare la rappresentazione senza duplicare l'autorità
 
-L'API può sembrare semplice proprio perché qualcuno ha già preso molte decisioni sui dati.
+Questa sarà la distinzione centrale del capitolo.
 
-Se quelle decisioni restano implicite, la semplicità è fragile.
+Una cache può contenere una copia dell'ordine. Un read model può contenere lo stato di pagamento. Un indice di ricerca può avere una rappresentazione denormalizzata. Un warehouse può conservare anni di dati storici. Un dataset per AI può derivare feature da più fonti.
 
-## Duplicare dati non significa duplicare la verità
+Queste copie possono essere utilissime.
 
-Questo capitolo ruota attorno a una distinzione che useremo spesso:
+Non devono diventare automaticamente nuove fonti di verità.
 
-> **possiamo duplicare la rappresentazione di un dato senza duplicarne l'autorità.**
+> **Possiamo duplicare il dato per servire meglio un workload. Non dovremmo duplicare senza intenzione il diritto di definirne il significato.**
 
-Un read model può contenere una copia dello stato pagamento.
+Questa distinzione permette di usare replica, denormalizzazione, cache e projection senza perdere ownership.
 
-Una cache può contenere una copia dell'ordine.
+## La data architecture è una sequenza di promesse
 
-Un indice di ricerca può contenere una rappresentazione denormalizzata.
+Ogni dato significativo porta con sé almeno quattro promesse.
 
-Un data warehouse può contenere anni di fatti storici.
+La prima riguarda il **significato**: chi decide che cosa rappresenta e quali transizioni sono valide.
 
-Nessuna di queste copie deve diventare automaticamente il posto in cui si decide il significato del pagamento o dell'ordine.
+La seconda riguarda la **visibilità**: chi può leggerlo, modificarlo e con quale freshness.
 
-Questa distinzione ci permette di usare denormalizzazione, caching e replica senza perdere ownership.
+La terza riguarda il **tempo**: quanto lo conserviamo, come evolve lo schema e come convivono vecchie e nuove rappresentazioni durante una migration.
 
-## Il compromesso ESI del capitolo
+La quarta riguarda la **failure**: che cosa succede se la copia è stale, il primary non risponde, una replica è indietro, una cache viene persa o una migration resta a metà.
 
-In ESI sta emergendo una tensione concreta.
+Il datastore è uno strumento con cui implementiamo queste promesse.
 
-**Operations** vuole una vista degli ordini problematici semplice, rapida e disponibile.
+Non le decide al posto nostro.
 
-**Payments & Risk** non vuole che Order Operations diventi proprietario accidentale dello stato economico.
+## Il compromesso ESI
 
-**Commerce & Operations** vuole evitare che una query operativa degradi il percorso transazionale degli ordini.
+In ESI la tensione è concreta.
 
-**Platform Engineering** non vuole introdurre un nuovo database, una pipeline eventi e una cache senza una necessità misurabile.
+Operations vuole una vista unica, veloce e disponibile degli ordini problematici. Payments & Risk non vuole che quella vista diventi una seconda autorità economica. Commerce & Operations non vuole che query operative pesanti degradino il workload transazionale. Platform Engineering non vuole introdurre cache, pipeline e nuovi store senza un beneficio misurabile.
 
-Le esigenze sono tutte legittime.
+Queste esigenze non si risolvono scegliendo il database “più scalabile”.
 
-Il compromesso non sarà scegliere il database più sofisticato.
+Dobbiamo decidere quali fatti restino autorevoli nei domini originali, quali dati Order Operations possieda davvero e quali rappresentazioni possa derivare per il proprio journey.
 
-Dovremo decidere quali dati restano autorevoli nei domini originali e quali rappresentazioni Order Operations può materializzare o indicizzare per il proprio journey.
-
-### Quality floor
-
-Qualunque soluzione scegliamo, non siamo disposti a compromettere:
-
-- correctness del significato economico;
-- tenant isolation;
-- audit delle future azioni con side effect;
-- capacità di ricondurre una vista derivata alla fonte autorevole;
-- recovery compatibile con i requisiti dichiarati;
-- possibilità di evolvere lo schema senza affidarsi a downtime indefinito.
-
-Il resto è negoziabile.
+Il quality floor rimane quello costruito finora: correctness economica, tenant isolation, tracciabilità delle future action con side effect, capacità di ricondurre ogni copia derivata alla fonte autorevole, recovery coerente con gli obiettivi e migration che non richiedano downtime indefinito per default.
 
 ## Il percorso del capitolo
 
-Costruiremo il ragionamento in questo ordine:
+Seguiremo il dato nell'ordine in cui il reasoning dovrebbe avvenire:
 
 ```text
-ownership e source of truth
+semantic ownership
+→ source of truth
 → access pattern
 → modello e datastore
-→ transazioni e consistency
-→ index, partitioning e replication
-→ cache e dati derivati
-→ schema evolution e migration
+→ transazioni e concorrenza
+→ performance e distribuzione
+→ copie derivate e cache
+→ schema evolution, retention e migration
 → Data Ownership Map di Order Operations
 ```
 
-Incontreremo PostgreSQL, document database, key-value store, graph database e cache.
+Incontreremo modelli relazionali, document, key-value, graph e store specializzati. Parleremo di index, partitioning, replica e cache. Vedremo anche come Stripe ha documentato una grande online migration mantenendo il servizio attivo.
 
-Ma non li tratteremo come squadre da tifare.
+Ma nessuno di questi elementi verrà trattato come una ricetta.
 
-Sono strumenti con proprietà diverse.
+La capacità che cerchiamo è diversa:
 
-Useremo anche casi reali documentati, tra cui la strategia di Stripe per migrare grandi quantità di dati online senza interrompere il servizio.
-
-L'obiettivo non è diventare database administrator in un capitolo.
-
-È acquisire una capacità più importante:
-
-> **guardare un dato e chiedersi non soltanto dove è salvato, ma chi ne possiede il significato, quali promesse porta con sé e quanto costa mantenerle vere.**
+> **guardare un dato e chiedersi non soltanto dove sia salvato, ma chi ne possieda il significato, quale workload debba servire e quali promesse dobbiamo continuare a mantenere mentre tutto il resto cambia.**
