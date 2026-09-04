@@ -1,463 +1,288 @@
-# 16.6 — AI-generated test, coverage e mutation testing
+## AI-generated test, coverage e mutation testing
 
-L'AI cambia il testing nello stesso modo in cui cambia il coding:
+L’AI rende molto più economico produrre test. Questo è un vantaggio enorme finché ricordiamo che **la scarsità importante non è più il codice di test, ma la qualità della claim che stiamo cercando di falsificare**.
 
-> rende molto più economica la produzione dell'artefatto.
+Una suite può crescere rapidamente e diventare meno utile nello stesso momento: più lenta, più ridondante, più accoppiata all’implementazione e più convincente nel proteggere assunzioni sbagliate.
 
-Questo è utile.
+## Test abundance: quando la suite impara il bug
 
-Ed è pericoloso quando confondiamo quantità di artefatti con qualità della verification.
-
-## Il nuovo rischio: test abundance
-
-Prima dell'AI un team poteva avere pochi test perché scriverli costava tempo.
-
-Oggi può avere migliaia di test perché generarli costa poco.
-
-Il problema non è l'abbondanza in sé.
-
-Il problema è che una suite può apparire impressionante mentre verifica pochissimo.
-
-Esempio:
+Un prompt come:
 
 ```text
-prompt:
-"write comprehensive tests for this class"
+write comprehensive tests for this class
 ```
 
-Un agente può:
+spinge naturalmente l’agente a leggere il codice, enumerare i branch e costruire expected value coerenti con ciò che l’implementazione fa oggi.
 
-- leggere l'implementazione;
-- replicarne i branch;
-- generare input coerenti;
-- assertare esattamente gli output correnti.
+Se l’implementazione contiene una business assumption sbagliata, i test possono cristallizzarla.
 
-Se l'implementazione contiene una assumption sbagliata, i test possono semplicemente **cristallizzarla**.
+Il problema non è che l’AI abbia scritto male il test. È che abbiamo scelto una sorgente di verità troppo debole.
 
-Il risultato è una suite che protegge il codice da cambiamenti, non necessariamente il prodotto da errori.
-
-## Specification-first test generation
-
-Quando possibile, l'AI dovrebbe generare test partendo da fonti più forti dell'implementazione:
+Per questo la generation dovrebbe partire, quando possibile, da:
 
 ```text
-functional analysis
+Functional Analysis
 requirements
 acceptance criteria
-API/event contract
 invariant
+API/event contract
 Failure Mode Map
 Threat Model
 Reliability Contract
 ```
 
-Solo dopo dovrebbe confrontare il codice.
+prima di usare l’implementazione come secondo input.
 
-Questo riduce il rischio di creare test tautologici.
-
-Per esempio:
+Per esempio, dal requirement:
 
 ```text
-Requirement:
-same EscalationId must represent same business intent
+same EscalationId = same business intent
 ```
 
-Da qui un agente può proporre:
+un agente può derivare indipendentemente dal codice:
 
 ```text
-same id + same case
-→ idempotent replay
+same id + same case + same tenant
+→ replay idempotente
 
 same id + different case
 → conflict
 
 same id + different tenant
-→ conflict / denied
+→ denied/conflict without disclosure
 ```
 
-Questi scenari esistono indipendentemente dall'implementazione corrente.
+Questi scenari proteggono il dominio, non la forma corrente del metodo.
 
-## Il test tautologico
+## Tautologia: il test che non possiede una sorgente indipendente
 
-Un pattern frequente nei test generati è:
-
-```text
-implementation computes X
-→ test calls implementation
-→ test expects X
-```
-
-senza una sorgente esterna che giustifichi `X`.
-
-Un caso estremo:
+La forma ovvia:
 
 ```ts
 const expected = calculate(input);
 expect(calculate(input)).toEqual(expected);
 ```
 
-è ovviamente inutile.
+è inutile. Le forme reali sono più sottili:
 
-Ma esistono forme più sottili:
+```text
+production e test usano la stessa helper per costruire expected value
+snapshot creato dall’output corrente e approvato senza review
+mock che replica esattamente il comportamento sbagliato del provider
+assertion sulla call sequence invece che sull’outcome
+fixture copiata dall’implementation anziché dal contract
+```
 
-- stessa helper usata da production e test per costruire expected value;
-- snapshot generato dall'output corrente e approvato senza review;
-- mock che replica esattamente il bug del provider;
-- assertion su chiamate interne invece che su property business;
-- fixture copiata dal codice anziché dal contract.
+L’AI può produrle molto velocemente perché sono localmente coerenti.
 
-L'AI può produrre queste forme molto velocemente.
+La review deve quindi chiedere:
 
-## Coverage: utile, ma non sufficiente
+> **Quale fonte indipendente ci permette di dire che questo expected behavior è corretto?**
 
-Code coverage risponde a una domanda:
+## Coverage: sapere che siamo passati da lì non significa sapere che avremmo visto il guasto
 
-> quale parte del codice è stata eseguita durante i test?
+Code coverage risponde bene a:
 
-È un'informazione utile.
+> Quale parte del codice è stata eseguita dalla suite?
 
 Non risponde a:
 
-> i test avrebbero fallito se quella logica fosse stata sbagliata?
+> Se quella parte fosse stata semanticamente sbagliata, il test sarebbe fallito?
 
-Meta lo esplicita nel proprio lavoro su mutation-guided LLM test generation: statement/branch coverage può crescere anche senza rilevare fault significativi, perché l'esecuzione di una riga non dimostra la forza dell'assertion.
+Meta sottolinea proprio questa differenza nel proprio lavoro su mutation-guided LLM test generation: statement/branch coverage può crescere anche quando le assertion non catturano fault significativi.
 
 Fonti:
 
 - [Engineering at Meta — Revolutionizing software testing: Introducing LLM-powered bug catchers](https://engineering.fb.com/2025/02/05/security/revolutionizing-software-testing-llm-powered-bug-catchers-meta-ach/)
 - [Engineering at Meta — LLMs Are the Key to Mutation Testing and Better Compliance](https://engineering.fb.com/2025/09/30/security/llms-are-the-key-to-mutation-testing-and-better-compliance/)
 
-Microsoft documenta code coverage come misura della proporzione di codice esercitata dai test; non dobbiamo trasformare questa misura strutturale nella definizione completa della qualità della suite.
+Microsoft documenta code coverage come misura della porzione di codice esercitata; il suo significato non deve essere esteso arbitrariamente a “qualità della suite”.
 
 Fonte:
 
 - [Microsoft Learn — Code coverage testing](https://learn.microsoft.com/visualstudio/test/using-code-coverage-to-determine-how-much-code-is-being-tested)
 
-## Coverage target senza contesto
-
-Una policy come:
+Per ESI quindi:
 
 ```text
-80% coverage mandatory
+coverage = diagnostic signal
+coverage != proof of correctness
 ```
 
-può produrre comportamenti strani:
+Una zona critica mai esercitata è un finding utile. Un `80%` uniforme raggiunto con test senza property non è una release decision credibile.
 
-- test facili su getter;
-- test inutili per alzare percentuali;
-- esclusioni arbitrarie;
-- scarsa attenzione ai path critici già “coperti”.
+## Mutation testing: testare il test con un controfattuale
 
-Un numero può essere utile come guardrail o signal.
-
-Ma non deve diventare la stella polare.
-
-Per Order Operations preferiamo ragionare così:
+Mutation testing cambia la domanda:
 
 ```text
-critical invariant
-→ must have strong test evidence
-
-low-risk glue
-→ coverage useful but not worth elaborate tests
-```
-
-La coverage ci aiuta a trovare zone mai esercitate.
-
-Il risk model ci dice quanto importa.
-
-## Mutation testing
-
-Mutation testing inverte la domanda.
-
-Invece di chiedere:
-
-> il test passa sul codice corretto?
-
-chiede:
-
-> **il test fallisce quando introduciamo intenzionalmente un fault?**
-
-Esempi di mutation:
-
-```text
-== → !=
-< → <=
-true → false
-remove authorization check
-skip persistence
-change error branch
-```
-
-Se il test continua a passare, il mutant “sopravvive”.
-
-Questo può indicare:
-
-- assertion debole;
-- scenario mancante;
-- codice equivalente/non rilevante;
-- property non protetta.
-
-Microsoft Learn, nella guida corrente sul mutation testing.NET, raccomanda di usare i surviving mutant per individuare gap e assertion deboli e avverte di non inseguire il 100% di mutation score: il valore maggiore è nelle aree business-critical o ad alto rischio.
-
-Fonte:
-
-- [Microsoft Learn — Mutation testing](https://learn.microsoft.com/en-us/dotnet/core/testing/mutation-testing)
-
-È esattamente la stessa logica `fit before fashion`.
-
-## Mutation testing non è un nuovo dogma
-
-Mutation testing può essere costoso.
-
-Può generare:
-
-- mutant equivalenti;
-- fault poco realistici;
-- tempi di execution elevati;
-- maintenance burden;
-- false priority.
-
-Meta descrive proprio questi limiti storici e il proprio tentativo di usare LLM per generare mutant più mirati a fault reali e test che li rilevino.
-
-Fonte:
-
-- [Engineering at Meta — LLMs Are the Key to Mutation Testing and Better Compliance](https://engineering.fb.com/2025/09/30/security/llms-are-the-key-to-mutation-testing-and-better-compliance/)
-
-Quindi per ESI non introduciamo mutation testing su ogni file.
-
-Lo consideriamo per:
-
-```text
-idempotency
-authorization
-privacy/security invariant
-critical business rule
-financially sensitive future workflow
-```
-
-Dove un test apparentemente “coperto” ma incapace di rilevare il fault sarebbe costoso.
-
-## AI + mutation: una combinazione interessante
-
-L'AI può fare qualcosa di più interessante di “genera altri test”.
-
-Può ricevere un rischio:
-
-```text
-same id reused for another case must not be accepted
-```
-
-poi generare un fault plausibile:
-
-```text
-remove the caseId conflict check
-```
-
-poi verificare se la suite lo rileva.
-
-Questo workflow cambia la domanda:
-
-```text
-write tests for code
+Il test passa sul codice corrente?
 ```
 
 in:
 
 ```text
-prove that the suite catches this class of mistake
+Il test fallisce se introduciamo intenzionalmente un fault che dovrebbe violare la property?
 ```
 
-È un uso molto più vicino al ruolo di manager di agenti del Capitolo 0.
+Mutazioni come:
 
-## Human-in-the-loop sui test generati
+```text
+remove authorization check
+skip outbox append
+invert conflict condition
+true → false
+< → <=
+```
 
-Il test generato deve essere reviewato come production code.
+creano un controfattuale. Se la suite continua a passare, il mutant sopravvive e ci costringe a chiedere se manchi una assertion, uno scenario o se la mutation sia semanticamente equivalente/irrilevante.
 
-Domande minime:
+Microsoft Learn raccomanda di usare i surviving mutant per individuare gap e assertion deboli, evitando di trasformare il `100% mutation score` in un obiettivo universale.
 
-1. quale requirement/risk protegge?
-2. potrebbe passare se il comportamento fosse sbagliato?
-3. dipende troppo dall'implementazione?
-4. verifica outcome o call sequence?
-5. usa fixture con una provenance comprensibile?
-6. include negative path rilevanti?
-7. è deterministico?
-8. introduce test-only abstraction discutibili?
-9. è ridondante con test esistenti?
-10. quanto costerà mantenerlo?
+Fonte:
 
-La review di un test generato non deve concentrarsi soltanto sulla sintassi.
+- [Microsoft Learn — Mutation testing](https://learn.microsoft.com/en-us/dotnet/core/testing/mutation-testing)
 
-## Test generation da production incident
+Anche qui vale fit before fashion. Mutation testing può essere costoso, produrre mutant equivalenti e aumentare execution time. Nel capstone lo consideriamo selettivamente su authorization, tenant isolation, idempotency, conflict detection, outbox behavior e future capability economiche ad alto impatto.
 
-Un input molto prezioso per l'AI è un failure realmente osservato.
+## AI + mutation: chiedere “quale errore riusciresti a fermare?”
 
-Workflow:
+La combinazione interessante non è generare un grande numero di mutant. È usare il risk model per proporre fault plausibili.
+
+Requirement:
+
+```text
+same EscalationId reused for another case must not be accepted
+```
+
+Fault candidate:
+
+```text
+remove the caseId conflict check
+```
+
+Domanda alla suite:
+
+```text
+esiste un test che diventa rosso?
+```
+
+Questo workflow è molto più informativo di:
+
+```text
+write more tests until coverage increases
+```
+
+Perché collega requirement, fault e evidence.
+
+## Counterfactual review per ogni test generato
+
+Un test AI-generated dovrebbe poter rispondere almeno a:
+
+```text
+Source
+→ quale requirement/risk lo giustifica?
+
+Fault
+→ quale errore importante deve rilevare?
+
+Counterfactual
+→ quale modifica sbagliata dovrebbe farlo fallire?
+
+Layer
+→ è il boundary minimo adeguato?
+
+Determinism
+→ clock/random/state/dependency sono controllati?
+
+Assertion
+→ verifica una property o soltanto una call sequence?
+
+Redundancy
+→ aggiunge nuova evidence?
+
+Maintenance
+→ resta leggibile senza conoscere il prompt originale?
+```
+
+Se non sappiamo compilare queste righe, `PASS` non è sufficiente.
+
+## Un secondo agente può essere più utile del primo
+
+La stessa istanza che ha scritto implementation e test può condividere la stessa assumption sbagliata.
+
+Un ruolo avversariale separato può ricevere:
+
+```text
+requirement
+implementation diff
+existing/generated tests
+Failure Mode Map / Threat Model quando rilevanti
+```
+
+con una consegna diversa:
+
+```text
+Do not write replacement tests yet.
+For each test, identify a realistic bug that should make it fail.
+Find tautologies, overmocking, duplicated evidence, missing negative paths and timing flakiness.
+```
+
+Questa divisione di ruoli non garantisce la correttezza, ma riduce la probabilità che una singola narrativa domini l’intera verification.
+
+## Incident → regression evidence
+
+Un incidente reale è una sorgente di test particolarmente forte perché contiene un failure che sappiamo essere possibile.
+
+Il workflow ideale è:
 
 ```text
 incident evidence
-→ reproduce minimal failure
+→ minimal reproduction
 → extract invariant/failure class
-→ generate regression candidate
-→ prove candidate fails on buggy behavior
-→ prove candidate passes on fix
-→ decide best layer
+→ choose cheapest adequate layer
+→ regression candidate
+→ prove it fails on buggy behavior
+→ prove it passes on the fix
 ```
 
-Questo evita un anti-pattern classico:
+Non ogni incidente deve produrre un test permanente. Ma una regressione costosa che rimane riproducibile dovrebbe lasciare knowledge eseguibile quando il costo di manutenzione è giustificato.
 
-```text
-incident
-→ patch
-→ nessun test perché “era un caso strano”
-```
+## Il diff non è tutto il contesto
 
-L'incidente diventa knowledge incorporata nella suite.
+Un agente che genera test dal PR vede cosa è cambiato, non necessariamente il significato del cambiamento.
 
-## Test generation da diff
+Può non conoscere requirement implicati, consumer esterni, RTO, tenant boundary o una behavior assumption del legacy.
 
-Un agente può leggere un PR e chiedersi:
+Quindi il contesto per la generation deve includere gli artefatti architetturali rilevanti, non soltanto il file modificato.
 
-- quale invariant cambia?
-- quale contract può rompersi?
-- quale failure path viene alterato?
-- quale assertion manca?
+Questo è un altro esempio di context engineering: più execution è automatizzata, più importante diventa fornire all’agente il modello del sistema.
 
-Ma una regola è importante:
+## Flakiness nell’era dell’abbondanza
 
-> **il diff mostra cosa è cambiato; non mostra tutto ciò che quel cambiamento può significare.**
+Generare test è facile; generare `sleep(1000)`, random non seeded, shared mutable fixture, network call in una suite locale o assumption sull’ordine di execution è altrettanto facile.
 
-Per questo il contesto deve includere requirements e architecture artifact.
-
-## AI come adversarial test reviewer
-
-Una seconda istanza può ricevere:
-
-```text
-implementation diff
-+ generated tests
-+ requirement
-+ threat/failure map
-```
-
-con il compito di non produrre codice ma cercare:
-
-- false confidence;
-- branch non significativo;
-- missing negative case;
-- overmocking;
-- assertion tautologica;
-- flaky timing;
-- scenario che passa anche col bug.
-
-Questo è spesso più utile di chiedere allo stesso agente di auto-validare il proprio lavoro senza ruolo avversariale.
-
-## Flaky test nell'era AI
-
-Se generare test è facile, generare flaky test è facile.
-
-Anti-pattern comuni:
-
-```text
-sleep(1000)
-random without seed
-shared global fixture
-network call in unit suite
-assumption on execution order
-real clock boundary
-broad snapshot
-```
-
-Meta ha sviluppato una misura probabilistica della flakiness per poter monitorare l'affidabilità dei test stessi su larga scala e sottolinea come flaky signal riduca la fiducia degli engineer nella regression suite.
+Meta ha sviluppato una misura probabilistica della flakiness proprio perché il test signal stesso deve essere trattato come qualcosa di affidabile o inaffidabile nel tempo.
 
 Fonte:
 
 - [Engineering at Meta — Probabilistic flakiness: How do you test your tests?](https://engineering.fb.com/2020/12/10/developer-tools/probabilistic-flakiness/)
 
-Per ESI un flaky test non viene considerato “rumore accettabile” indefinitamente.
-
-Ha un owner e uno stato:
-
-```text
-healthy
-quarantined with issue
-fixed
-removed because obsolete
-```
-
-Non:
-
-```text
-rerun until green
-```
-
-## Rerun-until-green è un anti-pattern
-
-Un rerun può essere utile per diagnosticare flakiness.
-
-Non deve diventare il meccanismo per ottenere una pipeline verde.
-
-Se una pipeline dice:
+Per ESI un flaky test è un defect del quality system. Può essere temporaneamente quarantined per non bloccare lavoro non correlato, ma deve avere issue, owner e scadenza. Non viene assolto da un rerun automatico.
 
 ```text
 failed
 failed
 green
-→ merge allowed
+→ merge
 ```
 
-senza classificare il perché dei primi due failure, sta trasformando in successo una evidence ambigua.
+senza spiegare i primi due failure trasforma una evidence ambigua in una falsa certezza.
 
-## Generated Test Confidence Checklist
+## Cosa cambia nel ruolo dell’engineer
 
-Per test AI-generated usiamo una checklist operativa:
+Un agente può produrre cento candidati. Il lavoro di judgment diventa decidere quali proteggono un rischio reale, quali duplicano noise, quali devono attraversare infrastruttura, quali assertion rappresentano davvero il dominio e quali test devono essere cancellati.
 
-```text
-Source
-- da quale requirement/risk deriva?
+> **Quando scrivere test costa poco, la capacità di rifiutare test senza nuova evidence diventa una competenza di architettura della suite.**
 
-Fault
-- quale errore deve rilevare?
-
-Counterfactual
-- possiamo descrivere una modifica sbagliata che lo farebbe fallire?
-
-Layer
-- è il layer più piccolo adeguato?
-
-Determinism
-- tempo, random, state e dependency sono controllati?
-
-Assertion
-- verifica una property, non solo una call sequence?
-
-Redundancy
-- aggiunge nuova evidence?
-
-Maintenance
-- il test resta leggibile senza conoscere il prompt che lo ha generato?
-```
-
-Se non sappiamo compilare queste righe, il test non è pronto solo perché passa.
-
-## Il nuovo ruolo dell'engineer
-
-L'AI può generare cento candidati.
-
-L'engineer deve decidere:
-
-- quali rischi meritano protezione;
-- quali test comprano nuova confidence;
-- quali duplicano noise;
-- quali devono essere piccoli;
-- quali devono attraversare infrastruttura reale;
-- quali assertions rappresentano davvero il dominio.
-
-È la stessa trasformazione che abbiamo visto nel codice.
-
-> **Quando l'execution diventa abbondante, il judgment diventa più prezioso.**
-
-## Corollario
-
-> **L'AI può scrivere test molto più velocemente di noi. Proprio per questo dobbiamo diventare più severi nel chiedere che cosa quei test sarebbero capaci di impedire.**
+L’AI può scrivere test molto più velocemente di noi. Proprio per questo dobbiamo diventare più severi nel chiedere che cosa quei test sarebbero capaci di impedire.
