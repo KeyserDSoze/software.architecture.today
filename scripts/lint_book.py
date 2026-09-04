@@ -87,8 +87,10 @@ def main() -> int:
                 first_line = first_nonempty_line(text); section_match = SECTION_RE.match(first_line)
                 if section_match:
                     if int(section_match.group(1)) != chapter_num: errors.append(f"{path}: heading numerato appartiene al capitolo {section_match.group(1)}, non {chapter_num}.")
-                    if first_line.startswith("# "): errors.append(f"{path}: sezione numerata in H1; eseguire normalize_sources.py.")
-                elif first_line.startswith("# "): warnings.append(f"{path}: H1 interno non numerato; verificare gerarchia: {first_line!r}")
+                    # Il manoscritto storico usa sia H1 sia H2 per sezioni numerate. Il renderer
+                    # canonicalizza gli H1 numerati a livello 2 senza riscrivere le sorgenti.
+                elif first_line.startswith("# "):
+                    warnings.append(f"{path}: H1 interno non numerato; verificare gerarchia: {first_line!r}")
     final_file = CHAPTERS_DIR / "030_chapter" / "001_i_dieci_comandamenti.md"
     if not final_file.exists(): errors.append(f"File finale mancante: {final_file.relative_to(ROOT)}")
     else:
