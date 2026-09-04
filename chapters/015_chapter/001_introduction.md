@@ -1,12 +1,10 @@
 # Capitolo 15 — Observability
 
-> **Scenario ESI.** Order Operations ha ora requisiti di reliability, failure mode, security boundary e una prima topologia cloud. Il problema di questo capitolo non è aggiungere grafici. È rendere il sistema capace di produrre evidence sufficiente a capire che cosa sta succedendo, perché sta succedendo e quando serve intervenire.
+> **Scenario ESI.** Order Operations possiede ormai reliability target, failure mode, security boundary e una prima topologia cloud. Il problema di questo capitolo non è aggiungere grafici. È rendere il sistema capace di produrre evidence sufficiente a capire che cosa sta succedendo, perché e quando serve intervenire.
 
-Nel Capitolo 14 abbiamo deciso che cosa significa essere affidabili.
+Nel Capitolo 14 abbiamo deciso che cosa dovrebbe significare essere `Healthy`, `Degraded` o `Unhealthy`. Abbiamo scritto SLI, SLO, RTO, RPO, recovery source e failure drill.
 
-Abbiamo definito critical flow, SLI, SLO, degraded mode, RTO, RPO, recovery path e failure domain.
-
-Ma una reliability requirement senza un sistema capace di misurarla resta una dichiarazione.
+Ma un reliability contract che non possiamo misurare resta una dichiarazione.
 
 Possiamo scrivere:
 
@@ -15,89 +13,62 @@ Payment Escalation publication
 99% entro 5 minuti
 ```
 
-ma se non sappiamo misurare:
+ma finché non sappiamo ricostruire quando l’escalation è stata accettata, quando è entrata nell’outbox, quando è stata pubblicata, quale item è rimasto pending e quale failure path lo sta trattenendo, non possediamo davvero quello SLO.
+
+Possediamo una frase.
+
+## L’observability parte dalle domande
+
+La prima tentazione è partire dagli strumenti:
 
 ```text
-quando la escalation è stata accettata
-quando è entrata nell'outbox
-quando è stata pubblicata
-quando il broker l'ha resa disponibile
-quando Payments & Risk l'ha osservata
-quale escalation è rimasta bloccata
-perché è rimasta bloccata
+metrics
+logs
+traces
+dashboard
+alerts
 ```
 
-non possediamo davvero quello SLO.
+È lo stesso errore che abbiamo evitato con il cloud: scegliere il catalogo prima del problema.
 
-Possediamo soltanto una frase.
-
-## Monitoring non è observability
-
-Useremo i due termini con una distinzione pratica.
-
-Il **monitoring** osserva condizioni che abbiamo già deciso di misurare:
+Per Order Operations le domande operative vengono prima:
 
 ```text
-request rate
-error rate
-latency
-CPU
-queue depth
+gli operatori riescono a usare il critical journey?
+quale capability sta degradando?
+l’escalation è stata accettata localmente?
+l’outbox sta accumulando debito?
+il broker è irraggiungibile o il publisher non sta lavorando?
+la stessa EscalationId è stata redelivered?
+il problema riguarda tutti o una versione/env/failure class?
+il burn dell’error budget sta accelerando?
+un deployment coincide con il cambio di comportamento?
 ```
 
-L'**observability** deve permetterci anche di investigare domande che non avevamo previsto nel dettaglio prima dell'incidente.
+La telemetry ha valore soltanto se rende più facile rispondere a domande come queste.
 
-OpenTelemetry descrive l'observability come la capacità di comprendere lo stato interno di un sistema attraverso i suoi output e collega questa capacità all'instrumentation di traces, metrics e logs.
+> **Una dashboard piena non è observability. È soltanto una dashboard piena.**
+
+## Monitoring e observability
+
+Useremo una distinzione pratica.
+
+Il **monitoring** osserva condizioni che abbiamo già deciso di misurare: request rate, error rate, latency, saturation, queue age, SLO burn.
+
+L’**observability** deve permetterci anche di investigare una domanda che non avevamo preconfigurato esattamente prima dell’incidente, usando gli output che il sistema produce e il contesto che abbiamo preservato.
+
+OpenTelemetry descrive l’observability come capacità di comprendere lo stato interno di un sistema attraverso i suoi output e collega questa capacità all’instrumentation di signal come traces, metrics e logs.
 
 Riferimenti:
 
 - [OpenTelemetry — Observability primer](https://opentelemetry.io/docs/concepts/observability-primer/)
 - [OpenTelemetry — Signals](https://opentelemetry.io/docs/concepts/signals/)
 
-Questo non significa che ogni problema richieda un sistema di telemetry gigantesco.
+La distinzione non implica un impianto di telemetry gigantesco. Anzi, possiamo produrre miliardi di eventi e non saper ancora rispondere alla domanda più importante: **quale customer o operator journey sta fallendo adesso?**
 
-Anzi.
+## Sintomo e causa devono restare separati
 
-Uno degli errori più comuni è credere che più telemetry produciamo, più il sistema diventi osservabile.
-
-Non è necessariamente vero.
-
-Possiamo produrre miliardi di log e non riuscire comunque a rispondere a una domanda semplice:
-
-> quale customer journey sta fallendo in questo momento?
-
-## Il sistema deve rispondere a domande
-
-L'observability parte dalle domande.
-
-Per Order Operations vogliamo riuscire a rispondere almeno a queste:
-
-1. gli operatori riescono a usare il critical journey?
-2. la latency sta degradando per tutti o soltanto per una capability?
-3. la Payment Escalation è stata accettata localmente?
-4. l'outbox sta accumulando backlog?
-5. Service Bus è raggiungibile?
-6. Payments & Risk sta consumando?
-7. la stessa `EscalationId` è stata redelivered?
-8. stiamo degradando per un problema applicativo, database, identity, network o downstream?
-9. il problema riguarda un tenant, una regione, una versione o tutti?
-10. una nuova release coincide con il cambio di comportamento?
-11. stiamo violando uno SLO?
-12. l'errore budget sta bruciando abbastanza velocemente da richiedere azione?
-
-La telemetry deve essere progettata per rendere investigabili queste domande.
-
-Non per riempire una dashboard.
-
-## Sintomo e causa
-
-Google SRE propone una distinzione estremamente utile:
-
-```text
-symptom
-vs
-cause
-```
+Google SRE propone una distinzione molto utile tra monitoring del **symptom** e monitoring della **cause**.
 
 Il sintomo può essere:
 
@@ -105,19 +76,9 @@ Il sintomo può essere:
 operator journey latency alta
 ```
 
-La causa può essere:
+Le cause possibili possono essere PostgreSQL saturo, private DNS, connection pool exhaustion, una dependency lenta o un bad deployment. Allo stesso modo, una dependency può mostrare errori senza avere ancora un impatto materiale sul journey.
 
-```text
-PostgreSQL saturo
-private DNS failure
-connection pool exhausted
-Orders dependency lenta
-bad deployment
-```
-
-Oppure il contrario: una dependency può mostrare errori senza produrre ancora un impatto significativo sul journey utente.
-
-Google raccomanda di osservare entrambe le dimensioni, con forte attenzione ai segnali user-visible e ai quattro golden signals:
+Google raccomanda di mantenere visibili entrambi i livelli e riassume quattro signal particolarmente utili per i sistemi user-facing:
 
 ```text
 latency
@@ -130,111 +91,66 @@ Fonte:
 
 - [Google SRE — Monitoring Distributed Systems](https://sre.google/sre-book/monitoring-distributed-systems/)
 
-Nel nostro linguaggio:
+Nel linguaggio di questo libro:
 
-> **il monitoring deve dirci che qualcosa richiede attenzione; l'observability deve aiutarci a capire che cosa sta succedendo abbastanza velocemente da prendere una decisione.**
+> **Il monitoring deve dirci che qualcosa richiede attenzione. L’observability deve ridurre il tempo necessario per capire quale decisione prendere.**
 
-## Logs, metrics e traces non sono tre checklist
+## Metrics, logs e traces sono prospettive sulla stessa storia
 
-OpenTelemetry tratta traces, metrics, logs e baggage come segnali differenti che possono descrivere lo stesso sistema da prospettive diverse.
+Una metric può dirci che la publication latency sta peggiorando. Un trace può mostrare dove una singola esecuzione ha trascorso il proprio tempo. Un structured event può dirci quale `messageId`, `escalationId`, attempt e failure class erano coinvolti.
 
-Una metric può dirci:
+La potenza non nasce dal possedere tre stack differenti. Nasce dal riuscire a correlare signal diversi attorno allo stesso comportamento.
 
-```text
-payment_escalation_delivery_seconds p95 è aumentato
-```
-
-Un trace può mostrarci:
+Per questo avremo bisogno di distinguere identity diverse:
 
 ```text
-API
-→ PostgreSQL commit
-→ outbox poll
-→ Service Bus publish
-```
+traceId
+→ execution identity
 
-Un log strutturato può dirci:
-
-```text
 messageId
+→ technical delivery identity
+
 escalationId
-failureClass
-attemptCount
+→ business intent identity
+
+correlationId
+→ cross-boundary operational flow quando serve
 ```
 
-La potenza non deriva dall'avere tutti e tre.
+Confonderle rende l’investigazione più difficile proprio quando il sistema diventa asincrono e i trace non coincidono più con l’intero business journey.
 
-Deriva dal poterli correlare.
+## La visibilità ha un costo e una superficie di rischio
 
-## Il costo della visibilità
+Telemetry significa CPU, rete, ingestion, storage, retention, indexing, query, sampling, cardinality e attenzione umana. Significa anche raccogliere dati che possono diventare sensibili quando vengono centralizzati.
 
-La telemetry non è gratuita.
+Questo crea una tensione reale nel capstone.
 
-Ha almeno questi costi:
+Operations vuole investigazioni rapide. Security non vuole token, secret e payload sensibili nei log. Finance vuole controllare ingestion e retention. Platform vuole convenzioni comuni. Il workload team ha bisogno di business signal che Platform non può dedurre da sola.
 
-- CPU e memoria per instrumentation;
-- rete;
-- ingestion;
-- storage;
-- retention;
-- query;
-- indexing;
-- sampling complexity;
-- cardinality;
-- costo cognitivo umano;
-- rischio di raccogliere dati che non dovremmo conservare.
+La domanda del capitolo sarà quindi:
 
-Per ESI questo crea una tensione reale.
+> **Qual è la quantità minima di telemetry abbastanza ricca da misurare gli SLO, investigare i failure mode importanti e ricostruire le operazioni sensibili senza rendere costo, cardinalità e data exposure incontrollabili?**
 
-Operations vuole investigazioni rapide.
-
-Security vuole evitare token, secret e dati sensibili nei log.
-
-Finance/FinOps vuole controllare ingestion e retention.
-
-Platform vuole standard comuni.
-
-Il workload team vuole poter aggiungere signal specifici del dominio.
-
-Nessuno di questi obiettivi è sbagliato.
-
-## Il compromesso ESI del capitolo
-
-La domanda non sarà:
-
-> quanta telemetry possiamo raccogliere?
-
-Sarà:
-
-> **qual è la quantità minima di telemetry sufficientemente ricca da permetterci di misurare gli SLO, diagnosticare i failure mode significativi e ricostruire le operazioni sensibili senza rendere costi, cardinalità e data exposure incontrollabili?**
-
-La decisione corrente sarà:
+Per ESI la direzione iniziale è:
 
 ```text
-OpenTelemetry-compatible application instrumentation
+OpenTelemetry-compatible instrumentation
 + Azure Monitor / Application Insights / Log Analytics
-+ structured application telemetry
-+ correlation end-to-end
-+ SLI espliciti
-+ business telemetry per Payment Escalation
-+ sampling governato
++ bounded metrics per SLI/alert
++ structured telemetry
++ end-to-end correlation
++ business signals per Payment Escalation
++ governed sampling
 + cardinality budget
-+ retention per classe di segnale
++ retention per classe
 + actionable alerting
 ```
 
-Non introdurremo:
+Non vogliamo telemetry per ogni variabile, ID unbounded come metric dimension, dump completi dei payload, alert per ogni deviazione o dashboard per ogni Azure resource.
 
-- telemetry per ogni variabile;
-- label ad alta cardinalità senza motivo;
-- dump indiscriminati dei payload;
-- alert per ogni metrica;
-- dashboard per ogni componente;
-- synthetic probe pubblico contro un endpoint che abbiamo deliberatamente reso privato.
+## “Monitored” deve significare qualcosa
 
-## Una nuova regola del capstone
-
-Dal Capitolo 13 usiamo:
+Dal Capitolo 13 usiamo quattro livelli:
 
 ```text
 Designed
@@ -243,30 +159,24 @@ Designed
 → Monitored
 ```
 
-Questo capitolo rende finalmente concreto il quarto livello.
+Questo capitolo rende concreto l’ultimo.
 
-Un controllo o una proprietà non è **Monitored** perché esiste un grafico.
+Una proprietà non è `Monitored` perché qualcuno ha disegnato un grafico. È monitored quando esiste un segnale con significato, owner, modalità di misura, retention, relazione con un failure/control e un response path.
 
-È monitored quando esiste un segnale con:
+Se la metric cambia nome e rompe la query dello SLO, abbiamo una breaking change operativa. Se l’alert non ha owner, la telemetry sta descrivendo un problema che nessuno possiede. Se il logging contiene un token, abbiamo creato un security incident in nome della visibilità.
 
-- significato;
-- owner;
-- query o misura;
-- soglia o interpretazione quando necessaria;
-- retention;
-- collegamento a un failure mode o decisione;
-- response path.
+L’observability, quindi, non è una disciplina post-produzione. È una compatibility surface del sistema.
 
-## Il punto del capitolo
+## Cosa cambia con l’AI
 
-Alla fine non vogliamo un sistema che produce molte informazioni.
+Un agente può generare instrumentation, query, dashboard e alert molto rapidamente. Può anche riassumere migliaia di eventi durante un incidente.
 
-Vogliamo un sistema che produce **evidence utile**.
+Ma la velocità introduce due rischi opposti: **Instrumentation Explosion** e causalità inventata.
 
-Una dashboard piena non dimostra che conosciamo il sistema.
+Se chiediamo genericamente “rendi osservabile questo servizio”, possiamo ottenere una grande quantità di signal tecnicamente corretti ma semanticamente inutili o economicamente ingestibili. Se chiediamo a un agente di trovare la root cause, può trasformare una correlazione plausibile in una storia troppo pulita.
 
-Un log enorme non dimostra che sappiamo investigarlo.
+Il contract deve venire prima dell’automazione.
 
-Un trace distribuito non dimostra che sappiamo decidere.
+> **L’observability è architettura quando trasforma il comportamento del sistema in evidence abbastanza buona da governarlo.**
 
-> **L'observability è architettura quando trasforma il comportamento del sistema in informazione utilizzabile per governarlo.**
+Alla fine del capitolo Order Operations non dovrà “produrre molte informazioni”. Dovrà sapere quali informazioni servono per misurare il proprio Reliability Contract, investigare Failure Mode Map e Threat Model, sostenere l’on-call e, nei capitoli successivi, aiutare anche agenti e persone a distinguere observation, hypothesis e proof.
