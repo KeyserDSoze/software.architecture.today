@@ -1,8 +1,8 @@
 ## Order Operations: per ora resta un modular monolith
 
-Arriviamo alla decisione topologica per Order Operations.
+Arriviamo alla prima decisione esplicita sulla topologia di Order Operations.
 
-Nei capitoli precedenti abbiamo già identificato responsabilità distinte:
+Nei capitoli precedenti abbiamo già costruito parecchio contesto. Sappiamo che esistono responsabilità distinte:
 
 ```text
 Order Operations
@@ -12,43 +12,37 @@ Shipping
 Identity
 ```
 
-Abbiamo anche chiarito ownership, contratti e alcuni requisiti non funzionali.
+Sappiamo chi possiede gli stati autorevoli, quali dipendenze esterne esistono, quali quality attribute contano e quali pattern sono già giustificati.
 
-La tentazione naturale potrebbe essere trasformare subito questi confini in servizi.
+La tentazione naturale è trasformare questi confini in servizi.
 
-Non lo faremo.
+Non lo faremo ancora.
 
-### Il contesto attuale
+## Il boundary esiste. La necessità di rete no
 
-Order Operations è ancora un prodotto relativamente piccolo dentro ESI.
+Order Operations è ancora un prodotto relativamente piccolo dentro ESI. Il team è ristretto, il traffico non richiede scaling indipendente per modulo e non abbiamo osservato release cadence materialmente divergenti.
 
-Il team è ristretto.
+Orders, Payments e Shipping hanno semantiche distinte, ma questo è un argomento per avere boundary forti, non automaticamente per avere tre deployable.
 
-Il traffico non richiede scaling indipendente per modulo.
+Oggi non abbiamo neppure un requisito di failure isolation abbastanza forte da richiedere processi separati, né team autonomi dedicati a ciascuna capability nel perimetro del prodotto.
 
-Non abbiamo ancora osservato cicli di rilascio realmente divergenti.
+Quindi una decomposizione a microservizi comprerebbe certamente più rete, più pipeline, più configurazione e più observability distribuita.
 
-Non abbiamo un requisito forte di failure isolation tra `Orders`, `Payments` e `Shipping` che richieda processi separati.
+Non è ancora chiaro che comprerebbe abbastanza autonomia in cambio.
 
-Non esistono team autonomi dedicati a ciascuna capability nel perimetro del prodotto.
+## La scelta topologica
 
-Quindi, oggi, un'architettura a microservizi comprerebbe soprattutto più deployable, più rete e configurazione, più observability distribuita e più failure mode;
-
-senza comprare abbastanza autonomia.
-
-### La scelta
-
-Per ora adottiamo:
+Per questa fase scegliamo:
 
 ```text
 modular monolith
 + confini interni espliciti
 + ownership dei dati
 + contratti tra moduli
-+ regole architetturali verificabili
++ dependency rules verificabili
 ```
 
-Possiamo immaginare una struttura simile:
+Una struttura possibile può essere:
 
 ```text
 src/
@@ -60,30 +54,23 @@ src/
   shared-kernel/
 ```
 
-Ma il valore non è nella cartella.
+La cartella non è il boundary.
 
-Il valore è nelle regole.
+Il boundary esiste perché alcune regole vengono fatte rispettare.
 
-Per esempio:
+Orders non legge direttamente le tabelle interne di Payments. Payments non modifica `OrderStatus`. Shipping espone capability intenzionali invece di rendere pubblico il proprio modello interno. Order Operations aggrega le informazioni senza diventare source of truth dei domini sottostanti. Il `shared-kernel` rimane piccolo e non diventa il luogo in cui si accumulano business rule condivise per comodità.
 
-- `Orders` non legge direttamente le tabelle interne di `Payments`;
-- `Payments` non modifica lo stato ordine;
-- `Shipping` espone soltanto capability necessarie attraverso un contratto;
-- `Order Operations` aggrega senza diventare source of truth dei domini sottostanti;
-- il `shared-kernel` resta piccolo e non contiene business rule specifiche;
-- le dipendenze tra moduli sono controllate.
+Queste proprietà sono la vera architettura.
 
-### Stesso database, ownership distinta
+## Un database fisico, ownership logica distinta
 
-Per ora possiamo anche mantenere una singola istanza PostgreSQL.
+Per ora manteniamo anche una singola istanza PostgreSQL.
 
-Ma non adotteremo la regola:
+Questo non significa adottare la regola:
 
-> “è nello stesso database, quindi tutti possono leggere tutto.”
+> “È nello stesso database, quindi tutti possono leggere tutto.”
 
-Possiamo definire ownership logica per schema o per gruppi di tabelle.
-
-Per esempio:
+Possiamo definire ownership come:
 
 ```text
 orders.*      → Orders
@@ -92,138 +79,137 @@ shipping.*    → Shipping
 operations.*  → Order Operations, se introdurrà dati propri
 ```
 
-Questo non crea un isolamento forte come database separati.
+La separazione non è forte quanto avere datastore indipendenti, ma il significato è già chiaro: ogni dato ha un owner e gli altri moduli devono passare attraverso un contratto deliberato.
 
-Ma costruisce una semantica utile.
+Questa scelta compra optionality. Se un giorno Payments verrà estratto, non dovremo prima scoprire chi possiede le sue tabelle e quante query nascoste le attraversino.
 
-Se un giorno estrarremo `Payments`, avremo già ridotto l'ambiguità.
+## Payments è il candidato più interessante, ma non ancora abbastanza
 
-### ESI introduce una pressione reale
+Dentro ESI, Payments & Risk potrebbe sostenere che Payments meriti subito un servizio separato per ragioni di security e governance.
 
-Payments & Risk potrebbe sostenere che il dominio Payments meriti un servizio separato subito, per motivi di sicurezza e governance.
+L'argomento è serio.
 
-Commerce & Operations potrebbe preferire un deployable unico per ridurre lead time e coordinamento.
+Payments integra provider esterni, possiede semantica economica distinta e potrebbe in futuro avere requisiti di audit o compliance più forti.
 
-Platform Engineering potrebbe ricordare che ogni nuovo servizio porta con sé runtime, pipeline, alerting, ownership operativa e costi.
+Ma la decisione va presa sul contesto attuale.
 
-Nessuna delle tre posizioni è irragionevole.
+Oggi il team operativo del prodotto è ancora lo stesso. Il traffico non richiede scaling indipendente. Il deployment coordinato non è un problema materiale. Non abbiamo evidenza che la failure di Payments debba essere isolata tramite processo separato invece che con boundary interni, timeout, resource limit e graceful degradation dove possibile.
 
-La domanda è se **oggi** la separazione fisica compra proprietà abbastanza importanti da giustificare il costo.
+L'operational overhead di un nuovo servizio sarebbe invece immediato.
 
-### Perché non estraiamo Payments adesso
+Per questo non estraiamo Payments adesso.
 
-`Payments` potrebbe sembrare il candidato più naturale.
+Non ignoriamo la pressione.
 
-Ha integrazione esterna, security concern e semantica distinta.
+La trasformiamo in trigger di revisione.
 
-Ma dobbiamo verificare il valore concreto.
+## ADR-002 — Mantenere Order Operations come modular monolith
 
-Oggi:
+```markdown
+# ADR-002 — Mantenere Order Operations come modular monolith
 
-- il team operativo del prodotto è ancora lo stesso;
-- il traffico non richiede scaling indipendente;
-- il deployment coordinato non è ancora un problema materiale;
-- l'operational overhead di un nuovo servizio sarebbe significativo;
-- non abbiamo evidenza che la failure di Payments debba essere isolata tramite un processo separato invece che tramite boundary interni e resource limits.
+Status: accepted
 
-Quindi non estraiamo.
+## Contesto
 
-Ma registriamo i trigger.
+Order Operations contiene boundary distinti per Orders, Payments, Shipping e Identity.
+Il team è piccolo, il traffico è moderato e non esistono oggi esigenze forti di deploy o scaling indipendente per modulo.
 
-### Il compromesso del capitolo
+## Problema
 
-**Esigenza**
+Dobbiamo scegliere se trasformare subito i boundary logici in deployable separati o mantenere un'unica unità di deployment.
 
-Mantenere velocità di delivery senza perdere confini e possibilità di evoluzione.
+## Architecturally Significant Requirements
 
-**Tensione**
+- ownership semantica e dei dati deve rimanere distinta;
+- il sistema deve essere operabile da un team piccolo;
+- correctness e authorization restano quality floor;
+- la topologia deve preservare possibilità di estrazione futura;
+- il costo operativo deve rimanere proporzionato alla fase del prodotto.
 
-Autonomia, deployability e failure isolation contro costo operativo e coordinamento distribuito.
+## Alternative considerate
 
-**Decisione**
+1. modular monolith con boundary interni forti;
+2. microservizi separati per Orders, Payments e Shipping;
+3. estrazione immediata del solo Payments.
 
-Order Operations resta, per ora, un modular monolith.
+## Decisione
 
-**Costo accettato**
+Mantenere un singolo deployable con moduli espliciti e ownership dei dati distinta.
 
-- un deploy può coinvolgere più moduli;
-- alcuni failure domain rimangono condivisi;
-- non possiamo scalare ogni capability in modo completamente indipendente.
+## Motivazione
 
-**Quality floor**
+La distribuzione non compra ancora abbastanza deployability, scaling, failure isolation o team autonomy da giustificare il costo operativo aggiuntivo.
+I boundary logici possono essere protetti senza introdurre subito network boundary.
 
-Non accettiamo un monolite senza modularità, ownership, testabilità o dependency rules.
+## Conseguenze positive
 
-**Guardrail**
+- minore complessità operativa;
+- transazioni e debugging più locali;
+- delivery semplice per il team attuale;
+- possibilità di maturare i boundary prima dell'estrazione.
 
-- boundary espliciti;
-- architecture fitness rule;
-- ownership dati;
-- trigger di estrazione;
-- misure su release cadence, scaling e incidenti.
+## Conseguenze negative
 
-La scorciatoia sarebbe:
+- deploy coordinato del deployable;
+- alcuni failure domain restano condivisi;
+- scaling non completamente indipendente;
+- process isolation limitata.
 
-> “Facciamo un monolite perché costa meno.”
+## Guardrail
 
-Il compromesso è:
+- dependency rule tra moduli;
+- ownership esplicita per dati e repository;
+- shared kernel limitato;
+- architecture test dove possibile;
+- metriche su release cadence, carico e incidenti.
 
-> “Restiamo nello stesso deployable finché la distribuzione non compra proprietà che valgono il costo, ma costruiamo già confini che rendono possibile cambiare idea.”
+## Trigger di revisione
 
-### Trigger di revisione
-
-Rivaluteremo `Payments` come servizio indipendente se emergono più segnali tra:
-
+Rivalutare una estrazione quando convergono più segnali tra:
 - team ownership dedicata;
-- release cadence molto diversa;
-- compliance o security boundary più forte;
-- necessità di scaling indipendente;
+- release cadence significativamente differente;
+- security o compliance boundary più forte;
+- scaling indipendente economicamente utile;
 - failure isolation non raggiungibile bene nel deployable condiviso;
-- necessità di runtime differente;
-- aumento significativo della complessità del modulo.
+- runtime o technology fit realmente differente;
+- crescita del change coupling nonostante i boundary interni.
+```
 
-Lo stesso vale per `Shipping` e per altre capability.
+Questa ADR completa la decisione del Capitolo 4. ADR-001 diceva che il lookup rimane live finché i requisiti non giustificano un read model dedicato. ADR-002 dice che anche la topologia rimane semplice finché la distribuzione non compra proprietà sufficienti.
 
-### Non stiamo scegliendo “monolite per sempre”
+Le due decisioni seguono la stessa filosofia: **non implementare oggi la complessità del futuro; preservare però abbastanza struttura da poterla introdurre quando il trigger sarà reale**.
 
-Questa distinzione è importante.
+## Architecture fitness: proteggere il monolite dalla deriva
 
-Non stiamo dicendo:
+Scegliere un modular monolith senza proteggere i boundary sarebbe soltanto rinviare il problema.
 
-> “I microservizi non servono.”
+Possiamo trasformare alcune regole in controlli eseguibili. Per esempio:
 
-Stiamo dicendo:
+```text
+nessun import da orders/internal fuori da Orders
+nessun accesso diretto alle repository di un altro modulo
+dipendenze cicliche vietate
+API interne pubbliche in namespace espliciti
+shared kernel sottoposto a review più severa
+```
+
+Queste regole non garantiscono cohesion o buon domain modeling.
+
+Impediscono però alcune violazioni meccaniche che, lasciate crescere, renderebbero l'estrazione futura molto più costosa.
+
+## Non stiamo scegliendo “monolite per sempre”
+
+La decisione non dice che i microservizi non servano.
+
+Dice qualcosa di più preciso:
 
 > **oggi non abbiamo ancora abbastanza ragioni per pagarli.**
 
-È una decisione molto diversa.
+Se Payments otterrà un team dedicato, una release cadence molto più alta, nuovi constraint di compliance e un bisogno reale di failure isolation, ADR-002 potrà essere superseded.
 
-Il modular monolith ci permette di preservare optionality.
+In quel momento l'estrazione non sarà una moda né una promozione del modulo.
 
-Se i confini sono buoni, l'estrazione futura diventa più semplice.
-
-Se i confini sono cattivi, trasformarli subito in network boundary li renderebbe soltanto più costosi da correggere.
-
-### Architecture fitness
-
-Possiamo aggiungere regole automatizzate che controllino almeno alcune proprietà.
-
-Per esempio:
-
-- nessun import da `orders/internal` fuori dal modulo;
-- nessun accesso diretto alle repository di un altro modulo;
-- API interne pubbliche in cartelle esplicite;
-- dipendenze cicliche vietate;
-- shared kernel limitato.
-
-Non garantiscono una buona architettura.
-
-Ma rendono visibili alcune violazioni.
-
-### La decisione in una frase
+Sarà la risposta a un contesto cambiato.
 
 > **Order Operations resta un modular monolith finché la separazione fisica non compra proprietà che valgono il suo costo operativo.**
-
-Non è una scelta conservativa.
-
-È una scelta proporzionata.
