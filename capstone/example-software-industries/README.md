@@ -49,7 +49,7 @@ Example Software Industries S.p.A.
 
 Le business unit non sono soltanto decorazione narrativa.
 
-Possono introdurre requisiti, dipendenze e tensioni che cambiano le decisioni del capstone principale.
+Possono introdurre requisiti, dipendenze e tensioni che cambiano le decisioni dei prodotti.
 
 ## Stakeholder ricorrenti
 
@@ -81,15 +81,121 @@ quale decisione futura diventa più facile o più difficile
 
 ## Prodotti seguiti nel libro
 
-Il prodotto principale è:
+### Order Operations
 
 ```text
 products/order-operations/
 ```
 
-**Order Operations** nasce nella business unit Commerce & Operations e cresce capitolo dopo capitolo.
+Business unit:
 
-Altri prodotti o capability di ESI potranno comparire quando servono per mostrare problemi che Order Operations non rappresenta bene, per esempio mobile offline, sistemi industriali, marketing ad alto volume, platform engineering o AI.
+```text
+Commerce & Operations
+```
+
+È il capstone principale e cresce capitolo dopo capitolo.
+
+Copre progressivamente:
+
+```text
+functional analysis
+architecture/data/API
+cloud/security/reliability
+legacy/refactoring
+AI-native engineering
+runtime AI
+production readiness
+```
+
+Sistema legacy collegato:
+
+```text
+legacy/operations-desk-classic/
+```
+
+### Campaign Launchpad
+
+```text
+products/campaign-launchpad/
+```
+
+Business unit:
+
+```text
+Marketing Technology
+```
+
+Introdotto nel Capitolo 27 come secondo prodotto persistente ESI.
+
+Serve a mostrare un percorso end-to-end piccolo e adatto a un One-Man Project operating model:
+
+```text
+approved campaign templates
+internal authoring
+approval
+versioned publication
+public static delivery
+rollback
+```
+
+Il prodotto è intenzionalmente più semplice di Order Operations.
+
+Non eredita la sua topology soltanto perché appartiene alla stessa azienda.
+
+Current state:
+
+```text
+problem/scope/architecture/readiness = documented
+authored implementation            = not started
+runtime evidence                    = not started
+```
+
+## Tre casi end-to-end del Capitolo 27
+
+```text
+1. Campaign Launchpad
+   → small / One-Man Project
+
+2. Operations Desk Classic → Order Operations Priority
+   → enterprise brownfield
+
+3. Case Explanation Assistant
+   → AI-native runtime capability
+```
+
+I tre casi usano lo stesso metodo ma producono architetture differenti.
+
+> **La maturità non sta nel far assomigliare i prodotti. Sta nel sapere quali proprietà devono essere condivise e quali decisioni devono restare specifiche del workload.**
+
+## Company-level paved roads
+
+ESI può offrire capability comuni quando riducono costo e rischio senza cancellare il fit locale.
+
+Candidate shared guardrails:
+
+```text
+enterprise identity
+secret management
+baseline CI/CD
+security scanning
+cost-allocation metadata
+observability conventions
+repository ownership
+landing-zone guardrails
+incident escalation interfaces
+```
+
+Non diventano automaticamente obblighi su:
+
+```text
+compute
+database
+messaging
+topology
+AI retrieval architecture
+```
+
+La standardizzazione deve comprare una proprietà, esattamente come qualsiasi altra decisione architetturale.
 
 ## Regola del mondo fittizio
 
