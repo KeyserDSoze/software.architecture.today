@@ -1,346 +1,97 @@
 # 28.6 — L'architect come governor di agenti
 
-Nei capitoli 21–25 abbiamo costruito un operating model per repository, issue e agenti.
+Se una parte crescente dell'execution viene prodotta da agenti, l'architect non deve diventare il "prompt writer senior". Deve contribuire a progettare il sistema dentro cui gli agenti possono lavorare velocemente senza diventare una nuova sorgente di cambiamento incontrollato.
 
-Qui facciamo un passo ulteriore.
-
-Se una parte crescente dell'execution viene prodotta da agenti, l'architect non deve diventare il “prompt writer senior”.
-
-Deve progettare il **sistema dentro cui gli agenti possono essere utili senza diventare un nuovo source of uncontrolled change**.
-
-Questo include:
-
-```text
-context
-scope
-permission
-verification
-stop condition
-handoff
-retry budget
-human gate
-```
+Il problema è quindi architetturale prima ancora che operativo: context, scope, permission, verification, stop condition, handoff e human gate devono essere leggibili quanto i boundary del software.
 
 > **Il lavoro dell'architect non è ottenere la risposta migliore dall'agente. È costruire un ambiente in cui una risposta sbagliata abbia blast radius limitato e venga scoperta abbastanza presto.**
 
----
+## Context engineering come repository design
 
-## Context engineering come architecture
+Un agente che entra in un repository deve poter capire che prodotto sta modificando, quali file sono canonical, quali decisioni sono già state prese, quali boundary non deve violare, come si verifica il lavoro e quando deve fermarsi.
 
-Un agente che entra in un repository deve capire:
+Nel capstone queste informazioni non vivono in un prompt gigantesco. Sono distribuite in `AGENTS.md`, Repository Map, Functional Analysis, ADR, fitness function, Testing Strategy e work item.
 
-```text
-che prodotto è?
-quali decisioni sono già state prese?
-quali file sono canonical?
-quali boundary non deve violare?
-come verifica?
-quando deve fermarsi?
-```
+Questo rende il contesto persistente e riusabile. Ma lo rende anche una dependency: se i documenti sono stale, l'AI amplifica la staleness.
 
-Questa non è soltanto prompt engineering.
+Il criterio non è quindi "più documentazione". È **contesto abbastanza piccolo da essere usabile, abbastanza canonical da essere affidabile e abbastanza discoverable da poter essere aggiornato**.
 
-È design del repository.
+## Discovery non deve assorbire scope automaticamente
 
-Nel nostro capstone abbiamo trasformato questa idea in:
+Un executor capace trova quasi sempre lavoro adiacente: refactoring, test mancanti, inconsistenze, dipendenze vecchie, TODO. Questa discovery è preziosa finché non viene confusa con authorization.
 
-```text
-AGENTS.md
-Repository Map
-Functional Analysis
-ADR
-fitness function
-work item
-Testing Strategy
-```
-
-Il contesto persistente riduce il bisogno di ripetere ogni volta l'intero sistema nel prompt.
-
-Ma il contesto deve restare:
-
-```text
-piccolo abbastanza da essere utile
-canonical abbastanza da essere affidabile
-discoverable abbastanza da essere aggiornabile
-```
-
-Se la documentazione è stale, l'AI amplifica anche quella.
-
----
-
-## Scope prima di execution
-
-Un executor molto capace tende a trovare lavoro adiacente.
-
-Può scoprire:
-
-- refactoring;
-- test mancanti;
-- dipendenze obsolete;
-- inconsistenze;
-- TODO;
-- architecture smell.
-
-È utile.
-
-Ma non tutto ciò che viene scoperto appartiene al task corrente.
-
-L'architect deve rendere esplicito:
-
-```text
-in scope
-out of scope
-follow-up
-stop condition
-```
-
-Altrimenti una modifica locale può diventare un repository-wide cleanup che nessuno aveva autorizzato.
+Un task deve rendere espliciti in-scope, out-of-scope, follow-up e stop condition. Altrimenti una modifica bounded può trasformarsi in un cleanup trasversale che nessuno ha chiesto e che aumenta blast radius e verification cost.
 
 > **Discovery può essere autonoma. Assorbire nuovo scope non dovrebbe esserlo per default.**
 
----
+## Capability, permission e autonomy sono tre cose diverse
 
-## Permission architecture
+Un agente può essere tecnicamente capace di eseguire shell, scrivere file, chiamare API, creare risorse cloud o modificare database. Questa capability non implica permission, e la permission non implica autonomia completa.
 
-L'AI rende più importante una distinzione che nel software tradizionale era già vera:
+L'architect deve lavorare con Security e Platform per rendere chiari workspace isolation, network access, secret boundary, credential lifetime, production access, approval gate e artifact provenance.
 
-```text
-capability
-≠
-permission
-```
-
-Un agente può tecnicamente:
-
-```text
-eseguire shell
-scrivere file
-chiamare API
-creare risorse cloud
-modificare DB
-```
-
-Ma non significa che debba poterlo fare in qualunque workflow.
-
-L'architect deve collaborare con Security/Platform per definire:
-
-```text
-workspace isolation
-network access
-secret boundary
-production access
-approval gate
-credential lifetime
-artifact provenance
-```
-
-OpenAI ha descritto nel 2026 il proprio approccio all'uso sicuro di coding agent con managed configuration, constrained execution, network policy, human approval per azioni più rischiose e telemetry agent-native.
+OpenAI ha descritto nel 2026 pratiche interne per l'uso sicuro di coding agent, incluse configuration gestita, execution vincolata, network policy, approval umana per azioni più rischiose e telemetry specifica per agenti.
 
 Fonte:
 
-- OpenAI — *Running Codex safely at OpenAI*: https://openai.com/index/running-codex-safely/
+- [OpenAI — Running Codex safely at OpenAI](https://openai.com/index/running-codex-safely/)
 
-La lezione non è copiare una specifica configurazione.
+La lezione non è copiare una configurazione. È riconoscere che **agent autonomy è anche permission architecture e observability**.
 
-È riconoscere che **agent autonomy è anche architecture di permission e observability**.
+## Un secondo agente non è automaticamente un verifier
 
----
+`Agent A implementa` e `Agent B reviewa` non producono da soli independent verification. Se entrambi condividono lo stesso contesto errato, lo stesso oracle debole o la stessa misconception, possono confermarsi a vicenda.
 
-## Il verifier non può essere soltanto un secondo storyteller
+Serve evidence diversity: deterministic test, integration su dependency reale, architecture fitness, security negative test, runtime signal e review umana o specialistica quando la decisione lo richiede.
 
-Una delle illusioni più facili è:
+Il reviewer non deve rifare tutto il lavoro. Deve poter ispezionare claim, evidence e limitation senza dipendere dal racconto dell'executor.
 
-```text
-Agent A implementa
-Agent B review
-→ independent verification
-```
+Questo è il valore del modello `Agent Verification Bundle` costruito nei capitoli precedenti.
 
-Non necessariamente.
+> **Verification without re-execution richiede evidence che sopravviva a chi l'ha prodotta.**
 
-Se entrambi:
+## I guardrail migliori possono fallire automaticamente
 
-- ricevono lo stesso contesto errato;
-- usano lo stesso modello;
-- leggono lo stesso test debole;
-- condividono lo stesso criterio;
+Una policy architetturale spiegata in documentazione è utile. Quando la policy è meccanicamente verificabile, una fitness function è ancora più efficace.
 
-possono confermare la stessa misconception.
+Nel capstone possiamo far fallire import vietati, provider coupling nel semantic core, assenza di metadata richiesti o altri boundary già compresi. Il sistema risponde con evidence invece di affidarsi alla memoria del reviewer.
 
-L'architect deve progettare verification attraverso **evidence diversity**.
-
-Per esempio:
-
-```text
-executor summary
-+
-deterministic tests
-+
-real PostgreSQL integration
-+
-architecture fitness
-+
-security negative test
-+
-independent reviewer
-```
-
-Il reviewer umano non deve rieseguire tutto.
-
-Deve poter verificare claim ed evidence.
-
-Questo è il principio di **verification without re-execution**.
-
----
-
-## Guardrail eseguibili
-
-Una buona architecture policy può essere spiegata in documentazione.
-
-Una migliore, quando possibile, può anche fallire automaticamente.
-
-Esempi dal capstone:
-
-```text
-application !→ integration
-core semantics !→ Azure SDK
-legacy implementation not imported directly
-cost metadata required
-repository context present
-PRR remains NO-GO while blockers open
-```
-
-Questo cambia il rapporto fra architect e agent.
-
-Invece di ripetere:
-
-> “Ricordati di non dipendere dall'infrastruttura.”
-
-possiamo far produrre al sistema:
-
-```text
-AF-002 FAILED
-application layer imports integration
-```
+Questo non elimina l'architect. Sposta il suo lavoro: dalle review ripetitive alla progettazione del guardrail e alla decisione su quando quel guardrail deve cambiare.
 
 > **Le fitness function sono architecture guidance che sa rispondere.**
 
----
+## Il governor non deve diventare l'orchestrator universale
 
-## L'architect non deve diventare l'orchestrator di tutto
+Un nuovo anti-pattern sarebbe creare una persona che scrive tutti i task, assegna tutti gli agenti, reviewa tutto e accetta tutto. È lo stesso collo di bottiglia di una Architecture centralizzata, soltanto con più execution a valle.
 
-Un rischio del manager-of-agents è creare una persona che:
+L'obiettivo è costruire un operating model in cui repository context, issue readiness, local ownership e automated evidence permettano ai task bounded di procedere senza supervisione continua.
 
-```text
-scrive tutti i task
-assegna tutti gli agenti
-reviewa tutto
-accetta tutto
-```
+L'architect entra quando cambia architecture policy, business meaning, risk acceptance, one-way door o cross-team boundary.
 
-È un nuovo collo di bottiglia.
+## Quale sistema stiamo amplificando?
 
-L'obiettivo dovrebbe essere costruire un operating model in cui:
-
-```text
-repository context
-+ issue readiness
-+ local ownership
-+ automated evidence
-```
-
-permettono a molti task di procedere senza intervento continuo dell'architect.
-
-L'architect interviene dove cambia:
-
-```text
-architecture policy
-business meaning
-risk acceptance
-one-way door
-cross-team boundary
-```
-
-Questo è molto diverso dal supervisionare ogni diff.
-
----
-
-## AI amplifica l'organizzazione esistente
-
-DORA, nel report 2025, descrive l'AI come amplificatore delle strength e weakness del sistema organizzativo.
+DORA descrive l'AI come amplificatore delle strength e weakness del sistema organizzativo.
 
 Fonte:
 
-- DORA — *State of AI-assisted Software Development 2025*: https://dora.dev/research/2025/dora-report/
+- [DORA — State of AI-assisted Software Development 2025](https://dora.dev/research/2025/dora-report/)
 
-Per l'architect questo significa che:
+Un repository confuso produce confusione più velocemente. Ownership debole produce semantic drift più rapidamente. Un review system lento può trasformare l'aumento di throughput in verification backlog. Boundary leggibili e test forti, invece, rendono più sicura la delega.
 
-```text
-bad repo structure
-→ faster confusion
-
-weak ownership
-→ faster semantic drift
-
-slow review system
-→ bigger verification backlog
-
-good tests + clear boundaries
-→ more safe execution
-```
-
-Il problema non è quindi:
-
-> “Quale agente scegliamo?”
-
-ma:
-
-> **“Quale sistema di engineering stiamo amplificando?”**
-
----
-
-## OpenAI: agenti per capire, refactorizzare e investigare
-
-OpenAI descrive Codex usato internamente per code understanding, refactoring, feature development e incident investigation, e insiste su task strutturati, contesto e iteration.
+OpenAI descrive inoltre Codex usato internamente per code understanding, refactoring, feature development e incident investigation, mostrando come gli agenti possano amplificare fasi diverse del ciclo di engineering.
 
 Fonte:
 
-- OpenAI — *How OpenAI uses Codex*: https://openai.com/business/guides-and-resources/how-openai-uses-codex/
+- [OpenAI — How OpenAI uses Codex](https://openai.com/business/guides-and-resources/how-openai-uses-codex/)
 
-È una conferma interessante del fatto che gli agenti non sono confinati alla pura generazione di codice.
+La domanda architetturale resta indipendente dal vendor:
 
-Possono amplificare parti diverse del ciclo di engineering.
+> **Quale sistema di engineering stiamo amplificando?**
 
-Ma proprio per questo l'architect deve ragionare su boundary più ampi di un IDE plugin.
+## ESI: Agentic Engineering Governance
 
----
+La Capability Map ESI richiede che chi esercita responsabilità architetturale sappia definire context persistente, riconoscere task delegabili, separare scope da discovery, progettare permission boundary, scegliere evidence adeguata, distinguere executor da authority e costruire stop condition.
 
-## ESI: Architect as Agent-System Designer
-
-La capability map ESI include una area specifica:
-
-```text
-Agentic Engineering Governance
-```
-
-Un architect deve saper:
-
-```text
-definire context persistente
-riconoscere task delegabile
-separare scope da discovery
-progettare permission boundary
-scegliere evidence adeguata
-separare executor e authority
-costruire stop condition
-usare automated fitness
-monitorare cost per verified outcome
-```
-
-Non gli chiediamo di conoscere ogni agent framework.
-
-Gli chiediamo di riconoscere la struttura del problema anche quando cambiano tool e vendor.
-
-La regola è:
+Non serve conoscere ogni agent framework. Serve riconoscere la struttura del rischio anche quando cambiano tool e modelli.
 
 > **Il futuro dell'architect non è scrivere prompt migliori. È progettare sistemi in cui persone e agenti possono prendere velocità senza perdere responsabilità.**
