@@ -183,14 +183,14 @@ Esempio:
 
 ```json
 {
-  "type": "https://esi.example/problems/order-not-visible",
+  "type": "urn:esi:problem:order-not-visible",
   "title": "Order is not visible",
   "status": 403,
   "detail": "The current operator cannot access this order."
 }
 ```
 
-Il dominio `.example` è un placeholder documentale riservato all'esempio, non un endpoint reale.
+L'URN è un identificatore documentale dell'esempio, non un endpoint reale.
 
 Fonte primaria:
 
