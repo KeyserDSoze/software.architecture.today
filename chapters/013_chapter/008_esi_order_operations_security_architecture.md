@@ -1,67 +1,22 @@
-## ESI — Order Operations: dalla topologia cloud alla security architecture
+## ESI — Order Operations: dalla cloud topology alla security architecture
 
-Ora applichiamo il capitolo al capstone.
+Il punto di partenza è la Cloud Deployment Map del Capitolo 12. Order Operations ha App Service + WebJob, PostgreSQL Flexible Server, Service Bus Queue, managed identity, Key Vault, observability foundation, Bicep e una strategia single-region. Quella topologia era deliberatamente incompleta sul piano della security: ora abbiamo un threat model abbastanza concreto da trasformarla in una security architecture.
 
-Il punto di partenza è la Cloud Deployment Map del Capitolo 12.
+## Le richieste Security diventano proprietà del design
 
-Abbiamo già:
+Security identifica tre esigenze che cambiano la topologia. Primo: il workload è interno e non ha un journey Internet-facing, quindi non deve essere pubblicamente raggiungibile in produzione senza motivo. Secondo: una compromissione della runtime identity non deve aprire il control plane Azure. Terzo: PostgreSQL, messaging e secret store non devono restare pubblicamente raggiungibili soltanto per semplificare il networking.
 
-```text
-App Service + WebJob
-PostgreSQL Flexible Server
-Service Bus Queue
-Managed Identity
-Key Vault
-Azure Monitor / Application Insights
-Bicep
-single region
-```
+Commerce & Operations chiede però che il team continui a deployare senza ticket manuali continui, che dev/staging restino usabili e che troubleshooting e observability non vengano sacrificati. Platform Engineering deve quindi trasformare il security boundary in capability ripetibili della landing zone, non in un gate umano per ogni change.
 
-Ma non avevamo ancora definito il security boundary.
+## I threat che guidano questa iterazione
 
-## Nuova esigenza ESI
+La baseline del Capitolo 13 considera sessione operatore rubata, accesso cross-tenant, Payment Escalation non autorizzata, compromise della runtime o deployment identity, leakage di secret, public exposure accidentale dei data-plane service, deployment manipolato, dati sensibili nei log, privilege eccessivi su Service Bus, denial of service e abuso amministrativo.
 
-Security completa una review preliminare e porta tre richieste.
+Non pretendiamo che siano tutte le minacce possibili. Sono quelle che cambiano **questa** decisione. Il Threat Model vivo del capstone continuerà a crescere nei capitoli successivi e, molto più avanti, includerà anche i boundary AI. Il manoscritto qui conserva la baseline disponibile nel Capitolo 13.
 
-1. Order Operations è un workload interno: non deve essere raggiungibile direttamente da Internet in produzione.
-2. Il compromise della runtime identity non deve permettere modifiche al control plane.
-3. I servizi dati sensibili non devono restare pubblicamente raggiungibili soltanto per semplificare il networking.
+## Human ingress: meno reachability, stessa authorization
 
-Commerce & Operations chiede però che:
-
-- il team continui a fare deploy senza ticket manuali per ogni modifica;
-- dev e staging rimangano usabili;
-- troubleshooting e observability non diventino impossibili;
-- la security baseline sia riproducibile.
-
-Platform Engineering propone quindi un boundary standardizzato nella application landing zone.
-
-## Threat principali
-
-Il Threat Model del capstone identifica inizialmente threat come:
-
-```text
-T-01 stolen operator session
-T-02 cross-tenant case access
-T-03 unauthorized Payment Escalation
-T-04 runtime identity compromise
-T-05 deployment identity compromise
-T-06 secret leakage
-T-07 public exposure of data-plane services
-T-08 malicious/tampered deployment
-T-09 sensitive data in logs
-T-10 Service Bus privilege misuse
-T-11 denial of service / escalation spam
-T-12 privileged admin abuse
-```
-
-Non sono gli unici threat possibili.
-
-Sono quelli che guidano la decisione corrente.
-
-## Human ingress
-
-Produzione:
+In produzione scegliamo:
 
 ```text
 ESI workforce
@@ -71,120 +26,23 @@ ESI workforce
 → application authorization
 ```
 
-Public network access dell'App Service viene disabilitato in produzione.
+Disabilitare il public network access riduce l’attack surface raggiungibile. Non autorizza nessuno. Un operatore autenticato continua a dover superare server-side tenant authorization e capability check.
 
-L'utente continua comunque ad autenticarsi.
+La prima write capability del prodotto, `POST /api/operational-cases/{caseId}/payment-escalations`, è un ottimo esempio. Il server combina identity autenticata, role/capability, case visibility, tenant relationship e precondizioni funzionali. Il `tenantId` non diventa affidabile perché arriva dal browser.
 
-Il network path riduce reachability.
+## Runtime identity: soltanto data-plane capability necessarie
 
-Entra stabilisce identity.
+App Service e WebJob usano managed identity. Il privilege envelope corrente consente accesso ai dati del workload, ai secret inevitabili, all’invio sulla queue Payment Escalation e alla telemetry necessaria. Non include RBAC assignment, network modification, infrastructure creation o policy administration.
 
-Order Operations decide authorization.
+Questa è la concretezza di `assume breach`: se la runtime identity viene rubata, vogliamo che l’attaccante trovi un secondo confine prima del control plane.
 
-## Authorization
+La deployment identity resta separata e viene orientata verso federation/scoped permission. Il dettaglio della CI/CD arriverà più avanti, ma il boundary esiste già nel threat model.
 
-La prima capability write del prodotto è:
+## Key Vault, PostgreSQL e Service Bus: reachability e permission insieme
 
-```http
-POST /api/operational-cases/{caseId}/payment-escalations
-```
+Key Vault conserva soltanto secret inevitabili, scoped alla workload identity, con lifecycle di rotation/revocation e audit. Developer ordinari non devono leggere production secret per default.
 
-Il server deve verificare:
-
-```text
-authenticated identity
-+ Operations role
-+ case visibility
-+ tenant authorization
-+ valid functional preconditions
-→ allowed
-```
-
-`tenantId` non viene considerato affidabile soltanto perché arriva nel payload o nel browser state.
-
-## Runtime identity
-
-App Service e WebJob usano una managed identity.
-
-Il privilege envelope corrente include soltanto ciò che serve al workload.
-
-Concettualmente:
-
-```text
-Key Vault
-→ read specific secret when unavoidable
-
-Service Bus
-→ send to Payment Escalation queue
-
-PostgreSQL
-→ workload data access through the chosen database auth mechanism
-
-Monitoring
-→ emit telemetry
-```
-
-La runtime identity non può:
-
-```text
-assign RBAC
-create/delete infrastructure
-change network exposure
-modify subscription policy
-```
-
-## Deployment identity
-
-La pipeline usa una identity separata.
-
-La direzione è federation/workload identity invece di una password statica lunga vita.
-
-Il deployment principal riceve permission sul deployment scope necessario, ma non viene usato dall'applicazione a runtime.
-
-Questo boundary sarà reso più concreto quando costruiremo la CI/CD pipeline completa.
-
-## Key Vault
-
-Key Vault contiene soltanto secret inevitabili.
-
-Non diventa un deposito di configurazione indiscriminata.
-
-Regole:
-
-- runtime identity accede soltanto ai secret necessari;
-- developer normali non leggono production secret per default;
-- secret non vengono committed;
-- rotation/revocation sono parte del lifecycle;
-- accesso al vault viene auditato.
-
-## PostgreSQL
-
-Produzione usa private connectivity.
-
-L'obiettivo non è dichiarare il database “trusted”.
-
-Restano necessari:
-
-- authentication;
-- authorization;
-- schema ownership;
-- tenant isolation;
-- backup;
-- audit dove pertinente.
-
-La private path riduce soltanto la superficie di rete.
-
-## Service Bus
-
-La queue Payment Escalation usa private connectivity nel production design.
-
-Il publisher ha soltanto capability di send necessaria.
-
-Non deve ricevere automaticamente permission amministrative sulla namespace.
-
-Payments & Risk riceve il proprio accesso consumer separato.
-
-Quindi:
+PostgreSQL e Service Bus seguono una private data-plane direction in produzione. Il database continua comunque a richiedere authentication, ownership e tenant isolation; il publisher Service Bus riceve soltanto send permission sulla capability necessaria, distinta dal consumer privilege di Payments & Risk e dall’amministrazione del broker.
 
 ```text
 producer privilege
@@ -192,153 +50,46 @@ producer privilege
 ≠ broker administration privilege
 ```
 
-## Egress
+La private network riduce reachability. L’identity limita ciò che può essere fatto dopo aver raggiunto il servizio.
 
-Order Operations dichiara gli egress approvati:
+## Egress e logging: il sistema non deve diventare un canale di esfiltrazione
 
-- Entra;
-- PostgreSQL;
-- Service Bus;
-- Key Vault;
-- telemetry;
-- eventuali provider/endpoint esplicitamente approvati.
+Order Operations dichiara gli egress necessari verso Entra, PostgreSQL, Service Bus, Key Vault, telemetry e provider esplicitamente approvati. Non offre una fetch capability verso destination arbitrarie fornite dall’utente.
 
-L'applicazione non offre una capability di fetch arbitrario verso URL forniti dall'utente.
+Il logging separa telemetry e audit. Per Payment Escalation conserviamo identity e outcome necessari alla tracciabilità, ma non credential o payment secret. Il threat `sensitive data in logs` rimane esplicito perché l’assenza di un secret store leakage non impedisce all’applicazione di scrivere un valore sensibile in telemetry.
 
-## Logging
+## WAF: rischio accettato, non controllo dimenticato
 
-Il security model separa:
+Non introduciamo un WAF nella prima produzione perché non esiste un Internet-facing ingress. La decisione ha un review trigger: public, partner o mobile ingress; compliance requirement; oppure un threat model che dimostri un nuovo application-layer attack path.
 
-```text
-application telemetry
-security/audit events
-```
+Questo è un esempio utile di security fit: non massimizziamo la quantità di controlli, rendiamo visibile perché un controllo non è necessario oggi.
 
-Per Payment Escalation registriamo identificatori e outcome necessari alla tracciabilità, non credential o payment secret.
+## IaC: il security boundary entra nel repository
 
-Il Threat Model identifica esplicitamente sensitive-data-in-logs come threat da verificare.
+Con il threat model abbastanza stabile possiamo codificare parte della baseline in `infra/main.bicep`: HTTPS/TLS direction, managed identity, secret store, messaging, observability e i componenti security-sensitive che appartengono al workload. Le parti di private networking rimangono integrate con i moduli e le capability della landing zone, perché il workload non deve fingere di possedere private DNS, subnet e routing enterprise che appartengono a Platform.
 
-## WAF: non ancora
+Un template deployabile non è ancora evidence di comportamento. La Security Control Matrix conserva quindi la distinzione fra `Designed`, `Codified`, `Verified` e `Monitored`.
 
-Non aggiungiamo WAF nella prima produzione perché l'ingress corrente è interno e privato.
+## Il compromesso ESI
 
-Questo rischio viene accettato consapevolmente.
+ESI accetta maggiore complessità di private DNS, networking e troubleshooting per ridurre reachability e blast radius prima della produzione. In cambio non accetta anonymous production access, authorization implicita, runtime identity con broad control-plane privilege, production secret nel repository o security control privi di test/evidence.
 
-Trigger:
+I guardrail sono Threat Model, Security Control Matrix, Bicep, platform policy, negative authorization test, secret scanning, RBAC review e logging/redaction policy. Riapriamo la decisione quando arriva nuovo public ingress, una nuova data classification, un runtime separato per il publisher, multi-region, nuovi provider, privilege growth o un incidente reale.
 
-- esposizione Internet;
-- partner ingress;
-- public API;
-- compliance requirement;
-- threat landscape differente.
-
-## La baseline Bicep
-
-Con queste decisioni possiamo finalmente iniziare a codificare la security-sensitive infrastructure.
-
-Il capstone introduce:
+L’ADR che conserva questa baseline è:
 
 ```text
-infra/main.bicep
+capstone/example-software-industries/products/order-operations/docs/adr/0003-private-ingress-and-identity-first-security.md
 ```
 
-La prima baseline codifica almeno:
-
-- App Service con HTTPS only e managed identity;
-- Key Vault con RBAC e soft-delete/purge protection direction;
-- Service Bus + queue;
-- observability foundation;
-- parametri che impediscono di nascondere environment e location nel template.
-
-Le parti di private networking vengono mantenute modulari e documentate perché dipendono anche dalla landing zone ESI e dalle subnet/DNS capability di Platform.
-
-Questo è importante.
-
-Un template “deployabile” non deve fingere che il workload possieda tutta la rete enterprise.
-
-## Compromesso del capitolo
-
-### Esigenza
-
-Ridurre blast radius e superficie d'attacco prima della produzione.
-
-### Tensione
-
-Security isolation e least privilege vs delivery speed, diagnosi e complessità di networking.
-
-### Decisione
-
-Private ingress e private data-plane direction in produzione, identity-first authorization, managed identity, runtime/deployment separation e security baseline in IaC.
-
-### Costo accettato
-
-- private DNS e networking più complessi;
-- maggiore dipendenza dalla landing zone;
-- troubleshooting più articolato;
-- alcuni workflow locali non possono replicare esattamente production.
-
-### Quality floor
-
-- no anonymous production access;
-- tenant isolation;
-- least privilege;
-- no static production credentials in repository;
-- runtime identity senza control-plane privilege;
-- auditable sensitive operations;
-- revocation path;
-- security controls testabili.
-
-### Guardrail
-
-- Threat Model;
-- Security Control Matrix;
-- Bicep;
-- platform policy;
-- negative authorization tests;
-- secret scanning;
-- RBAC review;
-- log redaction policy.
-
-### Trigger di revisione
-
-- nuovo public ingress;
-- mobile/partner access;
-- compliance requirement;
-- sensitive data class nuova;
-- runtime separato per WebJob;
-- multi-region;
-- nuovi provider esterni;
-- privilege growth;
-- security incident.
-
-## Caso reale: Cloudflare
-
-Il caso Cloudflare/Okta 2023 è utile come verifica concettuale del principio `assume breach`.
-
-Cloudflare riferì che un token di sessione compromesso permise accesso alla propria istanza Okta con privilegi amministrativi, ma descrisse la propria detection e architettura Zero Trust come elementi che contribuirono a contenere l'incidente prima che raggiungesse customer systems o production network.
-
-Fonte primaria:
-
-- [Cloudflare — How Cloudflare mitigated yet another Okta compromise](https://blog.cloudflare.com/how-cloudflare-mitigated-yet-another-okta-compromise/)
-
-Non copiamo la loro architettura.
-
-Copiamo il ragionamento:
-
-> **Progettiamo assumendo che il primo controllo possa fallire e chiediamo che il secondo boundary limiti ancora il danno.**
-
-## Il capstone dopo il Capitolo 13
-
-Order Operations non è “secure”.
-
-È più precisamente:
+La Security Control Matrix del capstone rimane fortemente legata a questo capitolo:
 
 ```text
-security modeled
-+ controls traceable
-+ privilege boundaries explicit
-+ infrastructure direction codified
-+ residual risks visible
+capstone/example-software-industries/products/order-operations/docs/security-control-matrix.md
 ```
 
-È una condizione molto più utile di una generica etichetta `secure by design`.
+Il Threat Model vivo, invece, è cumulativo e nei capitoli successivi continua ad aggiungere actor, asset e boundary. Il Capitolo 13 non deve quindi essere retroattivamente riscritto come se conoscesse già i rischi futuri.
+
+Il caso Cloudflare/Okta ci offre una verifica concettuale: progettare `assume breach` significa aspettarsi che il primo controllo possa fallire e chiedere al secondo boundary di contenere ancora il danno.
+
+> **Order Operations non diventa “secure”. Diventa un sistema in cui rischio, privilegio, controllo ed evidence sono abbastanza espliciti da poter essere migliorati e verificati.**
