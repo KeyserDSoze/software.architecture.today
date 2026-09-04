@@ -142,7 +142,7 @@ Il guardrail non deve decidere che il premium è sbagliato. Deve impedire che di
 
 ## Visibility prima della punizione
 
-In una organizzazione che sta maturando, showback e trasparenza possono produrre più valore di un chargeback aggressivo. Se un team scopre che observability pesa molto più del previsto o che una parte significativa della spesa viene da non-production sempre acceso, può intervenire prima ancora che Finance sposti formalmente il budget.
+In un'organizzazione che sta maturando, showback e trasparenza possono produrre più valore di un chargeback aggressivo. Se un team scopre che observability pesa molto più del previsto o che una parte significativa della spesa viene da non-production sempre acceso, può intervenire prima ancora che Finance sposti formalmente il budget.
 
 La metrica dovrebbe creare decisione prima di creare paura.
 
