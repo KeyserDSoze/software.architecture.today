@@ -280,7 +280,25 @@ Trigger
 
 **Trigger:** work item richiede una nuova semantica/owner/one-way door, scope cresce oltre il boundary dichiarato, verification oracle dovrebbe cambiare, task diventa multi-outcome, oppure emerge una dependency che richiede discovery separata.
 
-## Capitolo 23 e successivi
+## Capitolo 23 — Manager di agenti
+
+**Esigenza:** aumentare l'execution delegata su Order Operations senza trasformare più agenti in più scope ambiguity, permission escalation o self-certification.
+
+**Tensione:** Engineering vuole throughput e parallelismo; Security vuole least privilege e nessun accesso production implicito; Platform vuole evitare orchestration complexity sproporzionata; Product/Payments vogliono mantenere decision authority; Finance/FinOps vuole che agent/review cost resti collegato a verified outcome.
+
+**Decisione:** ESI adotta per OO-001 una topologia minima `Human Decision Owner → Implementer → deterministic evidence → independent Verifier → human/repository merge gate`. Introduce `docs/agent-delegation-contract.md`, `docs/agent-verification-bundle.md`, `docs/ai-autonomy-matrix.md` e `tests/agent-governance-fitness.test.mjs`. L'Implementer riceve autonomia A2 bounded; nessuna A4 production capability viene concessa.
+
+**Costo accettato:** secondo passaggio di verification, più artifact da mantenere, latenza di review e human merge gate; rinunciamo alla massima autonomia immediata.
+
+**Quality floor:** capability ≠ authorization; no semantic/data-ownership change fuori gate; no production credential/resource; executor non aumenta unilateralmente la propria autonomia; verification oracle non viene indebolito per ottenere green; deterministic claim richiede deterministic evidence; critical finding non viene cancellato da majority consensus.
+
+**Guardrail:** Agent Delegation Contract, retry/repair budget, explicit stop conditions, Agent Verification Bundle claim→evidence→limitations, AI Autonomy Matrix capability-based, independent Verifier role, human gate per high-impact action, agent-governance fitness.
+
+**Evidence:** OpenAI Agents SDK su handoff/guardrail/HITL/tracing e practical guide su human intervention; Microsoft Agent Framework su sequential/concurrent/handoff/manager orchestration e tool approval; GitHub Docs su constrained cloud-agent permissions e review dell'output. AGOV-001…AGOV-005 esercitato localmente su una ricostruzione degli artifact correnti: `5/5 PASS`. OO-001 PostgreSQL execution resta `Pending`.
+
+**Trigger:** observed agent task reliability/cost, recurring repair loop, permission/policy violation, verifier false-green, new sensitive tool/data, increased blast radius, one-way action, production autonomy candidate, oppure human review non riesce più a validare evidence bundle con costo sostenibile.
+
+## Capitolo 24 e successivi
 
 Il ledger continua insieme al manoscritto.
 
