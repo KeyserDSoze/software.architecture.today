@@ -1,408 +1,102 @@
-## Eventual consistency: non è un permesso per essere vaghi
+## Eventual consistency: descrivere come il sistema converge
 
-Quando un business process attraversa più componenti indipendenti, possiamo non avere una singola transazione ACID che copra tutto.
+Quando un business process attraversa componenti indipendenti, può non esistere una singola transazione ACID che copra tutto. Questo non elimina la consistenza; la rende temporale.
 
-Questo non significa che la consistenza scompaia.
-
-Significa che dobbiamo descriverla nel tempo.
-
-Esempio:
-
-```text
-Order Operations
-  case = Escalated
-
-Payments & Risk
-  escalation non ancora ricevuta
-```
-
-Per alcuni secondi entrambi gli stati possono essere veri.
-
-La domanda non è:
-
-> “siamo consistent o eventually consistent?”
-
-La domanda è:
-
-```text
-quale inconsistenza temporanea è ammessa?
-per quanto tempo?
-chi può osservarla?
-quale azione è vietata durante quella finestra?
-come sappiamo che convergerà?
-che cosa facciamo se non converge?
-```
+Per alcuni secondi può essere vero che Order Operations abbia accettato una Payment Escalation mentre Payments & Risk non l’abbia ancora ricevuta. La domanda utile non è quindi “siamo consistent o eventually consistent?”, ma quale divergenza temporanea sia ammessa, per quanto tempo, chi possa osservarla, quali azioni debbano essere impedite durante quella finestra e che cosa accada se la convergenza non arriva.
 
 > **Eventual consistency è un contratto temporale di convergenza, non una scusa per rimandare la correctness.**
 
-## Stato intermedio esplicito
+## Business state e delivery state devono poter divergere senza confondersi
 
-Se una escalation è stata salvata localmente ma non ancora consegnata, nascondere questo fatto dietro un semplice:
-
-```text
-Escalated
-```
-
-può essere ambiguo.
-
-Possiamo modellare separatamente:
+Se l’escalation è stata accettata localmente ma non ancora consegnata, un unico stato `Escalated` nasconde informazione utile. È più preciso distinguere il fatto di dominio dal progresso dell’integrazione:
 
 ```text
-business state
-Escalated
-
-integration delivery state
-Pending | Delivered | Delayed | DeadLettered
+PaymentEscalation.status = Requested
+IntegrationDelivery.state = Pending | Delivered | Delayed | DeadLettered
 ```
 
-Questa separazione evita di confondere:
+Così l’operatore può vedere che la propria intenzione è stata registrata anche quando la consegna downstream è in ritardo. La UI non deve dichiarare un successo più forte di quello che il sistema conosce, ma nemmeno far fallire retroattivamente un business fact locale perché il broker è degradato.
 
-- significato del dominio;
-- stato tecnico dell'integrazione.
+## Forward recovery prima del rollback immaginario
 
-L'operatore può così vedere:
+Nei sistemi distribuiti la prima domanda non dovrebbe essere sempre “come torniamo indietro?”. Spesso è più utile chiedere se possiamo proseguire verso uno stato valido attraverso retry, redelivery e reconciliation.
 
-> “l'escalation è stata accettata, ma la consegna a Payments è in ritardo.”
-
-Molto meglio di una UI che mostra successo mentre il downstream non ha ricevuto nulla, o di una UI che fallisce l'intera azione soltanto perché il broker è momentaneamente indisponibile.
-
-## Forward recovery prima della compensazione
-
-Nei sistemi distribuiti la prima domanda non dovrebbe sempre essere:
-
-> “come facciamo rollback di tutto?”
-
-Spesso è più utile chiedere:
-
-> “possiamo continuare verso uno stato valido?”
-
-Per un publish fallito:
-
-```text
-retry
-→ redelivery
-→ reconciliation
-```
-
-può essere molto più sensato di annullare l'escalation dell'operatore.
-
-Microsoft Compensating Transaction pattern sottolinea che compensation è domain-specific e che spesso bisogna preferire forward progress quando esiste una strada sicura. La guida recente cita anche casi in cui una decisione ad alto impatto o ambigua dovrebbe essere sospesa per human review invece di compensata automaticamente.
+Microsoft Compensating Transaction pattern sottolinea che la compensation è domain-specific e che, quando possibile, il forward progress può essere preferibile a una compensazione automatica. Per condizioni ambigue o ad alto impatto può essere più corretto fermare il processo e richiedere human review.
 
 Fonte:
 
 - [Microsoft Learn — Compensating Transaction pattern](https://learn.microsoft.com/azure/architecture/patterns/compensating-transaction)
 
-## Compensation non è rollback
+Per una escalation non consegnata, continuare a tentare e riconciliare è normalmente più sensato che annullare il fatto che l’operatore l’abbia richiesta.
 
-Supponiamo un processo futuro:
+## Compensation: produrre un nuovo fatto, non cancellare il passato
 
-```text
-1. approve refund
-2. refund payment provider
-3. update customer-visible state
-4. send notification
-```
+In un workflow futuro di refund, alcuni side effect possono diventare irreversibili. Se il provider ha già eseguito il rimborso, un rollback SQL non può far finta che non sia successo. La recovery potrebbe richiedere una nuova operazione economica, un aggiornamento di audit, una notifica o una manual review.
 
-Se il refund sul provider è già riuscito, non possiamo fare un semplice database rollback e fingere che non sia successo.
-
-Potremmo dover:
-
-- emettere una nuova operazione economica;
-- aggiornare audit;
-- notificare un essere umano;
-- lasciare il processo in uno stato eccezionale;
-- compensare soltanto alcuni passi.
-
-La compensazione è una nuova business operation.
-
-Ha:
-
-- regole proprie;
-- authorization;
-- failure mode;
-- idempotency;
-- audit;
-- possibili costi.
+La compensation è quindi una business operation con proprie regole, authorization, idempotency, failure mode e costi.
 
 > **Una compensazione non cancella il passato. Produce un nuovo fatto che rende il sistema nuovamente accettabile.**
 
-## Saga
+## Saga: usarla quando il workflow la merita
 
-Una saga gestisce un business process distribuito come sequenza di transazioni locali.
-
-Ogni step:
-
-1. modifica atomically il proprio stato locale;
-2. provoca o abilita il passo successivo;
-3. possiede, quando necessario, una compensazione.
-
-Microsoft descrive due grandi stili:
-
-- choreography;
-- orchestration.
+Una saga modella un business process distribuito come sequenza di transazioni locali che fanno progredire lo stato e, quando necessario, definiscono recovery o compensazioni. Microsoft distingue i due grandi stili di choreography e orchestration.
 
 Fonte:
 
 - [Microsoft Learn — Saga distributed transactions pattern](https://learn.microsoft.com/azure/architecture/patterns/saga)
 
-Non useremo la saga come sinonimo di:
+Non useremo però *saga* come sinonimo di “qualunque cosa abbia una queue”. Il primo flusso `OperationalCasePaymentEscalated` contiene un fatto locale, publication affidabile e un consumer downstream: non ha ancora abbastanza step, pivot e compensazioni da giustificare un modello di saga.
 
-> “qualunque cosa abbia una queue”.
+## Choreography: reazioni distribuite
 
-Il nostro primo `OperationalCaseEscalated` non è ancora una saga.
+In choreography i componenti reagiscono agli eventi senza un coordinatore centrale del workflow. Questo può aumentare autonomia e consentire l’aggiunta di subscriber indipendenti. Il costo emerge quando il business process diventa difficile da vedere: regole e recovery si distribuiscono tra consumer, il debugging end-to-end peggiora e possono comparire event chain o loop che nessuno possiede interamente.
 
-Abbiamo:
-
-```text
-un fatto locale
-→ una consegna affidabile
-→ un consumer downstream
-```
-
-Non esiste ancora un workflow multi-step con compensazioni che giustifichi quel modello.
-
-## Choreography
-
-In choreography non esiste necessariamente un coordinatore centrale del business process.
-
-I servizi reagiscono agli eventi:
-
-```text
-OrderCreated
-  ↓
-Inventory reserves
-  ↓ InventoryReserved
-Payments authorizes
-  ↓ PaymentAuthorized
-Shipping prepares
-```
-
-Vantaggi possibili:
-
-- autonomia dei componenti;
-- meno coordinatore centrale;
-- estensibilità tramite nuovi subscriber;
-- buon fit per reaction indipendenti.
-
-Costi:
-
-- il workflow può diventare difficile da vedere;
-- business rule distribuite;
-- debugging end-to-end più complesso;
-- event schema più critici;
-- loop ed event storm;
-- ownership del processo meno evidente.
-
-Microsoft Choreography pattern evidenzia proprio rischi di schema evolution, ordering, idempotency, atomic publication ed emergent event chains.
+Microsoft Choreography pattern evidenzia proprio rischi di schema evolution, ordering, idempotency e catene emergenti.
 
 Fonte:
 
 - [Microsoft Learn — Choreography pattern](https://learn.microsoft.com/azure/architecture/patterns/choreography)
 
-## Orchestration
+Choreography ha un buon fit quando le reaction sono realmente indipendenti e non esiste un workflow centrale che il business debba poter leggere passo per passo.
 
-In orchestration un componente esplicito conosce la progressione del workflow:
+## Orchestration: progressione esplicita
 
-```text
-RefundOrchestrator
-  → validate
-  → request refund
-  → update order
-  → notify
-```
+In orchestration un componente conosce la progressione del processo. Questo rende più visibili stato, timeout, retry, compensazioni e manual intervention. In cambio l’orchestrator diventa un componente importante e può accumulare troppo dominio se confondiamo “coordinare” con “possedere tutte le business rule”.
 
-Vantaggi:
+L’orchestrator dovrebbe possedere la progressione del processo; ogni partecipante continua a possedere i propri invarianti.
 
-- stato del workflow visibile;
-- ownership chiara;
-- gestione più esplicita di retry, timeout e compensation;
-- facile capire “dove siamo”.
+Questo stile tende ad avere fit quando la sequenza è business-significant, esistono più compensation o pivot, serve audit end-to-end oppure una persona può dover intervenire in alcuni stati.
 
-Costi:
+## Pivot e irreversibilità cambiano il tipo di recovery
 
-- orchestrator più complesso;
-- rischio di centralizzare troppo dominio;
-- coupling ai contract dei partecipanti;
-- nuovo componente critico da rendere resiliente.
+Nei workflow economici non tutti gli step hanno lo stesso peso. Una validation può essere annullata semplicemente fermandosi. Una reservation interna può essere compensabile. L’invio del refund al provider può diventare un pivot dopo il quale “tornare indietro” non è più una rappresentazione sensata del problema.
 
-L'orchestrator non dovrebbe diventare:
+Da quel momento il sistema deve proseguire verso un nuovo stato coerente oppure escalare. È per questo che saga e compensation sono prima di tutto **domain modeling del failure**.
 
-> il luogo in cui tutte le business rule dell'azienda finiscono perché è comodo coordinare da lì.
+## Human-in-the-loop come stato progettato
 
-Ogni servizio continua a possedere i propri invarianti.
+Quando l’automazione non dispone di abbastanza contesto oppure una decisione è economicamente o contrattualmente significativa, uno stato come `ManualReviewRequired` può essere più corretto di una compensazione aggressiva.
 
-L'orchestrator possiede la **progressione del processo**, non i dettagli interni di ogni dominio.
+Questo principio si collega direttamente al resto del libro: l’autonomia deve essere proporzionata a reversibilità e blast radius. Una persona nel loop non è una sconfitta dell’architettura se quel passaggio è il modo più sicuro di gestire l’incertezza residua.
 
-## Come scegliere
+## Reconciliation: verificare che la convergenza sia davvero avvenuta
 
-Non esiste una regola universale.
+Retry e acknowledgement non bastano a dimostrare che due sistemi correlati siano convergenti. Una reconciliation può confrontare le escalation accettate da Order Operations con quelle osservate da Payments & Risk usando identity stabili.
 
-Una euristica utile:
+Un elemento mancante downstream può essere repubblicato o investigato; un duplicato dovrebbe essere neutralizzato dall’idempotency ma può indicare un’anomalia da misurare; un record downstream senza origine nota può segnalare un bug di producer o ownership.
 
-### Choreography ha fit quando
+La reconciliation è particolarmente importante quando side effect, acknowledgement e stato attraversano sistemi differenti.
 
-- reactions sono relativamente indipendenti;
-- non esiste un singolo workflow che deve essere spiegato passo per passo;
-- aggiungere subscriber senza modificare producer è importante;
-- eventual failure di un consumer non richiede una decisione centralizzata complessa.
+## Eventual consistency e UX devono raccontare la stessa realtà
 
-### Orchestration ha fit quando
+Una UI che mostra semplicemente `Success!` quando conosce soltanto il local commit sta promettendo più del sistema. È più corretto distinguere `Escalation accepted` da `Delivery pending` e, quando esiste evidence, da `Delivered to Payments`.
 
-- la sequenza è business-significant;
-- serve stato esplicito del workflow;
-- esistono timeout e compensation multiple;
-- alcuni step sono pivot o irreversibili;
-- human intervention può entrare nel processo;
-- audit end-to-end è importante.
-
-## Pivot e punto di non ritorno
-
-Nei workflow economici alcuni step cambiano il tipo di recovery possibile.
-
-Esempio:
-
-```text
-Validate refund eligibility
-→ compensabile / nessun side effect
-
-Reserve internal amount
-→ compensabile
-
-Send provider refund
-→ potrebbe diventare pivot
-
-Notify customer
-→ side effect esterno, ma non economico
-```
-
-Dopo il pivot, “tornare indietro” può non essere più una strategia valida.
-
-Dobbiamo proseguire verso un nuovo stato coerente oppure escalare.
-
-Questo è il motivo per cui i workflow distribuiti sono prima di tutto **domain modeling del failure**, non diagrammi di frecce.
-
-## Human-in-the-loop non è una sconfitta
-
-Esistono condizioni in cui l'automazione non ha abbastanza contesto per decidere correttamente.
-
-Esempio futuro ESI:
-
-```text
-refund provider riuscito
-ma order state non aggiornabile
-perché ordine è entrato in dispute manuale
-```
-
-Un agente o workflow potrebbe proporre alternative.
-
-Ma se la conseguenza economica o contrattuale è significativa, uno stato:
-
-```text
-ManualReviewRequired
-```
-
-può essere molto più sano di una compensazione automatica aggressiva.
-
-Questo si collega direttamente alla tesi AI del libro.
-
-L'autonomia deve essere proporzionale alla reversibilità e all'impatto.
-
-## Reconciliation
-
-Ogni sistema eventualmente consistente ha bisogno di rispondere a:
-
-> come scopriamo che la convergenza non è avvenuta?
-
-Non possiamo affidarci soltanto ai retry.
-
-Una reconciliation può confrontare:
-
-```text
-Order Operations escalations accepted
-vs
-Payments escalations observed
-```
-
-usando ID stabili.
-
-Se trova divergenze:
-
-```text
-missing downstream
-→ republish / investigate
-
-duplicate downstream
-→ idempotency should neutralize; audit anomaly
-
-unknown downstream record
-→ investigate ownership or producer bug
-```
-
-La reconciliation è particolarmente importante per side effect economici e integrazioni che attraversano più sistemi.
-
-## Eventual consistency e UX
-
-Anche la UI deve capire il modello.
-
-Bad UX:
-
-```text
-Success!
-```
-
-quando in realtà il sistema sa soltanto:
-
-```text
-local commit succeeded
-```
-
-Meglio distinguere:
-
-```text
-Escalation accepted
-Delivery pending
-```
-
-oppure:
-
-```text
-Escalation delivered to Payments
-```
-
-La semantica deve seguire il sistema reale.
-
-Non nasconderlo per sembrare più semplice.
+La semantica dell’interfaccia deve seguire il modello reale invece di nasconderlo per sembrare più semplice.
 
 ## Il nostro scenario ESI
 
-Per Order Operations decidiamo:
+Per il primo flusso non introduciamo saga né orchestrator general-purpose. Usiamo outbox per la publication reliability, consumer idempotente, delivery state osservabile e reconciliation come guardrail. Se una escalation supera il business timeout o termina in DLQ, il sistema deve renderlo visibile e prevedere un recovery controllato o human escalation.
 
-- niente saga per il primo evento;
-- niente orchestrator general-purpose;
-- outbox per publication reliability;
-- Payments consumer idempotente;
-- delivery state osservabile;
-- reconciliation periodica come guardrail;
-- human escalation se un messaggio importante supera il business timeout o finisce in DLQ.
+Quando arriverà un vero refund multi-domain, rivaluteremo saga/orchestration in base al comportamento funzionale, non perché il sistema ha ormai “abbastanza eventi”.
 
-Quando introdurremo un vero command di refund o un workflow multi-domain, rivaluteremo orchestration/saga sulla base del comportamento funzionale.
-
-Non anticipiamo la soluzione.
-
-## Regola
-
-Se un workflow distribuito può fallire a metà, il design deve descrivere almeno:
-
-```text
-stati intermedi
-retry
-idempotency
-progress tracking
-business timeout
-compensation
-irreversible step
-reconciliation
-manual intervention
-```
-
-Se il diagramma mostra soltanto il happy path, non abbiamo ancora progettato il workflow.
+Per ogni workflow distribuito significativo dovremo essere in grado di spiegare stati intermedi, retry, idempotency, progress tracking, business timeout, compensation, pivot, reconciliation e manual intervention. Se il diagramma mostra soltanto il happy path, il workflow non è ancora progettato.
