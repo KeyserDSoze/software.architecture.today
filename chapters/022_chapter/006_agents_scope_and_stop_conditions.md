@@ -1,204 +1,150 @@
 # 22.6 — Agenti, scope e stop condition
 
-La issue diventa particolarmente importante quando l'executor non è una persona che conosce informalmente il contesto.
+La issue diventa davvero importante quando l'executor può muoversi velocemente e senza possedere tutto il contesto informale del team.
 
-Un agente può lavorare molto bene dentro uno scope chiaro.
+Un agente competente è molto efficace dentro un boundary chiaro. Lo stesso agente, davanti a un boundary ambiguo, può trasformare un'incertezza piccola in un patch molto ampio e perfettamente coerente con una decisione che nessuno aveva autorizzato.
 
-Può anche amplificare molto rapidamente uno scope ambiguo.
+Per questo lo scope non deve essere letto come una lista rigida di file. È una **superficie di decisione concessa**.
 
-## Capability non è authority
+## Libertà locale, non sovranità
 
-Un coding agent può tecnicamente essere in grado di:
+Un work item execution-ready dovrebbe permettere all'executor di scegliere le soluzioni locali reversibili senza dover chiedere approvazione a ogni riga.
 
-- modificare una migration;
-- cambiare un API contract;
-- aggiornare una fitness rule;
-- aggiungere una dependency cloud;
-- eliminare una compatibility path.
+Nel caso di OO-001, per esempio, l'executor può decidere il meccanismo più piccolo e riproducibile per eseguire PostgreSQL reale, aggiungere una dependency test-only se giustificata e introdurre gli helper necessari al test harness.
 
-Questo non significa che il task corrente lo autorizzi.
+Non può però reinterpretare `PaymentEscalation`, cambiare ownership, riscrivere una migration storica o indebolire la tenant isolation soltanto perché una di queste scorciatoie renderebbe più facile il test.
 
-La issue deve distinguere:
+Quindi il boundary utile non è:
 
 ```text
-Allowed change surface
-Decision surface
-Forbidden / escalation surface
+may edit these four files
 ```
 
-Esempio:
+È:
 
 ```text
-Allowed
-- tests/integration/**
-- test harness configuration
-- package scripts required by the harness
-
-Requires stop
-- production schema semantic change
-- change to PaymentEscalation contract
-- weakening tenant isolation
-- changing existing migrations
+may choose implementation details inside this property boundary
+must stop when the task requires a new semantic / architecture / authority decision
 ```
 
-## Stop condition come parte della specifica
+> **Autonomia locale significa libertà sul come, non libertà di cambiare silenziosamente il perché e il che cosa.**
 
-Una stop condition non è una frase pessimista.
+## La stop condition trasforma un imprevisto in un output corretto
 
-È un confine operativo.
+Durante execution può emergere evidence che il work item non prevedeva.
 
-Esempi:
+Supponiamo che il PostgreSQL harness applichi la migration `002` e scopra che lo schema reale contraddice il Data Ownership Map. Oppure che per riprodurre il failure scenario sia necessario modificare production behavior. Oppure ancora che una architecture fitness rule impedisca la soluzione proposta.
+
+Un executor senza stop condition ha tre opzioni implicite: ignorare il problema, aggirarlo o allargare il task.
+
+Un executor con stop condition ha una quarta opzione, molto più sana:
 
 ```text
-Stop if the required test cannot be written
-without modifying an existing production migration.
+Stopped
+Evidence collected
+Decision required
+Candidate follow-up
 ```
 
-```text
-Stop if current PostgreSQL behavior contradicts
-Data Ownership Map assumptions.
-```
+Il task non è “fallito” perché non ha prodotto codice. Ha scoperto che la premessa di execution non era più valida.
 
-```text
-Stop if passing the gate requires weakening
-an architecture fitness rule.
-```
+Questo è un risultato importante: rende visibile il punto esatto in cui il lavoro ha smesso di essere implementation ed è diventato decisione.
 
-```text
-Stop if the task discovers a new authoritative owner.
-```
+## Task amplification: distinguere ciò che è necessario da ciò che è soltanto vicino
 
-La stop condition trasforma una ambiguità imprevista in un output valido:
+Gli agenti hanno un vantaggio e un rischio comune: vedono opportunità adiacenti mentre lavorano.
 
-```text
-execution stopped
-+ evidence collected
-+ decision required
-```
+Un commento incoerente, una dependency outdated, una doc obsoleta o una piccola refactor opportunity possono apparire nello stesso percorso. Assorbirli tutti nel diff sembra efficiente, ma sposta progressivamente il task lontano dall'acceptance originale.
 
-invece di:
-
-```text
-agent guessed
-+ patch grew
-```
-
-## Task amplification
-
-Nel Capitolo 21 abbiamo introdotto questo failure mode:
-
-```text
-small task
-→ adjacent cleanup discovered
-→ scope expands
-→ architecture changes incidentally
-```
-
-Una issue robusta permette di classificare il lavoro scoperto:
+La classificazione più utile è:
 
 ```text
 required for acceptance
 → include
 
 useful but independent
-→ follow-up
+→ record follow-up
 
-changes semantics / architecture
-→ stop + escalate
+changes semantics / authority / architecture
+→ stop and escalate
 ```
 
-Questo è più utile di un rigido:
+Questo criterio lascia libertà locale senza trasformare “non uscire mai dalla file list” in una regola cieca.
 
-> non toccare mai file fuori lista.
+Un test harness può legittimamente richiedere un nuovo package script. Non è legittimato per questo a ridisegnare il database.
 
-A volte un test richiede una piccola modifica di package script o fixture.
+## L'oracle non è un ostacolo da spostare
 
-Vogliamo autonomia locale, non obbedienza cieca.
-
-## L'agente non approva il proprio cambio di policy
-
-Un caso particolarmente pericoloso:
+Uno dei failure mode più pericolosi appare quando l'executor controlla contemporaneamente implementation e criterio di giudizio.
 
 ```text
-architecture test fails
-→ agent edits architecture test
-→ build green
+architecture rule fails
+→ edit architecture rule
+→ green
 ```
 
-Oppure:
+oppure:
 
 ```text
-acceptance criterion hard to satisfy
-→ agent rewrites fixture
-→ test green
+acceptance fixture disagrees with implementation
+→ rewrite fixture
+→ green
 ```
 
-La issue deve rendere esplicito quando il verification oracle è fuori dallo scope di modifica.
+Il problema non è che test, fixture o policy siano immutabili. Possono diventare sbagliati. Ma cambiare l'oracle è **un'altra decisione** rispetto a soddisfarlo.
 
-Per esempio:
+Per OO-001 le migration `001` e `002` sono baseline storica del task. Se il test dimostra che una di esse ha un problema, il risultato corretto è evidenziare il problema e riaprire la decisione, non modificare la baseline finché il test passa.
+
+> **Un executor può proporre di cambiare la regola che lo giudica. Non dovrebbe poterla cambiare silenziosamente per approvare il proprio lavoro.**
+
+Questa separazione prepara il modello di agent governance del Capitolo 23.
+
+## Instruction e permission sono ancora due cose diverse
+
+Una issue può dire “non fare deploy in production”. `AGENTS.md` può ripeterlo. Entrambe sono informazioni utili, ma non costituiscono da sole un permission boundary.
+
+Il sistema di esecuzione deve applicare credential, environment protection e authorization coerenti con il rischio del task. GitHub distingue a sua volta rationale/approval del workflow dalle permission effettive applicate alla superficie di esecuzione.[^github-approvals]
+
+La conseguenza architetturale è semplice:
 
 ```text
-Existing migration 001/002 are evidence baseline.
-Do not rewrite them to make the integration test pass.
+work-item boundary
+→ tells the executor what is authorized
+
+permission boundary
+→ limits what the executor can actually do
 ```
 
-Questa regola non significa che test e policy siano immutabili.
+Servono entrambi quando il blast radius lo richiede.
 
-Significa che **cambiare il criterio di giudizio è una decisione diversa dal soddisfarlo**.
+## Lo scope può cambiare, ma deve cambiare visibilmente
 
-## Permission boundary reale
+Una issue non è una tavola di pietra.
 
-Una issue può dire:
-
-```text
-Do not deploy to production.
-```
-
-Ma, come abbiamo visto nel Capitolo 21:
-
-```text
-instruction
-≠
-security control
-```
-
-Il sistema di esecuzione deve comunque applicare permission coerenti.
-
-GitHub stessa distingue i meccanismi di approvazione operativa dalle permission effettive: una approval UX non sostituisce un boundary di autorizzazione server-side.[^github-approvals]
-
-Questa distinzione sarà centrale nel Capitolo 23.
-
-## Scope renegotiation
-
-Una buona issue non deve essere immutabile.
-
-Durante execution può emergere evidence nuova.
-
-Il processo sano è:
+Nuova evidence può rendere sensato ampliare o ridurre lo scope. Il processo sano è però esplicito:
 
 ```text
 new evidence
 → pause
-→ update issue / decision
-→ review changed scope
+→ update issue / linked decision
+→ review changed boundary
 → resume
 ```
 
-Non:
+Questo preserva provenance. Chi legge la issue mesi dopo può capire che cosa era autorizzato all'inizio, che cosa abbiamo scoperto e perché il task è cambiato.
+
+Il processo fragile è il contrario:
 
 ```text
 new evidence
-→ silent interpretation
+→ silent reinterpretation
 → larger patch
+→ reviewer reconstructs the decision after the fact
 ```
 
-La issue è un contratto operativo, non una tavola di pietra.
+Più l'execution è veloce, più questa differenza conta.
 
-Può cambiare.
-
-Ma deve cambiare **visibilmente**.
-
-> **L'agente autonomo migliore non è quello che non si ferma mai. È quello che sa distinguere un ostacolo esecutivo da una nuova decisione.**
+> **L'agente autonomo utile non è quello che non si ferma mai. È quello che distingue un ostacolo esecutivo da una nuova decisione e rende visibile il passaggio fra i due.**
 
 ---
 
