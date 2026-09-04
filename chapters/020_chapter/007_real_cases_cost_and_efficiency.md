@@ -109,6 +109,6 @@ Il saving arriva dopo questa catena, non prima.
 
 ESI resta uno scenario simulato in cui possiamo rendere espliciti decisioni, trade-off ed evidence state. I casi Uber dimostrano che organizzazioni reali hanno dovuto affrontare problemi analoghi di capacity, ownership, redundancy e operational cost.
 
-Non diremo quindi “Uber ha fatto X, dunque Order Operations deve fare X”. Diremo qualcosa di più serio: **una organizzazione competente ha dovuto imparare a misurare certe conseguenze; noi dobbiamo risolvere la stessa classe di problema nel nostro contesto.**
+Non diremo quindi “Uber ha fatto X, dunque Order Operations deve fare X”. Diremo qualcosa di più serio: **un'organizzazione competente ha dovuto imparare a misurare certe conseguenze; noi dobbiamo risolvere la stessa classe di problema nel nostro contesto.**
 
 > **Il caso reale utile non ci dice quale tecnologia scegliere. Ci mostra quali conseguenze qualcuno ha dovuto rendere misurabili prima di poter ottimizzare con fiducia.**
