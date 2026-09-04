@@ -1,325 +1,112 @@
 # Leverage, attention e control plane
 
-Il vantaggio più evidente dell'AI nello sviluppo software è la capacità di delegare execution.
+Il vantaggio più evidente dell’AI nello sviluppo software è la capacità di delegare execution. Se però continuiamo a leggere la produttività come semplice volume di output, rischiamo di aumentare proprio la parte del sistema che era già diventata meno scarsa.
 
-Ma se il nostro modello mentale rimane:
-
-```text
-più output
-=
-più produttività
-```
-
-rischiamo di misurare male proprio il cambiamento che stiamo cercando di capire.
-
-La ricerca SPACE sulla developer productivity insiste da anni sul fatto che la produttività non può essere ridotta a una singola metrica di activity. Il framework considera almeno Satisfaction and well-being, Performance, Activity, Communication and collaboration, Efficiency and flow.
+La ricerca SPACE sulla developer productivity nasce anche da questa critica: activity non coincide con productivity. Il framework considera insieme Satisfaction and well-being, Performance, Activity, Communication and collaboration, Efficiency and flow.
 
 Fonte:
 
 - [Microsoft Research / ACM Queue — The SPACE of Developer Productivity](https://www.microsoft.com/en-us/research/publication/the-space-of-developer-productivity-theres-more-to-it-than-you-think/)
 
-Per un One-Man Project questo punto diventa ancora più importante.
+Per un One-Man Project la distinzione è decisiva. Una persona con molti agenti può aumentare commit, candidate change e task completati mentre peggiorano review latency, cognitive load, recoverability e qualità delle decisioni.
 
-Una singola persona con molti agenti può aumentare enormemente l'**activity** e contemporaneamente peggiorare:
+> **Il leverage non è quanto output possiamo generare. È quanta execution possiamo trasformare in outcome verificati senza perdere comprensione e controllo.**
 
-- decision quality;
-- communication;
-- recoverability;
-- cognitive load;
-- review latency;
-- incident response;
-- sostenibilità del lavoro.
+## Il limite si sposta dal data plane al control plane
 
-## Il leverage stack
+Durante il libro abbiamo costruito progressivamente ciò che rende l’execution delegabile: functional semantics, canonical context, work item, environment riproducibile, test veloci, higher-fidelity evidence, fitness function e boundary di permission.
 
-Nel nostro modello il leverage non nasce dal modello AI da solo.
+Questa foundation permette agli agenti di lavorare bene proprio perché molte decisioni non devono essere reinventate durante l’execution.
 
-Nasce da una pila di capability costruite durante tutto il libro:
+Nel data plane possiamo quindi avere più attività contemporanee: un agente prepara una modifica locale, un altro esegue una discovery, un verifier controlla evidence, un documentation synchronizer aggiorna gli artifact dopo una decisione già presa.
+
+Il control plane deve però assorbire le conseguenze di tutto questo lavoro. Quale task ha realmente soddisfatto l’outcome? Quale finding apre una decisione nuova? Quale limitation impedisce di considerare il risultato Verified? Quale change attraversa un domain o security boundary?
+
+Immaginiamo cinque agenti che terminano quasi nello stesso momento. L’execution è completata, ma il lead riceve cinque nuovi pacchetti cognitivi da comprendere. Se la capacità di generazione cresce più rapidamente della capacità di review e decisione, il sistema entra nello stato:
 
 ```text
-clear problem / functional semantics
-        ↓
-canonical repository context
-        ↓
-execution-ready work items
-        ↓
-agent delegation boundaries
-        ↓
-reproducible environment
-        ↓
-fast deterministic verification
-        ↓
-higher-fidelity evidence
-        ↓
-architecture/security/reliability guardrail
-        ↓
-human decision gates
+execution throughput
+>
+decision + verification throughput
 ```
 
-Un agente molto forte dentro un repository ambiguo produce execution veloce dentro un sistema ambiguo.
+Aggiungere un sesto agente non risolve il problema. Aumenta la queue.
 
-Un agente meno spettacolare dentro un sistema con confini, test e context chiari può produrre leverage più affidabile.
+> **Gli agenti possono trasformare lavoro in backlog più velocemente di quanto una persona riesca a trasformare quel backlog in decisioni.**
 
-> **Il leverage non è la quantità di codice che l'agente può generare. È la quantità di execution che possiamo delegare senza perdere il controllo del significato.**
+## L’attention budget non si misura in numero di file
 
-## Il control plane umano
+Ogni task delegato consuma una quota di attenzione futura: bisogna ricaricare context, leggere evidence, capire contradiction, decidere eventuali follow-up, accettare rischio e chiudere il lavoro.
 
-Possiamo usare una metafora già familiare dal cloud.
+La quantità di attenzione non è proporzionale alla dimensione del diff. Un rename locale può toccare molti file ed essere quasi meccanico. Un cambiamento a una retry policy può modificare una singola funzione e richiedere comprensione di failure semantics, API contract, consumer behavior, observability e cost.
 
-Nel data plane avviene l'execution:
+Per questo nel One-Man Project ci interessa il **decision surface** del task, non soltanto il change surface.
+
+ESI usa una classificazione semplice per rendere visibile questa differenza:
 
 ```text
-code generation
-search
-refactoring
-test creation
-documentation update
-environment setup
-analysis
-review candidate
+T0  Mechanical
+T1  Local behavioral
+T2  Cross-boundary
+T3  Decision-changing
 ```
 
-Nel control plane avvengono decisioni come:
+Non è uno standard generale. È un linguaggio operativo. Un T0 può essere delegato con poco controllo aggiuntivo; un T2 attraversa API, database, messaging, security o cloud boundary e consuma più review; un T3 apre business semantics, ownership, external compatibility o una one-way door e richiede un decision owner esplicito.
+
+Il valore della classificazione è ricordare che due task di uguale dimensione possono avere costi di governance radicalmente diversi.
+
+## WIP: limitare la generazione per proteggere la decisione
+
+Con gli agenti il work in progress può esplodere perché il costo di **iniziare** un task diventa molto basso. Ma il costo di terminarlo bene rimane legato alla capacità del control plane.
+
+ESI sceglie quindi per il pilot un limite iniziale:
 
 ```text
-what outcome matters?
-what risk is acceptable?
-who owns the truth?
-which contract may change?
-which evidence is sufficient?
-when do we stop?
-when may we merge?
-when may we roll out?
+Max active execution tasks       2
+Max active cross-boundary tasks  1
+Max unresolved semantic gates    1
 ```
 
-Il One-Man Project aumenta soprattutto la capacità del data plane.
+Questi numeri non sono benchmark né best practice universali. Sono un’ipotesi operativa da sottoporre a evidence.
 
-Il limite si sposta sul control plane.
+La regola importante è un’altra:
 
-Per questo il professionista evolve da artifact producer a **governor of execution**.
+> **Il parallelismo deve essere limitato dalla capacità di verificare e decidere, non dalla capacità tecnica di avviare agenti.**
 
-## Il throughput della decisione
+Se il review backlog cresce, non “risolviamo” aggiungendo execution. Smettiamo di lanciare nuovo lavoro, riduciamo WIP o miglioriamo task preparation e verification.
 
-Immaginiamo cinque agenti.
+Questo è uno dei cambiamenti più controintuitivi dell’AI-native engineering: una queue di task pronti è una capacità utile anche quando scegliamo deliberatamente di non saturarla.
+
+## Il rischio della giornata trasformata in agent polling
+
+Esiste una forma di produttività apparente molto facile da ottenere:
 
 ```text
-Agent A → API task
-Agent B → migration task
-Agent C → observability task
-Agent D → security review
-Agent E → documentation update
+launch
+→ check
+→ reply
+→ repair
+→ launch
+→ check
+→ reply
 ```
 
-Tutti terminano nello stesso momento.
+Il lead sembra sempre occupato e il sistema produce continuamente output. Nel frattempo può scomparire il tempo necessario per parlare con utenti, studiare un failure difficile, comprendere un dominio o ragionare su una nuova architettura.
 
-Il lead deve ora:
+Questo sarebbe un deskilling diverso da quello discusso per il coding: non perdere la capacità di scrivere codice, ma perdere la capacità di **pensare abbastanza a lungo su un problema importante**.
 
-- capire cinque set di conseguenze;
-- risolvere eventuali contraddizioni;
-- leggere evidence differenti;
-- capire se una decisione è diventata architetturalmente significativa;
-- autorizzare o fermare i passi successivi.
+La promessa del leverage dovrebbe essere il contrario. Delegare execution libera capacità cognitiva per le decisioni che non vogliamo delegare. Se ogni minuto liberato viene immediatamente riempito con altro lavoro generato, il sistema ottimizza activity e consuma il proprio control plane.
 
-Il sistema può quindi avere:
+Per questo batching, review window, async queue e protected deep work non sono dettagli di personal productivity. Sono parti dell’operating model.
 
-```text
-execution throughput > decision throughput
-```
+## Misurare outcome, non saturazione
 
-Quando accade, aggiungere altri agenti aumenta il backlog cognitivo.
+Una metrica come `PR per engineer` può essere un activity signal. Non può dirci se il One-Man Project sta funzionando.
 
-È l'equivalente umano di una queue senza consumer capacity sufficiente.
+Dobbiamo leggere insieme almeno outcome verificato, lead time, rework, escaped defect, review backlog, unresolved decision age, operator/customer outcome, cost per verified outcome e continuity risk.
 
-> **Gli agenti possono trasformare il lavoro in backlog più velocemente di quanto una persona riesca a trasformare il backlog in decisioni.**
+Se aumentano task completati ma cresce anche il rework, il sistema ha guadagnato velocità di proposta e perso velocità di accettazione. Se l’execution è abbondante ma le decisioni restano aperte per giorni, il collo di bottiglia è visibile. Se il lead diventa l’unica persona capace di interpretare ogni bundle, il leverage è stato comprato con fragilità.
 
-## Attention budget
+La research SPACE ci aiuta proprio a evitare la scorciatoia “più activity = più productivity”.
 
-Nel One-Man Project introduciamo quindi un'altra risorsa esplicita:
-
-> **attention budget**
-
-Non è una metrica scientifica universale.
-
-È un modo operativo per ricordare che ogni task delegato genera almeno parte di questo costo:
-
-```text
-context load
-review
-contradiction resolution
-follow-up
-risk acceptance
-cleanup
-```
-
-Due task apparentemente piccoli possono consumare più attention di un task grande se attraversano boundary differenti.
-
-Per esempio:
-
-```text
-rename local type
-```
-
-può richiedere poca attention.
-
-Mentre:
-
-```text
-change retry semantics
-```
-
-può richiedere lettura di:
-
-- API Contract;
-- Failure Mode Map;
-- Reliability Contract;
-- consumer behavior;
-- tests;
-- observability;
-- cost impact.
-
-Quindi non misuriamo il carico dal numero di file.
-
-Misuriamo il **decision surface**.
-
-## WIP limit anche per gli agenti
-
-Il Kanban ha reso familiare l'idea che work in progress eccessivo riduca flow e aumenti tempi e contesto.
-
-Lo stesso principio diventa ancora più importante con gli agenti.
-
-Il fatto che possiamo lanciare venti task non implica che sia una buona idea.
-
-Una policy One-Man Project può quindi dire:
-
-```text
-max 3 concurrent execution tasks
-max 1 task crossing a one-way-door candidate
-max 1 unresolved semantic decision at a time
-```
-
-I numeri dipendono dal progetto e non sono best practice universali.
-
-Il principio è:
-
-> **limita il parallelismo sulla base della capacità di verifica e decisione, non della capacità di generazione.**
-
-## Task class
-
-Per rendere il WIP più intelligente possiamo classificare i task.
-
-### T0 — Mechanical
-
-```text
-bounded rename
-formatting
-known codemod
-small doc synchronization
-```
-
-Molto delegabile.
-
-### T1 — Local behavioral
-
-```text
-bounded feature behavior
-local bug
-small refactor
-```
-
-Richiede acceptance + test.
-
-### T2 — Cross-boundary
-
-```text
-API
-DB
-messaging
-security
-cloud
-```
-
-Richiede più context e review.
-
-### T3 — Decision-changing
-
-```text
-business semantics
-data ownership
-external compatibility
-irreversible migration
-production autonomy
-```
-
-Non è semplicemente execution.
-
-Richiede decision owner esplicito.
-
-Questa classificazione è ESI, non uno standard.
-
-Serve a impedire che l'agente tratti ogni task come se differisse soltanto per numero di token.
-
-## Il rischio del focus apparente
-
-Una persona può sembrare estremamente produttiva perché passa la giornata a:
-
-```text
-launch agent
-review result
-launch agent
-review result
-launch agent
-review result
-```
-
-ma perdere progressivamente la capacità di:
-
-- studiare una questione in profondità;
-- formulare una nuova architettura;
-- parlare con utenti e stakeholder;
-- comprendere un dominio;
-- imparare nuove tecnologie;
-- riflettere sui failure mode.
-
-Questo sarebbe un altro tipo di deskilling.
-
-Non della capacità di scrivere codice.
-
-Della capacità di **pensare abbastanza a lungo su un problema difficile**.
-
-Per questo il One-Man Project deve proteggere anche il deep work.
-
-Possiamo delegare molto lavoro proprio per liberare più tempo per le decisioni che non vogliamo delegare.
-
-Se usiamo tutto il tempo liberato per generare altro lavoro, abbiamo perso metà del beneficio.
-
-## Metriche sane
-
-Una metrica come:
-
-```text
-PR per engineer
-```
-
-può essere utile come activity signal.
-
-Non deve diventare il nostro outcome.
-
-Per il One-Man Project preferiamo leggere insieme:
-
-```text
-verified outcome throughput
-lead time
-rework rate
-escaped defects
-review backlog
-unresolved decisions
-operator/customer outcome
-cost per verified outcome
-continuity risk
-```
-
-L'AI può aumentare il volume.
-
-L'obiettivo è aumentare **capability**, non semplicemente activity.
-
-> **Il progetto non scala quando una persona riesce ad avviare più lavoro. Scala quando riesce a governare più outcome mantenendo comprensione, evidence e reversibilità.**
+> **Il progetto scala quando una persona riesce a governare più outcome verificati, non quando riesce ad avviare più lavoro.**
