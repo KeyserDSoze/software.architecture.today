@@ -1,16 +1,6 @@
 ## Component Responsibility Map
 
-Finora abbiamo usato diversi segnali per giudicare i confini:
-
-- ragioni di cambiamento;
-- cohesion;
-- coupling;
-- information hiding;
-- dependency direction;
-- ownership;
-- linguaggio del dominio.
-
-Serve ora un artefatto che li renda visibili senza trasformare il design in un inventario di classi.
+Finora abbiamo usato ragioni di cambiamento, cohesion e coupling, information hiding e dependency direction, ownership e linguaggio del dominio come segnali per giudicare i confini. Serve ora un artefatto che li renda visibili senza trasformare il design in un inventario di classi.
 
 Lo chiameremo:
 
@@ -22,15 +12,7 @@ L'obiettivo è semplice:
 
 ### Che cos'è un component in questa mappa
 
-“Component” qui non indica necessariamente:
-
-- un microservizio;
-- un processo;
-- un package;
-- una libreria;
-- un container.
-
-Indica una **unità significativa di responsabilità** al livello di dettaglio che ci serve per prendere una decisione.
+“Component” qui non indica necessariamente un microservizio o un processo, un package, una libreria o un container. Indica una **unità significativa di responsabilità** al livello di dettaglio che ci serve per prendere una decisione.
 
 In un monolite potrebbe corrispondere a un modulo.
 
@@ -155,15 +137,7 @@ Ma dovrebbe idealmente ricevere il risultato da una fonte autorevole, non reimpl
 
 La mappa trova anche il problema opposto.
 
-Se esiste un comportamento importante ma nessun componente sembra possederlo, probabilmente quella regola finirà:
-
-- in un controller;
-- in uno script;
-- in una query;
-- in una pipeline;
-- duplicata tra consumer diversi.
-
-Questa è una forma comune di architettura accidentale.
+Se esiste un comportamento importante ma nessun componente sembra possederlo, probabilmente quella regola finirà in un controller, in uno script, in una query o in una pipeline, oppure verrà duplicata fra consumer diversi. Questa è una forma comune di architettura accidentale.
 
 ### Too many responsibilities
 
@@ -199,18 +173,7 @@ Per sistemi piccoli può bastare una tabella:
 
 ### Versione high-risk
 
-Per sistemi critici possiamo aggiungere:
-
-- security boundary;
-- data classification;
-- SLO;
-- owner team;
-- deployment unit;
-- failure isolation;
-- recovery expectation;
-- compliance constraint.
-
-Non è un altro artefatto obbligatorio.
+Per sistemi critici possiamo aggiungere security boundary e data classification, SLO e owner team, deployment unit, failure isolation e recovery expectation, fino ai compliance constraint rilevanti. Non è un altro artefatto obbligatorio.
 
 È lo stesso artefatto con più profondità dove il rischio lo richiede.
 

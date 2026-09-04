@@ -10,18 +10,7 @@ Possiamo avere classi perfettamente incapsulate e un sistema comunque troppo esp
 
 ### Che cosa stiamo davvero nascondendo?
 
-Un buon confine può nascondere:
-
-- struttura interna dei dati;
-- strategia di persistenza;
-- libreria usata;
-- algoritmo;
-- provider esterno;
-- policy di retry;
-- meccanismo di caching;
-- ordine interno delle operazioni;
-- dettagli di serializzazione;
-- convenzioni che potrebbero cambiare.
+Un buon confine può nascondere la struttura interna dei dati e la strategia di persistenza, la libreria o l'algoritmo usati, perfino il provider esterno. Può rendere locali policy di retry e caching, ordine interno delle operazioni, dettagli di serializzazione e convenzioni che potrebbero cambiare senza obbligare i consumer a seguirle.
 
 L'obiettivo non è creare mistero.
 
@@ -41,15 +30,7 @@ const rows = await db.query(`
 
 Questa query non conosce soltanto dati.
 
-Conosce:
-
-- nomi delle colonne;
-- struttura fisica;
-- convenzioni sullo stato;
-- presenza di timestamp specifici;
-- database come meccanismo di accesso.
-
-Se molte parti del sistema fanno lo stesso, la persistenza non è più un dettaglio del modulo Orders.
+Conosce i nomi delle colonne e la struttura fisica, le convenzioni sullo stato, la presenza di timestamp specifici e perfino il database come meccanismo di accesso. Se molte parti del sistema fanno lo stesso, la persistenza non è più un dettaglio del modulo Orders.
 
 È diventata un'API implicita globale.
 
@@ -133,15 +114,7 @@ interface Storage {
 
 Sembra astratto.
 
-Ma se ogni consumer deve sapere:
-
-- quali entity possono essere salvate;
-- quale transaction scope viene usato;
-- quali errori sono retryable;
-- quando i dati diventano visibili;
-- come vengono risolti i conflitti;
-
-abbiamo semplicemente nascosto il nome del database, non il suo modello operativo.
+Ma se ogni consumer deve sapere quali entity possano essere salvate e quale transaction scope venga usato, quali errori siano retryable, quando i dati diventino visibili e come vengano risolti i conflitti, abbiamo semplicemente nascosto il nome del database, non il suo modello operativo.
 
 Un'astrazione utile deve nascondere davvero una decisione o almeno ridurre la quantità di conoscenza condivisa.
 
@@ -155,16 +128,7 @@ All'inizio è molto efficiente.
 
 Non serve creare API, eventi o mapping.
 
-Poi arrivano conseguenze:
-
-- ownership ambigua;
-- migration difficili;
-- regole duplicate;
-- impossibilità di sapere chi modifica un dato;
-- query cross-domain;
-- coupling alla struttura fisica.
-
-Questo non significa che ogni modulo debba avere immediatamente un database separato.
+Poi arrivano ownership ambigua e migration difficili, regole duplicate e impossibilità di sapere chi modifichi un dato. Query cross-domain e coupling alla struttura fisica completano il problema. Questo non significa che ogni modulo debba avere immediatamente un database separato.
 
 Un modular monolith può usare lo stesso database fisico e mantenere ownership logica forte.
 

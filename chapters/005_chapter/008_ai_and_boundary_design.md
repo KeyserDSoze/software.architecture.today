@@ -10,17 +10,7 @@ oppure:
 
 > “Dividi questo monolite in moduli.”
 
-E in pochi secondi possiamo ottenere:
-
-- nuove cartelle;
-- interfacce;
-- adapter;
-- use case;
-- dependency injection;
-- test;
-- diagrammi.
-
-Il risultato può apparire molto professionale.
+E in pochi secondi possiamo ottenere nuove cartelle, interfacce e adapter, use case e dependency injection, test e diagrammi. Il risultato può apparire molto professionale.
 
 Ma c'è una domanda più importante:
 
@@ -123,17 +113,7 @@ Questo è potente.
 
 Ed è pericoloso.
 
-Una riorganizzazione può:
-
-- cambiare import;
-- modificare dependency injection;
-- rompere test;
-- cambiare transazioni;
-- alterare serializzazione;
-- introdurre adapter incompleti;
-- lasciare accessi cross-boundary nascosti.
-
-Per questo il refactoring dei confini deve essere verificato con proprietà strutturali.
+Una riorganizzazione può cambiare import e dependency injection, rompere test o modificare transazioni, alterare serializzazione, introdurre adapter incompleti e lasciare accessi cross-boundary nascosti. Per questo il refactoring dei confini deve essere verificato con proprietà strutturali.
 
 Per esempio:
 
@@ -173,30 +153,13 @@ Ma molte dipendenze proibite sì.
 
 Gli agenti sono molto bravi a generare boilerplate.
 
-Questo abbassa il costo apparente di creare:
-
-- interface;
-- factory;
-- adapter;
-- mapper;
-- DTO;
-- facade;
-- mediator;
-- handler.
-
-Di conseguenza possiamo finire con architetture che un team umano avrebbe evitato semplicemente perché troppo costose da scrivere.
+Questo abbassa il costo apparente di creare interface e factory, adapter e mapper, DTO, facade, mediator e handler. Di conseguenza possiamo finire con architetture che un team umano avrebbe evitato semplicemente perché troppo costose da scrivere.
 
 L'AI rimuove quel freno economico.
 
 Non rimuove il costo cognitivo.
 
-Ogni astrazione aggiunge:
-
-- un nome;
-- una relazione;
-- una navigazione;
-- una regola da capire;
-- una possibilità di divergenza.
+Ogni astrazione aggiunge un nome e una relazione, un passaggio di navigazione, una regola da capire e una nuova possibilità di divergenza.
 
 > **Boilerplate economico non significa complessità gratuita.**
 
@@ -244,20 +207,6 @@ Il confine buono contiene contesto senza nascondere dipendenze essenziali.
 
 L'AI non cambia i principi fondamentali di modularità.
 
-Cambia però il costo relativo di alcune azioni:
-
-- esplorare grandi repository costa meno;
-- proporre decomposizioni costa meno;
-- generare adapter costa meno;
-- applicare refactoring meccanici costa meno;
-- produrre molte varianti costa meno.
-
-Quindi aumenta il valore di ciò che resta costoso:
-
-- scegliere il confine giusto;
-- capire il significato;
-- riconoscere il coupling reale;
-- evitare astrazioni inutili;
-- verificare che la trasformazione preservi comportamento.
+Cambia però il costo relativo di alcune azioni: esplorare grandi repository, proporre decomposizioni, generare adapter, applicare refactoring meccanici e produrre molte varianti costa meno. Proprio per questo aumenta il valore di ciò che resta costoso: scegliere il confine giusto, capire il significato, riconoscere il coupling reale, evitare astrazioni inutili e verificare che la trasformazione preservi il comportamento.
 
 > **L'AI può spostare diecimila file. Non può rendere corretto un confine che abbiamo capito male.**

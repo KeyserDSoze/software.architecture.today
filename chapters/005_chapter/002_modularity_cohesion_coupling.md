@@ -27,24 +27,9 @@ Può essere anche grande.
 
 La domanda è se le sue parti cambino prevalentemente per motivi correlati.
 
-Immaginiamo un modulo `Orders` che contiene:
+Immaginiamo un modulo `Orders` che gestisca creazione e annullamento dell'ordine, validazione delle transizioni, calcolo dello stato corrente e regole di modifica. C'è una ragione plausibile per cui queste responsabilità vivano insieme: condividono il significato di “ordine” e le sue invarianti.
 
-- creazione ordine;
-- validazione delle transizioni di stato;
-- annullamento;
-- calcolo dello stato corrente;
-- regole di modifica.
-
-C'è una ragione plausibile per cui queste responsabilità vivano insieme: condividono il significato di “ordine” e le sue invarianti.
-
-Se dentro lo stesso modulo troviamo invece:
-
-- rendering PDF delle fatture;
-- gestione utenti;
-- invio newsletter;
-- retry verso un provider logistico;
-
-il nome `Orders` sta probabilmente nascondendo responsabilità differenti.
+Se dentro lo stesso modulo troviamo invece rendering PDF delle fatture, gestione utenti, invio newsletter e retry verso un provider logistico, il nome `Orders` sta probabilmente nascondendo responsabilità differenti.
 
 ### Functional cohesion vs convenience cohesion
 
@@ -85,14 +70,7 @@ Il coupling non è semplicemente il numero di dipendenze.
 
 Una dipendenza può essere economica o costosa.
 
-Dipendere da una funzione pura e stabile non ha lo stesso costo di dipendere da:
-
-- uno schema database condiviso;
-- una chiamata sincrona remota;
-- un formato evento instabile;
-- un ordine temporale implicito;
-- una convenzione non documentata;
-- una libreria interna che espone dettagli di implementazione.
+Dipendere da una funzione pura e stabile non ha lo stesso costo di dipendere da uno schema database condiviso o da una chiamata sincrona remota, da un formato evento instabile o da un ordine temporale implicito. Anche una convenzione non documentata o una libreria interna che espone dettagli di implementazione possono creare coupling molto più forte di quanto suggerisca un semplice import.
 
 Per questo conviene chiedere:
 
@@ -129,13 +107,7 @@ Un segnale particolarmente utile è il **change coupling**.
 
 Se ogni volta che modifichiamo A dobbiamo modificare B, C e D, esiste un legame strutturale anche se il diagramma non lo mostra.
 
-Possiamo scoprirlo osservando:
-
-- history dei commit;
-- file che cambiano insieme;
-- PR che attraversano sempre gli stessi confini;
-- test che devono essere aggiornati in cascata;
-- deploy coordinati.
+Possiamo scoprirlo osservando la history dei commit e i file che cambiano insieme, le pull request che attraversano sempre gli stessi confini, i test che devono essere aggiornati in cascata e i deploy che richiedono coordinamento.
 
 L'AI può aiutare molto a esplorare questi pattern in un repository grande.
 
@@ -149,19 +121,7 @@ Non ogni correlazione nella history rappresenta un bounded context nascosto.
 
 Una chiamata tra due classi nello stesso processo è diversa da una chiamata tra due servizi distribuiti.
 
-Quando attraversiamo un confine di processo o rete compaiono costi nuovi:
-
-- latency;
-- failure parziale;
-- timeout;
-- retry;
-- autenticazione;
-- versioning;
-- observability;
-- deployment indipendente;
-- compatibility.
-
-Per questo una separazione concettualmente elegante può essere operativamente pessima.
+Quando attraversiamo un confine di processo o rete compaiono costi nuovi: latency e failure parziali, timeout e retry, autenticazione e versioning. Dobbiamo inoltre governare observability, deployment indipendente e compatibility. Per questo una separazione concettualmente elegante può essere operativamente pessima.
 
 Un confine logico non richiede automaticamente un confine fisico.
 

@@ -18,15 +18,7 @@ La differenza non dipende soltanto dalla quantità di codice.
 
 Dipende da **dove passa la responsabilità**.
 
-Quando il software cresce, il problema non è più soltanto implementare comportamenti. Diventa decidere:
-
-- quali parti appartengono davvero insieme;
-- quali conoscenze devono rimanere locali;
-- quali dipendenze sono accettabili;
-- quali dettagli devono essere nascosti;
-- chi è autorevole per una regola;
-- quali cambiamenti dovrebbero poter avvenire indipendentemente;
-- dove un confine riduce complessità e dove invece la crea.
+Quando il software cresce, il problema non è più soltanto implementare comportamenti. Diventa decidere quali parti appartengano davvero insieme e quali conoscenze debbano restare locali, quali dipendenze siano accettabili e quali dettagli vadano nascosti. Dobbiamo anche stabilire chi sia autorevole per una regola, quali cambiamenti debbano poter avvenire indipendentemente e dove un confine riduca complessità invece di crearne altra.
 
 Queste sono domande di design.
 
@@ -149,13 +141,7 @@ Un buon modulo permette a una decisione locale di rimanere locale.
 
 Con gli agenti questa proprietà diventa ancora più importante.
 
-Un agente a cui chiediamo di modificare la gestione degli ordini dovrebbe poter capire:
-
-- quali file appartengono a quella responsabilità;
-- quali invarianti deve preservare;
-- quali API può usare;
-- quali dipendenze non deve introdurre;
-- quali test rappresentano il contratto del modulo.
+Un agente a cui chiediamo di modificare la gestione degli ordini dovrebbe poter capire quali file appartengano a quella responsabilità e quali invarianti debba preservare, quali API possa usare, quali dipendenze non debba introdurre e quali test rappresentino il contratto del modulo.
 
 Se una modifica apparentemente locale richiede di esplorare tutto il repository, la capacità di delegare diminuisce.
 
@@ -177,17 +163,7 @@ La domanda centrale sarà:
 
 > **Dove deve vivere una responsabilità perché il sistema resti comprensibile, modificabile e verificabile?**
 
-Per rispondere useremo concetti classici:
-
-- modularità;
-- cohesion;
-- coupling;
-- information hiding;
-- dependency inversion;
-- composition;
-- domain modeling.
-
-Ma non come definizioni da memorizzare.
+Per rispondere useremo concetti classici come modularità, cohesion e coupling, information hiding, dependency inversion, composition e domain modeling. Ma non come definizioni da memorizzare.
 
 Li useremo come strumenti per giudicare un confine.
 

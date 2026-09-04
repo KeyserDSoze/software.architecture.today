@@ -39,25 +39,11 @@ Ma uno schema relazionale è una rappresentazione di persistenza.
 
 Non è necessariamente il modello mentale corretto per il comportamento.
 
-Per esempio, il concetto di “ordine annullabile” potrebbe dipendere da:
-
-- stato logistico;
-- stato del pagamento;
-- finestra temporale;
-- policy commerciale;
-- ruolo dell'utente.
-
-Nessuna singola tabella rappresenta necessariamente quella regola.
+Per esempio, il concetto di “ordine annullabile” potrebbe dipendere dallo stato logistico e del pagamento, da una finestra temporale, da una policy commerciale e dal ruolo dell'utente. Nessuna singola tabella rappresenta necessariamente quella regola.
 
 ### Entità, valore e comportamento
 
-Nel domain modeling ci interessa distinguere almeno:
-
-- cose con identità nel tempo;
-- valori definiti dalle proprie proprietà;
-- comportamenti e invarianti;
-- eventi significativi;
-- responsabilità che appartengono a un contesto specifico.
+Nel domain modeling ci interessa distinguere cose con identità nel tempo da valori definiti dalle proprie proprietà, riconoscere comportamenti e invarianti, eventi significativi e responsabilità che appartengono a un contesto specifico.
 
 Un `OrderId` può essere un value object.
 
@@ -156,13 +142,7 @@ Ancora una volta:
 
 ### Context mapping pragmatico
 
-Quando due contesti interagiscono, vogliamo capire:
-
-- chi possiede il concetto;
-- quale informazione viene condivisa;
-- chi traduce il modello;
-- quali assunzioni diventano contratto;
-- quale parte è autorizzata a cambiare il significato.
+Quando due contesti interagiscono, vogliamo capire chi possieda il concetto e quale informazione venga condivisa, chi traduca il modello, quali assunzioni diventino contratto e quale parte sia autorizzata a cambiare il significato.
 
 Supponiamo che Shipping esponga:
 
@@ -222,30 +202,11 @@ Ed è molto più pericoloso.
 
 ### AI e domain modeling
 
-L'AI è molto utile per estrarre un primo modello da:
-
-- codice esistente;
-- nomi delle API;
-- schema database;
-- ticket;
-- documentazione;
-- test;
-- log.
-
-Può proporre entità, invarianti e bounded context.
+L'AI è molto utile per estrarre un primo modello da codice esistente, nomi delle API e schema database, ma anche da ticket, documentazione, test e log. Può proporre entità, invarianti e bounded context.
 
 Ma tende anche a produrre modelli troppo puliti.
 
-Il dominio reale contiene:
-
-- eccezioni;
-- termini ambigui;
-- regole storiche;
-- compromessi commerciali;
-- ownership organizzativa;
-- casi che contraddicono il modello elegante.
-
-Per questo un domain model generato deve essere trattato come ipotesi.
+Il dominio reale contiene eccezioni e termini ambigui, regole storiche e compromessi commerciali, ownership organizzativa e casi che contraddicono il modello più elegante. Per questo un domain model generato deve essere trattato come ipotesi.
 
 Una buona review chiede:
 
@@ -257,13 +218,6 @@ Oppure:
 
 ### Il criterio finale
 
-Un modello di dominio è utile se rende più facile dire:
-
-- dove vive una regola;
-- chi la può cambiare;
-- quali invarianti devono restare vere;
-- quali concetti non devono trapelare fuori dal loro contesto.
-
-Non deve riprodurre perfettamente la realtà.
+Un modello di dominio è utile se rende più facile dire dove viva una regola e chi possa cambiarla, quali invarianti debbano restare vere e quali concetti non debbano trapelare fuori dal loro contesto. Non deve riprodurre perfettamente la realtà.
 
 Deve fornire **una struttura sufficientemente buona per proteggere il significato del software**.

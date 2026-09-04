@@ -172,15 +172,7 @@ Qui appare una distinzione importante tra **component boundary** e **organizatio
 
 Il modulo Payments del prodotto può possedere il lifecycle tecnico/applicativo del pagamento.
 
-Ma ESI può avere una business unit Payments & Risk che possiede policy condivise come:
-
-- regole di refund;
-- limiti di rischio;
-- audit economico;
-- provider strategy;
-- controlli antifrode.
-
-Non tutto ciò che è “nel modulo Payments” può essere deciso localmente dal team Order Operations.
+Ma ESI può avere una business unit Payments & Risk che possiede policy condivise su refund e limiti di rischio, audit economico, provider strategy e controlli antifrode. Non tutto ciò che è “nel modulo Payments” può essere deciso localmente dal team Order Operations.
 
 Questo è uno dei motivi per cui conoscere il dominio dell'applicazione non basta: serve anche capire il sistema organizzativo in cui il software vive.
 
@@ -282,15 +274,7 @@ Il bottone è semplice.
 
 Il confine no.
 
-Order Operations potrebbe orchestrare la richiesta, ma non dovrebbe inventare:
-
-- quando un retry è consentito;
-- se può duplicare un addebito;
-- quale idempotency key usare;
-- quali provider supportano il comportamento;
-- quale audit è necessario.
-
-Queste responsabilità appartengono al dominio Payments e alle policy ESI di Payments & Risk.
+Order Operations potrebbe orchestrare la richiesta, ma non dovrebbe inventare quando un retry sia consentito, se possa duplicare un addebito, quale idempotency key usare, quali provider supportino il comportamento o quale audit sia necessario. Queste responsabilità appartengono al dominio Payments e alle policy ESI di Payments & Risk.
 
 Il boundary ci permette di dire:
 
@@ -337,17 +321,7 @@ La parte importante è che il layout renda visibili le responsabilità e la dire
 
 Non abbiamo scritto meno codice per forza.
 
-Abbiamo ottenuto qualcosa di diverso:
-
-- fonti autorevoli distinte;
-- contratti espliciti fra i domini;
-- dettagli infrastrutturali più locali;
-- una UI che non reinventa regole;
-- ownership del dato più chiara;
-- un perimetro più comprensibile per test e agenti;
-- visibilità su quali decisioni richiedono altri stakeholder ESI.
-
-Questa è modularità utile.
+Abbiamo ottenuto fonti autorevoli distinte e contratti espliciti fra i domini, dettagli infrastrutturali più locali e una UI che non reinventa regole. L'ownership del dato è più chiara, il perimetro è più comprensibile per test e agenti e diventa visibile quali decisioni richiedano altri stakeholder ESI. Questa è modularità utile.
 
 Non il numero di cartelle.
 
