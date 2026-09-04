@@ -1,85 +1,49 @@
 # Capitolo 17 — Legacy e comprensione
 
-Un sistema legacy non è necessariamente scritto in COBOL.
+Un sistema legacy non è necessariamente vecchio.
 
-Può essere un'applicazione Java di quindici anni fa.
+Può essere un monolite Java di quindici anni fa che continua a funzionare bene.
 
-Può essere un monolite Rails che continua a ricevere decine di deploy al giorno.
+Può essere una codebase TypeScript di tre anni fa cresciuta più velocemente della comprensione del team.
 
-Può essere una codebase TypeScript nata tre anni fa e cresciuta più velocemente della comprensione del team.
+Può persino essere codice generato pochi mesi fa da agenti AI, modificato molte volte e mai realmente compreso da chi oggi deve cambiarlo.
 
-Può perfino essere codice generato sei mesi fa da agenti AI che nessuno ha realmente letto.
-
-La caratteristica che ci interessa non è l'età.
+La proprietà che ci interessa non è l'età.
 
 È questa:
 
-> **non comprendiamo il sistema abbastanza bene da modificarlo con confidenza.**
+> **non comprendiamo il sistema abbastanza bene da modificarlo con confidence proporzionata al rischio.**
 
 È qui che il legacy diventa un problema architetturale.
 
-## Il problema non è che il sistema è vecchio
+## Legacy come perdita di conoscenza governabile
 
-Un sistema può essere vecchio e perfettamente governabile.
+Un sistema può avere vent'anni ed essere ancora governabile quando possiede boundary leggibili, test affidabili, deploy ripetibili, ownership chiara, dipendenze note, observability utile e persone che comprendono il dominio.
 
-Può avere:
+Al contrario, un sistema recente può essere già legacy-like quando contiene regole duplicate, shared database senza owner, job notturni che nessuno sa se siano ancora necessari, feature flag permanenti, procedure manuali indispensabili e nessun modo affidabile per stimare il blast radius di una modifica.
 
-- boundary chiari;
-- test affidabili;
-- ownership esplicita;
-- deploy ripetibili;
-- dipendenze note;
-- business rule leggibili;
-- observability utile;
-- rollback credibile;
-- team che conoscono il dominio.
+La tecnologia può contribuire al problema.
 
-Un sistema del genere può avere vent'anni e continuare a produrre valore.
-
-Al contrario, un sistema relativamente recente può essere già legacy-like quando presenta:
-
-- regole duplicate e contraddittorie;
-- dipendenze invisibili;
-- shared database modificato da più applicazioni;
-- cron job che nessuno sa se servono ancora;
-- feature flag permanenti;
-- configuration drift;
-- integrazioni via file o mailbox;
-- procedure manuali indispensabili ma non documentate;
-- test che verificano l'implementazione e non il comportamento;
-- nessun modo affidabile per capire il blast radius di una modifica.
+Ma la perdita di conoscenza è spesso il rischio più profondo.
 
 La prima tesi del capitolo è quindi:
 
-> **Legacy è prima di tutto un problema di conoscenza.**
+> **Legacy è prima di tutto un problema di conoscenza e verificabilità.**
 
-La tecnologia può essere una parte del problema.
+## Nel brownfield il metodo si rovescia
 
-La perdita di comprensione è spesso il problema più pericoloso.
+Finora Order Operations è cresciuto in modo relativamente controllato.
 
-## Il brownfield cambia il metodo
+Abbiamo costruito problema, analisi funzionale, boundary, dati, failure mode, security, reliability, observability e testing strategy prima che il sistema diventasse troppo grande per essere compreso.
 
-Finora abbiamo fatto crescere Order Operations conoscendo progressivamente:
-
-- problema;
-- analisi funzionale;
-- boundary;
-- dati;
-- failure mode;
-- security;
-- reliability;
-- observability;
-- testing strategy.
-
-Nel mondo reale capita spesso l'opposto.
-
-Arriviamo quando:
+Nel brownfield troviamo spesso l'ordine opposto:
 
 ```text
 codice
 + database
 + job
 + integrazioni
++ configurazione
 + infrastruttura
 + workaround
 + procedure operative
@@ -87,208 +51,187 @@ codice
 
 esistono già.
 
-Ma non esiste più una rappresentazione condivisa del perché.
+Quello che manca è una rappresentazione condivisa del loro significato.
 
-Il lavoro non comincia quindi da:
+Il lavoro non inizia quindi chiedendo:
 
-> “Quale architettura vogliamo?”
+> Quale architettura vogliamo?
 
-Comincia da:
+Inizia chiedendo:
 
-> **“Che sistema abbiamo davvero?”**
+> **Che sistema abbiamo davvero, e quanto di ciò che crediamo di sapere possiamo dimostrare?**
 
-Microsoft, nella propria guida di application modernization, mette l'assessment prima del piano di trasformazione: inventario di applicazioni, dati, infrastruttura, costi e readiness organizzativa sono input necessari per decidere dove e come modernizzare. La modernizzazione viene inoltre presentata come un ciclo continuo di assessment, planning, execution e maintenance, non come una riscrittura una tantum.
+Microsoft mette l'assessment prima del modernization plan: inventory di applicazioni, dati, infrastruttura, costi e readiness organizzativa diventano input della trasformazione. La modernization viene inoltre descritta come un ciclo di assessment, planning, execution e maintenance, non come una riscrittura una tantum.
 
 Fonti:
 
 - [Microsoft Learn — Assess your application modernization needs](https://learn.microsoft.com/en-us/azure/app-modernization-guidance/assess/)
 - [Microsoft Learn — Application modernization life cycle](https://learn.microsoft.com/en-us/azure/app-modernization-guidance/get-started/application-modernization-life-cycle)
 
-## Il repository non è il sistema
+## Il repository è una fonte, non il sistema
 
-Quando ereditiamo una codebase, la tentazione è aprire il repository e pensare che tutto ciò che dobbiamo capire sia lì.
+Quando ereditiamo una codebase, il repository sembra naturalmente la fonte primaria.
 
-Raramente è vero.
+Lo è.
 
-Il comportamento reale può dipendere da:
+Non è però una descrizione completa del sistema operativo reale.
 
-- configurazione runtime;
-- dati storici;
-- schema e stored procedure;
-- feature flag;
-- queue e topic;
-- scheduler;
-- identity provider;
-- secret e certificati;
-- DNS;
-- regole del load balancer;
-- job esterni;
-- file condivisi;
-- consumer non documentati;
-- procedure umane;
-- contratti impliciti con altri team.
+Il comportamento può dipendere da configuration runtime, dati storici, stored procedure, feature flag, scheduler, queue, identity, DNS, certificati, consumer fuori repository e procedure umane.
 
-Il codice ci mostra una parte della verità.
-
-Il runtime ce ne mostra un'altra.
-
-Le persone spesso ne conservano un'altra ancora.
-
-Per questo il legacy discovery deve combinare almeno:
+Per questo la comprensione legacy richiede almeno cinque famiglie di evidence:
 
 ```text
 static evidence
-+ runtime evidence
-+ data evidence
-+ operational evidence
-+ human/domain evidence
+runtime evidence
+data evidence
+operational evidence
+human/domain evidence
 ```
+
+Il codice può dirci che una funzione esiste.
+
+La runtime telemetry può dirci che viene davvero eseguita.
+
+I dati possono mostrarci quali stati produce.
+
+Operations può dirci che durante un incidente quella funzione viene bypassata con una procedura manuale.
+
+Product può infine confermare se il comportamento è ancora desiderato.
+
+Sono forme di conoscenza diverse.
 
 ## Code archaeology non significa leggere tutto
 
-Una codebase grande può contenere milioni di linee.
+Leggere milioni di linee in ordine non è comprensione.
 
-Leggerla linearmente non è comprensione.
+È consumo di attenzione.
 
-È consumo di tempo.
+L'obiettivo della code archaeology è costruire **la mappa minima sufficiente per la decisione che dobbiamo prendere**.
 
-L'obiettivo della code archaeology è costruire una mappa sufficiente per la decisione che dobbiamo prendere.
+Se dobbiamo modificare il routing di priorità di un case, vogliamo capire almeno:
 
-Se dobbiamo cambiare l'assegnazione di un caso operativo, vogliamo sapere:
+```text
+entry point
+→ decision points
+→ state read/write
+→ side effects
+→ consumers
+→ recovery path
+```
 
-- da dove entra la richiesta;
-- quali moduli partecipano;
-- quali dati legge e scrive;
-- quali side effect produce;
-- quali job successivi dipendono da quei dati;
-- quali consumer leggono il risultato;
-- quali permission sono richieste;
-- quali failure sono possibili;
-- quale evidence ci dice che il comportamento è corretto.
+Poi dobbiamo sapere quali dipendenze partecipano, chi possiede i dati, quali permission sono necessarie e quale evidence potrebbe smentire la nostra ricostruzione.
 
-Non dobbiamo necessariamente capire l'intera azienda prima di modificare una funzione.
+Non dobbiamo capire l'intera azienda prima di ogni change.
 
-Dobbiamo però capire **il sistema di conseguenze** della funzione che stiamo per toccare.
+Dobbiamo capire abbastanza del **sistema di conseguenze** del change che stiamo per fare.
 
-## Il rischio della spiegazione plausibile
+## Il nuovo rischio introdotto dall'AI
 
-L'AI rende la code archaeology molto più veloce.
+Gli agenti rendono questa esplorazione molto più economica.
 
-Un agente può:
+Possono cercare entry point, query SQL, configuration key, producer e consumer, duplicated rule, high fan-in module e candidate dependency graph in una frazione del tempo umano.
 
-- esplorare directory;
-- costruire call graph;
-- cercare query SQL;
-- trovare configuration key;
-- individuare consumer di un evento;
-- proporre dependency map;
-- spiegare funzioni complesse;
-- cercare pattern duplicati;
-- produrre una prima documentazione.
+Questo è un vantaggio enorme.
 
-Questo è estremamente utile.
-
-Ma introduce un nuovo failure mode:
+Introduce però un failure mode altrettanto importante:
 
 > **una spiegazione plausibile può sembrare una spiegazione verificata.**
 
-Un agente può leggere il codice e concludere che una funzione “calcola la priorità dei casi enterprise”.
+Un agente può trovare una funzione chiamata `PriorityRouter` e concludere che governi la priorità operativa corrente.
 
-La funzione potrebbe però:
+La funzione potrebbe invece essere dead code, essere usata soltanto da un batch, essere bypassata da una flag, ricevere configuration diversa in produzione o produrre un valore che nessuno consuma più.
 
-- non essere più chiamata;
-- essere chiamata soltanto da un batch mensile;
-- ricevere configurazione diversa in produzione;
-- essere bypassata da una feature flag;
-- produrre un valore che nessun consumer usa più;
-- contenere un bug su cui un downstream ha costruito una compatibilità.
+La spiegazione del codice è una claim sul sistema.
 
-La spiegazione del codice è un'ipotesi sul sistema.
+Non è ancora knowledge confermata.
 
-Non è ancora evidence del comportamento reale.
+## Un vocabolario per non lavare le ipotesi
 
-## Un linguaggio per il grado di conoscenza
-
-Nel capitolo useremo quattro stati:
+Per tutto il capitolo useremo quattro stati:
 
 ```text
 Found
-→ qualcosa esiste nel codice/config/schema
+→ qualcosa esiste nel codice, config, schema o altro artefatto
 
 Inferred
-→ deduciamo un ruolo o comportamento
+→ deduciamo un ruolo o un comportamento dai materiali disponibili
 
 Observed
-→ abbiamo evidence runtime/test/data del comportamento
+→ test, runtime o dati mostrano che il comportamento accade
 
 Confirmed
-→ domain/owner + evidence concordano che il comportamento è intenzionale
+→ owner/domain decision + evidence concordano che il comportamento è intenzionale
 ```
 
-Questa distinzione è importante anche per gli agenti.
+Questa distinzione è il centro del capitolo.
 
-Un output AI dovrebbe poter dire:
+Un output utile non dovrebbe dire soltanto:
+
+> Il job X aggiorna la priorità.
+
+Dovrebbe dire:
 
 ```text
-Claim: il job X aggiorna la priorità del caso
-Evidence: chiamata SQL + scheduler configuration
-State: Inferred
-Missing: runtime execution evidence + owner confirmation
+Claim
+job X modifica priority_code
+
+Evidence
+scheduler definition + SQL update
+
+State
+Inferred
+
+Missing
+runtime execution evidence + owner confirmation
 ```
 
-non soltanto:
+La seconda forma è meno fluida.
 
-> “Il job X gestisce le priorità.”
+È molto più sicura.
 
-## ESI: arriva un sistema che non abbiamo progettato noi
+## ESI incontra un sistema che non abbiamo progettato
 
-Example Software Industries possiede da anni un'applicazione interna che chiameremo:
+Example Software Industries possiede da anni **Operations Desk Classic**, un'applicazione interna precedente a Order Operations.
 
-> **Operations Desk Classic**
+Alcune capability sono già state sostituite, altre vengono ancora usate da Operations.
 
-È antecedente a Order Operations.
-
-Alcuni team di supporto la usano ancora per funzioni che non sono state migrate.
-
-Finance vuole ridurre il costo di mantenerla.
+Finance vuole ridurne il costo.
 
 Platform vuole eliminare runtime e pipeline fuori standard.
 
-Security vuole ridurre vecchie identity e permission.
+Security vuole ridurre identity e permission storiche.
 
-Commerce & Operations vuole consolidare il lavoro degli operatori dentro Order Operations.
+Commerce & Operations vuole consolidare l'esperienza dentro Order Operations.
 
-Ma Operations pone un vincolo non negoziabile:
+Operations pone però un vincolo non negoziabile:
 
-> non possiamo perdere comportamenti operativi importanti soltanto perché nessuno li ha documentati bene.
+> **non possiamo perdere comportamenti operativi importanti soltanto perché nessuno li ha documentati bene.**
 
-Questa sarà la tensione ESI del capitolo.
+Nel capitolo studieremo una sola capability: il **legacy case priority routing**.
 
-Non inizieremo riscrivendo Operations Desk Classic.
+Non inizieremo riscrivendolo.
 
-Inizieremo **capendola abbastanza da poter decidere come cambiarla**.
+Inizieremo cercando di capire che cosa fa, chi dipende dal risultato e quali parti del comportamento meritino davvero di sopravvivere.
 
-## La domanda centrale
+## Il percorso del capitolo
 
-Il Capitolo 17 risponde quindi a questa domanda:
+La sequenza non sarà una lista di pattern di modernization.
 
-> **Come ricostruiamo il comportamento e i confini di un sistema esistente prima che la velocità di modifica superi la nostra comprensione?**
-
-Il percorso sarà:
+Sarà una riduzione progressiva dell'incertezza:
 
 ```text
 inventory
-→ evidence map
+→ evidence ledger
 → behavioral characterization
-→ dependency / data discovery
-→ seams
+→ hidden contracts
+→ candidate seams
 → modernization options
 → AI-assisted understanding
 → ESI legacy baseline
 ```
 
-Il capitolo successivo entrerà nel refactoring.
+Il Capitolo 18 entrerà nel refactoring.
 
-Qui non abbiamo ancora il diritto di migliorare ciò che non comprendiamo.
+Qui non abbiamo ancora il diritto di migliorare ciò che non siamo in grado di descrivere senza confondere fatti, inferenze e requisiti.
 
-> **Prima di cambiare il legacy, dobbiamo distinguere ciò che sappiamo da ciò che stiamo soltanto supponendo.**
+> **Prima di cambiare il legacy dobbiamo sapere quali parti della nostra comprensione sono evidence e quali sono ancora ipotesi.**
