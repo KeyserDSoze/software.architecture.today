@@ -2,116 +2,111 @@
 
 La parola *monolite* viene spesso usata come diagnosi.
 
-Non come descrizione.
+Non come descrizione di una topologia, ma come spiegazione automatica di tutto ciò che non funziona: deploy rischiosi, modifiche che attraversano troppe aree, database senza ownership, test lenti, team che devono coordinarsi per ogni cambiamento.
 
-Quando un sistema cresce male, quando i deploy diventano rischiosi, quando una modifica apparentemente locale rompe tre aree diverse, quando il database è condiviso senza ownership e il team ha paura di toccare il codice, qualcuno prima o poi dirà:
+A quel punto la conclusione arriva quasi da sola:
 
 > “Il problema è che è un monolite.”
 
-A volte è vero.
+A volte il singolo deployable è davvero parte del problema.
 
-Molto spesso è incompleto.
+Molto spesso è soltanto il luogo in cui altri problemi sono diventati visibili.
 
-Il problema potrebbe essere che il sistema ha confini deboli, coupling elevato, ownership confusa, test insufficienti o processi di rilascio fragili.
+Il coupling può essere incontrollato. I confini possono essere deboli. Le responsabilità possono essere distribuite senza una fonte autorevole. Il database può essere diventato l'API implicita dell'intero sistema. Il rilascio può essere fragile perché non esistono test e automazione sufficienti.
 
-Tutte cose che possono esistere dentro un monolite.
+Tutte queste cose possono accadere dentro un monolite.
 
-Ma possono esistere anche dentro trenta microservizi.
+Possono accadere anche dentro trenta microservizi.
 
-Un sistema distribuito non diventa automaticamente modulare soltanto perché i moduli sono finiti su processi diversi.
+Un sistema non diventa modulare soltanto perché le sue parti comunicano via rete.
 
-Può diventare un **distributed monolith**: molti deployable, molti network hop, molti log da correlare e la stessa incapacità di cambiare una parte senza trascinarsi dietro le altre.
+## Due decisioni che spesso confondiamo
 
-Quindi partiamo da una distinzione fondamentale:
+Il punto di partenza del capitolo è distinguere due assi:
 
 ```text
 modularità logica
 ≠
-topologia fisica
+distribuzione fisica
 ```
 
-Possiamo avere ottimi confini dentro un singolo deployable.
+La modularità logica riguarda responsabilità, ownership, contratti, dependency direction e capacità di contenere il cambiamento.
 
-Possiamo avere pessimi confini dentro una flotta di servizi.
+La distribuzione fisica riguarda processi, deployable, storage, runtime, rete, scaling e failure domain.
 
-### Che cosa stiamo davvero decidendo
+Possiamo avere confini logici forti dentro un singolo processo.
 
-Quando scegliamo tra monolite, modular monolith e microservizi non stiamo scegliendo quanto vogliamo essere moderni.
+Possiamo avere confini logici debolissimi fra servizi formalmente indipendenti.
 
-Stiamo decidendo come distribuire ownership e deployability, failure isolation, dati e comunicazione. Nella stessa scelta entrano capacità di scalare, autonomia dei team e responsabilità operativa, insieme al costo cognitivo e infrastrutturale che quella distribuzione porta con sé.
+Questa distinzione cambia la domanda architetturale.
 
-Ogni opzione sposta il confine della complessità.
+Non dobbiamo più chiederci se “passare ai microservizi”.
 
-Il monolite concentra molta complessità nel codice e nel deployable.
+Dobbiamo capire **quale proprietà non riusciamo più a ottenere bene con la topologia attuale e quale costo siamo disposti a pagare per ottenerla**.
 
-I microservizi spostano parte di quella complessità verso rete, observability, deployment, data consistency, security, incident response e platform engineering.
+## Il monolite non è una categoria unica
 
-Non esiste una topologia che faccia sparire la complessità.
+Un singolo deployable può contenere sistemi radicalmente differenti.
 
-Esistono topologie che la **collocano in posti diversi**.
+Possiamo avere un'applicazione in cui ogni area modifica qualsiasi tabella, importa qualsiasi package e replica regole in punti diversi. Questo sistema è difficile da cambiare, ma non perché il processo sia uno. È difficile perché il confine interno è quasi inesistente.
 
-### Il monolite non è un unico tipo di sistema
-
-“Monolite” può descrivere sistemi molto differenti.
-
-Un'applicazione con un singolo deployable ma moduli indipendenti, ownership chiara e contratti interni espliciti è molto diversa da un'applicazione in cui qualunque componente legge e modifica qualunque tabella.
-
-Nel primo caso potremmo avere un **modular monolith**.
-
-Nel secondo abbiamo probabilmente un *big ball of mud* che, incidentalmente, viene distribuito come una sola applicazione.
-
-La differenza non è estetica.
-
-È nella struttura delle dipendenze.
-
-Un modular monolith può avere:
+Oppure possiamo avere:
 
 ```text
-Orders
-Payments
-Shipping
-Identity
+Application
+├── Orders
+├── Payments
+├── Shipping
+└── Identity
 ```
 
-nello stesso processo, ma con una regola forte:
+con ownership chiara, API interne intenzionali e regole che impediscono a un modulo di attraversare liberamente gli internals degli altri.
 
-```text
-ogni modulo possiede il proprio comportamento
-ogni modulo espone contratti intenzionali
-gli altri moduli non attraversano liberamente i suoi internals
-```
+Questo è un **modular monolith**.
 
-Questo è già design architetturale serio.
+La separazione operativa è piccola.
 
-Non è un microservizio incompleto.
+La separazione semantica può essere molto forte.
 
-### Perché i microservizi esistono
+Non è un microservizio “non ancora finito”. È una topologia completa che può avere un ottimo fit per anni, oppure per sempre, se le proprietà richieste restano compatibili con un deployable condiviso.
 
-I microservizi non sono nati perché chiamare una funzione in rete fosse migliore che chiamarla nello stesso processo.
+## Perché allora distribuire?
 
-La rete è quasi sempre più complicata.
+Perché a volte un boundary logico deve comprare anche autonomia operativa.
 
-Il valore emerge quando la separazione fisica compra proprietà che ci servono realmente.
+Un servizio separato può essere rilasciato con una cadence indipendente, scalare con un profilo diverso, usare un security boundary più forte o contenere meglio alcuni failure. Può permettere a un team di possedere una capability end-to-end e modificare la propria implementazione senza coordinare continuamente il resto dell'organizzazione.
 
-I microservizi possono comprare deploy e scaling indipendenti, failure isolation e ownership organizzativa più netta. Possono creare security boundary differenti e, dove serve davvero, indipendenza di runtime e cicli di delivery più autonomi.
+Queste sono proprietà reali.
 
-Se non stiamo comprando nessuna di queste proprietà, dovremmo chiederci che cosa stiamo pagando.
+Ma non emergono automaticamente dal fatto che abbiamo creato un container.
 
-Ma pagheremo comunque service discovery e networking, timeout e retry, tracing distribuito e versioning dei contratti. La consistenza diventa un problema più distribuito, l'operabilità e il coordinamento degli incidenti diventano più costosi e aumentano pipeline e security boundary da governare.
+Se due servizi devono essere sempre rilasciati insieme, la deployability indipendente è nominale. Se leggono e scrivono le stesse tabelle, la data ownership è ancora condivisa. Se una request non può completarsi senza cinque chiamate sincrone, il failure domain percepito dall'utente può rimanere quasi unico. Se ogni feature attraversa molti team, l'autonomia organizzativa non esiste davvero.
 
-### Un confine non deve diventare immediatamente un servizio
+In quel caso abbiamo pagato rete, timeout, tracing distribuito, versioning, pipeline e incident coordination senza comprare abbastanza indipendenza.
 
-Nel capitolo precedente abbiamo identificato responsabilità distinte in Order Operations.
+È così che nasce il **distributed monolith**.
 
-Per esempio:
+## La complessità non scompare: cambia posizione
 
-```text
-Orders
-Payments
-Shipping
-```
+Un monolite concentra gran parte della complessità nel codice e nel deployable.
 
-Questo non implica:
+Distribuire sposta una parte di quella complessità verso networking, service discovery e autenticazione tra servizi. La sposta verso data consistency e contract evolution, observability distribuita, retry e timeout, deployment e recovery. La sposta anche verso platform engineering, on-call e capacità organizzativa di possedere più unità operative.
+
+La distribuzione può essere una scelta eccellente.
+
+Ma deve comprare abbastanza valore da pagare questo spostamento.
+
+È lo stesso principio che abbiamo usato per le tecnologie e per i pattern:
+
+> **fit before fashion.**
+
+## Il boundary viene prima della rete
+
+Nei capitoli precedenti abbiamo identificato in Order Operations responsabilità distinte come Orders, Payments e Shipping.
+
+Questo è già un risultato architetturale.
+
+Non implica ancora:
 
 ```text
 Orders Service
@@ -119,50 +114,28 @@ Payments Service
 Shipping Service
 ```
 
-almeno non ancora.
+Un confine logico ben costruito ci permette di osservare il sistema prima di distribuire. Possiamo vedere quali moduli cambiano con cadence diverse, quali hanno profili di carico differenti, quali failure meritano isolamento più forte, quali security boundary sono davvero distinti e dove emerge ownership organizzativa stabile.
 
-Un buon confine logico ci dà la possibilità di distribuire in seguito.
+Poi possiamo scegliere se aggiungere un boundary operativo.
 
-Non ci obbliga a farlo subito.
+Questa sequenza preserva reversibilità.
 
-Questa proprietà è preziosa.
+Un buon modulo può diventare un servizio in futuro.
 
-Possiamo costruire modularità prima di comprare distribuzione.
+Un confine sbagliato trasformato subito in rete diventa invece più costoso da correggere.
 
-Possiamo osservare quali moduli cambiano insieme, quali hanno profili di carico diversi, quali soffrono failure differenti e quali richiedono ownership indipendente.
+## La domanda del capitolo
 
-Poi decidere.
+Non cercheremo una risposta universale alla domanda “monolite o microservizi?”.
 
-Questo approccio evita uno dei bias più costosi della progettazione moderna:
+La domanda utile è:
 
-> **trasformare ogni boundary concettuale in un boundary di rete.**
+> **Quale topologia permette ai nostri confini di produrre le proprietà che servono davvero, pagando un costo operativo e cognitivo che l'organizzazione può sostenere?**
 
-### La domanda del capitolo
+Per rispondere osserveremo deployability, failure isolation, scaling, data ownership e team autonomy. Vedremo come nasce un distributed monolith, quali segnali rendono credibile l'estrazione di un servizio e come Order Operations possa rimanere un modular monolith senza rinunciare all'evoluzione futura.
 
-Non chiederemo:
+Con l'AI l'estrazione tecnica costa meno.
 
-> “Meglio monolite o microservizi?”
+La decisione architetturale non diventa per questo meno importante.
 
-È una domanda troppo povera.
-
-Chiederemo invece:
-
-> **Quale topologia permette ai nostri confini di produrre le proprietà che ci servono, pagando un costo operativo che possiamo sostenere?**
-
-È una domanda meno ideologica.
-
-E molto più utile.
-
-Alla fine del capitolo dovremmo essere capaci di spiegare:
-
-- quando un monolite è una scelta sana;
-- quando un modular monolith crea un ottimo equilibrio;
-- quali segnali suggeriscono che una separazione fisica sta diventando utile;
-- quali segnali indicano invece microservices by default;
-- come evitare il distributed monolith;
-- perché team boundaries e service boundaries sono collegati ma non identici;
-- come l'AI può rendere più facile estrarre servizi senza rendere automaticamente sensato farlo.
-
-La topologia verrà dopo i confini.
-
-Non prima.
+> **Prima costruisci confini che meritano di esistere. Poi chiediti se meritano anche una rete in mezzo.**
