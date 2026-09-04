@@ -10,7 +10,7 @@ Per questo il primo movimento del libro è stato tornare dal feature request al 
 
 ## Prima del codice c'è una promessa
 
-Quando iniziamo da "costruiamo una API", "introduciamo una queue", "usiamo Kubernetes" o "integriamo un LLM", stiamo già assumendo una parte della soluzione.
+Quando iniziamo da "costruiamo un'API", "introduciamo una queue", "usiamo Kubernetes" o "integriamo un LLM", stiamo già assumendo una parte della soluzione.
 
 La domanda che viene prima è:
 
