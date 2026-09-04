@@ -2,105 +2,71 @@
 
 L'AI cambia radicalmente l'economia delle trasformazioni ampie.
 
-Un repository-wide refactoring che prima richiedeva:
+Rename, framework upgrade, call-site migration, configuration update e cleanup che prima richiedevano settimane possono oggi essere eseguiti da agenti, codemod e transformation engine in tempi molto più brevi.
 
-- settimane di lavoro manuale;
-- decine di search/replace;
-- aggiornamento ripetitivo di call site;
-- migrazione di framework;
-- fix di compilation error;
-- modifica di test e configurazioni;
+Questo vantaggio diventa utile soltanto quando distinguiamo **che tipo di trasformazione stiamo chiedendo**.
 
-può oggi essere accelerato da agenti, codemod e transformation engine.
+## Prima classificare la trasformazione
 
-Questo è un vantaggio reale.
-
-Ma dobbiamo distinguere due classi di lavoro.
-
-## Trasformazione meccanica
-
-Una trasformazione è prevalentemente meccanica quando la regola è deterministica e il significato cambia poco.
+Una trasformazione è prevalentemente **meccanica** quando la regola è deterministica e il significato dovrebbe restare stabile.
 
 Esempi:
 
-- rename di API;
-- aggiornamento import;
-- sostituzione di una signature nota;
-- migrazione di syntax;
-- conversione di project format;
-- sostituzione di una dependency con mapping stabilito;
-- applicazione di una recipe strutturale.
+```text
+rename di API/import
+signature migration con mapping noto
+syntax/project-format conversion
+framework recipe ripetibile
+```
 
-Qui possiamo spingere molto sull'automazione.
+Qui possiamo spingere molto sull'automazione, perché sappiamo descrivere con precisione cosa deve cambiare e cosa no.
 
-## Trasformazione semantica
+Una trasformazione è invece **semantica** quando richiede decisioni su business rule, ownership, authorization, failure behavior, contract o trade-off.
 
-Una trasformazione è semantica quando richiede comprendere:
-
-- intent;
-- business rule;
-- ownership;
-- failure behavior;
-- authorization;
-- contract;
-- trade-off.
-
-Esempi:
+Richieste come:
 
 ```text
 sposta questa logica nel dominio corretto
+sostituisci il legacy workflow con una soluzione moderna
 ```
 
-oppure:
+non possiedono una risposta meccanicamente vera.
 
-```text
-sostituisci il legacy payment workflow con una soluzione moderna
-```
+> **Più una trasformazione modifica il significato, meno compilation e diff ordinato costituiscono evidence sufficiente.**
 
-Queste richieste non hanno una soluzione meccanicamente corretta.
+## Scegliere lo strumento dal problema
 
-> **Più una trasformazione modifica il significato, meno il fatto che il codice compili è evidence sufficiente.**
+Gli automated refactoring esistevano molto prima degli LLM.
 
-## Codemod e automated refactoring
-
-Gli strumenti di trasformazione strutturale esistevano molto prima degli LLM.
-
-OpenRewrite, per esempio, è un ecosistema open source per refactoring automatico basato su recipe, usato per framework migration, security fix e trasformazioni ripetibili.
+OpenRewrite, per esempio, usa recipe versionabili per framework migration, security fix e trasformazioni strutturali ripetibili.
 
 Fonte:
 
 - [OpenRewrite — Introduction](https://docs.openrewrite.org/)
 
-Questi strumenti hanno una proprietà molto interessante:
+Questo ci ricorda che non tutto deve diventare agentic.
 
-> la trasformazione può essere espressa come regola versionabile e rieseguita.
-
-Quando abbiamo una trasformazione meccanica ben definita, una recipe deterministica può essere preferibile a chiedere a un LLM di riscrivere ogni file liberamente.
-
-## Fit before fashion vale anche per l'automazione
-
-Non tutto deve essere fatto da un agente.
-
-Possiamo scegliere:
+Possiamo scegliere fra:
 
 ```text
-regex/search-replace
+language tooling
+search/replace
 AST codemod
-OpenRewrite recipe
+recipe engine
 compiler-assisted migration
 agentic transformation
-manual semantic refactor
+manual/domain refactor
 ```
 
-in base alla natura del problema.
+in base a quanto la regola è deterministica e a quanto il significato è contestuale.
 
-Se dobbiamo rinominare un simbolo in modo sicuro, il language server potrebbe essere il tool migliore.
+`Fit before fashion` vale anche per l'automazione.
 
-Se dobbiamo capire se una condizione rappresenta ancora una business rule, nessun AST può decidere da solo.
+## L'agente è più utile quando orchestra un ciclo verificabile
 
-## L'agente come orchestratore di trasformazioni
+Un agente può fare molto più che riscrivere file.
 
-Un agente diventa particolarmente utile quando la migration richiede una sequenza:
+Può orchestrare:
 
 ```text
 assess
@@ -114,95 +80,88 @@ assess
 → summarize evidence
 ```
 
-La documentazione Microsoft di GitHub Copilot modernization descrive proprio workflow strutturati di assessment, planning ed execution, con artefatti persistenti come assessment, opzioni, piano e task, build/test validation e commit progressivi.
+La documentazione Microsoft su GitHub Copilot modernization descrive proprio workflow basati su assessment, planning, execution e validation con artefatti persistenti e progressione verificabile.
 
 Fonte:
 
 - [Microsoft Learn — GitHub Copilot modernization overview](https://learn.microsoft.com/en-us/dotnet/core/porting/github-copilot-app-modernization/overview)
 
-La cosa interessante non è il prodotto specifico.
+Il principio interessante è più generale del prodotto:
 
-È il modello operativo:
+> **prima rendiamo esplicita la trasformazione; poi diamo all'agente un contratto di execution.**
 
-> **prima assessment e decisioni, poi piano, poi task verificabili.**
+## Un transformation contract riduce il blast radius
 
-È coerente con la tesi di questo libro.
-
-## Non dare all'agente un obiettivo troppo largo
-
-Prompt:
+Un prompt come:
 
 ```text
 modernizza questo repository
 ```
 
-produce un grado enorme di libertà.
+lascia troppe decisioni implicite.
 
-Meglio un contract come:
+Per la priority routing ESI vogliamo qualcosa di molto più preciso:
 
 ```text
 Goal
-Introduce PriorityPolicy seam without changing observable priority behavior.
+Introduce PriorityPolicy seam without changing confirmed behavior.
 
 Allowed scope
-src/priority + composition only.
+priority boundary, composition, tests, docs.
 
 Must preserve
-LB-01..LB-06 characterization behavior.
+LB-01, LB-02, LB-03, LB-06 semantics.
+
+Intentional difference
+ED-001 only.
 
 Forbidden
-schema changes
-contract changes
-new external dependency
+schema/API/data-ownership changes
 legacy deletion
+new external dependency
 
 Verification
-build + characterization + new seam tests.
+build + legacy characterization + target + adapter + shadow tests.
 
-Stop condition
-any unclassified behavior change.
+Stop
+any unexplained semantic mismatch.
 ```
 
-Questa non è micro-management dell'AI.
+Questa non è micro-gestione dell'agente.
 
-È definizione del blast radius.
+È definizione della sua authority.
 
 ## Un commit per decisione utile
 
-Quando un agente può produrre centinaia di modifiche, diventa ancora più importante strutturare la history.
+Quando l'execution è molto economica, la history diventa ancora più importante.
 
-Esempio:
+Meglio una sequenza come:
 
 ```text
-commit 1
-introduce seam, no behavior change
-
-commit 2
-add legacy adapter
-
-commit 3
-add candidate implementation inactive
-
-commit 4
-add shadow comparison
-
-commit 5
-add rollout switch
+commit 1 — introduce seam
+commit 2 — add legacy adapter
+commit 3 — add candidate inactive
+commit 4 — add shadow comparison
+commit 5 — add routing control
 ```
 
-Questo rende possibile:
+che un unico commit `AI modernization` con centinaia di file.
+
+Una history intenzionale compra:
 
 - review incrementale;
 - bisect;
 - rollback selettivo;
-- confronto fra intent e diff;
-- attribuzione delle regressioni.
+- attribuzione delle regressioni;
+- relazione leggibile fra intent ed evidence.
 
-Un singolo commit “AI modernization” con 287 file cambiati distrugge gran parte di questa evidence.
+Il numero di commit non è il punto.
 
-## Generated refactoring illusion
+Il punto è che ogni commit rappresenti una decisione verificabile.
 
-Possiamo avere:
+## Generated Refactoring Illusion
+
+Un agente può produrre:
 
 ```text
 build green
@@ -210,97 +169,109 @@ lint green
 unit test green
 ```
 
-ed essere ancora davanti a un refactoring sbagliato.
+ed essere ancora semanticamente sbagliato.
 
-Per esempio l'agente potrebbe:
-
-- duplicare una business rule in due moduli;
-- cambiare exception semantics;
-- eliminare un fallback apparentemente inutile;
-- convertire una query mantenendo output ma peggiorando lock behavior;
-- cambiare time-zone handling;
-- produrre una nuova abstraction che nasconde coupling invece di ridurlo.
+Può avere duplicato una regola, eliminato un fallback importante, modificato exception semantics, peggiorato locking, alterato timezone behavior o introdotto un'abstraction che nasconde coupling invece di ridurlo.
 
 Chiamiamo questo rischio:
 
 > **Generated Refactoring Illusion**
 
-Il sistema sembra modernizzato perché il diff è ordinato e i gate superficiali sono verdi.
+Il refactoring appare convincente perché l'output è ordinato e i gate superficiali sono verdi.
 
-## AI review con ruoli diversi
+La difesa è tornare alle claim del Safety Plan: behavior, boundary, side effect, compatibility, rollback.
 
-Possiamo usare più passaggi agentici con obiettivi diversi.
+## Separare i ruoli di review
 
-### Transformation agent
+Più agenti non significano automaticamente più qualità.
 
-Esegue il cambiamento entro scope.
+Può essere utile però separare prospettive:
 
-### Regression adversary
+```text
+Transformation agent
+→ esegue entro scope
 
-Cerca behavior che potrebbero essere cambiati accidentalmente.
+Regression adversary
+→ cerca behavior cambiati accidentalmente
 
-### Boundary reviewer
+Boundary reviewer
+→ cerca coupling e ownership leak
 
-Cerca coupling, ownership leak e abstraction sbagliate.
+Test reviewer
+→ verifica quali fault i test riescono davvero a rilevare
 
-### Test reviewer
+Migration reviewer
+→ cerca one-way door e rollback gap
+```
 
-Chiede quali fault nuovi test rilevano davvero.
+Il valore nasce dalla diversità delle domande, non dal numero dei modelli.
 
-### Migration reviewer
+## Verificare non significa rileggere manualmente ogni riga
 
-Cerca one-way door e rollback gap.
+Una trasformazione meccanica molto ampia non deve necessariamente essere rieseguita mentalmente dall'umano.
 
-Il valore non deriva dal “numero di agenti”.
+Possiamo verificare tramite:
 
-Deriva dalla separazione delle prospettive.
+```text
+transformation specification
+compiler
+contract diff
+invariant checks
+tests
+mutation/adversarial cases
+targeted diff sampling
+shadow/comparison evidence
+```
 
-## Verifica senza rifare tutto
+La review umana si concentra dove il significato può cambiare.
 
-L'umano non deve rileggere ogni singola riga di una trasformazione meccanica grande come se fosse stata scritta a mano.
+È la stessa tesi del Capitolo 0: **verificare il lavoro dell'agente non significa rifarlo**.
 
-Può verificare attraverso:
+## Caso reale — cleanup automatico delle feature flag
 
-- transformation specification;
-- diff sampling mirato;
-- compiler;
-- test;
-- invariant check;
-- contract diff;
-- mutation/adversarial test;
-- metrics di rollout;
-- comparison evidence.
-
-Questa è la stessa idea vista all'inizio del libro:
-
-> **verificare non significa necessariamente rieseguire manualmente il lavoro dell'agente.**
-
-## Caso reale: GitHub automatizza cleanup delle feature flag
-
-GitHub ha descritto uno script che individua l'uso di feature flag tramite ricerca e AST, modifica il codice e può creare branch e pull request per il cleanup.
+GitHub ha descritto tooling che individua l'uso di feature flag tramite search/AST, modifica il codice e può creare branch e pull request per il cleanup.
 
 Fonte:
 
 - [GitHub Engineering — How we ship code faster and safer with feature flags](https://github.blog/engineering/infrastructure/ship-code-faster-safer-feature-flags/)
 
-È un buon esempio di automated transformation applicata a un problema ripetitivo e sufficientemente strutturato.
+È un buon esempio di trasformazione strutturata: quando la conoscenza del cambiamento è ripetibile, possiamo codificarla in automazione verificabile invece di delegarla ogni volta a una riscrittura libera.
 
-Il punto non è che ogni cleanup debba usare lo stesso strumento.
+## Il Verification Bundle
 
-Il punto è che **quando una trasformazione è ripetibile, possiamo trasformare conoscenza manuale in automazione verificabile**.
+Un agente di refactoring dovrebbe lasciare un risultato verificabile, non soltanto un diff.
 
-## Una regola per gli agenti di refactoring
-
-Prima di dare write access a un agente chiediamo:
+Un bundle minimo può contenere:
 
 ```text
-Can we describe the transformation?
-Can we describe what must not change?
-Can we verify the result?
-Can we bound the blast radius?
-Can we stop before a one-way door?
+files changed
+transformation intent
+behavior preserved
+intentional differences
+forbidden changes checked
+build/test results
+characterization result
+unexpected mismatch result
+open risks
+cleanup remaining
 ```
 
-Se la risposta a queste domande è no, probabilmente non siamo ancora nella fase di execution.
+Questo permette al reviewer di controllare il cambiamento a livello di decisione.
+
+## La soglia prima del write access
+
+Prima di dare a un agente un mandato ampio chiediamo:
+
+```text
+Possiamo descrivere la trasformazione?
+Possiamo descrivere ciò che non deve cambiare?
+Possiamo verificare il risultato?
+Possiamo limitare il blast radius?
+Possiamo fermarci prima della one-way door?
+```
+
+Se la risposta è no, probabilmente non siamo ancora nella fase di execution.
 
 Siamo ancora nella fase di comprensione.
+
+> **L'agente è pronto a trasformare il repository quando noi siamo pronti a definire il contratto che rende quella trasformazione falsificabile.**
