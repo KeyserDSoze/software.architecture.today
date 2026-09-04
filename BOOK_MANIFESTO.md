@@ -222,6 +222,7 @@ Agent Delegation Contract
 Agent Verification Bundle
 AI Autonomy Matrix
 AI Feature Contract
+One-Man Project Operating Model
 Operational Readiness Review
 Production Readiness Review
 ```
@@ -229,6 +230,8 @@ Production Readiness Review
 `Repository Map` e `Execution Work Item` entrano durante la parte AI-native: il primo rende navigabile il contesto persistente del repository, il secondo delimita ciò che deve cambiare nel task corrente con scope, acceptance, verification e stop condition.
 
 `AI Feature Contract` entra quando l'AI diventa parte del runtime del prodotto: rende espliciti model authority, context/retrieval, tool permission, output, fallback, evaluation, observability, cost e review trigger.
+
+`One-Man Project Operating Model` entra quando una singola persona governa molta più execution: rende espliciti accountable lead, non-authorities, secondary maintainer, WIP, specialist gate, verification, continuity ed exit trigger, evitando che leverage individuale diventi single point of failure organizzativo.
 
 Il vocabolario verrà raffinato durante la scrittura e validato attraverso i capitoli, non imposto a priori.
 
