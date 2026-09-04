@@ -1,130 +1,71 @@
 ## Availability, recovery e graceful degradation
 
-Dire che un sistema deve essere “sempre disponibile” è quasi sempre inutile.
+Dire che un sistema deve essere “sempre disponibile” è poco utile per due motivi: nessun sistema reale lo è in senso assoluto e ogni incremento di disponibilità ha un costo. Replica, ridondanza, failover, capacità di riserva, test di recovery, runbook e on-call non compaiono gratuitamente.
 
-Prima di tutto perché nessun sistema reale è disponibile in modo assoluto.
+Prima di decidere quanto pagare per evitare il downtime dobbiamo sapere **quanto costa il downtime del comportamento che stiamo proteggendo**.
 
-Poi perché la disponibilità ha un costo.
+## La disponibilità appartiene ai journey
 
-Replica, ridondanza, failover, multi-region, capacity reserve, backup, test di recovery, runbook e on-call non compaiono gratuitamente.
+Dentro lo stesso prodotto convivono funzioni con criticità differenti. Per Order Operations, la consultazione dello stato operativo può avere un valore molto diverso da un export mensile. In un prodotto commerce, pagamento e creazione ordine non hanno necessariamente la stessa tolleranza di un report statistico.
 
-Se non sappiamo quanto costa l'indisponibilità, non sappiamo nemmeno quanto abbia senso pagare per evitarla.
+Questo significa che il target di availability va localizzato. Progettare ogni capability secondo il requisito più severo può trasformare una necessità locale in costo globale.
 
-### Non tutte le funzioni hanno lo stesso valore
+Quando definiamo un target dobbiamo quindi dire quale journey stiamo misurando, in quale finestra, che cosa conta come indisponibilità e se una modalità degradata produce ancora valore sufficiente. Dobbiamo anche chiarire quali dipendenze esterne partecipino al target.
 
-Un prodotto può contenere journey con criticità molto diverse.
+Senza questa semantica, una percentuale è soltanto un numero elegante.
 
-Per Order Operations, per esempio, la consultazione di un ordine da parte dell'operatore, la creazione dell'ordine e il pagamento convivono con attività come aggiornamento dell'indirizzo, export mensile e report statistici. Non è detto che tutti richiedano lo stesso livello di disponibilità.
+## Recovery: quanto tempo e quanti dati possiamo perdere
 
-Un report può attendere.
-
-Un pagamento forse no.
-
-Progettare tutto secondo il requisito più severo produce spesso costi inutili.
-
-Una qualità importante dell'architettura è quindi la capacità di **localizzare il requisito di qualità**.
-
-### Availability target
-
-Quando ha senso definire un obiettivo esplicito, dobbiamo chiarire quale servizio o journey stiamo misurando e in quale finestra, che cosa conti come indisponibilità e come trattiamo eventuali finestre di manutenzione. Dobbiamo includere le dipendenze esterne e il comportamento degradato che consideriamo ancora accettabile. Senza questa semantica, una percentuale di availability è solo un numero elegante.
-
-### RTO
-
-Il **Recovery Time Objective** descrive quanto tempo possiamo accettare che trascorra prima del ripristino dopo un evento grave.
-
-Non significa necessariamente che il sistema debba tornare perfettamente normale entro quella finestra.
-
-Può significare che il servizio minimo critico deve tornare disponibile.
-
-Per esempio:
+Il **Recovery Time Objective**, RTO, descrive entro quanto tempo dobbiamo ripristinare il servizio dopo un evento grave. Non implica necessariamente il ritorno immediato a piena capacità: può definire il tempo entro cui il critical journey minimo deve tornare disponibile.
 
 ```text
 RTO del journey di consultazione ordine: 60 minuti
 ```
 
-Questa informazione orienta il livello di automazione del restore, la strategia di failover e replica, l'eventuale infrastruttura standby, i runbook e la frequenza con cui dobbiamo esercitare il recovery.
+Una scelta così influenza failover, automazione del restore, infrastruttura standby, runbook e frequenza dei test di recovery.
 
-### RPO
+Il **Recovery Point Objective**, RPO, riguarda invece quanta perdita di dati possiamo tollerare rispetto all'ultimo punto recuperabile. Un RPO di cinque minuti e uno di ventiquattro ore producono strategie molto diverse. Un RPO prossimo a zero aumenta ancora di più il costo e restringe le opzioni.
 
-Il **Recovery Point Objective** riguarda invece quanta perdita di dati possiamo tollerare dopo un disaster.
-
-Per esempio:
-
-```text
-RPO = 5 minuti
-```
-
-significa che, nel caso peggiore previsto dal piano, possiamo accettare di perdere fino a cinque minuti di dati rispetto all'ultimo punto recuperabile.
-
-Un RPO prossimo a zero può richiedere meccanismi molto diversi da un RPO di ventiquattro ore.
-
-E quindi costi molto diversi.
-
-### RTO e RPO non sono slogan da disaster recovery
-
-Questi valori sono utili soltanto se influenzano decisioni concrete.
-
-Se dichiariamo:
-
-```text
-RTO = 15 minuti
-RPO = 0
-```
-
-ma il restore viene provato una volta ogni tre anni e richiede interventi manuali non documentati, abbiamo scritto desideri.
-
-La proprietà deve essere verificabile.
-
-Questo introduce un principio importante:
+Il punto non è riempire una tabella di sigle. È collegare il valore del business a una strategia di recovery verificabile.
 
 > **Un recovery plan che non viene provato è un'ipotesi.**
 
-### Graceful degradation
+Dichiarare RTO di quindici minuti e RPO zero serve a poco se il restore non è mai stato testato, dipende da passaggi manuali non documentati e soltanto una persona sa completarlo. Il requirement diventa credibile quando esiste evidence che il sistema possa davvero recuperare entro i limiti dichiarati.
 
-Availability non è sempre binaria.
+## Availability non è sempre binaria
 
-A volte il sistema può continuare a offrire valore riducendo temporaneamente alcune capability.
+Un sistema può continuare a produrre valore anche quando una capability è degradata. Questa è la logica della **graceful degradation**.
 
-Possiamo mostrare l'ultimo stato noto quando un sistema secondario è indisponibile, disabilitare raccomandazioni non critiche o accettare una richiesta per processarla più tardi. Possiamo usare una cache read-only, impedire modifiche rischiose mantenendo la consultazione o ridurre funzionalità avanzate preservando il critical user journey. Questa strategia si chiama spesso **graceful degradation**.
+Se una fonte secondaria è indisponibile, potremmo mostrare l'ultimo stato noto con un timestamp. Potremmo disabilitare raccomandazioni non critiche, accettare una richiesta e processarla più tardi oppure mantenere una vista read-only mentre blocchiamo azioni che richiedono dati certamente aggiornati.
 
-È una decisione di prodotto tanto quanto tecnica.
+Queste scelte non possono essere improvvisate durante l'incidente, perché sono decisioni semantiche prima ancora che tecniche. Dobbiamo sapere quale dato può essere stale, quale azione può attendere e quando una risposta incompleta sarebbe più pericolosa del downtime.
 
-Non possiamo inventarla durante l'incidente.
+## La cache non crea availability per magia
 
-Dobbiamo sapere quali comportamenti degradati siano semanticamente accettabili.
+Una cache può migliorare latency e rendere alcune letture disponibili durante il degrado della fonte. In cambio introduce freshness, invalidation, comportamento dopo una scrittura, rischio di dati cross-tenant e cache-miss storm durante la ripartenza.
 
-### La cache non rende automaticamente disponibile
+La domanda non è se la cache “aumenti availability” come proprietà astratta. È **quale failure rende tollerabile, quale nuovo failure introduce e quale semantica del dato siamo disposti ad accettare**.
 
-Un pattern ricorrente consiste nell'aggiungere una cache per migliorare performance e availability.
+Il trade-off è lo stesso che governa tutto il capitolo: la tecnologia ha valore soltanto se compra una proprietà richiesta.
 
-Può funzionare.
+## Ridondanza rispetto a quali failure
 
-Ma dobbiamo chiederci quanto possa essere vecchio il dato e che cosa accada dopo una scrittura, come avvenga l'invalidazione e se la cache possa mescolare dati fra tenant. Dobbiamo anche sapere che cosa succeda quando torna online e se il sistema regga un cache miss massivo.
+Due istanze non rappresentano automaticamente due failure domain indipendenti. Possono condividere database, regione, identity provider, configurazione, DNS, certificate authority, deployment pipeline o lo stesso bug applicativo.
 
-La cache risolve alcuni problemi introducendone altri.
+Aggiungere copie può proteggere da un crash di processo e non cambiare nulla rispetto a una configurazione corrotta distribuita ovunque.
 
-È il normale funzionamento dei trade-off.
-
-### Ridondanza e failure correlati
-
-Due istanze non sono necessariamente due failure domain indipendenti.
-
-Potrebbero condividere database o regione, identity provider e configurazione, certificate authority, deployment pipeline o DNS. Potrebbero perfino condividere lo stesso bug applicativo. Aggiungere copie dello stesso componente può aumentare availability rispetto ad alcuni failure mode e non cambiare nulla rispetto ad altri.
-
-Per questo la domanda corretta non è:
+Per questo la domanda utile non è:
 
 > “Abbiamo ridondanza?”
 
 ma:
 
-> **“Da quali failure mode la ridondanza ci protegge davvero?”**
+> **Da quali failure mode la ridondanza ci protegge davvero, e quali cause rimangono correlate?**
 
-### La recovery è parte del design
+## La recovery è parte dell'architettura
 
-Backup, restore, rollback e failover vengono spesso trattati come attività operative successive all'architettura.
+Backup, restore, rollback e failover vengono spesso trattati come responsabilità operative da aggiungere alla fine. In realtà modificano la validità stessa del design.
 
-In realtà cambiano il design.
+Un sistema che funziona perfettamente in condizioni normali ma non può essere ripristinato nel tempo richiesto non soddisfa il proprio profilo di qualità.
 
-Un sistema che non può essere ripristinato nei tempi richiesti non soddisfa il proprio requisito, anche se funziona perfettamente durante il normale esercizio.
-
-> **La qualità di un sistema non si misura soltanto quando tutto funziona. Si misura anche da come fallisce e da come torna operativo.**
+> **La qualità di un sistema si misura anche da come degrada, da quanto danno contiene e da come torna operativo.**
