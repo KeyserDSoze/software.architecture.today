@@ -1,36 +1,36 @@
 ## Failure Mode Map
 
-Quando un sistema diventa distribuito, il diagramma del happy path perde rapidamente valore se non rappresentiamo anche i modi in cui il flusso può smettere di progredire.
+Quando un sistema diventa distribuito, il diagramma del happy path smette rapidamente di essere sufficiente. Le frecce raccontano come il lavoro dovrebbe progredire; l’architettura deve raccontare anche che cosa succede quando una di quelle frecce diventa lenta, ambigua o non produce il risultato atteso.
 
 Per questo introduciamo un nuovo artefatto operativo:
 
 > **Failure Mode Map**
 
-Non è un catalogo di tutti gli errori possibili.
+Non è un catalogo di tutte le exception possibili. Serve a rendere espliciti i failure mode che cambiano una promessa funzionale, una decisione architetturale o una responsabilità di recovery.
 
-È una mappa dei failure mode che cambiano una decisione di architettura, una promessa funzionale o una responsabilità operativa.
+## Partire dal journey, non dall’exception
 
-## Che cosa deve rendere visibile
-
-Per ogni critical flow la mappa dovrebbe aiutarci a rispondere a:
+Prendiamo il nuovo flusso ESI:
 
 ```text
-che cosa può fallire?
-come lo osserviamo?
-che cosa vede il caller?
-quale stato rimane persistito?
-possiamo fare retry?
-chi è responsabile del retry?
-la retry è idempotente?
-quanto possiamo aspettare?
-serve compensazione?
-quando finisce in DLQ?
-come si recupera?
-chi è owner del recovery?
-quale blast radius può produrre?
+Operator
+→ local transaction
+→ outbox
+→ publisher
+→ broker
+→ Payments consumer
+→ Payments local commit
 ```
 
-## Template minimale
+La domanda utile non è “quali errori può sollevare PostgreSQL?” ma “in quali punti il journey può fermarsi o diventare ambiguo?”.
+
+Possiamo avere validation failure prima del commit, conflitto transazionale, commit riuscito seguito da broker outage, publish riuscito con ack perso, redelivery, schema incompatibile, Payments DB indisponibile, consumer crash dopo il proprio commit, retry esauriti o una delivery che supera il business timeout.
+
+Questa sequenza è molto più utile di una tassonomia generica di exception perché collega il guasto a stato persistito, conoscenza dell’outcome e recovery.
+
+## Il template
+
+Per i flussi importanti usiamo una struttura proporzionata al rischio:
 
 ```markdown
 # Failure Mode Map
@@ -39,9 +39,7 @@ quale blast radius può produrre?
 
 ## Dependencies
 
-## Failure modes
-
-| Step | Failure | Observed by | Persisted state | Retry? | Idempotency | User impact | Recovery | Owner |
+| Step | Failure | Known outcome? | Persisted state | Retry owner | Idempotency | User impact | Recovery | Owner |
 |---|---|---|---|---|---|---|---|---|
 
 ## Time budgets
@@ -65,362 +63,70 @@ quale blast radius può produrre?
 ## Open questions
 ```
 
-Non serve riempire ogni cella per ogni funzione.
+Non ogni funzione merita una mappa completa. Un flusso economico o un’integrazione che può lasciare stati divergenti sì.
 
-Serve farlo per i punti in cui una risposta sbagliata genera rischio significativo.
+## Esempio ESI
 
-## Partire dal journey, non dal componente
+| Step | Failure | Known outcome? | Stato persistito | Retry owner | Impatto | Recovery |
+|---|---|---|---|---|---|---|
+| local transaction | serialization/conflict | known failure | nessun nuovo stato | application | operatore attende/riprova | retry bounded con stesso intent |
+| outbox publisher | broker unavailable | known local success | escalation + outbox pending | publisher | delivery ritardata | backoff + retry |
+| publish acknowledgement | ack perso | unknown publish outcome | outbox ancora pending | publisher | possibile duplicate tecnico | stessa messageId + consumer idempotente |
+| Payments consumer | DB unavailable | known consumer failure | broker conserva/redeliver | broker/consumer | delivery lag | retry bounded / DLQ |
+| consumer validation | schema unsupported | known failure | nessun effetto downstream | no blind retry | integration failure | quarantine/DLQ + alert |
+| consumer commit + ack loss | known business success, ack unknown | downstream già aggiornato | broker redelivera | broker/consumer | duplicate tecnico | dedup su escalationId |
+| retries exhausted | persistent failure | known non-progress | DLQ | human/controlled | delivery failed/delayed | investigate + redrive |
 
-Prendiamo il nuovo flusso ESI:
+La tabella non “risolve” il sistema. Costringe il team a vedere quali decisioni esistono davvero.
 
-```text
-Operator escalates case
-→ local commit
-→ outbox
-→ publisher
-→ broker
-→ Payments consumer
-→ Payments local commit
-```
+## Known failure, known success, unknown outcome
 
-La domanda non è:
+Una delle colonne più importanti è `Known outcome?`. È il modo più rapido per distinguere failure semplici da failure distribuiti difficili.
 
-> “quali failure mode ha PostgreSQL?”
+Una validation error prima del side effect è un known failure. Un commit confermato è un known success. Un timeout dopo l’invio può essere un unknown outcome: non sappiamo se il side effect remoto sia già avvenuto.
 
-ma:
+Gli unknown outcome sono i punti in cui identity, idempotency e reconciliation diventano particolarmente importanti. Il nome dell’exception, da solo, spesso non basta.
 
-> “in quali punti il journey può interrompersi o diventare ambiguo?”
+## Il tempo deve stare nella mappa
 
-Per esempio:
+Recovery e failure non possono essere descritti senza budget temporali. Dobbiamo distinguere il tempo del request path, il tempo atteso di publication e il **business delay budget** entro cui il processo può restare incompleto senza cambiare comportamento.
 
-```text
-1. local validation fails
-2. local transaction conflicts
-3. local commit succeeds
-4. publisher cannot reach broker
-5. broker accepts but publisher loses ack
-6. consumer receives duplicate
-7. consumer rejects schema
-8. Payments database unavailable
-9. consumer commits but loses broker ack
-10. message exhausts retries
-11. delivery exceeds business timeout
-12. reconciliation detects mismatch
-```
+Un messaggio può avere ancora retry tecnici disponibili ma aver già superato la soglia oltre la quale l’operatore deve essere informato. Per questo `maxRetries=5` non è una business policy.
 
-Questa sequenza è molto più utile di una lista generica di errori HTTP.
+I numeri concreti vanno misurati e concordati; la struttura deve comunque rendere visibili warning threshold, delivery target e soglia di manual intervention.
 
-## Esempio di mappa
+## Retry ownership evita amplificatori invisibili
 
-| Step | Failure | Stato persistito | Retry | Impatto | Recovery |
-|---|---|---|---|---|---|
-| local transaction | serialization conflict | nessun nuovo stato | sì, bounded | operatore attende/riprova | retry applicativo sicuro |
-| outbox publisher | broker unavailable | case escalato + outbox pending | sì | delivery ritardata | retry con backoff |
-| publish acknowledgement | ack perso | outbox ancora pending, broker forse ha msg | sì | possibile duplicato tecnico | same messageId + idempotent consumer |
-| consumer | Payments DB unavailable | broker conserva/redeliver | sì | delivery lag | bounded retry / DLQ |
-| consumer validation | schema unsupported | msg non processato | no automatico | integration failure | DLQ + alert |
-| consumer commit + ack loss | Payments ha effetto, broker redeliver | downstream già aggiornato | sì | duplicato tecnico | dedup escalationId |
-| retries exhausted | persistent failure | DLQ | no automatico | business delivery failed/delayed | manual or controlled redrive |
+La mappa deve dichiarare chi ritenta: SDK, application service, broker, consumer framework, workflow engine o persona. Se non lo scriviamo, tre piccoli retry in livelli diversi possono moltiplicarsi in decine di tentativi end-to-end.
 
-Questa tabella non risolve il sistema.
+La stessa logica vale per backpressure: vogliamo sapere dove si trova il freno, quali concurrency limit esistano, quali segnali rappresentino backlog e quando il producer debba essere rallentato.
 
-Rende impossibile fingere di non vedere le decisioni.
+## DLQ e reconciliation non sono appendici
 
-## Failure mode ≠ exception type
+Una dead-letter policy deve dichiarare entry condition, owner, alert, retention, security, redrive e business consequence. `on failure → DLQ` non basta.
 
-Un'eccezione tecnica può rappresentare failure mode differenti.
+La reconciliation completa poi ciò che il message path non può sempre dimostrare. Per Order Operations possiamo cercare escalation accettate localmente che, oltre una soglia, non risultano osservate downstream. Questo controllo può scoprire failure che la telemetria locale non vede o outcome rimasti ambigui.
 
-Esempio:
+## Recovery non significa sempre compensation
 
-```text
-TimeoutException
-```
+La Failure Mode Map dovrebbe distinguere ciò che è retryable, forward-recoverable, compensable, irreversibile o destinato a manual review. Una generica colonna `rollback yes/no` comprime troppo il problema.
 
-può significare:
-
-- downstream non raggiunto;
-- downstream sovraccarico;
-- risposta persa dopo side effect;
-- proxy timeout;
-- DNS degradation;
-- thread starvation locale.
-
-La Failure Mode Map non dovrebbe fermarsi al nome dell'exception.
-
-Deve descrivere ciò che conta per il comportamento.
-
-## Stato conosciuto vs stato ignoto
-
-Una colonna particolarmente utile è:
-
-```text
-Known outcome?
-```
-
-Possiamo distinguere:
-
-### Known failure
-
-```text
-validation error
-→ sappiamo che side effect non è avvenuto
-```
-
-### Known success
-
-```text
-consumer commit confermato
-→ sappiamo che side effect è persistito
-```
-
-### Unknown outcome
-
-```text
-timeout dopo invio
-→ non sappiamo se side effect è avvenuto
-```
-
-Gli unknown outcome sono i punti in cui idempotency e reconciliation diventano più importanti.
-
-## Time budget
-
-Il failure design deve includere il tempo.
-
-Per esempio:
-
-```text
-operator request budget       2 s
-outbox publish expected       30 s
-business delivery target      5 min
-warning threshold             2 min
-manual escalation threshold   10 min
-DLQ retention                 policy-defined
-```
-
-Questi numeri sono esempi didattici.
-
-La struttura invece è importante.
-
-Senza time budget non sappiamo quando:
-
-- un retry è ancora utile;
-- una queue è troppo indietro;
-- un degrado diventa incidente;
-- passare a manual intervention;
-- informare l'utente.
-
-## Failure budget e retry budget
-
-Possiamo pensare a due budget differenti.
-
-### Retry budget tecnico
-
-Quanto tentiamo prima di smettere di colpire la dipendenza?
-
-### Business delay budget
-
-Quanto può rimanere incompleto il processo prima che il ritardo cambi il comportamento richiesto?
-
-Un messaggio potrebbe avere ancora retry tecnici disponibili ma avere già superato il business timeout.
-
-Esempio:
-
-```text
-retry può continuare
-ma
-operator deve essere avvisato
-```
-
-Questo è un design più ricco del semplice `maxRetries=5`.
-
-## Backpressure nella mappa
-
-Per ogni consumer importante annotiamo:
-
-```text
-concurrency limit
-prefetch / batch size
-queue depth signal
-oldest-message-age signal
-scaling rule
-producer throttling
-```
-
-Non per micro-ottimizzare prima di misurare.
-
-Per sapere **dove si trova il freno**.
-
-Se nessun componente può rallentare il sistema, probabilmente il failure mode è una saturazione incontrollata.
-
-## Retry ownership
-
-Una delle colonne più importanti è:
-
-```text
-Retry owner
-```
-
-Può essere:
-
-- client SDK;
-- application service;
-- broker;
-- consumer framework;
-- workflow engine;
-- operator umano.
-
-Se non lo scriviamo, rischiamo retry sovrapposti.
-
-Esempio:
-
-```text
-SDK 3 retry
-× API layer 3 retry
-× message consumer 5 delivery attempts
-```
-
-Il team vede “3 retry”.
-
-Il sistema vede un amplificatore.
-
-## Dead-letter policy
-
-Una DLQ deve comparire nella Failure Mode Map con:
-
-```text
-entry condition
-owner
-alert
-retention
-payload/security policy
-redrive procedure
-business consequence
-```
-
-Una riga:
-
-```text
-on failure → DLQ
-```
-
-non è una policy.
-
-## Reconciliation
-
-La Failure Mode Map deve descrivere anche i controlli fuori dal request/message path.
-
-Per Order Operations:
-
-```text
-accepted escalations
-MINUS
-confirmed downstream escalations
-=
-reconciliation candidates
-```
-
-Questa verifica può trovare failure che telemetry locale non ha rilevato.
-
-Reconciliation è particolarmente importante quando:
-
-- esistono side effect esterni;
-- le acknowledgement possono perdersi;
-- ci sono retry;
-- il processo dura a lungo;
-- più sistemi mantengono stati correlati.
-
-## Compensation
-
-Non ogni riga deve avere una compensazione.
-
-Anzi, forzare una compensation dove basta retry crea complessità inutile.
-
-La mappa dovrebbe classificare:
-
-```text
-retryable
-forward recoverable
-compensable
-irreversible
-manual review
-```
-
-Questo produce una visione molto più utile della generica colonna:
-
-```text
-rollback: yes/no
-```
+Molti failure si risolvono meglio proseguendo e riconciliando. Alcuni richiedono una nuova business operation di compensation. Altri ancora, soprattutto dopo pivot economici, richiedono un essere umano.
 
 ## Observability contract
 
-La Failure Mode Map prepara il Capitolo 15 sull'observability.
+Una recovery strategy è operativa soltanto se possiamo osservare quando dovrebbe attivarsi. Per il flusso ESI ci interesseranno segnali come outbox pending e oldest age, publish failures, consumer lag, duplicate processing, DLQ depth/age, reconciliation mismatch e business delivery latency.
 
-Per ora annotiamo almeno i segnali necessari:
+I nomi definitivi verranno stabiliti nel capitolo sull’observability. Il principio è già valido:
 
-```text
-outbox_pending_total
-outbox_oldest_age
-publish_attempt_total
-publish_failure_total
-consumer_lag
-consumer_duplicate_total
-dlq_depth
-dlq_oldest_age
-reconciliation_mismatch_total
-business_delivery_latency
-```
-
-I nomi concreti cambieranno.
-
-Il principio no:
-
-> **se una recovery strategy esiste soltanto nella documentazione ma non possiamo osservare quando deve attivarsi, non è ancora una strategia operativa.**
+> **se sappiamo come recuperare soltanto sulla carta ma non sappiamo riconoscere quando serve farlo, il recovery non è ancora parte del sistema.**
 
 ## Failure Mode Map e AI
 
-Un agente AI può essere molto utile nel costruire una prima mappa.
+Un agente AI può essere un ottimo failure-mode explorer: può analizzare call graph, retry policy, transaction boundary, outbox publisher, ack, DLQ, timeout e idempotency store e generare sequenze avversariali come `commit succeeds → publish succeeds → mark published fails → restart`.
 
-Possiamo chiedergli di analizzare:
+Il repository, però, non contiene automaticamente il business delay accettabile, i side effect irreversibili, le regole di human approval o l’owner del redrive. Queste informazioni arrivano dall’analisi funzionale e dal contesto organizzativo.
 
-- call graph;
-- retry policy;
-- queue configuration;
-- catch block;
-- transaction boundary;
-- outbox publisher;
-- consumer ack;
-- DLQ;
-- timeout;
-- circuit breaker;
-- idempotency store.
-
-E può proporre failure sequence come:
-
-```text
-commit succeeds
-publish succeeds
-mark published fails
-process restarts
-```
-
-Questa è un'ottima forma di adversarial review.
-
-Ma il repository non sa automaticamente:
-
-- quanto ritardo il business tollera;
-- quali side effect sono irreversibili;
-- quando serve human approval;
-- quali dati non possono finire nel broker;
-- chi è responsabile del redrive.
-
-Queste informazioni arrivano dal contesto.
-
-## Operational artifact
-
-Da questo capitolo, ogni flusso distribuito significativo dovrebbe avere almeno una Failure Mode Map proporzionata al rischio.
-
-Non serve un documento enorme.
-
-Serve poter rispondere a una domanda:
+Da questo capitolo, ogni flusso distribuito significativo dovrebbe avere una Failure Mode Map abbastanza ricca da rispondere a una domanda:
 
 > **se questa freccia non funziona come nel diagramma, sappiamo ancora che cosa succede al sistema?**
