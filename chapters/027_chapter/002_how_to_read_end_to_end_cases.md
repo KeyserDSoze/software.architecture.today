@@ -1,313 +1,104 @@
-# 2. Come leggere un caso end-to-end
+# Come leggere un caso end-to-end
 
-Un caso end-to-end non è un catalogo di componenti.
+Un caso end-to-end non è un catalogo di componenti. Sapere che un sistema usa App Service, PostgreSQL, Service Bus o un LLM dice poco se non sappiamo quale problema quelle scelte stavano risolvendo.
 
-Se alla fine sappiamo soltanto che un sistema usa App Service, PostgreSQL, Service Bus o un modello LLM, abbiamo imparato poco.
+La lettura utile ricostruisce una **catena di decisioni**.
 
-Il punto è ricostruire **la catena causale delle decisioni**.
+## Dal problema alla promessa
 
-## Partire dal problema, non dal diagramma finale
+Il punto di partenza deve poter essere espresso senza tecnologia.
 
-Ogni caso del capitolo sarà letto attraverso otto domande.
+Marketing non “deve costruire una piattaforma serverless”: deve pubblicare campagne standard senza aprire continuamente ticket a Engineering. Order Operations non “deve riscrivere il legacy”: deve assumere una business decision senza perdere conoscenza e rollback. L’AI Assistant non “deve usare un LLM”: deve ridurre il costo cognitivo dell’investigazione senza diventare una nuova authority.
 
-### 1. Quale problema esiste davvero?
+Da qui ricaviamo un outcome che sopravvive a un cambio di provider o framework.
 
-Non:
+Se l’outcome contiene già la soluzione — “usare Static Web Apps”, “adottare RAG”, “passare ai microservizi” — abbiamo saltato il passaggio più importante.
 
-```text
-Dobbiamo costruire una piattaforma serverless.
-```
+## Dalla promessa al quality floor
 
-Ma:
+Una volta chiaro l’outcome, chiediamo che cosa non può essere sacrificato per ottenerlo.
 
-```text
-Marketing deve pubblicare campagne senza aprire ticket a Engineering.
-```
+Campaign Launchpad deve impedire publication non approvate e mantenere rollback. La Priority migration non può introdurre silent semantic regression. Il Case Explanation Assistant non può trasformare model interpretation in business truth o attraversare un tenant boundary.
 
-Non:
+Il quality floor non è uguale per tutti i sistemi. Un prodotto marketing pubblico e un payment workflow non hanno lo stesso failure cost. Ma entrambi devono rendere esplicite le proprietà che restano non negoziabili.
 
-```text
-Dobbiamo migrare a una nuova architecture.
-```
+Questa distinzione ci permette di cercare **robustezza appropriata**, non robustezza massima per principio.
 
-Ma:
+## Ownership prima del diagramma
 
-```text
-Operations Desk Classic impedisce di evolvere una capability senza conoscere comportamento e dipendenze storiche.
-```
+Prima di disegnare componenti chiediamo chi possiede la business rule, il dato, il rischio e la decisione di cambiamento.
 
-Non:
+Nel Case Explanation Assistant, per esempio, Orders possiede Order truth, Payments & Risk la truth economica, Order Operations il case context e il modello soltanto l’interpretazione advisory.
 
-```text
-Dobbiamo aggiungere AI.
-```
+Questa mappa di authority determina ciò che il modello, il servizio o la migration non possono decidere autonomamente.
 
-Ma:
+> **Un diagramma mostra dove vive il codice. L’ownership map mostra dove vive il diritto di definire il significato.**
 
-```text
-Gli operatori spendono troppo tempo a ricostruire manualmente perché un ordine è problematico.
-```
+## Il trade-off deve dichiarare ciò che compriamo e ciò che paghiamo
 
-Se saltiamo questa domanda, tutto ciò che viene dopo diventa più facile da giustificare e più difficile da valutare.
+Ogni architecture decision dovrebbe poter essere letta come uno scambio.
 
-## 2. Qual è l'outcome?
+Campaign Launchpad compra un operating surface piccolo rinunciando a parte della custom flexibility. La Priority migration compra reversibilità pagando coexistence temporanea. Il Case Explanation Assistant compra un blast radius ridotto mantenendo read-only authority e accettando più `InsufficientEvidence`.
 
-Un outcome deve poter sopravvivere a un cambio di tecnologia.
-
-Campaign Launchpad non ha come outcome:
-
-```text
-usare Static Web Apps
-```
-
-ma qualcosa come:
-
-```text
-un marketing operator autorizzato può pubblicare e ritirare una landing page approvata senza dipendere da un deployment manuale di Engineering
-```
-
-Il brownfield non ha come outcome:
-
-```text
-rimuovere CommonJS
-```
-
-ma:
-
-```text
-Order Operations assume la decisione di Priority secondo semantica confermata senza perdere rollback e conoscenza del comportamento legacy
-```
-
-L'AI Assistant non ha come outcome:
-
-```text
-rispondere con un LLM
-```
-
-ma:
-
-```text
-ridurre il costo cognitivo dell'investigazione senza creare una nuova authority sul dominio
-```
-
-## 3. Quali qualità sono non negoziabili?
-
-Questa domanda impedisce al compromesso di trasformarsi in degrado casuale.
-
-Per ogni caso distinguiamo:
-
-```text
-quality floor
-optimization target
-nice-to-have
-```
-
-Il quality floor non deve necessariamente essere identico fra i prodotti.
-
-Un sito marketing pubblico e un workflow di Payment Escalation non hanno lo stesso failure cost.
-
-Questo non significa che uno dei due possa essere costruito male.
-
-Significa che **robustezza appropriata** e **robustezza massima** non sono sinonimi.
-
-## 4. Chi possiede cosa?
-
-Ogni architecture diagram tende a rendere i componenti più visibili delle responsabilità.
-
-Noi facciamo il contrario.
-
-Prima chiediamo:
-
-```text
-chi possiede la business rule?
-chi possiede il dato?
-chi possiede il rischio?
-chi può autorizzare un cambio?
-chi opera il failure?
-```
-
-Soltanto dopo chiediamo dove gira il codice.
-
-Nel Case Explanation Assistant, per esempio:
-
-```text
-Payments & Risk
-→ Payment truth
-
-Orders
-→ Order truth
-
-Order Operations
-→ operational case context
-
-model
-→ advisory interpretation
-```
-
-Il modello non diventa owner soltanto perché produce la frase finale mostrata all'operatore.
-
-## 5. Quale trade-off stiamo pagando?
-
-Ogni caso deve rendere esplicito:
+Il trade-off resta leggibile quando possiamo indicare:
 
 ```text
 benefit purchased
 cost accepted
-quality floor
-trigger
+quality floor preserved
+review trigger
 ```
 
-Non basta dire:
+Questo è molto più utile di “dipende”, perché spiega **da che cosa** dipende.
 
-> Dipende.
+## Il failure model verifica se l’architettura sta proteggendo la cosa giusta
 
-Bisogna dire da cosa.
+Le architetture diventano comprensibili quando le osserviamo dal failure che devono contenere.
 
-Esempio:
+Per Campaign Launchpad il problema è pubblicare la versione sbagliata o perdere la possibilità di tornare indietro. Nel brownfield è scambiare una differenza intenzionale per regressione, oppure scoprire un hidden consumer dopo il cutover. Nell’AI runtime è inventare un claim, perdere una source, subire prompt injection o dipendere troppo dal provider.
+
+Il failure model non è un’appendice. È il controllo che il design stia proteggendo il vero quality floor.
+
+## L’evidence deve avere la stessa granularità del claim
+
+Una business rule può essere sostenuta da domain confirmation e behavioral test. Una publication path richiede deploy/smoke/rollback. Una migration richiede characterization e shadow evidence. AI groundedness richiede real model execution su eval versionati. Continuity richiede un drill reale.
+
+Non usiamo una evidence economica per sostenere un claim più costoso.
+
+Questa regola ci porta naturalmente alla production decision. Un caso non è end-to-end se termina con `implementation complete`. Deve arrivare almeno a `READY`, `CONDITIONAL`, `BLOCKED`, `NOT AUTHORIZED` o dichiarare esplicitamente che la decisione non può ancora essere presa.
+
+Order Operations, per esempio, resta `NO-GO` nonostante molta implementation e documentation già esistano.
+
+## L’End-to-End Decision Trace
+
+La vista sintetica del capitolo è quindi:
 
 ```text
-Campaign Launchpad
-
-Benefit
-small operating surface
-
-Cost
-less custom runtime control
-
-Quality floor
-approved publishing + rollback + access control
-
-Trigger
-custom dynamic workflows or regulatory/data requirements outgrow current model
+Problem
+→ Outcome
+→ Functional scope
+→ Owners
+→ Quality floor
+→ Key trade-off
+→ Architecture decision
+→ Failure modes
+→ Verification
+→ Production decision
+→ Open evidence / review trigger
 ```
 
-## 6. Quale failure dobbiamo progettare?
+Non è un template da riempire meccanicamente. È un test di causalità.
 
-Ogni architecture case viene riletto anche dalla prospettiva del fallimento.
+La domanda più severa è:
 
-Per un piccolo prodotto:
+> **Se una decisione cambiasse, sappiamo indicare quale informazione, quale constraint o quale evidence dovrebbe essere cambiata prima?**
 
-```text
-bad content publish
-identity unavailable
-failed deploy
-wrong public artifact
-```
+Se sì, stiamo osservando un sistema di decisioni. Se no, probabilmente stiamo descrivendo soltanto una soluzione già costruita.
 
-Per il brownfield:
+Il caso GitHub dell’upgrade Rails è utile proprio perché conserva la transizione: dual boot, CI su versioni diverse, rollout progressivo e correzioni durante il percorso, invece di raccontare l’upgrade come un singolo switch.
 
-```text
-semantic regression
-hidden consumer
-unexpected difference
-one-way migration too early
-```
+Fonte:
 
-Per il runtime AI:
+- [GitHub Engineering — Upgrading GitHub from Rails 3.2 to 5.2](https://github.blog/engineering/infrastructure/upgrading-github-from-rails-3-2-to-5-2/)
 
-```text
-hallucination
-missing evidence
-prompt injection
-provider outage
-latency spike
-model drift
-unsafe authority claim
-```
-
-I failure mode cambiano perché cambia il sistema.
-
-## 7. Quale evidence rende credibile la decisione?
-
-Non tutti i claim richiedono la stessa forma di prova.
-
-```text
-business rule
-→ Product/domain confirmation + behavioral test
-
-static hosting path
-→ deploy/smoke
-
-migration compatibility
-→ characterization + shadow evidence
-
-AI groundedness
-→ real model eval on versioned cases
-
-continuity
-→ secondary-maintainer drill
-```
-
-Questo evita il problema che abbiamo incontrato più volte:
-
-> **usare evidence economica per fare claim costosi.**
-
-## 8. Qual è la production decision?
-
-Un caso non è end-to-end se termina con:
-
-```text
-implementation complete
-```
-
-Deve arrivare almeno a:
-
-```text
-ready
-conditional
-blocked
-not authorized
-```
-
-oppure spiegare perché la production decision non esiste ancora.
-
-Nel capstone principale Order Operations, per esempio, la Production Readiness Review corrente è ancora:
-
-```text
-NO-GO
-```
-
-Questo non invalida il lavoro fatto.
-
-È il risultato corretto dell'evidence che abbiamo davvero.
-
-## Evitare il case-study hindsight
-
-I case study raccontati dopo il successo hanno un difetto naturale: comprimono l'incertezza.
-
-Una timeline reale può sembrare:
-
-```text
-A → C → B → D → rollback → discovery → E
-```
-
-ma dopo qualche anno viene raccontata come:
-
-```text
-A → B → C → D → E
-```
-
-Nel libro proveremo a conservare almeno:
-
-- alternative scartate;
-- decisioni rimandate;
-- evidence pending;
-- costi di transizione;
-- decisioni reversibili;
-- trigger di review.
-
-Il caso GitHub dell'upgrade Rails è utile proprio perché il racconto conserva diversi aspetti della transizione: dual boot, CI su più versioni, test manuale mirato, rollout progressivo e correzioni durante il percorso invece di descrivere l'upgrade come un singolo switch:
-
-- https://github.blog/engineering/infrastructure/upgrading-github-from-rails-3-2-to-5-2/
-
-## La metrica del capitolo
-
-Non valuteremo un caso dal numero di pattern riconoscibili.
-
-Lo valuteremo da una domanda più severa:
-
-> **Se una decisione cambiasse, sappiamo indicare quale informazione o quale evidence dovrebbe essere cambiata prima?**
-
-Se sì, stiamo osservando un sistema di decisioni.
-
-Se no, stiamo probabilmente osservando soltanto un'implementazione.
+> **Un buon case study non rende il passato inevitabile. Rende leggibili le condizioni che hanno reso una scelta ragionevole in quel momento.**
