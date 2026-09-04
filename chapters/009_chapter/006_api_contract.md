@@ -1,16 +1,16 @@
 ## L'artefatto: API Contract
 
-Una specifica OpenAPI può essere parte del contratto.
+Una specifica OpenAPI può descrivere molto bene endpoint, schema, parameter e response.
 
-Non è necessariamente tutto il contratto.
+Non necessariamente descrive tutta la promessa.
 
 Per questo nel libro useremo un artefatto più ampio:
 
 > **API Contract**
 
-L'obiettivo è catturare ciò che un consumer deve sapere per usare una capability senza conoscere l'implementazione interna.
+L'obiettivo non è duplicare una spec machine-readable. È conservare ciò che un consumer deve sapere per usare correttamente una capability senza conoscere l'implementazione interna e ciò che il team deve ricordare per evolverla senza rompere quella relazione.
 
-### Template
+## Struttura base
 
 ```text
 API / Capability
@@ -35,54 +35,65 @@ Examples
 Open decisions
 ```
 
-Non ogni API ha bisogno di ogni voce.
+Non ogni contratto richiede ogni voce.
 
-Una funzione interna allo stesso processo potrebbe richiedere molto meno.
+Una capability interna allo stesso processo può avere una superficie minima. Un'API pubblica o un evento persistente consumato da team indipendenti può richiedere molto più dettaglio.
 
-un'API pubblica o un evento business persistente potrebbe richiedere molto di più.
+La profondità segue blast radius e costo del cambiamento.
 
-### Purpose
+## Purpose e consumer vengono prima delle operation
 
-Prima degli endpoint scriviamo perché esiste il contratto.
+Prima degli endpoint scriviamo perché il contratto esiste.
 
-Esempio:
+Per Order Operations potrebbe essere:
 
 ```text
 Consentire agli operatori di individuare e investigare ordini
 che richiedono attenzione operativa.
 ```
 
-Questa frase impedisce di trasformare l'API in un accesso generico a tutte le tabelle ordini.
+Questa frase è un guardrail. Evita che la public surface diventi progressivamente un accesso generico a tutti i dati disponibili soltanto perché il backend li può leggere.
 
-### Consumers
-
-Elencare consumer noti ci costringe a capire il blast radius.
+Subito dopo rendiamo visibili i consumer.
 
 ```text
-Operations Web UI
-Operations CLI — futuro possibile, non ancora committed
-External partners — no
+Current:
+- Order Operations Web UI
+
+Possible future:
+- Operations CLI
+
+Not in scope:
+- external partners
 ```
 
-Se non sappiamo chi usa il contratto, anche il versioning diventa difficile da governare.
+Il numero e l'autonomia dei consumer cambiano il costo di compatibility, versioning e deprecation. Un contratto senza consumer identificati è difficile da governare perché non sappiamo chi stiamo promettendo di non sorprendere.
 
-### Interaction style
+## Interaction style deve conservare la ragione della scelta
 
-Non scriviamo soltanto “REST”.
-
-Scriviamo perché:
+Scrivere soltanto:
 
 ```text
-HTTP request/response
-perché il journey corrente è interattivo e read-oriented,
+REST
+```
+
+perde il reasoning.
+
+Meglio:
+
+```text
+HTTP request/response con JSON
+perché il journey è interattivo e read-oriented;
 non richiede push continuo né temporal decoupling.
 ```
 
-La scelta resta collegata al requisito.
+Se il requisito cambia, sappiamo quale assunzione rivalutare.
 
-### Operation contract
+Il contratto non rende eterna la tecnologia. Conserva il fit che l'ha resa ragionevole.
 
-Per ogni operazione vogliamo almeno:
+## Ogni operation deve esplicitare l'intento
+
+Per una operation significativa vogliamo almeno:
 
 ```text
 Intent
@@ -96,132 +107,162 @@ Errors
 Timing expectation
 ```
 
-Questo rende evidente quando un'API ha troppa semantica nascosta.
+La voce più importante è spesso `Intent`.
 
-### Consistency e freshness
+Un endpoint può avere schema perfetto e rimanere ambiguo se non sappiamo quale risultato business stia promettendo. `POST /orders/42/action` dice molto meno di `requestPaymentEscalation` se la seconda capability è ciò che il dominio ha realmente deciso.
 
-Molte API espongono dati senza dichiarare quanto possano essere vecchi.
+Authorization e side effect devono stare vicini all'intento perché determinano quanta autorità il consumer riceve. Idempotency ed error semantics completano la promessa su cosa accada quando la rete o il client non si comportano idealmente.
 
-Per alcuni consumer non importa.
+## Freshness e consistency non devono restare implicite
 
-Per altri cambia completamente il comportamento.
+Un payload può essere corretto dal punto di vista dello schema e sbagliato per il consumer perché troppo vecchio.
 
-Possiamo specificare:
+Per questo il contratto può dire:
 
 ```text
 Source: live operational data
-Freshness: dipende dalle source systems; nessun read model asincrono in questa fase
+Freshness: dipende dalle source systems;
+nessun read model asincrono in questa fase
 ```
 
-Oppure in futuro:
+oppure, quando esiste evidence sufficiente:
 
 ```text
 Projection lag target: <= 5s p99
 ```
 
-Ma soltanto quando quel numero ha un motivo e può essere misurato.
+Il numero ha valore soltanto se nasce da un requisito e può essere osservato.
 
-### Error model
+Quando serviamo last-known data o una vista parziale, anche quello deve diventare parte della semantica. Non possiamo lasciare al consumer il compito di indovinare se il valore sia live.
 
-Dobbiamo elencare almeno le classi di errore che cambiano il comportamento del consumer.
+## Error model: ciò che cambia il comportamento del consumer
+
+Non serve catalogare ogni eccezione interna.
+
+Serve rendere esplicite le classi di failure che richiedono reazioni differenti:
 
 ```text
 Unauthenticated
 Unauthorized
 Not found
 Validation failure
+Conflict
 Dependency unavailable
 Rate limited
-Conflict
 ```
 
-Per HTTP possiamo usare Problem Details quando è un fit appropriato.
+Per HTTP, Problem Details può offrire un formato interoperabile quando serve dettaglio applicativo: [RFC 9457 — Problem Details for HTTP APIs](https://www.rfc-editor.org/rfc/rfc9457.html).
 
-Fonte:
+La regola rimane quella del capitolo: il consumer deve sapere che cosa può fare dopo, senza ricevere dettagli infrastrutturali che non gli appartengono.
 
-- [RFC 9457 — Problem Details for HTTP APIs](https://www.rfc-editor.org/rfc/rfc9457.html)
+## Idempotency: definire l'unità di intento
 
-### Idempotency
-
-Non basta scrivere `yes/no`.
-
-Serve capire l'unità di intento.
-
-Per un'operazione di refund:
+Scrivere semplicemente:
 
 ```text
-Idempotency unit: refund request identified by merchant + order + request key
-Duplicate behavior: return existing outcome, do not create second refund
-Retention: TBD from business retry window
+Idempotent: yes
 ```
 
-Il contratto porta in superficie decisioni che altrimenti finirebbero dentro una libreria.
+può essere troppo poco.
 
-### Observability
+Per un'operazione economica potremmo voler specificare:
 
-Un consumer dovrebbe poter correlare una richiesta con ciò che accade nel sistema.
+```text
+Idempotency unit:
+merchant + order + request key
 
-Possiamo documentare:
+Duplicate behavior:
+return existing outcome;
+do not create a second business effect
 
-- request/correlation identifier;
-- trace context;
-- metriche per error class;
-- usage/version telemetry.
+Retention:
+TBD from the business retry window
+```
 
-Azure Architecture Center include distributed tracing e trace context tra le considerazioni di design delle API.
+In questo modo una proprietà che altrimenti rischierebbe di finire dispersa fra middleware, database e SDK diventa parte esplicita del contratto.
 
-Fonte:
+## Collection behavior e limiti
 
-- [Microsoft Learn — RESTful web API design](https://learn.microsoft.com/azure/architecture/best-practices/api-design)
+Per una collection documentiamo ciò che il consumer deve assumere su pagination, ordering, filtering e limiti. Se il cursor è opaco, lo dichiariamo. Se il massimo `limit` è un contratto, lo rendiamo visibile. Se alcuni filtri possono essere combinati e altri no, non lasciamo che il comportamento emerga casualmente dalla query implementation.
 
-### Contract test
+Lo stesso vale per rate limit e timeout. Non dobbiamo inventare numeri prima di avere il contesto, ma dobbiamo sapere quali decisioni sono ancora aperte e quali proprietà dovranno essere quantificate prima della production readiness.
 
-Se il contratto è importante, parte di esso deve diventare verificabile automaticamente.
+## Compatibility e lifecycle
 
-Possiamo verificare:
+Il contratto dovrebbe dichiarare quali modifiche consideriamo compatibili, come introduciamo una breaking change e quale policy governa versioning e deprecation.
 
-- schema;
-- required field;
-- status code;
-- backward compatibility;
-- authorization;
-- idempotency;
-- error format;
-- pagination invariants.
+Non serve decidere oggi la durata di supporto di una `v2` che non esiste.
 
-Questo tema verrà approfondito nel capitolo sul testing.
+Serve evitare che la prima breaking change costringa il team a inventare l'intero lifecycle sotto pressione.
 
-### Il documento non deve duplicare la spec
+La compatibility policy può essere semplice:
 
-Se OpenAPI descrive perfettamente request e response, l'API Contract non deve copiarle riga per riga.
+```text
+Preferire additive change semanticamente compatibili.
+Considerare breaking le modifiche che cambiano
+assunzioni osservabili dei consumer.
+Versionare quando la compatibilità non è preservabile.
+```
 
-Può linkare la spec e aggiungere ciò che la spec non esprime bene:
+Il livello di formalità crescerà con il numero e l'indipendenza dei consumer.
+
+## Observability attraversa il contratto
+
+Quando una request fallisce attraverso più componenti, provider e consumer devono riuscire a parlare dello stesso evento.
+
+Il contratto può quindi definire request/correlation identifier, trace context e metriche rilevanti per error class o versione. Azure Architecture Center include trace context e distributed tracing fra le considerazioni di API design: [Microsoft Learn — RESTful web API design](https://learn.microsoft.com/azure/architecture/best-practices/api-design).
+
+Observability non è soltanto implementazione interna quando il consumer ha bisogno di un identifier per supporto, audit o diagnosi.
+
+## Rendere verificabile ciò che possiamo
+
+Una parte del contratto deve diventare executable.
+
+Schema e required field possono essere validati automaticamente. Possiamo testare status code, authorization, error format e invarianti di pagination. Tooling dedicato può rilevare alcune breaking change e i contract test possono verificare che provider e consumer condividano ancora la stessa forma.
+
+Idempotency reale, domain invariant, freshness e failure behavior richiedono spesso test e evidence più ricchi della sola conformità allo schema.
+
+Lo approfondiremo nel capitolo sul testing.
+
+## Non duplicare la spec
+
+Se OpenAPI descrive request e response, l'API Contract deve linkarla, non copiarla riga per riga.
+
+L'artefatto aggiunge ciò che la spec esprime meno bene:
 
 ```text
 semantica
 ownership
+consumer assumptions
 trade-off
 freshness
 failure behavior
 compatibility policy
+open decisions
 ```
 
 La documentazione utile riduce ambiguità.
 
 La documentazione duplicata crea drift.
 
-### Definition of contract-ready
+## Definition of contract-ready
 
-Prima che un'API importante venga implementata o delegata a un agente, dovremmo riuscire a rispondere a queste domande:
+Prima di implementare o delegare a un agente un contratto importante dovremmo poter rispondere a queste domande:
 
-1. Quale capability espone?
-2. Qual è il consumer?
-3. Quale modello di interazione serve?
-4. Quali side effect produce?
-5. Come gestisce duplicati e retry?
-6. Come segnala gli errori?
-7. Quali dati sono autorevoli e quanto sono freschi?
-8. Come evolve senza rompere consumer esistenti?
-9. Come verifichiamo il contratto?
+1. Quale capability espone e per quale consumer?
+2. Quale interaction style ha fit con il journey?
+3. Quali side effect e authorization boundary introduce?
+4. Quale semantica di retry e idempotency promette?
+5. Come segnala i failure che cambiano il comportamento del consumer?
+6. Quali dati sono autorevoli e quale freshness è osservabile?
+7. Come funzionano collection, limiti e timeout rilevanti?
+8. Come può evolvere senza coordinamento simultaneo dei consumer?
+9. Quale parte del contratto è verificabile automaticamente e quale richiede review semantica?
 
-Se molte risposte sono “lo decidiamo nel controller”, non siamo ancora contract-ready.
+Se molte risposte sono:
+
+> “lo decidiamo nel controller”
+
+non siamo ancora contract-ready.
+
+> **L'API Contract non serve a documentare un endpoint dopo che esiste. Serve a rendere esplicita la promessa prima che l'implementazione la renda costosa da cambiare.**
