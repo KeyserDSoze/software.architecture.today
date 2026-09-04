@@ -216,12 +216,16 @@ Testing Strategy
 Refactoring Safety Plan
 Architecture Fitness Checklist
 Cost Model
+Repository Map
+Execution Work Item
 Agent Delegation Contract
 Agent Verification Bundle
 AI Autonomy Matrix
 Operational Readiness Review
 Production Readiness Review
 ```
+
+`Repository Map` e `Execution Work Item` entrano durante la parte AI-native: il primo rende navigabile il contesto persistente del repository, il secondo delimita ciò che deve cambiare nel task corrente con scope, acceptance, verification e stop condition.
 
 Il vocabolario verrà raffinato durante la scrittura e validato attraverso i capitoli, non imposto a priori.
 
