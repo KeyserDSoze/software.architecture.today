@@ -1,303 +1,83 @@
-## Secret, dati e log: proteggere ciò che vale davvero
+## Secret, dati e log: ridurre ciò che può essere esposto
 
-Una delle abitudini peggiori nella security applicativa è trattare tutto come “sensibile” e poi proteggere male tutto allo stesso modo.
+Una security architecture debole tratta tutto come “sensibile” e finisce per proteggere male tutto nello stesso modo. Una security architecture utile distingue invece che cosa stiamo custodendo, perché ci serve e quale danno produrrebbe l’esposizione.
 
-Serve invece classificare.
+Per Order Operations possiamo avere documentazione tecnica a bassa sensibilità, configurazione interna, dati operativi confidenziali e asset ad alto impatto come token, secret, riferimenti payment-adjacent o audit privilegiato. La classificazione non serve a riempire una tabella: deve cambiare chi può leggere il dato, dove può transitare, quanto viene conservato e quale audit richiede.
 
-Per Order Operations abbiamo almeno:
-
-```text
-public / low sensitivity
-→ documentazione tecnica non riservata
-
-internal
-→ configurazione operativa non sensibile
-
-confidential
-→ operational case data, user identifiers
-
-high impact
-→ token, secret, payment-related references, privileged audit data
-```
-
-La classificazione non serve a riempire una tabella.
-
-Serve a decidere:
-
-- chi può leggere;
-- dove può transitare;
-- dove può essere persistito;
-- quanto può restare nei log;
-- come viene cancellato;
-- quale livello di audit richiede.
-
-Microsoft Well-Architected raccomanda di classificare i dati e applicare controlli di accesso ed encryption coerenti con rischio e trust boundary.
+Microsoft Well-Architected raccomanda di classificare i dati e applicare access control ed encryption coerenti con rischio e trust boundary.
 
 Fonte:
 
 - [Microsoft Learn — Security design principles](https://learn.microsoft.com/azure/well-architected/security/principles)
 
+## La prima protezione è non raccogliere ciò che non ci serve
+
+Se Order Operations ha bisogno di sapere che `paymentStatus = Failed`, non segue che debba possedere PAN, provider credential, payload economici completi o dettagli non necessari all’investigazione. Ogni campo raccolto aggiunge storage, access control, retention, backup, privacy obligation e breach impact.
+
+La data minimization riduce quindi il blast radius **prima** che encryption e authorization debbano proteggerlo.
+
+Questa è una delle forme più forti di Security by Design: eliminare l’asset che non produce valore.
+
 ## Il secret migliore è quello che non esiste
 
-Prima di progettare un secret store chiediamo:
+Lo stesso principio vale per le credenziali. Prima di progettare un secret store chiediamo se una workload identity o federation possano eliminare la credenziale statica.
 
-> Possiamo sostituire questa credenziale con una workload identity?
-
-Se sì, abbiamo eliminato:
-
-- distribuzione;
-- rotazione manuale;
-- rischio di commit accidentale;
-- copia in environment variable;
-- gestione del ciclo di vita del secret.
-
-Per i servizi Azure supportati, managed identity è quindi preferibile alla creazione di password applicative statiche.
-
-Microsoft documenta esplicitamente l'uso di managed identity con App Service per evitare la gestione diretta delle credenziali verso altri servizi Azure.
+Microsoft documenta l’uso delle managed identity con App Service proprio per evitare la gestione diretta di password o client secret verso servizi Azure.
 
 Fonte:
 
 - [Microsoft Learn — Secure your Azure App Service deployment](https://learn.microsoft.com/azure/app-service/overview-security)
 
-## Quando un secret resta inevitabile
+Quando il secret rimane inevitabile — per esempio un’API key di un provider esterno — il requisito non è semplicemente “mettilo in Key Vault”. Servono owner, consumer, scope, rotation, revocation, audit e comportamento durante indisponibilità del vault.
 
-I provider esterni non sempre supportano federation o workload identity.
+## Un vault non corregge un permission model sbagliato
 
-In quel caso un secret può essere necessario.
-
-Il requisito non è semplicemente:
-
-```text
-"mettilo in Key Vault"
-```
-
-Dobbiamo definire:
-
-- owner;
-- consumer;
-- scope;
-- rotazione;
-- revoca;
-- audit;
-- fallback;
-- behavior durante indisponibilità del vault.
-
-Per Order Operations usiamo Key Vault soltanto per i secret che non possiamo eliminare.
-
-## Secret store ≠ permission model
-
-Mettere un secret in Key Vault non serve se:
-
-```text
-tutti i developer possono leggerlo
-+ runtime può leggere tutti i secret
-+ pipeline può esportarlo
-+ log può stamparlo
-```
-
-Microsoft mostra un pattern utile in cui App Service usa managed identity per accedere a Key Vault e gli amministratori dell'App Service possono essere separati dall'accesso ai secret del vault.
+Mettere una credenziale in Key Vault non serve se runtime, pipeline e developer possono leggerla senza distinzione. Microsoft mostra pattern in cui App Service usa managed identity verso Key Vault e accesso all’applicazione e accesso ai secret possono rimanere separati.
 
 Fonte:
 
 - [Microsoft Learn — App Service + Key Vault secure connection](https://learn.microsoft.com/azure/app-service/tutorial-connect-overview)
 
-Questo è il punto importante:
+> **Il vault protegge il contenitore. L’authorization protegge il contenuto.**
 
-> **Il vault protegge il contenitore. L'authorization protegge il contenuto.**
+Il lifecycle della credenziale deve inoltre essere indipendente dal lifecycle del codice: poter ruotare o revocare senza rebuild dell’applicazione è parte del valore del secret store.
 
-## Encryption at rest e in transit
+## Encryption è baseline, non una conclusione
 
-Encryption è baseline, non strategia completa.
+TLS e encryption at rest proteggono rispettivamente canali e dati persistiti rispetto a specifiche classi di accesso. Non risolvono authorization errata, token rubati, SQL injection, logging indiscriminato o una identity legittima ma troppo privilegiata.
 
-TLS protegge il canale da alcune classi di attacco.
+Dire “i dati sono encrypted” dice quindi poco sulla capability di un attore autorizzato ad ottenerne la decrittazione.
 
-Encryption at rest protegge i dati persistiti rispetto a specifici failure e access path.
+Il vero boundary resta chi può chiedere al sistema di leggere o trasformare quel dato.
 
-Ma nessuna delle due risolve:
+## I log sono un datastore con un modello di rischio proprio
 
-- authorization sbagliata;
-- token compromesso;
-- SQL injection;
-- log leakage;
-- identity eccessivamente privilegiata;
-- export legittimo ma abusato.
+Application log e telemetry possono contenere token, header Authorization, email, tenant identifier, payload, stack trace, connection string o correlazioni che altrove non esistono nello stesso posto. Per questo il logging deve avere una policy di minimizzazione, retention e accesso.
 
-Quindi evitare frasi tipo:
+Per il flusso Payment Escalation vogliamo poter correlare `caseId`, `escalationId`, outcome tecnico, latency, retry e sanitized error code. Non abbiamo bisogno di access token, password, provider secret o payload economici completi.
 
-> “I dati sono sicuri perché sono encrypted.”
-
-La domanda resta:
-
-> Chi può chiedere al sistema di decrittarli?
-
-## Data minimization
-
-Ogni dato raccolto genera:
-
-- storage;
-- access control;
-- retention;
-- privacy obligation;
-- backup;
-- breach impact;
-- debugging risk.
-
-Se Order Operations ha bisogno di mostrare:
-
-```text
-paymentStatus = Failed
-```
-
-non significa che debba copiare:
-
-- PAN;
-- dettagli completi della transazione;
-- credenziali provider;
-- dati di pagamento non necessari al journey.
-
-Data minimization è una tecnica di sicurezza architetturale perché riduce direttamente il blast radius.
-
-## Log come data store
-
-I log sono spesso trattati come output tecnico innocuo.
-
-In realtà possono contenere:
-
-- token;
-- header Authorization;
-- email;
-- tenant id;
-- payload;
-- stack trace;
-- connection string;
-- correlation tra dati che altrove erano separati.
-
-Quindi il logging deve avere una policy.
-
-Per Order Operations:
-
-### Consentito
-
-- correlation id;
-- escalation id;
-- case id se classificato appropriamente;
-- event type;
-- outcome tecnico;
-- latency;
-- retry count;
-- sanitized error code.
-
-### Da evitare
-
-- access token;
-- refresh token;
-- secret;
-- full Authorization header;
-- password;
-- provider credential;
-- payload economico non necessario;
-- dati personali completi senza requisito.
-
-Microsoft raccomanda logging e resource log per investigazione e accountability, ma questo non implica registrare indiscriminatamente tutto.
+Microsoft raccomanda logging e resource log per investigazione e accountability, ma la capacità di osservare non implica registrare indiscriminatamente tutto.
 
 Fonte:
 
 - [Microsoft Learn — App Service architecture best practices](https://learn.microsoft.com/azure/well-architected/service-guides/app-service-web-apps)
 
-## Audit log ≠ application log
+## Audit e application log raccontano promesse differenti
 
-Un application log dice:
+Un log che dice “request completed in 180 ms” serve all’operability. Un audit record che dice quale operatore ha richiesto una Payment Escalation, per quale case, quando e con quale esito serve a accountability e non-repudiation.
 
-```text
-request completed in 180 ms
-```
+I due flussi possono avere retention, consumer, sensitivity e integrità differenti. `console.log()` non diventa un audit trail soltanto perché contiene un user id.
 
-Un audit log può dover dire:
+Per questo la telemetry dovrebbe essere costruita per allowlist: generiamo esplicitamente l’oggetto che vogliamo osservare invece di serializzare l’intera request e provare a redigere campi dopo. Questa scelta rende più facile anche per test e agenti AI verificare leakage potenziali.
 
-```text
-operator X
-requested PaymentEscalation Y
-for OperationalCase Z
-at time T
-with outcome Accepted
-```
+## Security e reliability si incontrano nel lifecycle dei secret
 
-Le due cose hanno:
+Se Key Vault diventa temporaneamente indisponibile, il comportamento dipende dalla credenziale. Un secret già materializzato in memoria può restare valido fino a scadenza; una capability specifica può degradare; un startup può dover fallire se il secret è indispensabile. Non esiste una risposta unica.
 
-- retention diversa;
-- consumer diversi;
-- integrità diversa;
-- sensitivity diversa.
+Il punto è che il secret store aggiunge un dependency failure mode, quindi security e reliability devono condividere il modello del sistema.
 
-Non dobbiamo assumere che `console.log()` sia un audit trail.
-
-## Redaction
-
-La redaction deve essere progettata prima del log emission.
-
-Pattern pericoloso:
-
-```text
-log full object
-→ prova a cancellare campi dopo
-```
-
-Meglio:
-
-```text
-construct explicit telemetry object
-→ include only allowed fields
-```
-
-L'AI può aiutare a trovare possibili leakage cercando:
-
-- logging di request/response complete;
-- serializzazione indiscriminata;
-- error objects;
-- environment dump;
-- connection string;
-- secret names.
-
-Ma serve una policy umana su cosa è ammesso.
-
-## Rotation e revocation
-
-Ogni credenziale inevitabile deve poter essere:
-
-- ruotata;
-- revocata;
-- sostituita senza rebuild dell'applicazione;
-- monitorata.
-
-Il valore di Key Vault non è soltanto “nascondere il secret”.
-
-È separare il lifecycle della credenziale dal lifecycle del codice.
-
-## Security failure mode
-
-Consideriamo:
-
-```text
-Key Vault non disponibile
-```
-
-Che cosa deve fare l'app?
-
-Possibili strategie:
-
-- usare secret già materializzato in memoria fino alla scadenza;
-- fallire le sole capability che ne dipendono;
-- bloccare startup se il secret è necessario all'avvio;
-- degradare evitando chiamate esterne.
-
-La risposta dipende dal secret.
-
-Security e reliability si incontrano qui.
-
-## Una regola pratica
-
-Per ogni campo che persistiamo o logghiamo chiediamo:
+Una domanda pratica chiude bene la sezione:
 
 > **Se questo dato finisse domani in un incident report pubblico, ci chiederemmo perché lo stavamo raccogliendo?**
 
-Se sì, probabilmente dobbiamo rivalutare la necessità del dato prima di pensare a come cifrarlo.
+Se sì, la prima review dovrebbe riguardare la necessità del dato, non soltanto il modo in cui lo cifriamo.
