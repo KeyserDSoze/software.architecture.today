@@ -13,9 +13,12 @@ Capstone principale:
 
 > **Order Operations** — Commerce & Operations.
 
-Brownfield simulato:
+Altri scenari persistenti:
 
-> **Operations Desk Classic**.
+```text
+Operations Desk Classic — brownfield legacy
+Campaign Launchpad — Marketing Technology / small One-Man Project
+```
 
 I casi reali rimangono separati da ESI.
 
@@ -51,14 +54,18 @@ I casi reali rimangono separati da ESI.
 | 23 — Manager di agenti | sì | sì — draft | sì — draft | OpenAI/Microsoft/GitHub |
 | 24 — AI dentro l'architettura | sì | sì — draft | sì — draft | Microsoft/NIST/OWASP/OpenAI/Uber |
 | 25 — One-Man Project | sì | sì — draft | sì — draft | Microsoft Research/SPACE/OpenAI/GitHub; dedicated audit |
-| 26 — Production Readiness | sì | sì — draft | sì — draft | AWS ORR, Google SRE, Microsoft, GitHub; dedicated audit |
-| 27+ | non ancora | source-first | required | research + ESI compromise + capstone update before closure |
+| 26 — Production Readiness | sì | sì — draft | sì — draft | AWS ORR/Google SRE/Microsoft/GitHub; dedicated audit |
+| 27 — Casi end-to-end | sì | sì — draft | sì — draft | Microsoft/GitHub/Uber; dedicated audit |
+| 28 — L'architect del 2030 | sì | sì — draft | sì — draft | Microsoft architect role/DORA/Microsoft Research/OpenAI; dedicated audit |
+| Capitolo finale | non ancora | source-first | required | chiusura + Dieci comandamenti come ultimissimo contenuto |
 
 Dedicated audits:
 
 ```text
 reference/CHAPTER_025_EVIDENCE.md
 reference/CHAPTER_026_EVIDENCE.md
+reference/CHAPTER_027_EVIDENCE.md
+reference/CHAPTER_028_EVIDENCE.md
 ```
 
 ---
@@ -99,51 +106,57 @@ fitness/document review green
 real environment readiness Verified
 ```
 
-A PRR document or readiness fitness test can be `Codified` while the workload correctly remains `NO-GO`.
+For professional capability:
+
+```text
+course/certification/artifact exists
+≠
+capability Govern/Grow demonstrated
+```
 
 ---
 
 # Capstone evidence snapshot
 
-## Historical deterministic evidence
-
-Recorded at the corresponding chapter revisions:
+Historical deterministic evidence remains scoped to the revision/property where it was actually executed:
 
 ```text
 Chapter 18
-TypeScript/refactoring suite                  19/19 PASS
-Legacy characterization                       6/6 PASS
+Order Operations/refactoring suite            19/19 PASS
+Legacy characterization                        6/6 PASS
 
 Chapter 19
-Architecture fitness                          5/5 PASS
+Architecture fitness                           5/5 PASS
 
 Chapter 20
-Cost fitness                                  2/2 locally exercised
+Cost fitness                                   2/2 locally exercised
 
 Chapter 21
-Context fitness                               4/4 locally exercised
+Context fitness                                4/4 locally exercised
 
 Chapter 22
-Issue readiness                               4/4 PASS
+Issue readiness                                4/4 PASS
 
 Chapter 23
-Agent governance                              5/5 locally exercised
+Agent governance                               5/5 locally exercised
 
 Chapter 24
-AI boundary compile + fitness                 5/5 locally exercised
+AI boundary compile + fitness                  5/5 locally exercised
 
 Chapter 25
-One-Man Project fitness                       Codified; local execution not completed in authoring runtime
+One-Man Project fitness                        Codified; local execution not completed in authoring runtime
 
 Chapter 26
-Production-readiness fitness                  Codified; real environment evidence still Pending
+Production-readiness fitness                   Codified; real environment evidence still Pending
 ```
 
-Historical local evidence is scoped to the revision and property exercised. It is not a perpetual statement that every later commit re-ran every previous gate.
+Chapter 27 adds decision-trace/documentary synthesis, not new runtime verification.
+
+Chapter 28 adds company-level capability/governance documentation, not a claim that ESI people were empirically assessed.
 
 ---
 
-# Current production-readiness state
+# Current production-readiness state — Order Operations
 
 Canonical artifact:
 
@@ -169,118 +182,133 @@ PRB-005 support / continuity evidence
 PRB-006 capacity evidence
 ```
 
-Capability-specific blockers:
+Capability-specific pending work:
 
 ```text
-OO-001
-→ PostgreSQL PaymentEscalation + Outbox atomicity
-
-OO-002
-→ real Case Explanation model/provider evaluation
-
-OO-003
-→ Azure non-production deployment evidence
+OO-001 → PostgreSQL atomicity
+OO-002 → real Case Explanation model/provider evaluation
+OO-003 → Azure non-production deployment evidence
 ```
 
-Current launch-boundary states:
-
-```text
-LB-CORE
-→ NO-GO
-
-LB-ESCALATION
-→ BLOCKED
-
-LB-PRIORITY-CANDIDATE
-→ NOT AUTHORIZED
-
-LB-AI
-→ NOT READY / disabled for core launch
-```
-
-No chapter may describe Order Operations as production-ready until the required primary evidence exists and the PRR is explicitly updated.
+No chapter may describe Order Operations as production-ready until required primary evidence exists and the PRR is explicitly updated.
 
 ---
 
-# Current major pending evidence
+# Chapter 27 evidence policy
 
-```text
-real PostgreSQL integration/migration behavior
-Bicep build/lint on approved toolchain
-Azure non-production deployment
-private connectivity
-Entra/auth/RBAC negative tests
-PostgreSQL restore/failover drill
-alert/SLI/synthetic runtime evidence
-capacity evidence
-secondary-maintainer continuity drill
-production support/on-call model
-real AI model/provider eval
-AI latency/cost/usefulness/runtime monitoring
-priority runtime shadow/retirement evidence
-```
+Main real-world sources:
 
-`infra/main.bicep` being `Codified` is not Azure deployment evidence.
-
-`evals/case-explanation-v1.jsonl` being `Codified` is not model-quality evidence.
-
-`docs/one-man-project-operating-model.md` being `Codified` is not continuity evidence.
-
-`docs/production-readiness-review.md` being `Codified` is not production readiness.
-
----
-
-# Source policy for Chapters 25–26
-
-## Chapter 25 — One-Man Project
-
-Primary/authoritative sources include:
-
-- Microsoft Research field experiments on AI coding-assistant task completion;
-- Microsoft/ACM SPACE developer-productivity framing;
-- OpenAI description of internal Codex workflows;
-- GitHub SERVICEOWNERS engineering case.
-
-Important restriction:
-
-```text
-higher individual task throughput
-≠
-one engineer replaces a team
-```
-
-ESI WIP limits, task classes, Secondary Maintainer and One-Man Project Operating Model are scenario/book constructs, not external standards.
-
-Detailed claim audit:
-
-- `reference/CHAPTER_025_EVIDENCE.md`.
-
-## Chapter 26 — Production Readiness
-
-Primary/authoritative sources include:
-
-- AWS Well-Architected operational readiness / Operational Readiness Reviews;
-- Google SRE launch checklist / production launch planning;
-- Microsoft Azure Well-Architected safe deployment guidance;
-- Google Cloud Deploy canary documentation;
-- GitHub Engineering / Availability reports for deployment, canary, kill-switch/stability-gate and recovery-path examples.
+- Microsoft Learn / Azure Well-Architected for managed/static deployment and risk-proportional validation;
+- GitHub Engineering Rails migration for incremental coexistence/rollout evidence;
+- Uber Genie / Enhanced Agentic-RAG for AI support-copilot and eval evolution.
 
 Important restrictions:
 
 ```text
-AWS ORR terminology
-≠ universal mandatory standard
+Static Web Apps capability
+≠ every small product should use Static Web Apps
 
-GitHub rollout percentages
-≠ ESI rollout recommendation
+GitHub dual boot
+≠ every brownfield migration needs dual boot
 
-checklist exists
-≠ workload ready
+Uber Agentic-RAG improvement
+≠ every AI workload needs RAG
 ```
 
-Detailed claim audit:
+ESI's three end-to-end cases remain fictional/composite.
 
-- `reference/CHAPTER_026_EVIDENCE.md`.
+Detailed audit:
+
+- `reference/CHAPTER_027_EVIDENCE.md`.
+
+---
+
+# Chapter 28 evidence policy
+
+Main sources:
+
+### Microsoft Azure Well-Architected architect-role guidance
+
+Supports:
+
+```text
+business/stakeholder input
+functional + nonfunctional design
+lifecycle involvement
+implementation collaboration
+acceptance/scoping/change review
+validation of high-risk assumptions
+```
+
+Restriction:
+
+```text
+Microsoft cloud solution architect role
+≠ universal software architect job description
+```
+
+### DORA 2025 / AI-assisted development
+
+Supports the framing of AI as an amplifier of the surrounding engineering/organizational system and the tension between faster generation and verification/stability.
+
+Restriction:
+
+```text
+aggregate DORA finding
+≠ deterministic result for ESI
+```
+
+### Microsoft Research — SPACE of AI
+
+Supports that perceived benefit varies with task complexity, usage patterns and organizational/team support.
+
+Restriction:
+
+```text
+study findings
+≠ proof that AI necessarily causes deskilling
+```
+
+Deskilling is treated by the book as a risk to manage.
+
+### OpenAI Codex workflow/security sources
+
+Support that coding agents can operate across code understanding/refactoring/engineering workflows and that permission, approval, network/context and telemetry are relevant governance boundaries.
+
+Restriction:
+
+```text
+OpenAI internal workflow
+≠ required ESI workflow
+```
+
+Detailed audit:
+
+- `reference/CHAPTER_028_EVIDENCE.md`.
+
+---
+
+# ESI-specific professional artifacts
+
+```text
+capstone/example-software-industries/ARCHITECT_CAPABILITY_MAP.md
+```
+
+The following are ESI/book constructs, not external standards:
+
+```text
+11 capability areas
+L1 Understand
+L2 Apply
+L3 Govern
+L4 Grow the system
+ESI baseline capability levels
+Specialist Trigger
+Deliberate Manual Mode
+ESI Learning Loop
+```
+
+No quantitative productivity or staffing claim is derived from the map.
 
 ---
 
@@ -290,30 +318,31 @@ Detailed claim audit:
 
 ```text
 ESI decision
-≠
-real-world proof
+≠ real-world proof
+```
+
+## Functional analysis
+
+```text
+functional-analysis specialist exists
+≠ architect/developer may ignore product semantics
 ```
 
 ## Legacy
 
 ```text
 Observed legacy behavior
-≠
-Confirmed target requirement
+≠ Confirmed target requirement
 ```
 
 ## Cost
 
 ```text
 resource/model price
-≠
-Total Cost of Ownership
-```
+≠ Total Cost of Ownership
 
-```text
 cost per token
-≠
-cost per useful outcome
+≠ cost per useful outcome
 ```
 
 ## Agentic engineering
@@ -328,8 +357,8 @@ issue ready
 agent can perform action
 ≠ agent authorized to decide it
 
-reviewer consensus
-≠ critical finding resolved
+second agent review
+≠ independent evidence automatically
 ```
 
 ## Runtime AI
@@ -340,9 +369,6 @@ model output
 
 grounding
 ≠ vector database
-
-RAG
-≠ mandatory AI architecture
 
 valid structured output
 ≠ semantic correctness
@@ -360,42 +386,45 @@ backup configured
 IaC Codified
 ≠ deployment Verified
 
-dashboard exists
-≠ observability ready
-
 runbook exists
 ≠ procedure exercised
 
-risk discussed
-≠ risk accepted by correct authority
-
 one blocker closed
 ≠ production ready
+```
+
+## Architect capability
+
+```text
+formal architect title
+≠ architecture responsibility
+
+technical depth
+≠ maximum coding throughput
+
+AI-produced architecture artifact
+≠ architecture decision Verified
+
+certification completed
+≠ capability Govern/Grow demonstrated
 ```
 
 ---
 
 # Numeri simulati ESI
 
-Existing SLO/RTO/RPO remain simulated requirements, not benchmarks:
+Existing SLO/RTO/RPO remain simulated requirements, not benchmarks.
 
-```text
-Core journey SLO: 99.9% / rolling 28 days
-Escalation publication: 99% <= 5 min
-Intra-region RTO: <= 15 min
-Intra-region RPO: 0 committed local state
-Region disaster RTO: <= 8 h
-Region disaster RPO: <= 1 h
-```
+One-Man Project WIP numbers are ESI pilot decisions, not benchmarks.
 
-One-Man Project WIP numbers are also ESI pilot decisions, not benchmarks.
+Architect Capability Map levels are qualitative ESI constructs, not validated scoring bands.
 
 The book must not invent:
 
 ```text
+architect productivity percentage
+AI-driven staffing reduction
 model accuracy/groundedness score
-prompt-injection pass rate
-provider/model latency or cost
 production workload billing
 capacity headroom result
 restore time result
@@ -403,7 +432,7 @@ continuity drill result
 production launch status
 ```
 
-without actual execution evidence.
+without appropriate evidence.
 
 ---
 
@@ -414,25 +443,12 @@ outline
 → ESI tension / compromise framing
 → source discovery
 → draft
-→ capstone update
-→ executable verification where possible
+→ capstone/company artifact update
+→ executable verification where meaningful
 → claim audit
 → compromise audit
 → adversarial review
 → editorial pass
-```
-
-For production-readiness chapters/work:
-
-```text
-launch boundary
-→ claim
-→ required evidence
-→ primary evidence
-→ limitation
-→ blocker/risk classification
-→ correct acceptance authority
-→ launch decision
 ```
 
 ---
@@ -451,4 +467,7 @@ Before a release candidate of the book:
 - agent governance documents must not be described as real production autonomy evidence;
 - AI eval seeds must not be described as model-quality results;
 - PRR/ORR documents must not be described as production-readiness proof;
-- real quantitative case-study results must remain attributed to their organizations and contexts.
+- Architect Capability Map must not be described as an industry standard or validated ranking system;
+- current OpenAI/Microsoft/DORA capability claims should be rechecked near publication;
+- real quantitative case-study results must remain attributed to their organizations and contexts;
+- the **Dieci comandamenti** must remain only in the final section of the final chapter, with nothing after them in the main manuscript.
