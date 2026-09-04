@@ -1,22 +1,10 @@
-# I tre artefatti di governo degli agenti
+# 23.6 — I tre artefatti di governo degli agenti
 
-A questo punto abbiamo tre domande diverse.
+A questo punto abbiamo tre problemi diversi che non dovrebbero essere compressi dentro un unico prompt.
 
-La prima:
+Il primo riguarda il mandato: che cosa può fare l'executor? Il secondo riguarda la prova: quale evidence deve esistere prima di accettare il risultato? Il terzo riguarda la progressione: fino a quale punto può arrivare quella capability senza un nuovo gate?
 
-> che cosa è autorizzato a fare l'executor?
-
-La seconda:
-
-> quale evidence deve esistere prima di accettare il risultato?
-
-La terza:
-
-> fino a quale passo può procedere senza chiedere un nuovo gate?
-
-Se proviamo a rispondere a tutte con un unico prompt, otteniamo quasi sempre un documento confuso.
-
-Per questo separiamo:
+Per questo ESI separa:
 
 ```text
 Agent Delegation Contract
@@ -24,104 +12,48 @@ Agent Verification Bundle
 AI Autonomy Matrix
 ```
 
-## Agent Delegation Contract
+La separazione non aggiunge burocrazia per principio. Evita che scope, permission, verification e approval vengano mescolati nello stesso testo fino a diventare indistinguibili.
 
-Il Delegation Contract governa una specifica classe di execution.
+## Agent Delegation Contract — il mandato operativo
 
-Non è un prompt completo.
+Il Delegation Contract non è una seconda issue e non è una copia del repository context.
 
-Non contiene tutta la documentazione del progetto.
+La source of truth sul lavoro resta il work item. Il contract aggiunge ciò che serve per **delegare quell'execution a una specifica role/capability dentro un permission boundary**.
 
-Definisce il **mandato operativo**.
-
-Template:
+Per OO-001 la forma minima è:
 
 ```text
 Delegation ID
-Work item / task class
+Work item
 Role
 Goal
 Allowed scope
 Forbidden scope
 Canonical context
-Allowed tools/capabilities
+Allowed capabilities
 Permission boundary
 Required verification
 Stop conditions
 Escalation owner
-Time/retry budget
+Retry / repair budget
 Output contract
 ```
 
-### Goal
+Il goal deve restare outcome-oriented. Non “usa PostgreSQL e scrivi test”, ma “produci higher-fidelity evidence per TST-005 senza cambiare Payment Escalation semantics”.
 
-Deve essere outcome-oriented.
+Allowed e forbidden scope devono raccontare il **decision boundary**, non soltanto directory. L'Implementer può creare il test harness e scegliere un environment locale riproducibile; non può introdurre un nuovo authoritative fact o riscrivere migration `001/002` per convenienza.
 
-Non:
+Il permission boundary traduce poi il mandato in capability reali: read repository, edit scoped worktree, start isolated PostgreSQL, run approved checks. Merge, production credential e policy approval restano fuori.
 
-```text
-Use PostgreSQL and write tests.
-```
+La stop condition chiude il contratto nel punto più importante: quando l'execution richiede una nuova decisione, `STOPPED` è un output valido.
 
-Meglio:
+> **Il Delegation Contract non promette che il task verrà completato. Definisce fin dove l'executor può provare a completarlo senza cambiare il mandato.**
 
-```text
-Produce higher-fidelity evidence for TST-005
-without changing Payment Escalation semantics.
-```
+## Agent Verification Bundle — la catena claim-to-evidence
 
-### Allowed scope
+Il Verification Bundle accompagna il risultato e deve permettere una review efficace senza rieseguire tutto.
 
-Deve dire dove l'agente può lavorare.
-
-```text
-tests/integration/**
-test-only adapters
-package scripts for integration layer
-```
-
-### Forbidden scope
-
-È altrettanto importante.
-
-```text
-no Payments semantics
-no new authoritative field
-no migration rewrite for convenience
-no production cloud resource
-```
-
-### Permission boundary
-
-Descrive capability reali, non soltanto desideri.
-
-```text
-may read repo
-may edit scoped branch/workspace
-may start isolated local PostgreSQL
-may run local checks
-may not merge
-may not access production credentials
-```
-
-### Stop conditions
-
-Sono il bordo fra execution e nuova decisione.
-
-Un buon Delegation Contract rende possibile un output valido:
-
-```text
-STOPPED
-reason
-collected evidence
-decision required
-```
-
-## Agent Verification Bundle
-
-Il Verification Bundle è il pacchetto che accompagna il risultato.
-
-Template:
+La struttura utile è:
 
 ```text
 Work Item
@@ -129,70 +61,62 @@ Delegation ID
 Implementation revision
 Claims
 Evidence per claim
-Raw evidence references
+Primary evidence references
 Checks executed
-Independent review
-Findings / contradictions
+Independent findings
 Known limitations
 Not verified
 Stop conditions encountered
 Recommendation
 ```
 
-Il bundle non dovrebbe contenere frasi vaghe come:
+Il bundle non è una narrazione lunga e non è un paste di migliaia di righe di log.
+
+Per ogni claim vuole rendere leggibile una catena:
 
 ```text
-Everything looks good.
+claim
+→ mechanism
+→ result
+→ primary evidence
+→ verifier finding
+→ limitation
 ```
 
-Deve rendere possibile un audit leggero.
+Per C-03, per esempio, non basta “atomicity test passed”. Vogliamo sapere che il motore era PostgreSQL reale, dove è stato iniettato il failure, quali query sono state eseguite dopo rollback e quale boundary resta fuori dalla prova.
 
-Esempio:
+Il bundle comprime. Non sostituisce la source primaria.
 
-```text
-C-03
-Second-write failure rolls back both facts.
+> **La provenance dell'evidence vale più dell'eloquenza del summary.**
 
-Mechanism
-real PostgreSQL integration test
+## AI Autonomy Matrix — quanto può avanzare una capability
 
-Result
-PASS
+La matrice non assegna un voto all'agente.
 
-Primary evidence
-integration test output
-post-failure SELECT on payment_escalation/outbox_message
+Classifica capability in contesto e rende esplicito il rapporto fra livello attuale, gate richiesto e trigger di revisione.
 
-Verifier
-independent verifier role
+Una forma semplice è:
 
-Not verified
-HA / Azure networking / performance
-```
+| Capability | Livello corrente | Gate | Trigger di revisione |
+|---|---:|---|---|
+| read/search repository | A3 | repository access boundary | data sensitivity cambia |
+| edit scoped worktree | A2 | work item + Delegation Contract | blast radius cresce |
+| run isolated PostgreSQL for OO-001 | A2 | ADC-OO-001-v1 | shared/privileged environment richiesto |
+| add test-only dependency | A2 | closure evidence + review | dependency diventa sensitive/networked |
+| modify architecture oracle | A0/A1 proposal | explicit architecture decision | policy review |
+| change data ownership | A0 | domain/data authority | separate decision |
+| merge default branch | human/repository gate | repo policy | future evidence/policy change |
+| production destructive action | A0 | dedicated runbook + approval + recovery evidence | future operational workflow |
 
-## AI Autonomy Matrix
+La matrice vive vicino al Threat Model e al Cost Model perché l'autonomia modifica permission surface, failure mode, review cost e operational exposure.
 
-La matrice non classifica genericamente il modello.
+> **Autonomy is versioned architecture.**
 
-Classifica **capability in contesto**.
+Quando cambiano tool, dati, environment, reversibilità o evidence strength, la decisione deve poter essere riaperta.
 
-Esempio:
+## Come si incastrano i tre artifact
 
-| Capability | Current level | Evidence required to increase | Human gate |
-|---|---|---|---|
-| repository read/search | A3 | stable access controls | no |
-| edit scoped worktree | A2 | local gates + bounded scope | merge only |
-| add test-only dependency | A2 | dependency review | if sensitive/high impact |
-| create PR | A2/A3 | repo policy + evidence bundle | merge gate |
-| modify architecture fitness rule | A0/A1 | explicit architecture decision | yes |
-| change data ownership | A0 | domain/data decision | yes |
-| production DB mutation | A0 | dedicated runbook, approval, recovery evidence | yes |
-
-La matrice deve vivere insieme al threat model, non accanto come documento decorativo.
-
-## Relazione fra i tre artefatti
-
-Il flusso è:
+Il flusso complessivo è:
 
 ```text
 Work Item
@@ -203,129 +127,80 @@ Execution
    ↓
 Agent Verification Bundle
    ↓
-Autonomy / approval gate from AI Autonomy Matrix
+AI Autonomy Matrix / approval policy
    ↓
-next step
+next step or STOP
 ```
 
-Il Delegation Contract dice cosa puoi fare.
+Il work item dice quale outcome vogliamo. Il Delegation Contract dice quale executor può provarci e con quali limiti. Il Verification Bundle dice che cosa è stato dimostrato. L'Autonomy Matrix dice se quella evidence è sufficiente per procedere automaticamente oppure se serve un nuovo gate.
 
-Il Verification Bundle dice cosa hai dimostrato.
+Le responsabilità restano separate anche se, per un task piccolo, alcuni step vengono eseguiti dallo stesso sistema.
 
-L'Autonomy Matrix dice se quella evidence è sufficiente per procedere automaticamente.
+## Non duplicare il repository dentro il contract
 
-## Non duplicare la issue
+OO-001 contiene già problem, acceptance, canonical context e stop condition. `AGENTS.md` contiene già il routing repository-wide. I documenti di architecture contengono già le decisioni.
 
-Il Delegation Contract non deve ricopiare 200 righe della issue.
+Il Delegation Contract deve quindi referenziare, non copiare.
 
-Meglio:
+Una buona versione può dire:
 
 ```text
-Work item: OO-001
+Work item
+OO-001
 
-Additional delegation constraints:
-- role: implementer
-- autonomy: A2
-- isolated PostgreSQL only
-- max retry budget: 2 execution-repair loops
-- cannot change verification oracle
+Additional delegation constraints
+role = Implementer
+autonomy = A2
+isolated PostgreSQL only
+max 2 bounded repair loops
+cannot change verification oracle
 ```
 
-La issue rimane source of task truth.
+Questo riduce instruction drift e rende più chiaro quale documento aggiornare quando cambia il task rispetto a quando cambia la governance.
 
-Il contract aggiunge il perimetro di delega.
+## Non duplicare l'evidence nel bundle
 
-## Non duplicare il test output
+Lo stesso principio vale per la verification.
 
-Anche il Verification Bundle deve evitare copia indiscriminata.
+Il bundle deve contenere summary, result, finding e link/reference alla primary evidence. Non deve incorporare cinquanta mila righe di log “per completezza”.
 
-Deve puntare a evidence primaria.
+È la stessa disciplina dell'observability: **più dati non equivalgono automaticamente a migliore capacità investigativa**.
+
+Il reviewer deve sapere dove andare se vuole approfondire un claim e quale limitation è già nota.
+
+## Un executor non può auto-espandere il proprio mandato
+
+Questa è una delle proprietà più importanti del modello.
+
+L'Implementer può scoprire che il contract è insufficiente. Può proporre una modifica. Non dovrebbe però poter aumentare unilateralmente scope, permission o autonomy soltanto perché il task corrente non si chiude.
+
+Se OO-001 sembra richiedere di riscrivere migration `002`, il comportamento corretto è:
 
 ```text
-summary
-+ references
-+ limitations
+STOP
+→ evidence
+→ decision required
 ```
 
 Non:
 
 ```text
-paste di 50.000 righe di log
+edit Delegation Contract
+→ migration rewrite now allowed
+→ continue
 ```
 
-Questa è la stessa disciplina di observability.
+Lo stesso vale per l'Autonomy Matrix. Il workflow non può concedersi il potere che gli manca per terminare il proprio task.
 
-Più dati non significa più capacità di verifica.
+> **Chi esegue può proporre un cambio di policy. Non deve essere l'unica authority che approva il cambio necessario ad auto-sbloccarsi.**
 
-## Review trigger dell'Autonomy Matrix
+## Markdown e runtime enforcement hanno ruoli diversi
 
-La matrice va riaperta quando cambia almeno uno fra:
+Un document contract aiuta persone e agenti a capire il mandato. Non impedisce materialmente una tool call.
 
-- tool disponibile;
-- permission scope;
-- environment;
-- tipo di dato accessibile;
-- reversibility;
-- observed failure rate;
-- verification strength;
-- business impact;
-- model/agent workflow significativamente diverso.
+Quando il rischio lo richiede, il contract deve essere riflesso da controlli reali: worktree isolation, branch protection, allowlist, credential scope, network policy, CI gate e human approval hook.
 
-Quindi:
-
-> **Autonomy is versioned architecture.**
-
-Non è una preferenza permanente del team.
-
-## Chi può cambiare questi artefatti?
-
-Questo è un punto delicato.
-
-L'agente può proporre una modifica al proprio Delegation Contract.
-
-Non dovrebbe automaticamente approvarla.
-
-Può rilevare:
-
-```text
-OO-001 requires a new test dependency.
-Current contract allows test-only dependencies.
-Proceed.
-```
-
-Oppure:
-
-```text
-OO-001 appears to require rewriting migration 002.
-Stop condition triggered.
-```
-
-Non dovrebbe fare:
-
-```text
-I changed the stop condition so that migration rewrite is now allowed.
-```
-
-Lo stesso vale per l'AI Autonomy Matrix.
-
-> **Un executor non dovrebbe poter aumentare unilateralmente la propria autonomia per completare il task corrente.**
-
-## Contratto e runtime enforcement
-
-Un file Markdown non è un permission boundary.
-
-Il contract deve essere riflesso, quando possibile, da:
-
-- sandbox/worktree isolation;
-- branch protections;
-- repository rules;
-- tool allowlist;
-- credential scope;
-- human approval hook;
-- CI gates;
-- network policy.
-
-Microsoft e OpenAI documentano approval flow per tool call sensibili; GitHub documenta ambienti e permission limitate per cloud coding agent.
+OpenAI Agents SDK e Microsoft Agent Framework documentano approval flow per tool call sensibili; GitHub descrive permission limitate per il proprio coding agent.
 
 Fonti:
 
@@ -335,30 +210,27 @@ Fonti:
 
 Il principio è:
 
-> **documentare una regola aiuta l'agente a capirla; applicarla nel runtime impedisce che una incomprensione diventi automaticamente una capability.**
+> **documentare la regola rende il boundary comprensibile; applicarla nel runtime impedisce che un'incomprensione diventi automaticamente una capability.**
 
-## ESI: prima versione
+## La prima baseline ESI
 
-Per Order Operations definiamo:
+Per Order Operations la prima versione è deliberatamente conservativa:
 
 ```text
 Delegation Contract
-→ OO-001 implementation class
+→ ADC-OO-001-v1
+→ Implementer A2
 
 Verification Bundle
-→ required claims C-01…C-05
+→ C-01…C-05
+→ Pending execution
 
 Autonomy Matrix
-→ A2 for scoped test execution
-→ human gate for merge/new decisions
+→ bounded local/test execution
+→ human/repository merge gate
+→ no A4 production capability
 ```
 
-Questa prima versione è volutamente conservativa.
+Non aumenteremo questi livelli perché compare un modello nuovo. Li riapriremo quando task reali produrranno evidence su accepted rate, repair loop, false green, review effort, policy violation e cost per verified change.
 
-La aumenteremo soltanto quando avremo evidence.
-
-Non perché un nuovo modello promette più autonomia.
-
-Ma perché il sistema saprà governarla meglio.
-
-> **La maturità agentica non è quante decisioni togliamo agli esseri umani. È quante decisioni possiamo delegare senza perdere controllo sul perché e sul come vengono prese.**
+> **La maturità agentica non è quante decisioni togliamo agli esseri umani. È quante decisioni possiamo delegare senza perdere il controllo sul mandato, sull'evidence e sull'autorità che le rende accettabili.**
