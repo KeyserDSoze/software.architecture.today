@@ -2,33 +2,33 @@
 
 Separare un sistema in più deployable ha senso soltanto se la separazione produce proprietà che ci servono davvero.
 
-Tre delle più importanti sono:
+Le parole che ricorrono più spesso sono deploy indipendente, failure isolation e scaling indipendente. Sono vantaggi reali, ma soltanto quando emergono nel comportamento del sistema e dell'organizzazione.
 
-- deployability indipendente;
-- failure isolation;
-- scaling indipendente.
+La separazione fisica, da sola, non li garantisce.
 
-Sembrano vantaggi ovvi.
+## Deploy indipendente significa cambiare senza sincronizzare tutto
 
-Ma ciascuno di essi ha condizioni precise.
+Un servizio è realmente deployabile in autonomia quando possiamo modificarlo e rilasciarlo senza dover coordinare necessariamente il rilascio degli altri componenti.
 
-### Deploy indipendente non significa repository indipendente
+Questo richiede molto più di un repository separato.
 
-Un servizio è realmente deployabile in autonomia quando possiamo modificarlo e rilasciarlo senza dover coordinare necessariamente il rilascio di altri componenti.
+I contratti devono poter evolvere in modo compatibile. Le migration non devono imporre lockstep update. Il consumer deve tollerare versioni differenti per una finestra ragionevole. Rollback o forward-fix devono essere credibili e l'observability deve permetterci di capire che cosa sia cambiato dopo il rilascio.
 
-La deployability indipendente richiede contratti compatibili ed evoluzione sicura, dipendenze non eccessivamente rigide e migrazioni dati gestibili. Richiede anche rollback o forward-fix credibili e abbastanza osservabilità da capire l'effetto di un rilascio senza dover ricostruire tutto il sistema a posteriori.
+Se `Orders` e `Payments` sono due servizi ma ogni modifica significativa a uno richiede una release simultanea dell'altro, abbiamo aggiunto un network boundary senza comprare molta deployability.
 
-Se `Orders` e `Payments` sono due servizi ma ogni modifica a uno richiede una modifica simultanea all'altro, la separazione fisica non ha comprato molta autonomia.
+La domanda quindi non è:
 
-Ha comprato soprattutto rete.
+> “Sono due deployable?”
 
-### Failure isolation
+ma:
 
-La failure isolation è spesso uno dei motivi migliori per separare componenti.
+> **“Possono davvero evolvere con ritmi diversi senza coordinamento continuo?”**
 
-Ma anche qui dobbiamo verificare la realtà.
+## Failure isolation richiede che il journey sappia degradare
 
-Supponiamo che `Orders` chiami sincronicamente:
+Separare processi può limitare alcuni blast radius.
+
+Ma immaginiamo che `Orders` debba chiamare sincronicamente:
 
 ```text
 Identity
@@ -38,35 +38,35 @@ Shipping
 Pricing
 ```
 
-Se una singola richiesta dipende dalla disponibilità simultanea di tutti questi servizi, abbiamo separato i processi ma non necessariamente il failure domain percepito dall'utente.
+per completare una sola richiesta.
 
-Il sistema può essere distribuito e continuare a fallire come un blocco unico.
+In questa topologia ogni servizio è fisicamente distinto, ma il journey dell'utente dipende ancora dalla disponibilità simultanea di tutti. Se uno fallisce e nessun comportamento degradato è accettabile, la percezione esterna rimane quella di un sistema che cade come un blocco unico.
 
-Una separazione utile richiede timeout e fallback, degradazione controllata e asincronia dove compatibile. Richiede isolamento delle risorse, circuit breaker quando giustificati e dipendenze non critiche che possano diventare opzionali invece di trascinare tutto il journey nel failure.
+La failure isolation nasce quindi dal modo in cui i servizi dipendono fra loro: timeout, fallback, asincronia dove semanticamente possibile, resource isolation e riduzione delle dipendenze obbligatorie sul critical path.
 
-Quindi:
+> **Il numero di processi crea possibilità di isolamento. Il design delle dipendenze decide se quella possibilità diventa reale.**
 
-> **la failure isolation non nasce dal numero di processi. Nasce dal modo in cui quei processi dipendono l'uno dall'altro.**
+Questo è lo stesso motivo per cui un circuit breaker o una queue possono essere utili in un contesto e irrilevanti in un altro.
 
-### Scaling indipendente
+## Scaling indipendente deve risolvere un'asimmetria vera
 
-Un altro argomento ricorrente è:
+“Con i microservizi possiamo scalare soltanto ciò che serve” è corretto.
 
-> “Con i microservizi possiamo scalare soltanto ciò che serve.”
+Ma il beneficio esiste soltanto se le parti del sistema hanno profili di carico abbastanza diversi da rendere inefficiente lo scaling congiunto.
 
-Vero.
+Se Orders, Payments e Shipping hanno traffico moderato e simile, separarli per scalare indipendentemente può non cambiare quasi nulla dal punto di vista economico.
 
-Ma prima dobbiamo avere un problema di scaling differenziato abbastanza importante da giustificare la distribuzione.
+Se invece Search riceve cento volte il traffico di Billing, usa molte più CPU e ha una curva di crescita differente, il boundary operativo può evitare di duplicare risorse che Billing non userà mai.
 
-Se `Orders`, `Payments` e `Shipping` hanno carichi simili, bassi e stabili, scalare tre servizi separatamente può non produrre alcun vantaggio concreto.
+Anche qui la proprietà viene prima del servizio.
 
-Se invece `Search` riceve cento volte il traffico di `Billing`, il profilo cambia.
+Prima osserviamo l'asimmetria.
 
-Lo scaling indipendente diventa una proprietà economicamente significativa.
+Poi decidiamo se la separazione è il modo migliore per governarla.
 
-### Il costo che non appare nel diagramma
+## Il diagramma non mostra il prezzo
 
-Un diagramma a microservizi spesso mostra questo:
+Un diagramma distribuito può apparire semplice:
 
 ```text
 Client
@@ -76,17 +76,25 @@ API Gateway
 Services
 ```
 
-Un diagramma con tre servizi e tre frecce non mostra certificati, secret rotation, DNS o service discovery. Non mostra network policy, rate limiting, tracing, correlazione dei log e alerting; non racconta pipeline, health check, timeout e retry policy, contract test o schema migration. E lascia fuori incident ownership, backup e restore, capacity planning e cost attribution. È lì che gran parte del costo della distribuzione vive davvero.
+Ma ogni nuovo deployable porta con sé una superficie che il diagramma comprime quasi completamente.
 
-Questa parte invisibile è spesso il vero prezzo della distribuzione.
+Dobbiamo governare identità fra servizi e secret rotation, DNS e service discovery, certificati, network policy e rate limit. Dobbiamo ricostruire trace distribuiti, correlare log, definire alert e health check. Arrivano contract test, timeout e retry policy, schema evolution, pipeline, rollback, backup e restore. Arrivano ownership degli incidenti, capacity planning e cost attribution.
 
-### Il costo cognitivo
+Nessuna di queste cose rende i microservizi sbagliati.
 
-C'è poi un costo ancora meno visibile.
+Sono semplicemente parte del prezzo.
 
-Per capire una feature in un monolite potremmo seguire un flusso dentro un solo codebase e un singolo processo.
+Se la separazione compra autonomy, isolation o scaling di grande valore, il prezzo può essere ottimo.
 
-In un sistema distribuito potremmo dover ricostruire:
+Se non sappiamo quale proprietà stiamo comprando, quella stessa superficie diventa complexity debt.
+
+## Il costo cognitivo attraversa i confini
+
+Esiste poi un costo che difficilmente appare nei preventivi infrastrutturali.
+
+In un singolo processo un engineer può spesso seguire un flusso end-to-end dentro lo stesso codebase e con strumenti locali.
+
+In un sistema distribuito il percorso può diventare:
 
 ```text
 request
@@ -99,34 +107,36 @@ request
 → service C
 ```
 
-La separazione può migliorare ownership e autonomia.
+Il confine può migliorare ownership locale, ma rende più costoso costruire il modello mentale del journey completo.
 
-Ma aumenta il costo di costruire un modello mentale end-to-end.
+Questo non è necessariamente un difetto. È un trade-off: riduciamo la quantità di codice che un team deve possedere direttamente, ma aumentiamo la quantità di sistema che qualcuno deve capire per diagnosticare un comportamento cross-service.
 
-Quindi il costo operativo e quello cognitivo devono entrare nel technology fit.
+Per questo l'operabilità deve entrare nella decisione di topologia fin dall'inizio.
 
-### Una regola economica
+## La regola economica
 
-Possiamo sintetizzare così:
+Possiamo sintetizzare il ragionamento così:
 
 ```text
-valore della separazione
+valore dell'autonomia ottenuta
++ valore dell'isolamento ottenuto
++ valore dello scaling ottenuto
 >
-costo della distribuzione
+costo operativo
++ costo cognitivo
++ nuova complessità distribuita
 ```
 
-Non serve misurarlo con precisione finanziaria millimetrica.
+Non serve trasformare ogni termine in euro o in un punteggio numerico.
 
-Serve almeno renderlo esplicito.
+Serve poter raccontare il bilancio senza nascondere metà dell'equazione.
 
-Se non sappiamo quale valore concreto compra un nuovo service boundary, abbiamo probabilmente saltato un passaggio.
+Con l'AI diventa molto più facile creare un nuovo deployable.
 
-La domanda non è:
+La domanda importante non è più “possiamo estrarlo?”.
 
-> “Possiamo estrarlo?”
-
-Con l'AI, quasi certamente sì.
+Quasi certamente sì.
 
 La domanda è:
 
-> **“Che proprietà importante compriamo estraendolo?”**
+> **Quale proprietà importante compriamo estraendolo, e come dimostreremo che l'abbiamo davvero ottenuta?**
