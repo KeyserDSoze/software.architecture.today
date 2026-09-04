@@ -7,22 +7,26 @@ Chapter:
 ## Current editorial status
 
 ```text
-Sections 001–008      Drafted
+Sections 001–009      Drafted
 Source-first pass     Synthesis-only / inherited evidence
 ESI compromise pass  Yes
-Section 009           Intentionally absent
-Dieci comandamenti    Not yet selected
+Dieci comandamenti    Selected and written
+Main manuscript end   Verified structurally
 ```
 
 ## Critical manuscript rule
 
-The final chapter is deliberately incomplete in exactly one place.
-
-The only future main-manuscript file allowed after `008_before_the_commandments.md` is the final section containing:
+The final section is:
 
 > **I Dieci comandamenti della Software Architecture nell'era dell'AI**
 
-That section must be the literal end of the main manuscript.
+Canonical file:
+
+```text
+chapters/029_chapter/009_i_dieci_comandamenti.md
+```
+
+It must remain the literal end of the main manuscript.
 
 No:
 
@@ -37,13 +41,13 @@ editorial comment
 
 may be inserted after it inside the main manuscript.
 
-The commandments are intentionally **not drafted as placeholders** at this stage. They will be selected after reviewing the whole book, so that they compress earned context rather than becoming slogans that shape the book retroactively.
+The commandments were deliberately selected only after Chapters 0–29 had established the underlying substance. They are a compression of earned context, not a framework imposed on the book retroactively.
 
 ---
 
 # Evidence posture
 
-Sections 001–008 are primarily a synthesis of claims and methods already developed and audited in Chapters 0–28.
+Sections 001–009 are primarily a synthesis of claims and methods already developed and audited in Chapters 0–28.
 
 The final chapter intentionally avoids introducing:
 
@@ -55,37 +59,22 @@ new vendor capabilities
 new real-company architecture claims
 ```
 
-Where it mentions concepts such as:
+The commandments summarize recurring principles already developed across the manuscript:
 
 ```text
-functional analysis
+problem before solution
+requirements as verifiable properties
+evidence proportional to claims
+domain understanding and semantic ownership
+simplicity and justified complexity
 fit before fashion
-Designed → Codified → Verified → Monitored
-Observed ≠ Confirmed
-verification without re-execution
-agent capability ≠ authority
-Production Readiness NO-GO
-One-Man Project / Specialist Gate
+execution delegation without accountability delegation
+truthful quality/readiness claims
+learning from other architectures without cargo cult
+autonomy proportional to governable failure
 ```
 
-it is summarizing concepts already introduced and governed by earlier chapter evidence/audits.
-
-## Main inherited evidence families
-
-The synthesis depends on evidence already tracked across the book, including:
-
-- standards/RFCs for protocol and contract semantics;
-- Microsoft/Azure Architecture Center and Well-Architected guidance;
-- AWS architecture/Builders' Library/Well-Architected material;
-- Google SRE/DORA material;
-- NIST and OWASP security guidance;
-- PostgreSQL/OpenTelemetry and other official technical documentation;
-- documented engineering cases from GitHub, Uber, Cloudflare, Stripe, Meta and others where used in the relevant chapters;
-- OpenAI/GitHub/Microsoft documentation for coding-agent/context/governance capability claims.
-
-Those claims remain governed by their chapter-specific audits and the global `SOURCE_FACTUAL_AUDIT.md`.
-
-The final chapter does **not** turn any of those sources into universal proof that ESI's exact operating model is mandatory.
+Their deliberately playful Decalogue-like formulation does not turn them into context-free technical laws. The explanatory text preserves the trade-off/evidence framing developed by the book.
 
 ---
 
@@ -112,8 +101,6 @@ Order Operations PRR
 ```
 
 The final chapter deliberately refuses to invent a successful production launch just to create a cleaner narrative ending.
-
-This supports one of the book's central evidence rules:
 
 ```text
 narrative closure
@@ -147,7 +134,7 @@ human/accountable governance
 
 ## Decision
 
-Sections 001–008 close the argument in full prose first:
+Sections 001–008 close the argument in prose:
 
 ```text
 responsibility
@@ -160,54 +147,78 @@ professional capability
 personal operating model
 ```
 
-Only after that synthesis will the book compress its message into ten commandments.
+Section 009 then compresses the earned context into exactly ten commandments.
 
 ## Cost accepted
 
-The commandments are delayed until the entire manuscript context exists.
+The commandments were delayed until the entire manuscript context existed.
 
-This prevents early slogan selection from biasing the chapters toward a preselected list.
+This prevented early slogan selection from biasing the chapters toward a preselected list.
 
 ## Quality floor
 
-The final commandments must:
+The final commandments:
 
 ```text
-be supported by the substance already written
+are supported by substance already written
 avoid tool/vendor dependence
-avoid contradicting trade-off/context thinking
+preserve context/trade-off thinking
 retain responsibility/accountability
-be memorable without becoming empty jokes
+remain memorable without becoming empty jokes
 ```
 
-They must not:
+They do not:
 
 ```text
 introduce new technical claims
-turn into a book-wide structural gimmick
+become a book-wide structural gimmick
 pretend architecture has context-free universal answers
 ```
 
 ---
 
-# Release gate for the last section
+# Commandment selection record
 
-Before creating the commandments file:
+The selection process intentionally generated more candidates than required, then reduced them for coverage and non-redundancy.
 
-1. review Chapters 0–29 for recurring principles;
-2. generate more than ten candidate commandments;
-3. remove duplicates and slogans without sufficient substance;
-4. check coverage across problem, architecture, evidence, AI, operation and accountability;
-5. keep the tone serious in substance and lighter/goliardic in formulation;
-6. confirm that each commandment can be traced back to concrete chapters/cases;
-7. choose exactly ten;
-8. write them in the final section;
-9. verify that no main-manuscript content follows that section.
-
-## Current gate
+The final ten cover:
 
 ```text
-Ready to select candidates     No — candidate review is the next deliberate step
-Sections before commandments   Complete as draft
-Commandments file              Absent by design
+1  problem before architecture
+2  requirements must be meaningful/verifiable
+3  evidence before confidence
+4  domain + semantic authority
+5  preserve simplicity
+6  fit before fashion / justified complexity
+7  accountability stays with the responsible owner
+8  no false quality/readiness testimony
+9  learn from others without cargo cult
+10 autonomy proportional to governable failure
 ```
+
+The tenth commandment closes with the book's final line:
+
+> **L'AI può scrivere il codice. Il timone resta a noi.**
+
+No main-manuscript content may follow it.
+
+---
+
+# Final structural gate
+
+Required state:
+
+```text
+chapters/029_chapter/001_*.md
+...
+chapters/029_chapter/008_before_the_commandments.md
+chapters/029_chapter/009_i_dieci_comandamenti.md
+```
+
+And then:
+
+```text
+nothing else in the main manuscript
+```
+
+Any future editorial material that logically comes after the commandments must live outside the main manuscript or require an explicit decision to break the book's closing rule.
