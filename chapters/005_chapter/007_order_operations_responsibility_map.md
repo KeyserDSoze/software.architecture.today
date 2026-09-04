@@ -2,13 +2,9 @@
 
 > **Caso simulato/composito.** Order Operations è il capstone didattico di Example Software Industries S.p.A. Nomi, numeri e circostanze sono costruiti per mostrare problemi realistici.
 
-Nel capitolo precedente abbiamo deciso di mantenere, per ora, un lookup live sui dati operativi.
+Nel capitolo precedente abbiamo deciso di mantenere, per ora, un lookup live. Quella decisione ci dice come vogliamo comporre la vista nella prima fase, ma non ci dice ancora **dove debbano vivere le regole**.
 
-Quella decisione rispondeva a una domanda architetturale precisa.
-
-Ma non ci dice ancora come strutturare il software.
-
-Supponiamo che il prototipo iniziale abbia questa forma:
+Immaginiamo che il prototipo sia organizzato per layer tecnici:
 
 ```text
 src/
@@ -30,157 +26,64 @@ src/
     status.ts
 ```
 
-Funziona.
+La struttura è ordinata, ma quando cambiamo la classificazione di un ordine problematico scopriamo di dover toccare controller, più service, tre repository, utility e probabilmente anche il frontend. Il layout tecnico non ci sta aiutando a vedere chi possiede il significato.
 
-Ma per modificare la classificazione di un ordine problematico scopriamo che dobbiamo toccare:
+## Aggregare non significa possedere
 
-```text
-controllers/orders.ts
-services/orders.ts
-services/operations.ts
-repositories/orders.ts
-repositories/payments.ts
-repositories/shipping.ts
-utils/status.ts
-```
+Order Operations attraversa più domini proprio perché serve a dare agli operatori una vista investigativa. Questa posizione lo rende pericolosamente vicino a diventare il posto in cui ogni semantica viene ricostruita.
 
-e probabilmente anche il frontend.
+La Responsibility Map deve impedire questa deriva.
 
-La struttura tecnica non ci sta aiutando a capire la responsabilità.
+**Orders** possiede lifecycle commerciale, validità delle transizioni e `OrderStatus`. Nasconde schema e mapping di persistenza e può esporre capability semantiche sul lifecycle.
 
-### Prima domanda: chi possiede che cosa?
+**Payments** possiede il lifecycle economico, il significato di `PaymentStatus` e, quando verranno introdotte, le operazioni come refund e retry con le relative regole di idempotenza. Nasconde provider SDK, mapping degli stati e policy di integrazione.
 
-La vista operativa attraversa più domini.
+**Shipping** possiede fulfillment e `ShipmentStatus`, insieme alla relazione con carrier e provider logistici. Order Operations può leggere una capability di stato, non adottare automaticamente il modello interno di Shipping.
 
-Ma aggregare non significa possedere.
+**Order Operations** possiede invece la composizione della vista investigativa e la semantica della classificazione operativa derivata. Può essere autorevole su `ProblemCategory` se quel concetto viene introdotto esplicitamente come proprio. Non diventa però autorevole su `OrderStatus`, `PaymentStatus` o `ShipmentStatus` soltanto perché li mostra insieme.
 
-Per questa fase proponiamo una Responsibility Map.
+Questa distinzione è il cuore del design.
 
-### Orders
+## La mappa operativa
+
+Una versione compatta può essere:
 
 ```text
-Responsabilità:
-- lifecycle commerciale dell'ordine
-- validità delle transizioni
-- stato dell'ordine
-- identificazione dell'ordine
+Component: Orders
+Owns: Order, OrderStatus, lifecycle rules
+Exposes: order lookup, lifecycle capabilities
+Hides: persistence schema and mappings
 
-È autorevole su:
-- Order
-- OrderStatus
+Component: Payments
+Owns: Payment, PaymentStatus, economic operation semantics
+Exposes: payment state and explicit economic capabilities
+Hides: provider SDK, provider status, retry details
 
-Espone:
-- getOrder(orderId)
-- capability semantiche del lifecycle
+Component: Shipping
+Owns: Shipment, ShipmentStatus, fulfillment semantics
+Exposes: shipment state
+Hides: carrier APIs and provider mappings
 
-Nasconde:
-- schema orders
-- mapping tra record e modello
-- dettagli di persistenza
+Component: Order Operations
+Owns: operational view composition, ProblemCategory
+Exposes: problematicOrders, operationalOrderView
+Hides: source composition and adapters
+Must not own: OrderStatus, PaymentStatus, ShipmentStatus
 ```
 
-### Payments
+Identity rimane una capability trasversale: deve fornire identità e claim affidabili e permettere l'applicazione delle policy di accesso. Order Operations non può trattare identificatori arbitrari provenienti dal client come se definissero il perimetro autorizzato.
 
-```text
-Responsabilità:
-- lifecycle del pagamento
-- significato degli stati economici
-- integrazione con payment provider
-- idempotenza delle future operazioni economiche
+## Il boundary organizzativo non coincide sempre con quello del codice
 
-È autorevole su:
-- Payment
-- PaymentStatus
-- Refund quando verrà introdotto
+Payments introduce anche un'altra distinzione. Nel software possiamo avere un modulo che possiede il lifecycle tecnico del pagamento, mentre a livello ESI la business unit Payments & Risk possiede policy condivise su refund, rischio, audit economico, provider strategy e antifrode.
 
-Espone:
-- getPaymentState(orderId)
-- future capability economiche con contratto esplicito
+Questo significa che una decisione può essere localizzata nel codice e richiedere comunque un ownership boundary organizzativo più ampio.
 
-Nasconde:
-- provider SDK
-- provider-specific status
-- retry policy verso il provider
-```
+Quando Product chiederà “aggiungiamo Retry Payment”, Order Operations potrà orchestrare l'intenzione dell'operatore, ma non dovrebbe inventare quando il retry sia consentito, quale idempotency key usare o quali rischi economici siano accettabili. Il bisogno nasce nella console; una parte della decisione appartiene altrove.
 
-### Shipping
+## Database condiviso, significato non condiviso
 
-```text
-Responsabilità:
-- fulfillment e spedizione
-- relazione con carrier/provider
-- significato degli stati di spedizione
-
-È autorevole su:
-- Shipment
-- ShipmentStatus
-
-Espone:
-- getShipmentState(orderId)
-
-Nasconde:
-- carrier API
-- tracking mapping
-- provider-specific status
-```
-
-### Order Operations
-
-```text
-Responsabilità:
-- esperienza operativa degli operatori
-- composizione della vista investigativa
-- classificazione operativa derivata
-- presentazione delle informazioni necessarie a Action / Wait / Escalation
-
-È autorevole su:
-- semantica specifica della vista operativa
-- eventuali concetti operativi propri introdotti esplicitamente
-
-Non è autorevole su:
-- OrderStatus
-- PaymentStatus
-- ShipmentStatus
-
-Espone:
-- problematicOrders
-- operationalOrderView
-
-Nasconde:
-- composizione delle fonti
-- dettagli di query e adapter
-```
-
-### Identity / Access
-
-Per ora non lo trasformiamo necessariamente in un modulo applicativo separato.
-
-Ma rendiamo esplicita la responsabilità:
-
-```text
-Responsabilità:
-- stabilire l'identità autenticata
-- fornire claim affidabili
-- applicare le policy di accesso appropriate
-```
-
-Order Operations non deve fidarsi di identificatori arbitrari inviati dal client quando questi determinano il perimetro di autorizzazione.
-
-### Payments & Risk come stakeholder aziendale
-
-Qui appare una distinzione importante tra **component boundary** e **organizational boundary**.
-
-Il modulo Payments del prodotto può possedere il lifecycle tecnico/applicativo del pagamento.
-
-Ma ESI può avere una business unit Payments & Risk che possiede policy condivise su refund e limiti di rischio, audit economico, provider strategy e controlli antifrode. Non tutto ciò che è “nel modulo Payments” può essere deciso localmente dal team Order Operations.
-
-Questo è uno dei motivi per cui conoscere il dominio dell'applicazione non basta: serve anche capire il sistema organizzativo in cui il software vive.
-
-### Il database condiviso
-
-Supponiamo che Order Operations usi, per ora, un'unica istanza PostgreSQL o datastore condiviso con boundary logici.
-
-Non introduciamo tre database soltanto per rendere il diagramma più pulito.
+Nella prima fase possiamo usare una singola istanza PostgreSQL o un datastore condiviso. Non introduciamo database separati soltanto per rendere il diagramma più elegante.
 
 Possiamo però stabilire ownership logica:
 
@@ -190,63 +93,17 @@ payments.* → Payments
 shipping.* → Shipping
 ```
 
-E una regola:
+con una regola deliberata: un modulo non legge direttamente le tabelle possedute da un altro modulo senza un contratto esplicito.
 
-> un modulo non legge direttamente le tabelle possedute da un altro modulo senza un contratto deliberato.
+Questa scelta costa un po' più di una join libera ovunque, ma preserva la possibilità di cambiare schema, semantica e persistenza senza trasformare ogni consumer in un co-proprietario.
 
-Questo costo iniziale può sembrare maggiore rispetto a una join diretta ovunque.
+Il compromesso ESI è quindi chiaro: **infrastruttura semplice e confini logici forti**. Accettiamo che parte dell'isolamento sia applicativo invece che fisico; non accettiamo che ownership e semantica diventino condivise per comodità.
 
-Ma protegge il modello interno e rende più espliciti i contratti.
+## La UI non è un secondo dominio
 
-### Il compromesso del capitolo
+La vista può mostrare una categoria sintetica come `Payment problem`, `Shipping problem` o `Order problem`. Sarebbe fragile ricostruire questa logica nel frontend a partire dagli stati grezzi.
 
-**Esigenza**
-
-Il team vuole muoversi velocemente in un solo deployable e, per ora, anche con infrastruttura dati semplice.
-
-**Tensione**
-
-Velocità locale e semplicità contro isolamento forte dei domini.
-
-**Decisione**
-
-Costruiamo confini logici e ownership forti senza imporre subito separazione fisica.
-
-**Costo accettato**
-
-Alcune forme di isolamento rimangono convenzionali o applicative invece che infrastrutturali.
-
-**Quality floor**
-
-La semantica e l'ownership non possono diventare condivise per comodità. Orders non deve decidere PaymentStatus; Order Operations non deve diventare source of truth perché legge tutto.
-
-**Guardrail**
-
-- responsibility map;
-- dependency direction;
-- contratti interni;
-- test architetturali futuri;
-- review delle query cross-domain.
-
-Questa è una scelta pragmatica.
-
-La scorciatoia sarebbe un database condiviso in cui ogni componente legge e scrive tutto.
-
-Il compromesso è condividere infrastruttura **senza condividere indiscriminatamente il significato**.
-
-### La UI non deve diventare un secondo dominio
-
-Per una buona esperienza utente potremmo voler mostrare una categoria sintetica:
-
-```text
-Payment problem
-Shipping problem
-Order problem
-```
-
-Una soluzione fragile sarebbe duplicare nel frontend tutte le regole che derivano la categoria.
-
-Meglio che Order Operations esponga una rappresentazione semantica:
+Order Operations può invece esporre una rappresentazione semantica:
 
 ```json
 {
@@ -258,31 +115,13 @@ Meglio che Order Operations esponga una rappresentazione semantica:
 }
 ```
 
-La UI decide come rappresentare il problema.
+La UI decide come presentarla. Order Operations possiede la classificazione operativa. I domini sottostanti continuano a possedere i propri stati.
 
-Il backend possiede la semantica della classificazione operativa.
+Questa separazione evita che una decisione di presentazione diventi una seconda implementazione del dominio.
 
-I domini sottostanti continuano a possedere i propri stati.
+## Una struttura possibile, non un template universale
 
-### Una futura action rende visibile il confine
-
-Supponiamo che domani Product chieda:
-
-> “Aggiungiamo Retry Payment.”
-
-Il bottone è semplice.
-
-Il confine no.
-
-Order Operations potrebbe orchestrare la richiesta, ma non dovrebbe inventare quando un retry sia consentito, se possa duplicare un addebito, quale idempotency key usare, quali provider supportino il comportamento o quale audit sia necessario. Queste responsabilità appartengono al dominio Payments e alle policy ESI di Payments & Risk.
-
-Il boundary ci permette di dire:
-
-> il bisogno nasce qui, ma una parte della decisione appartiene altrove.
-
-### Struttura possibile del repository
-
-Una prima evoluzione potrebbe essere:
+Il repository potrebbe evolvere verso qualcosa come:
 
 ```text
 src/
@@ -311,20 +150,14 @@ src/
     database/
 ```
 
-Questa è soltanto una possibilità.
+La forma concreta non è la parte importante. Il layout deve rendere leggibili responsabilità e dependency direction e, quando possibile, permettere di verificare automaticamente gli accessi proibiti.
 
-Non è un template universale.
+## Che cosa abbiamo guadagnato
 
-La parte importante è che il layout renda visibili le responsabilità e la direzione delle dipendenze.
+Non abbiamo necessariamente ridotto il numero di righe. Abbiamo reso più chiaro chi è autorevole, quali contratti attraversano i confini, quali dettagli devono restare locali e quali decisioni richiedono stakeholder diversi.
 
-### Che cosa abbiamo guadagnato
+Per persone, test e agenti il perimetro diventa più comprensibile.
 
-Non abbiamo scritto meno codice per forza.
-
-Abbiamo ottenuto fonti autorevoli distinte e contratti espliciti fra i domini, dettagli infrastrutturali più locali e una UI che non reinventa regole. L'ownership del dato è più chiara, il perimetro è più comprensibile per test e agenti e diventa visibile quali decisioni richiedano altri stakeholder ESI. Questa è modularità utile.
-
-Non il numero di cartelle.
-
-La capacità di dire:
+Questa è modularità utile: non il numero di cartelle, ma la capacità di dire con precisione:
 
 > **questa decisione appartiene qui, e il resto del sistema non deve conoscerne i dettagli.**
