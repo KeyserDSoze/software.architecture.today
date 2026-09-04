@@ -1,229 +1,60 @@
 ## Workload, platform e landing zone
 
-Prima di parlare di servizi cloud dobbiamo chiarire chi possiede che cosa.
+Prima dei servizi cloud viene una domanda organizzativa: **chi possiede che cosa?** In un’azienda enterprise non basta sapere come deployare l’applicazione; dobbiamo distinguere ciò che conviene standardizzare a livello aziendale da ciò che deve rimanere sotto il controllo del team che possiede il workload.
 
-In un'organizzazione enterprise la domanda non è soltanto:
+Questa separazione decide cognitive load, velocità, accountability e perfino la qualità degli incident response.
 
-> “Come deployiamo questa applicazione?”
+## Il workload è più grande del repository
 
-È anche:
+Microsoft Well-Architected descrive un workload come l’insieme di risorse, codice, dati e infrastruttura che collaborano per raggiungere un business outcome. È una definizione utile perché costringe a guardare oltre il deployable.
 
-> “Quale parte dell'ambiente deve essere standardizzata a livello aziendale e quale parte deve rimanere sotto il controllo del team che possiede il workload?”
+Per Order Operations il workload comprende il runtime web/API, il background publisher, PostgreSQL, messaging, identity, secrets, network connectivity, observability, configuration, deployment automation e recovery. Alcune parti sono codice del team, altre sono infrastruttura gestita, altre ancora capability fornite da Platform Engineering. Per l’utente finale, però, formano un unico sistema.
 
-Questa è una decisione architetturale e organizzativa.
+## Platform e workload team: autonomia attraverso un contratto
 
-## Il workload come unità di responsabilità
-
-Microsoft Well-Architected descrive un workload come un insieme di risorse, codice, dati e infrastruttura che collaborano per raggiungere un business outcome.
-
-Questa definizione è utile perché evita di ridurre l'architettura cloud alla singola applicazione o alla singola subscription.
-
-Per Order Operations il workload include almeno:
-
-```text
-web/API runtime
-background processing
-PostgreSQL
-messaging
-identity
-secrets
-network connectivity
-monitoring
-configuration
-deployment automation
-recovery procedure
-```
-
-Una parte è codice scritto dal team.
-
-Una parte è infrastruttura.
-
-Una parte è capability fornite dalla piattaforma aziendale.
-
-Ma per l'utente sono un unico sistema.
-
-## Platform team e workload team
-
-Microsoft Cloud Adoption Framework distingue esplicitamente:
-
-- **platform teams**, che costruiscono capability condivise e riducono cognitive load;
-- **application workload teams**, che possiedono end-to-end il lifecycle del workload.
+Microsoft Cloud Adoption Framework distingue platform team, che costruiscono capability condivise e riducono cognitive load, da application workload team, che possiedono end-to-end il lifecycle del workload.
 
 Fonte:
 
 - [Microsoft Learn — DevOps teams topologies](https://learn.microsoft.com/azure/cloud-adoption-framework/ready/considerations/devops-teams-topologies)
 
-Questa distinzione risolve un falso dilemma.
+Questa distinzione evita due estremi ugualmente fragili: un team centrale che approva ogni modifica oppure decine di workload team che reinventano identity, networking, logging, policy e cost allocation.
 
-Non dobbiamo scegliere fra:
+Un modello più sano è **guardrail + autonomia**. Platform può possedere identity foundation, policy baseline, connectivity condivisa, DNS, subscription provisioning, moduli IaC approvati, security control comuni e cost allocation. Il workload team continua invece a decidere architecture, runtime sizing, data model, messaging topology specifica, NFR, deployment lifecycle, runbook, capacity planning, costo e incident response applicativa.
 
-```text
-tutto centralizzato
-```
+Il confine concreto varia fra organizzazioni. Ciò che non può variare è la necessità di renderlo esplicito.
 
-e:
+## Landing zone: foundation, non architettura del prodotto
 
-```text
-ogni team fa qualunque cosa nel cloud
-```
-
-Possiamo costruire un modello di **guardrail + autonomia**.
-
-### Platform Engineering può possedere
-
-- identity foundation;
-- policy baseline;
-- logging platform;
-- network connectivity condivisa;
-- DNS;
-- subscription provisioning;
-- approved IaC modules;
-- security controls comuni;
-- cost allocation baseline;
-- platform observability;
-- standard di tagging e naming quando utili.
-
-### Il workload team può possedere
-
-- architecture del proprio workload;
-- application runtime;
-- scaling policy;
-- data model;
-- messaging topology specifica;
-- SLO/NFR del prodotto;
-- deployment lifecycle;
-- runbook;
-- capacity planning;
-- cost del workload;
-- incident response applicativa.
-
-Questi confini non sono universali.
-
-Dipendono dall'organizzazione.
-
-Ma devono essere espliciti.
-
-## Landing zone: foundation, non architettura dell'applicazione
-
-Azure Cloud Adoption Framework usa il concetto di **landing zone** per separare foundation aziendale e workload.
-
-Una platform landing zone stabilisce governance, security e risorse condivise.
-
-Una application landing zone è l'ambiente in cui il workload team distribuisce e gestisce il proprio sistema all'interno di quei guardrail.
+Azure Cloud Adoption Framework usa il concetto di **landing zone** per separare foundation aziendale e workload. La platform landing zone mette a disposizione governance, security e capability condivise; la application landing zone offre al team uno spazio governato in cui distribuire e gestire il proprio sistema.
 
 Fonte:
 
 - [Microsoft Learn — What is an Azure landing zone?](https://learn.microsoft.com/azure/cloud-adoption-framework/ready/landing-zone/)
 
-Questa distinzione ci interessa anche se useremo un altro cloud.
+Il concetto è trasferibile anche se cambia la terminologia del provider: organizzare account/subscription/project, policy, networking e identity come foundation comune è un problema enterprise generale.
 
-AWS Organizations/Control Tower, Google Cloud resource hierarchy e altri strumenti implementano concetti analoghi con terminologie differenti.
+La piattaforma crea valore quando standardizza ciò che è davvero condiviso. Diventa un problema quando usa la propria disponibilità per decidere l’architettura di ogni workload.
 
-La lezione è più generale:
+## Standardizzare una capacità non significa imporla a tutti
 
-> **La piattaforma deve standardizzare ciò che produce valore condiviso, non appropriarsi delle decisioni locali del workload.**
+Se Platform Engineering supporta una piattaforma Kubernetes, un database PostgreSQL gestito, messaging e logging centralizzati, non segue che ogni workload debba usare Kubernetes. Uno standard sano dice: “se ti serve questa capability, questa è la strada supportata”. Uno standard fragile dice: “poiché l’abbiamo costruita, tutti devono usarla”.
 
-## Centralizzare ha un costo
+Nel primo caso la piattaforma riduce cognitive load. Nel secondo produce **architecture by platform availability**.
 
-Un team centrale può aumentare:
+Lo stesso vale per qualunque managed service: il catalogo aziendale restringe lo spazio delle soluzioni ammesse, ma il workload deve continuare a giustificare ciò che consuma.
 
-- coerenza;
-- security posture;
-- compliance;
-- riuso;
-- controllo costi;
-- velocità di onboarding.
+## Guardrail prima dei gate
 
-Ma può anche diventare:
+Un gate manuale può essere appropriato per decisioni ad alto impatto, ma non dovrebbe essere il meccanismo ordinario di governance. Se creare un database richiede ticket sequenziali verso Platform, Security e Networking, l’azienda sta centralizzando anche il lead time.
 
-- bottleneck;
-- approval queue;
-- proprietario accidentale di sistemi che non comprende;
-- produttore di standard troppo generici;
-- fonte di eccezioni manuali.
+Un guardrail codificato permette invece al workload team di usare un modulo IaC approvato, mentre policy e baseline applicano automaticamente identity, logging, tagging e configurazioni vietate. Il team continua a possedere sizing e lifecycle della risorsa.
 
-Microsoft stessa raccomanda di centralizzare capability condivise quando producono un chiaro beneficio di governance, operation o economia, non per principio astratto.
+La governance non scompare. Diventa ripetibile e verificabile.
 
-Fonte:
+## Shared responsibility dentro la shared responsibility
 
-- [Microsoft Learn — Azure landing zone](https://learn.microsoft.com/azure/cloud-adoption-framework/ready/landing-zone/)
-
-Quindi anche qui applichiamo fit before fashion.
-
-## Standard non significa servizio obbligatorio
-
-Supponiamo che Platform Engineering offra:
-
-```text
-AKS platform
-managed PostgreSQL
-managed messaging
-central logging
-managed identity
-Key Vault
-```
-
-Questo non significa che ogni workload debba usare AKS.
-
-Uno standard sano può dire:
-
-```text
-se ti serve Kubernetes,
-questa è la piattaforma supportata
-```
-
-non:
-
-```text
-poiché abbiamo una piattaforma Kubernetes,
-ogni applicazione deve diventare Kubernetes
-```
-
-La differenza è enorme.
-
-Nel primo caso la piattaforma riduce cognitive load.
-
-Nel secondo crea architecture by platform availability.
-
-## Guardrail vs gate
-
-Un guardrail permette al team di agire autonomamente entro limiti espliciti.
-
-Un gate richiede un permesso umano prima di ogni azione.
-
-Esempio.
-
-### Gate
-
-```text
-Per creare un database:
-1. apri ticket
-2. attendi Security
-3. attendi Platform
-4. attendi Networking
-5. qualcuno crea manualmente la risorsa
-```
-
-### Guardrail
-
-```text
-Il workload team usa un modulo IaC approvato.
-La policy impedisce configurazioni vietate.
-Identity, logging e tagging baseline vengono applicati automaticamente.
-Il team possiede sizing e lifecycle del database.
-```
-
-Il secondo modello scala molto meglio.
-
-Non perché elimina governance.
-
-Perché la codifica.
-
-## Shared responsibility anche dentro l'azienda
-
-Il cloud provider usa un modello di shared responsibility tra provider e customer.
-
-In una grande azienda esiste spesso un secondo livello:
+Il cloud provider divide responsabilità fra provider e customer. Nelle grandi organizzazioni esiste spesso un secondo strato:
 
 ```text
 cloud provider
@@ -233,60 +64,18 @@ platform team
 workload team
 ```
 
-Se non chiarifichiamo questa catena, incidenti e vulnerability producono frasi come:
+Se questo contratto resta implicito, incidenti e vulnerability producono il classico “pensavo lo facesse Platform” oppure “pensavo lo facesse Azure”. La Cloud Deployment Map deve quindi mostrare non soltanto componenti e connessioni, ma anche ownership operativa.
 
-- “pensavo lo facesse Platform”;
-- “pensavo fosse responsabilità del team applicativo”;
-- “pensavo lo facesse Azure”.
+## ESI: Azure entra come constraint, non come verità universale
 
-Una buona Cloud Deployment Map deve quindi mostrare anche ownership operativa.
+Nel nostro scenario ESI usa Microsoft Azure come cloud enterprise principale per Order Operations. Non è una dichiarazione di superiorità del provider: è un vincolo organizzativo simulato. Platform Engineering possiede già una landing zone Azure, l’identity aziendale è integrata con Microsoft Entra ID, logging e policy sono disponibili e il team possiede competenze operative sufficienti. Introdurre un secondo cloud non comprerebbe oggi alcuna proprietà necessaria.
 
-## ESI: il nuovo operating model
+Questa scelta restringe lo spazio tecnologico, ma non sostituisce il reasoning.
 
-Per il libro stabiliremo ora una nuova informazione simulata.
+La decisione organizzativa del capitolo è quindi:
 
-ESI usa **Microsoft Azure come cloud enterprise principale** per Order Operations.
+> **Order Operations vive in una application landing zone governata da Platform, mentre il workload team mantiene ownership delle decisioni applicative, dei NFR, del costo e del lifecycle del prodotto.**
 
-Non perché Azure sia “il cloud migliore”.
+Accettiamo che alcuni servizi e configurazioni siano vincolati dagli standard enterprise e che alcune eccezioni richiedano review. Non accettiamo invece che Platform diventi owner accidentale della semantica del prodotto o che il workload team usi la landing zone come alibi per delegare ciò che deve operare.
 
-È un vincolo organizzativo plausibile del nostro scenario:
-
-- Platform Engineering ha già una landing zone Azure;
-- identity aziendale è integrata con Microsoft Entra ID;
-- central logging e policy sono già disponibili;
-- il team possiede competenze operative sufficienti su Azure;
-- introdurre un secondo cloud per questo workload non compra una proprietà necessaria.
-
-Questa scelta entra nel contesto come constraint.
-
-Non diventa una raccomandazione universale del libro.
-
-Il capitolo continuerà a usare concetti trasferibili fra provider.
-
-## Il compromesso ESI
-
-Platform vuole coerenza.
-
-Commerce & Operations vuole autonomia.
-
-Security vuole enforcement.
-
-Finance vuole evitare duplicazioni di piattaforma.
-
-La decisione sarà:
-
-> **Order Operations usa una application landing zone governata da Platform, ma il workload team mantiene ownership delle decisioni applicative, dei NFR, del costo e del lifecycle del workload.**
-
-Costo accettato:
-
-- alcune technology choice sono vincolate dagli standard enterprise;
-- non ogni servizio possibile è disponibile senza review;
-- il team deve aderire a policy comuni.
-
-Quality floor:
-
-- la piattaforma non può diventare alibi per delegare ownership;
-- i team centrali non decidono la semantica del prodotto;
-- il workload team deve poter osservare e operare ciò che possiede.
-
-Questo è il modello organizzativo con cui valuteremo le prossime decisioni cloud.
+Questo è il contratto organizzativo con cui valuteremo le successive decisioni cloud.
