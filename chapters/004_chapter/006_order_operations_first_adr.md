@@ -1,118 +1,32 @@
 ## Order Operations — la prima decisione architetturale esplicita
 
-Finora abbiamo resistito alla tentazione di scegliere troppo presto.
+Finora abbiamo resistito alla tentazione di scegliere troppo presto. Nel Capitolo 2 abbiamo definito il problema; nel Capitolo 3 abbiamo reso visibili system of interest, ownership, critical journey, freshness e failure topology. Ora abbiamo abbastanza contesto per prendere una decisione architetturale vera.
 
-Nel Capitolo 2 abbiamo definito il problema.
+Order Operations deve permettere agli operatori di individuare e investigare ordini problematici. Authorization e data ownership sono non negoziabili. Per alcune informazioni un breve ritardo può essere accettabile, purché sia comprensibile; la capability è ancora in fase iniziale, il team è piccolo e non abbiamo evidenza che il carico della console richieda già una piattaforma di lettura separata.
 
-Nel Capitolo 3 abbiamo mappato il sistema.
+La domanda non è quindi “qual è l'architettura più evoluta?”. È **quale trade-off ha il fit migliore oggi senza renderci irresponsabilmente rigidi domani**.
 
-Ora abbiamo abbastanza contesto per prendere una decisione vera.
+## Due alternative credibili
 
-Ricordiamo il requisito principale di Order Operations:
+La prima alternativa è un **lookup live** attraverso i boundary applicativi di Orders, Payments e Shipping. Mantiene pochi componenti, evita una pipeline di sincronizzazione e offre dati potenzialmente molto freschi. In cambio, parte della latency e dell'availability del journey dipende dalle fonti operative e il workload di lettura rimane più vicino a quello transazionale.
 
-- l'operatore deve individuare e investigare ordini problematici;
-- access control e data ownership sono non negoziabili;
-- un breve ritardo può essere accettabile per alcune informazioni, se dichiarato;
-- la feature non deve aumentare in modo sproporzionato il carico dei sistemi operativi;
-- il team è ancora piccolo;
-- la capability è in fase iniziale.
+La seconda alternativa è un **read model asincrono** alimentato dagli aggiornamenti dei domini. Isola meglio il workload della console e permette uno schema ottimizzato per la lettura, ma introduce eventual consistency, consumer, lag, replay, recovery e una nuova superficie operativa.
 
-Abbiamo almeno due alternative credibili.
+Il read model può sembrare più “architetturale” perché contiene più componenti e più concetti interessanti da discutere. Ma questa non è una gara di sofisticazione. Al momento non abbiamo evidenza che la complessità aggiuntiva compri un beneficio necessario.
 
-### Opzione A — lookup live
+Scegliamo quindi **lookup live**, ma lo facciamo come decisione esplicita, con quality floor e trigger di revisione.
 
-Order Operations interroga i dati operativi attraverso i boundary di Orders, Payments e Shipping.
+## Il compromesso ESI
 
-Vantaggi:
+Commerce & Operations vuole una capability utile presto. Platform Engineering vuole evitare che una feature giovane introduca una pipeline operativa non giustificata. Allo stesso tempo non possiamo ottenere semplicità bypassando ownership, authorization o boundary di dominio.
 
-- semplicità;
-- meno componenti;
-- stato molto fresco;
-- niente pipeline di sincronizzazione;
-- operazioni più semplici.
+Il compromesso consiste nel mantenere la soluzione live nella prima fase e accettare che Order Operations condivida parte del failure domain e del carico con i sistemi operativi esistenti. Il quality floor rimane però chiaro: niente accesso arbitrario cross-domain alle tabelle, timeout e degrado devono essere governati, i dati incompleti non possono essere presentati come certamente correnti e l'authorization deve attraversare il journey.
 
-Svantaggi:
+Questa distinzione separa compromesso e scorciatoia. La scorciatoia sarebbe “leggiamo direttamente tutto perché è più veloce”. La decisione architetturale è “manteniamo il lookup live perché oggi ha fit migliore, proteggiamo i confini e misuriamo le condizioni che potrebbero renderlo insufficiente”.
 
-- il carico di lettura insiste sui datastore operativi;
-- availability e latency dipendono maggiormente dalle fonti live;
-- meno isolamento tra workload operativi e console;
-- il degrado di una dipendenza può degradare il journey.
+## ADR-001 — Lookup operativo sui dati live
 
-### Opzione B — read model asincrono
-
-Gli aggiornamenti dei domini alimentano un modello ottimizzato per la vista operativa.
-
-Vantaggi:
-
-- separazione del workload;
-- query più semplici e ottimizzate;
-- maggiore isolamento dalle dipendenze live;
-- possibilità di controllare diversamente availability della vista.
-
-Svantaggi:
-
-- eventual consistency;
-- nuova pipeline da operare;
-- replay e recovery;
-- failure mode aggiuntivi;
-- maggior costo cognitivo e operativo.
-
-### La tentazione
-
-Se guardiamo soltanto al futuro, l'opzione B sembra più “architetturale”.
-
-È anche più interessante da disegnare.
-
-Eventi, proiezioni, consumer, replay, lag.
-
-Ma questa non è una gara di sofisticazione.
-
-Il contesto attuale dice che:
-
-- il traffico è ancora moderato;
-- non abbiamo evidenza che il carico della console danneggi i workload transazionali;
-- il team deve ancora validare il prodotto;
-- introdurre una pipeline asincrona aumenta materialmente la superficie operativa.
-
-Quindi scegliamo **Opzione A: lookup live**, ma in modo intenzionale e con trigger di revisione.
-
-### Il compromesso ESI
-
-**Esigenza**
-
-Commerce & Operations vuole una capability utilizzabile presto.
-
-**Tensione**
-
-Semplicità e time-to-market contro isolamento dei workload e indipendenza operativa.
-
-**Decisione**
-
-Lookup live, per ora.
-
-**Costo accettato**
-
-Order Operations condivide parte del failure domain e del carico con sistemi operativi esistenti.
-
-**Quality floor**
-
-Non bypassiamo ownership, authorization, timeout e correttezza per ottenere semplicità.
-
-**Guardrail**
-
-Boundary applicativi, metriche, test e trigger espliciti di revisione.
-
-Questa è la differenza fra compromesso e scorciatoia.
-
-La scorciatoia sarebbe:
-
-> “Leggiamo direttamente tutte le tabelle perché è più veloce da implementare.”
-
-Il compromesso è:
-
-> “Manteniamo la soluzione live perché oggi ha il fit migliore, ma proteggiamo i confini e misuriamo le condizioni che potrebbero renderla insufficiente.”
-
-### ADR-001 — Lookup operativo sui dati live
+Qui la struttura resta intenzionalmente formale perché stiamo costruendo il primo artefatto decisionale del capstone.
 
 ```markdown
 # ADR-001 — Preferire lookup live prima di introdurre un read model dedicato
@@ -129,12 +43,20 @@ Ownership e access control sono non negoziabili.
 
 Dobbiamo fornire una vista affidabile senza introdurre complessità operativa non giustificata dal carico attuale.
 
+## Architecturally Significant Requirements
+
+- authorization e tenant isolation devono essere preservate;
+- Orders, Payments e Shipping mantengono ownership dei propri dati;
+- per alcuni dati un breve ritardo è accettabile solo se la freshness è comprensibile;
+- il journey non deve introdurre carico sproporzionato sui workload transazionali;
+- la soluzione deve rimanere operabile da un team piccolo.
+
 ## Vincoli
 
 - piccolo team;
-- semplicità operativa prioritaria;
-- nessun bisogno attuale di isolamento completo del workload di lettura;
-- freshness ancora da quantificare per capability.
+- semplicità operativa prioritaria nella prima fase;
+- nessuna evidenza attuale che richieda isolamento completo del workload di lettura;
+- target di freshness e volume ancora da consolidare con evidenza runtime.
 
 ## Alternative considerate
 
@@ -148,14 +70,14 @@ Usare lookup live sui dati operativi attraverso i confini logici di Orders, Paym
 ## Motivazione
 
 La soluzione soddisfa i requisiti attuali con minore complessità operativa.
-Il carico non giustifica ancora una pipeline asincrona dedicata.
+Il carico osservato non giustifica ancora una pipeline asincrona dedicata.
 
 ## Conseguenze positive
 
 - meno componenti;
-- nessun problema di sincronizzazione;
+- nessun lag di proiezione da governare;
 - recovery più semplice;
-- minore costo operativo.
+- minore costo operativo iniziale.
 
 ## Conseguenze negative
 
@@ -168,7 +90,8 @@ Il carico non giustifica ancora una pipeline asincrona dedicata.
 - authorization verificata;
 - ownership rispettata;
 - niente accesso arbitrario cross-domain alle tabelle;
-- dati stale o incompleti non devono essere rappresentati come certamente correnti.
+- dati stale o incompleti non devono essere rappresentati come certamente correnti;
+- timeout e degrado parziale devono produrre stati osservabili.
 
 ## Trigger di revisione
 
@@ -180,49 +103,29 @@ Rivalutare se:
 - una nuova esigenza di storico o aggregazione rende inefficiente il lookup live.
 ```
 
-### Perché questa è una decisione architetturale
+## Perché questa è architettura
 
-Non perché abbiamo scelto di fare una query.
+La decisione non è “fare una query”. La query concreta appartiene all'implementazione. La parte architetturale riguarda shared failure domain, separazione dei workload, consistency, costo operativo, ownership e strategia di evoluzione.
 
-La decisione significativa riguarda lo shared failure domain e la separazione dei workload, la consistency richiesta, la complessità operativa che accettiamo e la strategia di evoluzione. La query concreta è implementazione.
+Stiamo accettando **semplicità oggi** in cambio di **meno isolamento oggi**, ma soltanto finché l'evidenza continua a giustificarlo.
 
-Il compromesso tra **semplicità oggi** e **isolamento domani** è architettura.
+## Preparare una via d'uscita senza costruirla in anticipo
 
-### Preparare senza implementare
+Possiamo aumentare la reversibilità senza introdurre subito il read model. Manteniamo i lookup dietro boundary applicativi, evitiamo di esporre nell'API lo schema del database, isoliamo l'authorization e misuriamo volume e latency. Evitiamo anche query cross-domain diffuse e manteniamo il contratto esterno indipendente dalla fonte dati concreta.
 
-Possiamo comunque evitare di renderci la vita difficile in futuro.
-
-Possiamo evitare di esporre direttamente lo schema del database nell'API, mantenere il lookup dietro boundary applicativi e isolare l'authorization. Misurare latency e volume, evitare query cross-domain diffuse e mantenere il contratto esterno indipendente dalla fonte dati sono altre scelte che preservano reversibilità.
-
-Non costruiscono ancora il read model.
+Queste scelte non implementano la soluzione futura. Impediscono che la soluzione attuale diventi accidentalmente l'unica possibile.
 
 > **Preparare una via d'uscita costa molto meno che costruire oggi la strada che forse useremo domani.**
 
-### Quando il trigger scatterà
+## Quando il contesto cambierà
 
-Supponiamo che più avanti ESI acquisisca nuovi clienti enterprise.
+Immaginiamo che ESI acquisisca nuovi clienti enterprise, il volume operativo cresca e la console inizi a contribuire significativamente al carico di lettura. Il database mostra contention e Operations chiede che la vista rimanga disponibile anche durante maintenance dei sistemi ordini.
 
-Il volume operativo cresce.
+A quel punto il trigger è scattato. Non significa che ADR-001 fosse sbagliato: significa che la decisione aveva un intervallo di validità e il contesto è uscito da quell'intervallo.
 
-La console genera una parte importante del traffico di lettura.
+Creeremo un nuovo ADR che la supersede, confrontando di nuovo le alternative disponibili allora.
 
-Il database operativo inizia a mostrare contention.
-
-Operations chiede maggiore availability anche durante maintenance dei sistemi ordini.
-
-A quel punto il contesto è cambiato.
-
-Non significa che ADR-001 fosse sbagliato.
-
-Significa che ha esaurito il proprio periodo di validità.
-
-Potremo creare una nuova ADR che la supersede.
-
-Questa storia è più sana di costruire subito la soluzione finale immaginando una scala che ancora non esiste.
-
-### L'architettura come percorso
-
-Order Operations mostra un principio che accompagnerà tutto il libro:
+Questo è il percorso che vogliamo allenare:
 
 ```text
 contesto attuale
@@ -234,13 +137,4 @@ contesto attuale
 → nuova decisione
 ```
 
-Non:
-
-```text
-immaginiamo il sistema finale
-→ costruiamolo subito
-```
-
-L'architettura non è la ricerca di una configurazione perfetta.
-
-È la capacità di prendere **buone decisioni nella sequenza giusta**.
+Non immaginiamo una soluzione finale e non la costruiamo per forza oggi. L'architettura è la capacità di prendere **buone decisioni nella sequenza giusta**.
