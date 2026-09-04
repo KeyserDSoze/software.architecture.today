@@ -1,16 +1,6 @@
 # Capitolo 26 — Production Readiness
 
-## Il momento in cui smettiamo di parlare al condizionale
-
-Per venticinque capitoli abbiamo costruito, smontato, corretto e governato **Order Operations**.
-
-Abbiamo definito il problema.
-
-Abbiamo scritto analisi funzionale e requisiti.
-
-Abbiamo discusso confini, API, dati, sistemi distribuiti, cloud, security, reliability, observability, testing, legacy, refactoring, costi, repository AI-ready, issue-driven development, agent governance e AI runtime.
-
-Abbiamo anche imparato a distinguere:
+Per venticinque capitoli abbiamo costruito Order Operations distinguendo sistematicamente ciò che era soltanto deciso da ciò che era codificato, verificato o osservato nel runtime.
 
 ```text
 Designed
@@ -19,355 +9,99 @@ Designed
 → Monitored
 ```
 
-Ora arriva la domanda che rende quella distinzione impossibile da ignorare:
+La Production Readiness Review è il momento in cui questa distinzione diventa impossibile da ignorare.
 
-> **Siamo disposti ad affidarci davvero a questo sistema?**
+La domanda non è “abbiamo finito lo sviluppo?” e nemmeno “la demo funziona?”. È più impegnativa:
 
-Non:
+> **Se affidiamo questo launch boundary a utenti reali, abbiamo abbastanza evidence per sostenere la promessa che stiamo facendo e sappiamo chi si assume il rischio quando l’evidence non è completa?**
 
-> abbiamo finito lo sviluppo?
+## Production-ready non è una proprietà del repository
 
-Non:
+Un repository può compilare e avere ottima coverage senza essere operabile. Può mancare restore evidence, rollback praticabile, ownership, alert azionabili, capacity evidence, support access o una persona capace di capire da dove iniziare durante un incidente.
 
-> la demo funziona?
+Queste proprietà spesso restano invisibili durante lo sviluppo perché il sistema viene ancora osservato in condizioni controllate. Production Readiness serve a portare prima del go-live le domande che altrimenti emergerebbero dopo il primo failure serio.
 
-Non:
+AWS descrive l’operational readiness come una valutazione che riguarda workload, processi, procedure e persone necessarie a supportarlo; la relativa guidance include runbook, playbook, support plan e review coerenti. Google SRE, nella propria storica Launch Coordination Checklist, include architecture, capacity, failure, monitoring e operational procedures fra le domande pre-lancio.
 
-> i test locali sono verdi?
-
-Ma:
-
-> se domani il workload serve utenti reali, fallisce una dipendenza, viene distribuito un cambiamento sbagliato, un certificato scade, una persona è assente o dobbiamo ripristinare dati, sappiamo che cosa fare e abbiamo evidence sufficiente per assumerci la responsabilità?
-
-Questa è **Production Readiness**.
-
----
-
-## Production-ready non è una proprietà del codice
-
-Un repository può compilare perfettamente e non essere pronto alla produzione.
-
-Un'applicazione può avere ottima code coverage e non avere:
-
-- backup ripristinabili;
-- ownership operativa;
-- alert azionabili;
-- rollback praticabile;
-- capacity evidence;
-- runbook;
-- security verification;
-- support model;
-- accesso di emergenza;
-- cost visibility;
-- una persona che sappia cosa fare alle tre del mattino.
-
-Il problema è che molte di queste mancanze restano invisibili finché il sistema non viene affidato a utenti reali.
-
-La production readiness serve proprio a **portare quelle domande prima del go-live**.
-
-AWS definisce l'operational readiness come la valutazione del workload, dei processi, delle procedure e delle persone necessarie a supportarlo. La relativa guidance include review coerenti, runbook, playbook, decisioni informate sul deployment e piani di supporto.
+Fonti:
 
 - [AWS Well-Architected — How do you know that you are ready to support a workload?](https://docs.aws.amazon.com/wellarchitected/latest/framework/ops-07.html)
 - [AWS — Operational Readiness Reviews](https://docs.aws.amazon.com/wellarchitected/latest/operational-readiness-reviews/wa-operational-readiness-reviews.html)
-
-Google SRE, nel proprio Launch Coordination Checklist storico, include già architecture, capacity, failure, monitoring, operational procedures e dependency behavior fra le domande da affrontare prima di un lancio.
-
 - [Google SRE — Launch Coordination Checklist](https://sre.google/sre-book/launch-checklist/)
 
-Il punto non è adottare una checklist universale.
+Il punto non è adottare la checklist di qualcun altro. È riconoscere che il launch riguarda **il sistema e l’organizzazione che dovrà sostenerlo**, non soltanto il codice.
 
-Il punto è molto più semplice:
+## Readiness non significa perfezione
 
-> **prima del go-live dobbiamo verificare che il sistema, l'organizzazione e i processi che lo circondano siano capaci di sostenere ciò che stiamo per promettere.**
+Nessun sistema serio entra in produzione con zero bug, zero unknown e zero technical debt. Se questa fosse la soglia, nessun launch sarebbe possibile.
 
----
-
-# Readiness non significa perfezione
-
-Nessun sistema serio arriva in produzione con rischio zero.
-
-Se la Production Readiness Review richiedesse:
-
-```text
-0 bug
-0 unknown
-0 technical debt
-0 pending improvement
-0 operational risk
-```
-
-nessun workload partirebbe mai.
-
-La review deve invece distinguere almeno quattro categorie:
+La review deve invece rendere leggibili quattro stati diversi:
 
 ```text
 BLOCKER
-→ non possiamo lanciare senza questa evidence/capability
+→ senza closure non sosteniamo il launch boundary
 
 ACCEPTED RISK
-→ il rischio è conosciuto, bounded, owned e accettato dall'autorità corretta
+→ rischio compreso, bounded, owned e accettato dall’autorità corretta
 
 FOLLOW-UP
-→ miglioramento utile ma non necessario per il current launch boundary
+→ miglioramento non necessario alla promessa corrente
 
 UNKNOWN
-→ non sappiamo ancora abbastanza per classificare il rischio
+→ non abbiamo ancora abbastanza evidence per classificare il rischio
 ```
 
-La categoria più pericolosa non è necessariamente `Accepted Risk`.
+Il più pericoloso è spesso `UNKNOWN` travestito da “dovrebbe andare”.
 
-È spesso `Unknown` travestito da:
+Una readiness review matura non elimina l’incertezza. Le impedisce di cambiare nome per comodità.
 
-> dovrebbe andare.
+## La checklist non può accettare il rischio
 
----
+Una riga può dire che il restore drill manca. Non può decidere se il business sia disposto a lanciare comunque.
 
-# Una checklist non può accettare il rischio
+Engineering può descrivere il gap e la mitigation. Security può giudicare un residual security risk. Product può accettare una limitazione funzionale o di availability. Payments & Risk mantiene authority sui rischi economici del proprio dominio. Operations deve poter dichiarare se il workload è realmente supportabile.
 
-Una checklist può mostrare:
+La review quindi non è una votazione e non è un automatismo.
 
-```text
-backup restore drill = missing
-```
+> **L’architettura rende leggibile chi sta accettando quale compromesso, non elimina il bisogno di accettarlo.**
 
-Non può decidere da sola se possiamo lanciare comunque.
+## Il launch boundary viene prima del giudizio
 
-Quella è una decisione di rischio.
+“Order Operations è pronto?” è una domanda troppo grande.
 
-Deve coinvolgere l'owner corretto.
+Il core read journey, Payment Escalation, Priority cutover e Case Explanation Assistant non hanno necessariamente la stessa readiness.
 
-Per esempio:
+Un launch può includere un bounded internal cohort e tenere disabilitate capability che richiedono evidence diversa. Questo evita sia che una feature opzionale blocchi inutilmente il core, sia che la readiness del core venga estesa per contagio a una capability non verificata.
 
-```text
-Security
-→ accetta o rifiuta un security residual risk
+Per ESI distingueremo quindi launch boundary separati e prenderemo decisioni rispetto a ciascuno.
 
-Product / Business
-→ accetta una limitazione funzionale o di availability
+## La PRR raccoglie decisioni preparate molto prima
 
-Payments & Risk
-→ decide sui rischi economici nel proprio dominio
+AWS raccomanda che le Operational Readiness Review entrino nel ciclo di sviluppo e incorporino lesson learned dagli incidenti invece di nascere cinque minuti prima del launch.
 
-Operations
-→ dichiara se il sistema è realmente supportabile
-
-Engineering
-→ presenta evidence tecnica e mitigation
-
-Leadership / accountable owner
-→ autorizza il rischio residuo appropriato
-```
-
-Questo è coerente con il mondo ESI che abbiamo costruito fin dall'inizio.
-
-L'architettura non elimina il compromesso.
-
-Rende leggibile **chi sta accettando quale compromesso**.
-
----
-
-# Il compromesso ESI del capitolo
-
-Order Operations è ormai abbastanza maturo da creare pressione per un go-live.
-
-Immaginiamo il contesto simulato:
-
-```text
-Product
-→ vuole iniziare il pilot operativo
-
-Sales / Customer Success
-→ vuole una data credibile
-
-Engineering
-→ vuole smettere di accumulare preparazione
-
-Security
-→ vede ancora verification gap
-
-Reliability / Operations
-→ non ha ancora restore/failover evidence
-
-Platform
-→ non ha ancora deployment validation completa
-
-Finance
-→ non vuole mantenere indefinitamente ambienti e capability non utilizzate
-```
-
-La tentazione è:
-
-> abbiamo già fatto tantissimo, lanciamo e chiudiamo gli ultimi dettagli dopo.
-
-Ma il repository ci dice qualcosa di diverso.
-
-Abbiamo ancora gap espliciti:
-
-```text
-PostgreSQL transaction evidence
-Azure deployment / network / RBAC evidence
-restore / failover drill
-production observability evidence
-private synthetic journey
-AI model evaluation
-continuity drill
-```
-
-Alcuni di questi saranno blocker per il workload core.
-
-Altri possono essere blocker soltanto per la capability AI.
-
-Altri ancora possono essere follow-up.
-
-Questa classificazione è il lavoro del capitolo.
-
----
-
-# Non tutto deve avere lo stesso launch boundary
-
-Un'altra idea importante:
-
-> **il prodotto e tutte le sue capability non devono necessariamente diventare production-ready nello stesso momento.**
-
-Per ESI potremmo avere:
-
-```text
-Order Operations core
-→ launch candidate
-
-Payment Escalation
-→ launch candidate dopo PostgreSQL/broker evidence
-
-Priority candidate cutover
-→ ancora non autorizzato
-
-Case Explanation Assistant
-→ pilot separato dopo real model eval
-```
-
-Questo riduce un failure mode comune:
-
-```text
-one unfinished capability
-→ blocca tutto
-```
-
-oppure il contrario:
-
-```text
-core ready
-→ assumiamo che anche ogni nuova capability lo sia
-```
-
-Il **launch boundary** deve essere esplicito.
-
----
-
-# Operational Readiness e Production Readiness
-
-Nel libro useremo due espressioni correlate.
-
-## Operational Readiness
-
-Domanda:
-
-> sappiamo operare e supportare questo workload?
-
-Include soprattutto:
-
-- ownership;
-- support model;
-- on-call;
-- runbook/playbook;
-- monitoring/alerting;
-- accessi;
-- incident response;
-- deployment/rollback;
-- backup/recovery;
-- capacity;
-- routine operations.
-
-## Production Readiness
-
-Domanda più ampia:
-
-> abbiamo evidence sufficiente per dichiarare che il **launch boundary corrente** può entrare nel mondo reale con il rischio residuo che siamo disposti ad accettare?
-
-Include Operational Readiness, ma anche:
-
-- functional correctness;
-- security;
-- data integrity;
-- reliability;
-- API/event compatibility;
-- cost;
-- AI evaluation quando applicabile;
-- legal/compliance quando applicabile;
-- known risk e acceptance authority.
-
-Non serve litigare sui nomi.
-
-Serve non dimenticare nessuna delle due prospettive.
-
----
-
-# La review non deve nascere alla fine
-
-AWS descrive le Operational Readiness Review come un meccanismo che dovrebbe entrare nel ciclo di sviluppo e incorporare anche lesson learned dagli incidenti, non come una formalità eseguita cinque minuti prima del lancio.
+Fonte:
 
 - [AWS — ORR gaining adoption](https://docs.aws.amazon.com/wellarchitected/latest/operational-readiness-reviews/gaining-adoption.html)
 
-Questo coincide con il percorso del libro.
+È esattamente ciò che abbiamo fatto nel libro. Functional Analysis ci dice che cosa promettiamo. Threat Model e Reliability Contract descrivono failure e recovery. Observability e Testing Strategy descrivono come ottenere evidence. Cost Model rende visibile la sostenibilità. AI Feature Contract limita l’authority del modello. One-Man Project Operating Model descrive chi governa execution e continuity.
 
-In realtà abbiamo preparato la Production Readiness Review fin dal Capitolo 2.
+La PRR non reinventa queste risposte. Le **riunisce e verifica se la loro maturity è sufficiente per il launch boundary proposto**.
 
-Ogni artefatto ha accumulato una parte della risposta:
+## Lo stato ESI all’ingresso del capitolo
 
-```text
-Functional Analysis
-→ sappiamo cosa deve fare?
+Il repository mostra ancora gap espliciti: PostgreSQL transaction evidence, Azure deployment/network/RBAC evidence, restore/failover drill, runtime observability, capacity, continuity e real model evaluation.
 
-Threat Model
-→ sappiamo come può essere abusato?
+Alcuni gap riguardano il core. Altri bloccano soltanto Payment Escalation o AI.
 
-Reliability Contract
-→ sappiamo che cosa significa sano e recuperabile?
+Quindi il capitolo non parte dalla premessa “siamo quasi pronti”. Parte da una domanda aperta e lascia che sia l’evidence a rispondere.
 
-Observability Contract
-→ sappiamo osservarlo?
-
-Testing Strategy
-→ sappiamo che cosa abbiamo verificato?
-
-Cost Model
-→ sappiamo quanto ci costa e perché?
-
-AI Feature Contract
-→ sappiamo che authority ha il modello?
-
-One-Man Project Operating Model
-→ sappiamo chi lo governa e cosa succede se manca?
-```
-
-La Production Readiness Review non inventa queste risposte.
-
-Le **raccoglie, confronta e trasforma in una decisione di launch**.
-
----
-
-# La regola del capitolo
-
-> **Non dichiarare production-ready ciò che sai soltanto descrivere. Dichiaralo quando hai abbastanza evidence per essere disposto a operarlo.**
-
-E questo significa anche accettare una conclusione apparentemente scomoda:
+Questo rende possibile anche una conclusione apparentemente scomoda:
 
 ```text
-Production Readiness Review
-→ NOT READY
+PRR-OO-001
+NO-GO — evidence closure required
 ```
 
-può essere un ottimo risultato.
-
-Se scopre un blocker prima degli utenti, la review ha funzionato.
+Un `NO-GO` può essere un ottimo risultato se impedisce di trasformare `Designed` o `Codified` in una promessa di produzione che non sappiamo ancora difendere.
 
 > **Readiness non è ottenere un sì. È rendere costoso dire sì senza sapere perché.**
