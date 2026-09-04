@@ -1,0 +1,89 @@
+{
+  "chapter": 1,
+  "replacements": [
+    {
+      "old": "Il secondo potrebbe aver costruito nello stesso tempo:\n\n- backend;\n- frontend;\n- migration;\n- test;\n- dashboard;\n- deployment;\n- documentazione;\n- integrazione con un servizio esterno.",
+      "new": "Il secondo, nello stesso tempo, potrebbe aver costruito backend e frontend, preparato una migration e i test, aggiunto dashboard e deployment, aggiornato la documentazione e integrato persino un servizio esterno."
+    },
+    {
+      "old": "Il nuovo collo di bottiglia diventa più spesso:\n\n- chiarezza dell'intento;\n- qualità del contesto;\n- qualità delle decisioni;\n- capacità di verifica;\n- capacità di integrare output diversi;\n- capacità di fermarsi.",
+      "new": "Il nuovo collo di bottiglia diventa più spesso la chiarezza dell'intento e la qualità del contesto, ma anche la qualità delle decisioni. Conta la capacità di verificare e integrare output diversi e, soprattutto, di fermarsi quando la velocità sta portando il sistema oltre ciò che abbiamo davvero deciso."
+    },
+    {
+      "old": "Ma nessuna garantisce automaticamente:\n\n- correttezza;\n- coerenza;\n- sicurezza;\n- operabilità;\n- utilità;\n- semplicità;\n- sostenibilità.",
+      "new": "Ma nessuna garantisce automaticamente che il risultato sia corretto, coerente e sicuro, né che sia operabile, utile, semplice o sostenibile nel tempo."
+    },
+    {
+      "old": "Oggi possiamo chiedere a un agente di:\n\n- aggiungere un endpoint;\n- generare test;\n- creare una migration;\n- modificare uno schema;\n- aggiungere telemetry;\n- aggiornare documentazione;\n- preparare una Dockerfile;\n- proporre infrastruttura;\n- rifattorizzare decine di file;\n- aprire una pull request.",
+      "new": "Oggi possiamo chiedere a un agente di aggiungere un endpoint e generare i test, creare una migration o modificare uno schema, aggiungere telemetry e aggiornare la documentazione. Può preparare una Dockerfile, proporre infrastruttura, rifattorizzare decine di file e arrivare fino all'apertura di una pull request."
+    },
+    {
+      "old": "Ogni decisione importante compete per:\n\n- tempo di review;\n- capacità di comprensione;\n- memoria del team;\n- concentrazione;\n- responsabilità operativa.",
+      "new": "Ogni decisione importante compete per risorse umane che restano scarse: tempo di review, capacità di comprensione, memoria del team e concentrazione. Alla fine compete anche per responsabilità operativa, perché qualcuno dovrà vivere con le conseguenze di ciò che è stato prodotto."
+    },
+    {
+      "old": "Se vede:\n\n- error handling incoerente;\n- nomi vaghi;\n- accesso ai secret sparso;\n- test fragili;\n- dipendenze introdotte senza criterio;\n- moduli che attraversano liberamente i boundary;\n\npuò inferire che queste pratiche siano accettabili.",
+      "new": "Se vede error handling incoerente, nomi vaghi, accesso ai secret sparso, test fragili, dipendenze introdotte senza criterio e moduli che attraversano liberamente i boundary, può inferire che quelle pratiche siano accettabili."
+    },
+    {
+      "old": "Se vede invece:\n\n- contratti chiari;\n- confini espliciti;\n- test significativi;\n- convenzioni stabili;\n- documentazione aggiornata;\n- decisioni architetturali spiegate;\n\nha un contesto operativo migliore.",
+      "new": "Se trova invece contratti chiari, confini espliciti e test significativi, insieme a convenzioni stabili, documentazione aggiornata e decisioni architetturali spiegate, parte da un contesto operativo molto migliore."
+    },
+    {
+      "old": "Chiediamoci invece:\n\n- sappiamo descrivere il comportamento atteso?\n- sappiamo dire che cosa non deve accadere?\n- sappiamo quali componenti saranno probabilmente coinvolti?\n- sappiamo quali invarianti non possono essere violate?\n- sappiamo come verificheremo il risultato?\n- sappiamo quali decisioni devono essere escalate?",
+      "new": "Chiediamoci invece se sappiamo descrivere il comportamento atteso e ciò che non deve accadere, se abbiamo un'idea dei componenti coinvolti e delle invarianti che non possono essere violate. Dovremmo anche sapere come verificheremo il risultato e quali decisioni, se emergono durante l'execution, devono essere escalate."
+    },
+    {
+      "old": "Oggi un agente può produrre in poco tempo qualcosa che **sembra** molto più maturo:\n\n- interfaccia curata;\n- test;\n- Dockerfile;\n- pipeline;\n- logging;\n- configurazioni;\n- README;\n- infrastruttura dichiarativa.",
+      "new": "Oggi un agente può produrre in poco tempo qualcosa che **sembra** molto più maturo: un'interfaccia curata, test, Dockerfile e pipeline, logging e configurazioni, un README convincente e persino infrastruttura dichiarativa."
+    },
+    {
+      "old": "Se stiamo esplorando un'idea, possiamo deliberatamente accettare:\n\n- dati finti;\n- sicurezza minima;\n- architettura temporanea;\n- dipendenze veloci da integrare;\n- error handling incompleto.\n\nQuesta può essere la scelta giusta.",
+      "new": "Se stiamo esplorando un'idea, possiamo deliberatamente accettare dati finti, sicurezza minima, un'architettura temporanea, dipendenze scelte per la velocità di integrazione ed error handling incompleto. Questa può essere la scelta giusta, purché il carattere temporaneo di quei compromessi resti visibile."
+    },
+    {
+      "old": "Può includere:\n\n- autenticazione insufficiente;\n- assenza di backup;\n- schema dati improvvisato;\n- nessun rollback;\n- osservabilità minima;\n- assenza di ownership;\n- costi non controllati;\n- dipendenze non governate;\n- gestione errori pensata soltanto per la demo.",
+      "new": "Può includere autenticazione insufficiente e assenza di backup, uno schema dati improvvisato e nessun rollback, osservabilità minima e ownership incerta. Può nascondere costi non controllati, dipendenze non governate e una gestione degli errori pensata soltanto per far riuscire la demo."
+    },
+    {
+      "old": "Una buona demo dovrebbe farci chiedere:\n\n- quali assunzioni abbiamo appena validato?\n- quali non abbiamo validato?\n- cosa abbiamo imparato sugli utenti?\n- cosa abbiamo imparato sui dati?\n- quali failure non abbiamo ancora esplorato?\n- quale parte dell'architettura era soltanto temporanea?\n- cosa dovrebbe essere buttato via se il progetto continua?",
+      "new": "Una buona demo dovrebbe farci chiedere quali assunzioni abbiamo appena validato e quali sono ancora intatte, che cosa abbiamo imparato sugli utenti e sui dati e quali failure non abbiamo ancora esplorato. Dovrebbe anche costringerci a riconoscere quale parte dell'architettura fosse soltanto temporanea e che cosa, se il progetto continua, dovrebbe essere buttato via invece di essere promosso per inerzia."
+    },
+    {
+      "old": "Può essere corretta nel percorso principale e mancare di:\n\n- security review;\n- observability;\n- backward compatibility;\n- gestione degli edge case;\n- rollback;\n- capacity consideration;\n- runbook;\n- test significativi;\n- aggiornamento dei contratti.",
+      "new": "Può essere corretta nel percorso principale e avere ancora buchi importanti: security review e observability, backward compatibility ed edge case, rollback e capacity, runbook, test significativi o contratti non ancora aggiornati."
+    },
+    {
+      "old": "Ma la cache potrebbe aver introdotto:\n\n- dati stantii;\n- invalidazione incompleta;\n- crescita incontrollata della memoria;\n- leakage tra tenant;\n- inconsistenza con un flusso di update;\n- nuove dipendenze operative.",
+      "new": "Ma la cache potrebbe aver introdotto dati stantii o invalidazione incompleta, crescita incontrollata della memoria, leakage tra tenant, inconsistenza con un flusso di update e nuove dipendenze operative."
+    },
+    {
+      "old": "Dovremmo guardare almeno:\n\n- numero di boundary attraversati;\n- persistenza coinvolta;\n- compatibilità pubblica;\n- security boundary;\n- irreversibilità;\n- dati storici;\n- dipendenze esterne;\n- capacità di rollback;\n- osservabilità dopo il deploy.\n\nIl blast radius è semantico prima che quantitativo.",
+      "new": "Per stimarlo dovremmo guardare quanti boundary vengono attraversati e quale persistenza è coinvolta, se cambiano compatibilità pubblica o security boundary e quanto la modifica sia reversibile. Dati storici, dipendenze esterne, capacità di rollback e osservabilità dopo il deploy completano il quadro. Il blast radius è semantico prima che quantitativo."
+    },
+    {
+      "old": "Se premiamo soltanto:\n\n- issue chiuse;\n- numero di PR;\n- tempo medio di implementazione;\n- test generati;\n\npotremmo ottenere esattamente più di queste cose.",
+      "new": "Se premiamo soltanto issue chiuse, numero di pull request, tempo medio di implementazione e test generati, potremmo ottenere esattamente più di queste cose senza migliorare il sistema che volevamo misurare."
+    },
+    {
+      "old": "Per questo, a seconda del rischio, possiamo cercare presto:\n\n- dati realistici;\n- failure realistici;\n- carico realistico;\n- contratti reali;\n- utenti reali;\n- vincoli operativi reali.",
+      "new": "Per questo, a seconda del rischio, conviene introdurre presto porzioni di realtà: dati e failure realistici, carico rappresentativo, contratti e utenti reali, vincoli operativi che il prototipo non può inventare a piacere."
+    },
+    {
+      "old": "Dobbiamo ricordare:\n\n- che cosa avevamo chiesto;\n- quali vincoli erano già stati chiariti;\n- quale parte dell'output precedente era corretta;\n- quale nuova assunzione è stata introdotta;\n- quali file sono cambiati;\n- quali conseguenze non sono ancora state verificate.",
+      "new": "Dobbiamo ricordare che cosa avevamo chiesto e quali vincoli erano già stati chiariti, quale parte dell'output precedente fosse corretta e quale nuova assunzione sia stata introdotta. Dobbiamo inoltre sapere quali file sono cambiati e quali conseguenze non sono ancora state verificate."
+    },
+    {
+      "old": "Per questo servono strategie come:\n\n- task verticali ma contenuti;\n- commit con intento chiaro;\n- diff separati per cambiamenti meccanici e semantici;\n- summary delle decisioni;\n- indicazione esplicita dei file ad alto rischio;\n- test evidence;\n- reviewer indipendente prima della review umana;\n- limite al numero di cambiamenti paralleli che richiedono attenzione.",
+      "new": "Per questo servono task verticali ma contenuti e commit con un intento leggibile. Separare i diff meccanici da quelli semantici, riassumere le decisioni e indicare i file ad alto rischio rende la review meno costosa; test evidence e reviewer indipendenti possono preparare il lavoro prima dell'intervento umano. Infine serve un limite al numero di cambiamenti paralleli che competono contemporaneamente per la stessa attenzione."
+    },
+    {
+      "old": "Quando riceviamo troppo output, possiamo iniziare a leggere soltanto:\n\n- il summary;\n- il numero di test verdi;\n- il titolo della PR;\n- qualche file principale.\n\nPoi premiamo merge.",
+      "new": "Quando riceviamo troppo output, possiamo iniziare a leggere soltanto il summary, il numero di test verdi, il titolo della pull request e qualche file principale. Poi premiamo merge, non perché abbiamo costruito confidence, ma perché abbiamo esaurito l'attenzione."
+    },
+    {
+      "old": "Serve che la persona abbia:\n\n- tempo sufficiente;\n- evidenza leggibile;\n- punti di attenzione identificati;\n- possibilità concreta di fermare il cambiamento.",
+      "new": "Serve invece che la persona abbia tempo sufficiente, evidence leggibile e punti di attenzione già identificati, oltre alla possibilità concreta di fermare il cambiamento quando ciò che vede non giustifica il passo successivo."
+    }
+  ]
+}
