@@ -1,38 +1,10 @@
 ## Fit before fashion
 
-Una tecnologia non è una medaglia.
+Una tecnologia non è una medaglia. Non dimostra che il team sia moderno e non rende automaticamente il sistema migliore. È uno strumento, e la sua qualità dipende dal problema che deve risolvere.
 
-Non dimostra che il team è moderno.
+Questa sembra un'ovvietà. Nella pratica, molte conversazioni architetturali iniziano proprio dalla tecnologia: “perché non usiamo Kubernetes?”, “perché non facciamo event-driven?”, “perché non introduciamo serverless?”, “perché non usiamo un database vettoriale?”.
 
-Non rende automaticamente il sistema migliore.
-
-Non sostituisce un requisito.
-
-E soprattutto non diventa giusta soltanto perché è nuova, sofisticata o molto utilizzata.
-
-Questa sembra un'ovvietà.
-
-Nella pratica non lo è affatto.
-
-### Il fascino della tecnologia come punto di partenza
-
-Molte conversazioni architetturali iniziano in modo apparentemente innocuo:
-
-> “Perché non usiamo Kubernetes?”
-
-> “Perché non facciamo event-driven?”
-
-> “Perché non mettiamo tutto su serverless?”
-
-> “Perché non usiamo un database vettoriale?”
-
-> “Perché non dividiamo il sistema in microservizi?”
-
-Sono domande legittime.
-
-Diventano pericolose quando la tecnologia smette di essere un'alternativa e diventa l'obiettivo.
-
-A quel punto il ragionamento si inverte:
+Sono domande legittime quando la tecnologia è un'alternativa. Diventano pericolose quando diventa l'obiettivo e il ragionamento viene invertito:
 
 ```text
 tecnologia desiderata
@@ -40,9 +12,7 @@ tecnologia desiderata
 → requisito che la giustifica
 ```
 
-Questo è il contrario del metodo che stiamo costruendo.
-
-Il percorso sano è:
+Il percorso che ci interessa è l'opposto:
 
 ```text
 problema
@@ -53,99 +23,37 @@ problema
 → fit
 ```
 
-### “Lo usano tutti” non è un requisito
+## Popolarità e prestigio sono contesto, non prova
 
-La popolarità ha valore.
+La popolarità di una tecnologia ha valore. Un ecosistema grande può significare più documentazione, librerie, persone con esperienza e minore rischio di abbandono. Ma questi vantaggi non dimostrano che lo strumento sia proporzionato al nostro workload.
 
-Una tecnologia diffusa può offrire una community ampia e un ecosistema maturo, più documentazione, librerie e competenze disponibili. Può beneficiare di maggiore esperienza operativa accumulata e di un minore rischio di abbandono. Sono fattori reali.
+Una piattaforma progettata per migliaia di engineer o milioni di richieste al secondo può essere una scelta eccellente nel proprio contesto e un costo inutile per un team piccolo con traffico prevedibile. Copiare la soluzione senza copiare il problema significa spesso copiare soltanto la complessità.
 
-Ma non sono una prova automatica di fit.
+Lo stesso vale per le architecture story delle grandi aziende. Sono fonti preziose perché ci mostrano failure reali, scale estreme e trade-off sperimentati. Per trasferire la soluzione dobbiamo però ricostruire ciò che la rese razionale: scala, organizzazione, sistema preesistente, failure precedenti, capacità operativa e momento storico.
 
-Un prodotto può essere eccellente per un'organizzazione con migliaia di engineer e pessimo per un team di quattro persone.
+Senza quel contesto facciamo **copy-paste architecture**.
 
-Un'architettura può essere giustificata da milioni di richieste al secondo e assurda per poche migliaia al giorno.
+## Anche la familiarità può diventare moda al contrario
 
-Una piattaforma può risolvere un problema di multi-tenancy globale che noi non abbiamo.
+La reazione opposta è trasformare ciò che conosciamo in dogma: “abbiamo sempre usato SQL Server”, “facciamo tutto in .NET”, “non introduciamo mai broker”, “Kubernetes è sempre inutile”.
 
-Copiare una scelta senza copiare il contesto significa copiare soltanto il costo.
+La familiarità è un vantaggio concreto. Riduce onboarding, rischio operativo e costo di delivery. Ma rimane una delle forze del contesto, non una legge.
 
-### “Lo usa una big tech” non è un ADR
+Se una tecnologia conosciuta non soddisfa un requisito significativo, il fit può richiedere apprendimento, un servizio gestito o competenze nuove. In altri casi, ciò che il team conosce è esattamente la scelta migliore perché nessuna quality attribute giustifica il costo della novità.
 
-Le grandi aziende sono ottime fonti di casi reali.
+Il criterio non è essere conservatori o innovatori. È valutare il costo totale rispetto al bisogno.
 
-Possono mostrarci problemi che non avevamo considerato, failure mode, pattern e strategie operative.
+## La tecnologia “noiosa” può essere la scelta più moderna
 
-Ma c'è una differenza enorme tra:
+Una tecnologia stabile e ben conosciuta può avere failure mode documentati, tooling maturo e un operating model semplice. Può ridurre componenti e cognitive load. Non c'è nulla di antiquato nel non introdurre complessità che il sistema non richiede.
 
-> “Questa organizzazione ha risolto il proprio problema in questo modo.”
+Allo stesso modo, una tecnologia nuova può essere la scelta corretta quando introduce una capability che cambia materialmente il design space. Il punto non è l'età dello strumento, ma il rapporto tra valore e costo.
 
-ed:
+> **Essere moderni significa prendere decisioni aggiornate sul contesto, non collezionare tecnologie recenti.**
 
-> “Quindi dobbiamo farlo anche noi.”
+## Confrontare il fit senza trasformarlo in un punteggio magico
 
-Quando leggiamo una storia tecnica dobbiamo ricostruire scala, team e organizzazione, il sistema preesistente, i constraint e gli obiettivi. Dobbiamo capire quanto costasse il problema precedente, quale capacità operativa avesse l'azienda e in quale momento storico fosse stata presa la decisione. Senza questi elementi stiamo facendo **copy-paste architecture**.
-
-### Anche “usiamo quello che conosciamo” può diventare dogma
-
-La reazione opposta alla fashion-driven architecture può essere altrettanto sbagliata.
-
-> “Abbiamo sempre usato SQL Server.”
-
-> “Noi facciamo tutto in.NET.”
-
-> “Non introduciamo mai broker.”
-
-> “Kubernetes è sempre inutile.”
-
-La familiarità è un vincolo e un vantaggio operativo reale.
-
-Ma non è una religione.
-
-Se una tecnologia conosciuta non soddisfa bene un requisito significativo, la competenza esistente non basta a renderla corretta.
-
-Il fit considera anche il team.
-
-Non è subordinato al team.
-
-A volte la scelta migliore è usare ciò che conosciamo.
-
-A volte è investire nell'apprendimento.
-
-A volte è comprare un servizio gestito.
-
-A volte è coinvolgere uno specialista.
-
-La decisione deve emergere dal costo totale, non dall'identità tecnica del gruppo.
-
-### Una tecnologia vecchia può essere la scelta più moderna
-
-“Moderno” dovrebbe descrivere il modo in cui prendiamo decisioni, non la data di nascita dello strumento.
-
-Una tecnologia stabile, conosciuta e noiosa può offrire un fit eccellente.
-
-Può avere failure mode conosciuti.
-
-Può essere facile da operare.
-
-Può avere un ecosistema enorme.
-
-Può ridurre il numero di componenti.
-
-Può rendere il sistema più comprensibile.
-
-Non c'è nulla di antiquato nel ridurre complessità inutile.
-
-Allo stesso modo, una tecnologia nuova può essere esattamente ciò che serve quando introduce una capability che cambia materialmente il problema.
-
-Il criterio non è l'età.
-
-È il rapporto tra valore e costo.
-
-### Technology fit matrix
-
-Quando una scelta è significativa, possiamo confrontare alternative rispetto alle proprietà che contano davvero.
-
-Per esempio:
+Quando la scelta è importante possiamo usare una Technology Fit Matrix:
 
 | Criterio | Soluzione A | Soluzione B | Soluzione C |
 | --- | --- | --- | --- |
@@ -158,65 +66,42 @@ Per esempio:
 | migration effort | basso | alto | medio |
 | reversibilità | alta | bassa | media |
 
-Questa tabella non deve produrre automaticamente un vincitore.
+La tabella non elegge automaticamente un vincitore. Alcuni criteri possono eliminare un'opzione indipendentemente dal resto: un requisito normativo, un budget o una proprietà di correctness possono valere più di molti vantaggi secondari.
 
-Non siamo a un concorso a punti.
+La matrice serve a rendere visibile **perché** una soluzione ha fit, non a nascondere il judgment dietro un totale numerico.
 
-Serve a rendere visibile il ragionamento.
+## La sofisticazione deve pagare l'affitto
 
-Alcuni criteri pesano molto più di altri.
+Broker, cluster, service mesh, datastore aggiuntivi, cache distribuite, orchestratori e workflow engine possono essere ottimi strumenti. Ognuno però aggiunge failure mode, upgrade, osservabilità, competenze, incident response e costi di recovery.
 
-Un requisito di compliance può eliminare un'alternativa anche se è migliore in otto categorie su dieci.
+La domanda è:
 
-Un vincolo di budget può fare lo stesso.
+> **Quale problema significativo rende ragionevole possedere questa complessità?**
 
-### Il costo della sofisticazione
+Se non sappiamo rispondere, stiamo probabilmente anticipando la soluzione rispetto al bisogno.
 
-Ogni tecnologia sofisticata deve pagare l'affitto.
+Questo principio non richiede di dimostrare un ROI finanziario al centesimo per ogni componente. Richiede che la complessità abbia una ragione leggibile.
 
-Se introduciamo un broker o un cluster, una service mesh, un database aggiuntivo, un orchestratore, una cache distribuita o una piattaforma di workflow, la domanda è:
+## Il test del fit
 
-> **Quale problema significativo rende questo costo ragionevole?**
+Una proposta tecnologica diventa più solida quando sappiamo quale requisito soddisfa, quale alternativa più semplice abbiamo escluso e che cosa ci costerà operarla. Dobbiamo anche capire quali failure mode aggiunge, quali competenze richiede, quanto lock-in introduce e quanto sia reversibile.
 
-Se non sappiamo rispondere, probabilmente abbiamo aggiunto tecnologia prima di aver aggiunto valore.
+Una domanda merita attenzione particolare:
 
-Questo non significa che ogni componente debba avere un ROI finanziario calcolato al centesimo.
+> **Che cosa succede se la crescita prevista non arriva mai?**
 
-Significa che la complessità deve avere una ragione.
+Molti sistemi pagano ogni giorno la complessità di una scala futura che non si manifesta. Progettare margine è ragionevole; progettare un'azienda immaginaria non lo è.
 
-### Il test del fit
+## La stella polare
 
-Quando una tecnologia viene proposta, possiamo usare alcune domande:
+La stella polare non è la tecnologia. È il problema risolto bene, con le qualità necessarie e un costo che il sistema e l'organizzazione possono sostenere.
 
-1. quale requisito significativo soddisfa?
-2. quale alternativa più semplice abbiamo escluso e perché?
-3. quale costo operativo introduce?
-4. quale nuova failure mode introduce?
-5. il team sa operarla o il piano include come costruire quella competenza?
-6. quale lock-in crea?
-7. come cambia il costo di delivery?
-8. come cambia il costo di recovery?
-9. quanto è reversibile la scelta?
-10. che cosa succede se la crescita prevista non arriva mai?
+Microsoft Learn raccomanda di partire dai business requirement e di usare le quality attribute e i trade-off per restringere le technology choice; AWS Well-Architected raccomanda esplicitamente di valutare le alternative rispetto ai workload requirement, ai costi e all'impatto dei trade-off sul cliente. Sono formulazioni diverse dello stesso principio operativo.
 
-La decima domanda è importante.
+Fonti primarie:
 
-Molte architetture vengono progettate per un futuro che non si manifesta.
-
-Nel frattempo pagano ogni giorno il costo della complessità anticipata.
-
-### La stella polare
-
-La stella polare non è la tecnologia.
-
-È il problema risolto bene.
-
-Il mezzo può cambiare.
-
-Il contesto può cambiare.
-
-La scelta migliore oggi può smettere di esserlo domani.
-
-Per questo il fit è più utile dell'idea di “best technology”.
+- [Microsoft Learn — Azure Application Architecture Fundamentals](https://learn.microsoft.com/en-us/azure/architecture/guide/)
+- [Microsoft Learn — Design principles for Azure applications](https://learn.microsoft.com/en-us/azure/architecture/guide/design-principles/)
+- [AWS Well-Architected — Evaluate how trade-offs impact customers and architecture efficiency](https://docs.aws.amazon.com/wellarchitected/latest/performance-efficiency-pillar/perf_architecture_evaluate_trade_offs.html)
 
 > **Non scegliere la tecnologia che impressiona di più. Scegli quella che risolve meglio il problema che hai davvero.**
