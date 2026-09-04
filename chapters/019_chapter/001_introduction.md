@@ -1,46 +1,33 @@
 # Capitolo 19 — Architecture Evolution
 
-Un sistema software non conserva la propria architettura perché qualcuno ha approvato un diagramma.
+Un sistema non conserva la propria architettura perché un diagramma è stato approvato.
 
-La conserva soltanto se il modo in cui cambia continua a rispettare le proprietà che contano.
+La conserva soltanto se il modo in cui continua a cambiare non distrugge accidentalmente le proprietà che il team aveva deciso di proteggere.
 
-È una differenza sostanziale.
+Il drift raramente arriva come una grande scelta evidentemente sbagliata.
 
-Un'architettura può essere sensata il giorno in cui viene progettata e degradarsi lentamente senza che nessuno prenda mai una singola decisione catastrofica.
+Arriva una pull request alla volta.
 
-Succede una pull request alla volta.
+```text
+un import diretto "temporaneo"
+una tabella letta dal modulo sbagliato
+un retry senza budget
+un vendor SDK introdotto nel core
+una feature flag mai rimossa
+un'eccezione di layering che diventa precedente
+```
 
-Un import diretto "temporaneo".
+Ogni change può essere localmente ragionevole.
 
-Una tabella letta dal modulo sbagliato perché era più veloce.
+L'architettura reale è l'accumulo di quelle decisioni.
 
-Un retry aggiunto senza budget.
+> **L'architecture drift nasce spesso da una lunga serie di ottimizzazioni locali che nessun feedback loop collega più all'intento globale.**
 
-Una nuova dipendenza cloud introdotta per una singola feature.
+## Aggiungere il tempo all'architettura
 
-Un controllo di authorization duplicato in un punto diverso.
+Finora abbiamo costruito functional analysis, requirement, boundary, contract, ownership, security, reliability, observability e testing. Abbiamo poi studiato legacy e refactoring incrementale.
 
-Una queue che diventa una seconda source of truth.
-
-Un feature flag che nessuno rimuove.
-
-Un'eccezione alle regole di layering che diventa il precedente per la prossima eccezione.
-
-Nessuno di questi cambiamenti, isolatamente, sembra sempre abbastanza grave da convocare una architecture review.
-
-Ma l'architettura reale è l'accumulo di quelle decisioni.
-
-> **L'architecture drift raramente arriva con una grande decisione sbagliata. Più spesso arriva come una lunga serie di piccole decisioni ragionevoli prese senza una direzione comune.**
-
-## Architettura nel tempo
-
-Finora abbiamo parlato di architettura soprattutto come sistema di decisioni.
-
-Abbiamo definito requisiti, confini, contratti, ownership, reliability, security, observability e testing.
-
-Poi abbiamo introdotto un sistema legacy e una migration incrementale.
-
-Adesso dobbiamo aggiungere una dimensione che mancava esplicitamente:
+Ora aggiungiamo una dimensione esplicita:
 
 ```text
 architecture
@@ -48,53 +35,38 @@ architecture
 time
 ```
 
-Una decisione può essere corretta oggi e sbagliata tra due anni.
+Una decisione può avere fit oggi e perderlo quando cambiano volume, team, cost curve, requirement normativi, threat model, cloud capability, business model o lifetime attesa.
 
-Una tecnologia può avere fit oggi e perderlo quando cambiano:
+Questo non rende sbagliata la decisione originaria.
 
-- volume;
-- numero di team;
-- requirement normativi;
-- cost curve;
-- cloud capability;
-- business model;
-- threat model;
-- organizational ownership;
-- expected lifetime del prodotto.
+Rende necessario sapere **quale cambiamento di contesto deve riaprirla**.
 
-Questo non rende inutile la decisione iniziale.
+## Evolution non significa libertà di cambiare in qualunque direzione
 
-Rende necessario sapere **quando rimetterla in discussione**.
+Thoughtworks descrive l'evolutionary architecture come capacità di supportare **guided, incremental change across multiple dimensions**.
 
-## Evolutionary Architecture
+La parola decisiva è `guided`.
 
-Thoughtworks definisce una evolutionary architecture come un'architettura che supporta **guided, incremental change across multiple dimensions**.
+Un sistema che assorbe qualsiasi cambiamento senza proteggere caratteristiche importanti non è evolutivo.
 
-Il termine importante non è soltanto `change`.
+È semplicemente privo di direzione.
 
-È `guided`.
+Le fitness function servono a trasformare alcune decisioni in feedback ripetibile.
 
-Un sistema che cambia continuamente senza meccanismi che proteggano le caratteristiche importanti non è evolutivo.
+Possono essere:
 
-È semplicemente instabile.
+```text
+architecture test
+CI policy
+runtime SLI/SLO
+security verification
+cost measure
+ownership check
+recovery drill
+periodic review
+```
 
-Le fitness function nascono per questo: trasformare alcune intenzioni architetturali in feedback ripetibili.
-
-Non necessariamente tutti automatici.
-
-Una fitness function può essere:
-
-- un architecture test;
-- una policy CI;
-- una misura runtime;
-- un SLO;
-- una regola di dependency;
-- una verifica security;
-- un limite di costo;
-- una review periodica;
-- un recovery drill.
-
-Il punto è che la proprietà importante non resta soltanto nella memoria dell'architect.
+Il meccanismo dipende dalla proprietà.
 
 Riferimenti:
 
@@ -102,117 +74,132 @@ Riferimenti:
 - [Thoughtworks — Fitness function-driven development](https://www.thoughtworks.com/en-gb/insights/articles/fitness-function-driven-development)
 - [AWS Architecture Blog — Using Cloud Fitness Functions to Drive Evolutionary Architecture](https://aws.amazon.com/blogs/architecture/using-cloud-fitness-functions-to-drive-evolutionary-architecture/)
 
-## Non dobbiamo congelare l'architettura
+## Il feedback loop che ci interessa
 
-Una possibile reazione all'architecture drift è aumentare la governance manuale.
+Il capitolo seguirà questa sequenza:
 
-Più review.
+```text
+architectural intent
+→ measurable / reviewable property
+→ repeated evidence
+→ drift or changed context
+→ fix / exception / reopened decision
+```
 
-Più approvazioni.
+Questa distinzione è importante perché un gate rosso può significare due cose molto diverse.
 
-Più architecture board.
+### L'implementazione ha driftato
 
-Più template.
+La decisione continua ad avere senso, ma il codice o la configurazione non la rispettano più.
 
-Più firme.
+```text
+application imports infrastructure
+public ingress appears unexpectedly
+metric dimension becomes unbounded
+```
 
-Questo può ridurre alcune deviazioni.
+Qui normalmente correggiamo l'implementazione.
 
-Può anche trasformare l'architettura in una coda organizzativa.
+### Il contesto è cambiato
 
-Il nostro obiettivo non è impedire il cambiamento.
+L'implementazione continua a rispettare una decisione che non ha più fit.
 
-È rendere economico cambiare **senza perdere accidentalmente ciò che avevamo deciso di proteggere**.
+```text
+single-region is still implemented correctly
+but regional RTO changed from 8h to 15m
+```
 
-Microsoft Azure Well-Architected Framework tratta esplicitamente il workload come qualcosa che deve adattarsi quando cambia il proprio scopo e raccomanda un ciclo continuo di assessment e miglioramento, non una review una tantum.
+Qui non dobbiamo “aggiustare il test”.
+
+Dobbiamo riaprire la decisione.
+
+> **Una governance utile deve aiutarci a distinguere drift dell'implementazione da scadenza dell'intento.**
+
+## Non congelare l'architettura
+
+Una reazione naturale al drift è aggiungere architecture board, template, review e approval.
+
+Alcuni one-way door o vincoli regolamentati richiedono davvero review forti.
+
+Ma se ogni decisione paga lo stesso costo organizzativo, la governance diventa una coda e i team imparano a bypassarla.
+
+Microsoft Azure Well-Architected tratta il workload come qualcosa che cambia nel tempo e raccomanda assessment e miglioramento continui, non una certificazione architetturale una tantum.
 
 Riferimenti:
 
 - [Microsoft Learn — Azure Well-Architected Framework workloads](https://learn.microsoft.com/en-us/azure/well-architected/workloads)
 - [Microsoft Learn — Complete an Azure Well-Architected Review assessment](https://learn.microsoft.com/en-us/azure/well-architected/design-guides/implementing-recommendations)
 
-> **Governance utile non significa chiedere più permessi. Significa rendere più visibile quando stiamo uscendo dai limiti che abbiamo scelto.**
+Il nostro obiettivo sarà quindi:
+
+```text
+cheap automatic feedback for understood rules
++ explicit temporary exceptions
++ human judgment for semantic/context change
+```
+
+Non più permessi.
+
+Più intenzionalità.
+
+## L'AI rende il problema più urgente
+
+Un agente può modificare decine o centinaia di file più velocemente di quanto un reviewer possa leggere ogni riga.
+
+Se l'architettura vive soltanto nella memoria del team, l'agente vede soprattutto ciò che il repository gli mostra e ottimizza l'obiettivo locale ricevuto.
+
+Una feature può quindi essere funzionalmente corretta e architetturalmente regressiva.
+
+Questo porta a una tesi che useremo anche nei capitoli sugli agenti:
+
+> **quando la velocità di execution supera la velocità di review manuale, una parte dell'intento deve diventare context ed evidence eseguibile.**
+
+Non tutto può essere automatizzato.
+
+Ma ciò che abbiamo già deciso e sappiamo verificare non dovrebbe dipendere ogni volta dalla memoria di una singola persona.
 
 ## Il problema ESI
 
-Order Operations sta diventando un prodotto reale.
+Order Operations possiede ormai una quantità significativa di decisioni e artefatti.
 
-Ha ormai:
-
-- analisi funzionale;
-- requirement;
-- API ed event contract;
-- data ownership;
-- cloud topology;
-- threat model;
-- reliability contract;
-- observability contract;
-- testing strategy;
-- legacy understanding;
-- refactoring safety plan;
-- codice TypeScript;
-- migration SQL;
-- IaC;
-- test eseguibili.
-
-Questa ricchezza crea un nuovo rischio.
-
-Più proprietà vogliamo proteggere, più facile diventa affidarsi alla memoria e alla review umana.
-
-Platform Engineering chiede quindi a Commerce & Operations di adottare alcune regole verificabili:
+Platform Engineering vuole proteggere alcuni boundary con feedback automatico, per esempio:
 
 ```text
-no direct dependency on legacy implementation
-bounded module dependencies
-no vendor SDK in application/domain code
-no hidden cross-module data ownership
-mandatory owner/evidence for critical architecture exceptions
+no direct legacy implementation dependency
+application does not depend on integration
+contracts remain independent
+priority policy remains isolated
+no Azure SDK leakage into core semantics
 ```
 
-Il team prodotto è d'accordo sul principio.
+Commerce & Operations accetta il principio ma non vuole trasformare ogni PR in una architecture review.
 
-Ma pone un limite:
+Security vuole controlli ripetibili.
 
-> non vuole trasformare ogni PR in una sessione di architecture governance.
+Product vuole lead time basso.
 
-Security vuole controlli automatici.
+Finance non vuole un nuovo control plane costoso.
 
-Platform vuole standardizzazione.
+Gli architect non vogliono trasformare metriche e regole in dogmi eterni.
 
-Product vuole mantenere lead time basso.
+## Il compromesso ESI
 
-Finance non vuole un'altra piattaforma di governance costosa.
+**Esigenza:** permettere a Order Operations di evolvere senza perdere accidentalmente boundary e proprietà già deliberate.
 
-Gli architect vogliono evitare che una metrica diventi un KPI cieco.
+**Tensione:** architectural integrity contro autonomia, feedback speed e costo della governance.
 
-Questo sarà il compromesso del capitolo.
+**Decisione:** poche fitness function ad alto valore, vicine al change; review umana quando cambia il significato o il contesto; eccezioni visibili e temporanee.
 
-## Il compromesso del Capitolo 19
+**Costo accettato:** alcune modifiche verranno bloccate automaticamente e alcune eccezioni richiederanno una giustificazione esplicita.
 
-**Esigenza:** permettere a Order Operations di evolvere rapidamente senza perdere boundary, ownership, security, reliability e reversibilità già progettati.
-
-**Tensione:** architectural integrity vs autonomia del team vs feedback speed vs costo della governance.
-
-**Decisione:** poche fitness function ad alto valore, il più vicino possibile al cambiamento che possono validare; architecture review umana soltanto dove serve judgment.
-
-**Costo accettato:** alcune scelte verranno rifiutate automaticamente e alcune eccezioni richiederanno lavoro esplicito di giustificazione.
-
-**Quality floor:** nessuna regola automatica può sostituire functional analysis, threat modeling, trade-off reasoning o human accountability.
+**Quality floor:** nessuna fitness function sostituisce functional analysis, threat modeling, trade-off reasoning o accountability umana.
 
 **Guardrail:** Architecture Fitness Checklist, architecture tests, ADR review trigger, exception expiry, ownership e runtime evidence.
 
-## Dove vogliamo arrivare
+Alla fine del capitolo la domanda non sarà:
 
-Alla fine del capitolo Order Operations avrà:
+> L'architettura è conforme?
 
-```text
-Architecture Fitness Checklist
-+ executable architecture tests
-+ architecture exception policy
-+ ADR review triggers
-+ technical-debt risk framing
-```
+Sarà:
 
-E soprattutto avremo introdotto un principio che continuerà fino ai capitoli sugli agenti:
-
-> **L'AI può produrre cambiamenti più velocemente di quanto una persona possa ispezionare ogni dettaglio. Per questo l'intento architetturale deve diventare sempre più verificabile dal sistema di engineering, non soltanto ricordato dagli esseri umani.**
+> **Quale proprietà stiamo proteggendo, quale evidence ci dice che sta ancora reggendo e che cosa dobbiamo fare quando quella evidence cambia?**
