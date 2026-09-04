@@ -1,303 +1,223 @@
-# 24.6 — Eval, model drift e observability: testare un comportamento probabilistico
+# 24.6 — Evaluation, drift e observability: governare un comportamento che può cambiare
 
-Una feature AI runtime introduce un problema che i test tradizionali non risolvono da soli.
+Una feature AI runtime introduce una proprietà nuova rispetto a molta logica tradizionale: lo stesso input può produrre output differenti e una configuration che oggi sembra valida può cambiare comportamento senza che il nostro domain code venga modificato.
 
-La stessa input può produrre output differenti.
+Può cambiare il modello. Può cambiare il system instruction. Può cambiare il context builder, il retrieval, il safety layer o la distribuzione delle domande degli utenti. Persino un provider upgrade apparentemente trasparente può modificare refusal, style, latency o capacità di seguire le source.
 
-E una configurazione che oggi passa può cambiare comportamento quando cambiano:
+Per questo una suite di test classica è necessaria ma non sufficiente.
 
-- modello;
-- system prompt;
-- context builder;
-- retrieval;
-- tool set;
-- safety layer;
-- provider;
-- dati reali;
-- distribuzione delle richieste utenti.
+La domanda diventa:
 
-Quindi abbiamo bisogno di **evaluation**, non soltanto di test di integrazione.
+> **quale evidence ci permette di affermare che l'intero sistema AI continua a comportarsi abbastanza bene sul workload reale?**
 
-## Test deterministici ed eval rispondono a domande diverse
+## Test deterministici ed eval proteggono boundary diversi
 
-Un test classico può verificare:
+Alcune proprietà restano perfettamente deterministiche.
 
-```text
-schema parser rejects invalid enum
-una source reference inesistente viene rifiutata
-un tenant non autorizzato non entra nel context builder
-provider timeout attiva fallback
-```
+Possiamo verificare che un tenant non autorizzato non entri nel context builder, che una source reference sconosciuta venga rifiutata, che un enum invalido non superi il parser e che il fallback scatti su provider timeout.
 
-Una eval può invece verificare:
+Altre proprietà riguardano il comportamento probabilistico: la explanation è supportata dalle source? Separa davvero fact e hypothesis? Ammette missing evidence? Evita di prendere authority su refund o Priority? È utile senza diventare eccessivamente assertiva?
 
-```text
-la spiegazione è grounded?
-usa evidence sufficiente?
-separa fact da hypothesis?
-rileva missing evidence?
-evita claim economici non autorizzati?
-resta utile per l'operatore?
-```
-
-Non sono sostituti.
+Questi due layer non si sostituiscono:
 
 ```text
 deterministic test
-+
+→ invariant che il codice può decidere
+
 behavioral eval
-+
+→ qualità / rischio del comportamento generato
+
 runtime monitoring
+→ come quel comportamento vive nel traffico reale
 ```
 
-sono layer complementari.
+La confidence cresce quando i tre raccontano una storia coerente.
 
-## Un eval set nasce dal rischio
+> **Non usare un eval per ciò che puoi provare deterministicamente. Non usare un unit test per fingere di aver misurato una proprietà comportamentale.**
 
-Come nel Capitolo 16, non vogliamo una collezione casuale di prompt.
+## L'eval set deve nascere dai failure mode
 
-Per Case Explanation Assistant costruiamo categorie:
+Un dataset utile non è una collezione di prompt “interessanti”.
 
-### Nominal
+È una rappresentazione versionata dei rischi che vogliamo saper rilevare.
+
+Per Case Explanation Assistant ESI parte da sette famiglie: nominal case, missing evidence, conflicting evidence, prompt injection, cross-tenant request, authority-boundary violation e ambiguity.
+
+Il seed concreto contiene `EVAL-001…EVAL-008` e ogni caso dichiara ciò che il sistema deve fare, ciò che non deve fare e la severità se sbaglia.
+
+Questa struttura è importante perché un output generativo può essere accettabile in molti modi differenti. Non vogliamo confrontarlo necessariamente con una frase golden parola per parola. Per molte eval è più utile dichiarare:
 
 ```text
-all expected sources present
-clear timeline
-no conflict
+required facts
+required uncertainty behavior
+required source usage
+forbidden claims
+severity if violated
 ```
 
-### Missing evidence
+In questo modo misuriamo la semantica che ci interessa, non lo stile preferito da chi ha scritto il dataset.
 
-```text
-Payments unavailable
-Shipping absent
-partial source
-```
+## Severity viene prima della media
 
-### Conflicting evidence
+Immaginiamo cento eval case. Novantanove sono eccellenti e uno rivela dati cross-tenant.
 
-```text
-two sources disagree
-stale snapshot vs newer event
-```
+Un aggregate score del 99% non rende il sistema accettabile.
 
-### Security/adversarial
+Come nel Capitolo 23, i finding non hanno lo stesso peso. Una critical failure su tenant isolation o unauthorized economic authority può bloccare la release anche se il resto del dataset migliora.
 
-```text
-prompt injection inside customer-controlled note
-request for another tenant
-request to reveal system instruction
-attempt to induce forbidden action
-```
-
-### Authority boundary
-
-```text
-ask model to declare PaymentStatus
-ask model to approve refund
-ask model to override Priority
-```
-
-### Ambiguity
-
-```text
-facts support more than one plausible explanation
-```
-
-## Metriche: non una sola accuracy
-
-Microsoft Foundry documenta evaluator distinti per retrieval e per response quality, inclusi groundedness, relevance e response completeness; Azure Architecture Center sottolinea che la scelta delle metriche dipende dal workload e che le risposte sono non deterministiche.  
-Fonte: [Microsoft Learn — Built-in evaluators](https://learn.microsoft.com/en-us/azure/foundry/concepts/built-in-evaluators), [Microsoft Learn — RAG LLM evaluation phase](https://learn.microsoft.com/en-us/azure/architecture/ai-ml/guide/rag/rag-llm-evaluation-phase).
-
-Per ESI possiamo definire un evaluation profile iniziale:
-
-```text
-Groundedness
-Critical claim support
-Fact / hypothesis separation
-Missing-evidence honesty
-Source-reference validity
-Forbidden-authority violation
-Prompt-injection resistance
-Usefulness
-Latency
-Cost
-```
-
-Non tutte le metriche hanno lo stesso peso.
-
-Un summary molto utile ma con una falsa conclusione economica è un failure critico.
-
-## Severity before average
-
-Supponiamo:
-
-```text
-99 casi perfetti
-1 caso cross-tenant
-```
-
-Una media del 99% non rende il sistema accettabile.
-
-Come nel Capitolo 23, il gate deve essere risk-weighted.
-
-Possiamo classificare:
+La baseline ESI distingue quindi almeno:
 
 ```text
 Critical
 → cross-tenant disclosure
-→ unauthorized economic claim/action
-→ prompt injection reaches dangerous sink
+→ unauthorized economic/business action
+→ prompt injection reaching a dangerous sink
+→ generated authoritative business truth outside ownership
 
 Major
 → unsupported critical fact
-→ missing evidence hidden
-
-Minor
-→ stylistic incompleteness
-→ suboptimal wording
+→ hidden missing evidence
+→ invalid source attribution
 ```
 
-Una critical failure può bloccare la release anche se lo score aggregato è alto.
+Stile, completezza non critica e preferenze linguistiche possono essere misurate senza pesare come un boundary security.
 
-## LLM-as-a-judge: utile, non magico
+> **Una media riassume il dataset. Non sostituisce la severità del failure più importante.**
 
-Un modello può essere usato come evaluator.
+## LLM-as-a-judge accelera la misura, ma diventa parte del sistema di misura
 
-È utile per proprietà difficili da esprimere con exact match.
+Alcune proprietà non si prestano a exact match. Un modello evaluator può applicare rubriche, confrontare claim e source, classificare useful/unsupported behavior e accelerare esperimenti.
 
-Ma introduce un altro sistema probabilistico.
+Ma introduce un secondo componente probabilistico.
 
-Dobbiamo quindi chiedere:
+Dobbiamo quindi sapere su quali human label è calibrato, quali shortcut può sfruttare, quanto è sensibile al formato e quale campione viene ancora controllato da persone.
 
-- il grader è calibrato su human labels?
-- conosce il ground truth necessario?
-- è sensibile al formato?
-- può essere ingannato dall'output che valuta?
-- quale percentuale viene controllata da persone?
+OpenAI ha evidenziato come harness, scorer, contamination e shortcut possano distorcere evaluation e raccomanda di rendere visibili questi hazard e ispezionare campioni.
 
-OpenAI ha evidenziato che score di evaluation possono essere distorti da shortcut, contaminazione, harness e scorer, raccomandando di rendere visibili questi hazard e di ispezionare campioni.  
-Fonte: [OpenAI — A shared playbook for trustworthy third party evaluations](https://openai.com/index/trustworthy-third-party-evaluations-foundations/).
+Fonte:
 
-Quindi:
+- [OpenAI — A shared playbook for trustworthy third party evaluations](https://openai.com/index/trustworthy-third-party-evaluations-foundations/)
 
-> **Un grader è uno strumento di misura. Anche lo strumento di misura deve essere validato.**
+Il principio è:
 
-## Golden answers vs property-based eval
+> **un grader è uno strumento di misura. Anche lo strumento di misura deve essere validato.**
 
-Non sempre vogliamo una sola risposta esatta.
+Un AI judge può essere un ottimo accelerator della review. Non deve diventare un “PASS” autorevole soltanto perché produce un numero.
 
-Per alcune domande possiamo avere:
+## La configuration, non il model name, è l'oggetto dell'evaluation
+
+Quando diciamo “abbiamo valutato il modello”, spesso stiamo semplificando troppo.
+
+Il comportamento osservato dipende da:
 
 ```text
-required facts
-forbidden claims
-required source refs
-allowed hypotheses
+model/provider route
+system instruction
+context builder
+retrieval / source selection
+output schema
+tool set
+safety configuration
+sampling / reasoning settings
+evaluator / rubric
 ```
 
-invece di una golden sentence completa.
+Per questo ogni eval result deve avere configuration identity sufficiente a essere confrontato nel tempo.
 
-Questo riduce il rischio di valutare lo stile invece della sostanza.
+Se cambia il context builder, è cambiata la feature. Se cambiano source e freshness policy, è cambiata la feature. Se aggiungiamo un tool, non abbiamo semplicemente “migliorato l'assistant”: abbiamo aumentato authority surface e devono cambiare threat/eval case.
 
-## Offline eval e online evidence
+> **Testiamo il comportamento prodotto dalla configuration completa, non il modello in isolamento.**
 
-Prima della release:
+## Drift è il modo in cui il contratto perde fit nel tempo
+
+Possiamo distinguere più forme di drift, ma hanno tutte la stessa conseguenza: la baseline che sosteneva una decisione non rappresenta più bene il sistema corrente.
+
+Un **model drift/upgrade** cambia la generazione. Un **prompt drift** modifica instruction e priorità. Un **context drift** aggiunge source, campi o retrieval. Un **product drift** cambia le business rule mentre il dataset conserva aspettative vecchie. Un **user drift** porta gli operatori a usare la feature per domande che il contract non aveva previsto.
+
+Queste forme non richiedono la stessa mitigazione, ma devono produrre review trigger differenti.
+
+La domanda operativa è:
+
+> **quale cambiamento rende il nostro eval set meno rappresentativo del rischio che stiamo accettando?**
+
+## Evaluation debt: quando la behavior surface cresce più dell'evidence surface
+
+Una feature può crescere senza che il dataset cresca con lei.
+
+Nuove source entrano nel context senza injection case. Un nuovo tool viene aggiunto senza authority eval. Un incident non diventa regression case. Un model upgrade avviene senza workload baseline. In quel momento la behavior surface è più grande della evidence surface.
+
+Questa è **evaluation debt**.
+
+Non significa che dobbiamo trasformare ogni production example in un test. Significa che ogni failure importante compreso dovrebbe aumentare la probabilità di intercettare il prossimo failure simile prima del rollout.
 
 ```text
-curated eval set
-regression eval
-security/adversarial eval
-cost/latency benchmark
-human review sample
+new failure understood
+→ new/updated risk model
+→ eval or deterministic gate
+→ future detection cheaper
 ```
 
-Dopo la release:
+È lo stesso principio con cui un incidente maturo migliora runbook e observability.
+
+## Offline eval e runtime evidence si completano
+
+Prima di un rollout vogliamo dataset versionato, regression evaluation, security/adversarial case, latency/cost baseline e una quota di human review sufficiente a calibrare la quality rubric.
+
+Dopo il rollout il sistema deve produrre signal sul comportamento reale: fallback rate, `InsufficientEvidence`, invalid output, latency, cost, source coverage, correction/dismiss signal, security rejection e sampled quality review.
+
+Microsoft Foundry documenta evaluator separati per retrieval e response quality, inclusi groundedness e response completeness; Azure Architecture Center collega la scelta delle metriche al workload e alla natura non deterministica delle risposte.
+
+Fonti:
+
+- [Microsoft Learn — Built-in evaluators](https://learn.microsoft.com/en-us/azure/foundry/concepts/built-in-evaluators)
+- [Microsoft Learn — RAG LLM evaluation phase](https://learn.microsoft.com/en-us/azure/architecture/ai-ml/guide/rag/rag-llm-evaluation-phase)
+
+La telemetria, però, non deve violare la privacy per misurare la qualità. Raw prompt, source text, case ID e operator ID non diventano automaticamente metric dimension. Il Capitolo 15 continua a governare minimization, retention, cardinality e investigation access.
+
+## Non inventare una release threshold prima della baseline
+
+Il dataset ESI esiste già come seed. Non esiste ancora un provider adapter eseguito contro quel dataset.
+
+Quindi sarebbe falsa precisione scrivere:
 
 ```text
-fallback rate
-InsufficientEvidence rate
-invalid-output rate
-latency
-cost
-source coverage
-user correction / dismiss rate
-security signal
-sampled human quality review
+Groundedness >= 95%
 ```
 
-Non vogliamo però loggare indiscriminatamente prompt e context contenenti dati sensibili.
+senza sapere come la stiamo misurando, quale distribuzione otteniamo e quali trade-off emergono.
 
-Il Capitolo 15 resta valido: telemetry deve avere privacy, retention e cardinality budget.
+Prima serve una baseline reale su candidate configuration. Poi possiamo decidere threshold che separino acceptable, major e critical behavior.
 
-## Drift
-
-### Model drift
-
-Il provider cambia il comportamento del modello o noi adottiamo una nuova versione.
-
-### Prompt drift
-
-Le istruzioni cambiano e una modifica apparentemente piccola altera un comportamento critico.
-
-### Context drift
-
-Nuove source o nuovi campi entrano nella context pipeline.
-
-### Product drift
-
-Cambiano le business rule ma l'assistant continua a essere valutato con vecchie aspettative.
-
-### User drift
-
-Gli operatori iniziano a usare la feature per domande non previste.
-
-Queste forme di drift richiedono trigger diversi.
-
-## Evaluation debt
-
-Un sistema può accumulare una nuova forma di debito:
+La release policy può essere già chiara senza inventare numeri:
 
 ```text
-feature grows
-→ eval set stays small
-→ behavior surface exceeds evidence surface
+critical boundary violation
+→ block
+
+major unsupported behavior
+→ resolve or explicitly govern
+
+aggregate quality
+→ threshold after baseline
 ```
 
-Possiamo chiamarla **evaluation debt**.
+Questo mantiene l'evidence vocabulary del libro.
 
-Segnali:
+## Lo stato ESI
 
-- nuovi use case senza nuovi eval case;
-- nuove source senza injection test;
-- tool nuovi senza permission eval;
-- model upgrade senza regression baseline;
-- prompt change senza comparison;
-- incidenti che non diventano eval case.
+A fine Capitolo 24 possiamo affermare che il risk-driven eval dataset è **Codified** e che le classi di rischio principali sono rappresentate.
 
-> **Ogni failure importante che comprendiamo dovrebbe rendere il prossimo failure simile più facile da rilevare.**
-
-## ESI evaluation gate
-
-Il primo Case Explanation Assistant non va in produzione finché non abbiamo almeno:
+Non possiamo ancora affermare:
 
 ```text
-versioned eval set
-critical boundary cases
-prompt-injection cases
-missing/conflicting evidence cases
-structured-output checks
-human review rubric
-latency/cost baseline
-explicit release threshold
+model quality Verified
+prompt-injection resistance Verified
+latency baseline Verified
+cost baseline Verified
 ```
 
-Non definiamo ancora numeri fittizi di pass-rate.
+perché nessun model/provider route è stato eseguito contro il dataset.
 
-Li stabiliremo quando costruiremo il dataset e avremo una prima baseline reale.
+Il prossimo passo, quando verrà aperto come work item, sarà confrontare configuration reali sullo stesso oracle senza cambiare il dataset per far vincere il candidato preferito.
 
-Questo mantiene l'evidence onesta.
-
-## La regola
-
-> **Non testare soltanto il modello. Testa la configurazione completa che produce il comportamento: context, prompt, model, tool, guardrail, scorer e fallback.**
+> **Evaluation non serve a dimostrare che il modello è bravo. Serve a rendere esplicito quale comportamento il prodotto considera abbastanza buono, quale failure considera inaccettabile e quando quella decisione deve essere riesaminata.**
