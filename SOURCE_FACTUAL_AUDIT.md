@@ -3,7 +3,7 @@
 Questo file traccia due revisioni distinte:
 
 1. **Evidence pass** — claim fattuali, proprietà tecnologiche, standard, casi reali e raccomandazioni vengono confrontati con fonti appropriate.
-2. **ESI compromise pass** — il capitolo rende leggibile almeno un compromesso con esigenza, tensione, decisione, costo, quality floor, guardrail ed eventuali trigger.
+2. **ESI compromise pass** — il capitolo rende leggibile almeno un compromesso con esigenza, tensione, decisione, costo, quality floor, guardrail/evidence e trigger.
 
 Scenario fittizio ufficiale:
 
@@ -13,41 +13,42 @@ Capstone principale:
 
 > **Order Operations** — Commerce & Operations.
 
-Brownfield simulato introdotto dal Capitolo 17:
+Brownfield simulato:
 
 > **Operations Desk Classic**.
 
-I casi reali rimangono separati da ESI.
+I casi reali rimangono sempre separati da ESI.
 
 ## Stato corrente
 
 | Capitolo | Draft | Evidence pass | ESI compromise pass | Nota |
 |---|---:|---:|---:|---|
-| 0 — Al timone | sì | da fare | sì — draft | agent autonomy vs accountability |
+| 0 — Al timone | sì | da fare | sì — draft | autonomy vs accountability |
 | 1 — Il software è cambiato | sì | da fare | sì — draft | velocity vs understanding |
-| 2 — Prima del codice | sì | parziale | sì — draft | functional analysis condivisa |
+| 2 — Prima del codice | sì | parziale | sì — draft | analisi funzionale condivisa |
 | 3 — Pensare per sistemi | sì | da fare | sì — draft | completezza/freshness vs simplicity |
 | 4 — Software Architecture | sì | da fare | sì — draft | live lookup vs async read model |
 | 5 — Dalle feature ai confini | sì | da fare | sì — draft | shared infra vs ownership |
 | 6 — Qualità prima della tecnologia | sì | parziale | sì — draft | fit before fashion |
 | 7 — Pattern senza religione | sì | da fare | sì — draft | robustness vs complexity debt |
 | 8 — Il monolite non è il nemico | sì | da fare | sì — draft | isolation vs distribution cost |
-| 9 — API e contratti | sì | sì — draft | sì — draft | source-first, compatibility/idempotency |
+| 9 — API e contratti | sì | sì — draft | sì — draft | compatibility/idempotency |
 | 10 — I dati sono architettura | sì | sì — draft | sì — draft | Microsoft/PostgreSQL/Redis/Stripe/GitHub |
-| 11 — Sistemi distribuiti | sì | sì — draft | sì — draft | Microsoft/AWS/Uber; outbox/idempotency/failure |
-| 12 — Cloud Architecture | sì | sì — draft | sì — draft | Microsoft/AWS/dacadoo; cloud-appropriate |
+| 11 — Sistemi distribuiti | sì | sì — draft | sì — draft | Microsoft/AWS/Uber |
+| 12 — Cloud Architecture | sì | sì — draft | sì — draft | Microsoft/AWS/dacadoo |
 | 13 — Security by Design | sì | sì — draft | sì — draft | Microsoft/NIST/OWASP/Cloudflare |
 | 14 — Reliability | sì | sì — draft | sì — draft | Google SRE/Microsoft/GitHub/Cloudflare |
-| 15 — Observability | sì | sì — draft | sì — draft | OpenTelemetry/Google SRE/Microsoft |
+| 15 — Observability | sì | sì — draft | sì — draft | OpenTelemetry/Google/Microsoft |
 | 16 — Testing Architecture | sì | sì — draft | sì — draft | Microsoft/Google/Meta/OWASP/Pact |
-| 17 — Legacy e comprensione | sì | sì — draft | sì — draft | Microsoft/AWS/GitHub; characterization/evidence provenance |
-| 18 — Refactoring nell'era dell'AI | sì | sì — draft | sì — draft | AWS/Microsoft/GitHub/OpenRewrite; safe migration and Refactoring Safety Plan |
-| 19 — Architecture Evolution | sì | sì — draft | sì — draft | Thoughtworks/AWS/Microsoft/GitHub; fitness functions, architecture drift, exceptions, Architecture Fitness Checklist |
-| 20 — Costi e decisioni | sì | sì — draft | sì — draft | Microsoft/FinOps Foundation/Uber; TCO, unit economics, quality premiums, allocation, Cost Model |
-| 21 — AI-ready repository | sì | sì — draft | sì — draft | GitHub/OpenAI; AGENTS.md, repository context, verification commands, context fitness |
-| 22 — Issue-driven development | sì | sì — draft | sì — draft | GitHub/OpenAI; well-scoped issues, acceptance/verification, Issue Forms, atomic tasks, work-item readiness |
-| 23 — Manager di agenti | sì | sì — draft | sì — draft | OpenAI/Microsoft/GitHub; orchestration, HITL, permissions, delegation, verification, autonomy |
-| 24+ | non ancora | source-first | required | research + ESI compromise + capstone update before closure |
+| 17 — Legacy e comprensione | sì | sì — draft | sì — draft | Microsoft/AWS/GitHub |
+| 18 — Refactoring nell'era dell'AI | sì | sì — draft | sì — draft | AWS/Microsoft/GitHub/OpenRewrite |
+| 19 — Architecture Evolution | sì | sì — draft | sì — draft | Thoughtworks/AWS/Microsoft/GitHub |
+| 20 — Costi e decisioni | sì | sì — draft | sì — draft | Microsoft/FinOps/Uber |
+| 21 — AI-ready repository | sì | sì — draft | sì — draft | GitHub/OpenAI |
+| 22 — Issue-driven development | sì | sì — draft | sì — draft | GitHub/OpenAI |
+| 23 — Manager di agenti | sì | sì — draft | sì — draft | OpenAI/Microsoft/GitHub |
+| 24 — AI dentro l'architettura | sì | sì — draft | sì — draft | Microsoft/NIST/OWASP/OpenAI/Uber; runtime AI boundary/eval |
+| 25+ | non ancora | source-first | required | research + ESI compromise + capstone update before closure |
 
 ## Evidence vocabulary
 
@@ -71,15 +72,21 @@ Found
 
 Le due scale sono indipendenti.
 
-Esempio:
+Una terza distinzione diventa importante per runtime AI:
 
 ```text
-characterization test = Codified + Verified
-legacy behavior = Observed
-business requirement = Confirmed only after explicit functional decision
+deterministic boundary Verified
+≠
+model behavior Verified
 ```
 
-## Verification status — infrastructure
+Un contract, validator o eval dataset può essere Codified/Verified meccanicamente senza aver ancora dimostrato groundedness o security di un modello reale.
+
+---
+
+# Evidence snapshot del capstone
+
+## Infrastructure
 
 `infra/main.bicep` è una baseline codificata.
 
@@ -97,439 +104,268 @@ PostgreSQL HA IaC completion
 PostgreSQL PITR drill
 ```
 
-Nessun capitolo descrive questi gate come già superati.
+Nessun capitolo descrive questi gate come superati.
 
-## Verification status — observability
+## Historical deterministic gates
 
-```text
-Observability Contract                       Designed
-bounded telemetry port/decorator             Codified + typechecked
-OpenTelemetry/Application Insights adapter   Pending
-SLI queries/alerts/dashboard                 Designed / Pending
-private synthetic journey                    Designed / Pending
-runtime telemetry evidence                   Not available
-```
-
-## Verification status — testing before refactoring
-
-Capitolo 16:
+### Capitolo 18
 
 ```text
 tsc -p tsconfig.json
 → PASS
 
-Order Operations node:test
-→ 11/11 PASS
-```
+Order Operations
+→ 19/19 PASS
 
-Capitolo 17:
-
-```text
 Operations Desk Classic characterization
 → 6/6 PASS
 ```
 
-Questi gate coprono soltanto il layer locale che attraversano.
+Evidence valida per il layer/revisione esercitata; non è una dichiarazione perpetua su ogni commit successivo.
 
-## Verification status — Capitolo 18
-
-Nuovi artefatti:
+### Capitolo 19
 
 ```text
-products/order-operations/docs/priority-functional-analysis.md
-products/order-operations/docs/refactoring-safety-plan.md
-products/order-operations/src/priority/priority-policy.ts
-products/order-operations/src/priority/confirmed-priority-policy.ts
-products/order-operations/src/priority/legacy-priority-adapter.ts
-products/order-operations/src/priority/branching-priority-policy.ts
-products/order-operations/tests/priority-policy.test.mjs
+AF-001…AF-005
+→ 5/5 PASS
 ```
 
-Functional decision simulata ESI:
+Verifica dependency/import structure soltanto.
+
+### Capitolo 20
 
 ```text
-Preserve:
-Closed → NotActionable
-manualHold → ManualReview
-Payment failedAttempts >= 3 → Urgent
-otherwise → Standard
-
-Intentional removal:
-legacy Enterprise + age >=30m → URGENT
-→ ED-001 ExpectedDifference
+CF-001…CF-002
+→ 2/2 PASS
 ```
 
-La decisione è stata inserita anche nel `functional-analysis.md` principale, quindi non resta una deduzione del codice.
+Verifica allocation metadata/no fabricated cost-center; non billing reale.
 
-### Local verification performed
+### Capitolo 21
 
 ```text
-tsc -p tsconfig.json
+CTX-001…CTX-004
+→ 4/4 PASS
+```
+
+Verifica proprietà meccaniche del context layer; non semantic correctness delle instruction.
+
+### Capitolo 22
+
+```text
+ISSUE-001…ISSUE-004
+→ 4/4 PASS
+```
+
+Verifica readiness mechanics del work item; `OO-001` non è ancora eseguita.
+
+### Capitolo 23
+
+```text
+AGOV-001…AGOV-005
+→ 5/5 locally exercised
+```
+
+Verifica proprietà meccaniche di Delegation Contract, Verification Bundle e Autonomy Matrix.
+
+Non dimostra:
+
+```text
+real agent execution reliability
+real permission enforcement
+PostgreSQL atomicity
+human review quality
+production autonomy
+```
+
+## Capitolo 24 — runtime AI
+
+Nuovi artifact:
+
+```text
+docs/ai-feature-contract.md
+src/ai/case-explanation.ts
+evals/case-explanation-v1.jsonl
+tests/ai-boundary-fitness.test.mjs
+```
+
+Nuovo use case simulato ESI:
+
+```text
+Case Explanation Assistant
+```
+
+Boundary corrente:
+
+```text
+read-only
+provider-neutral
+bounded deterministic context
+source-backed structured output
+no write tools
+no vector/RAG requirement in v1
+explicit fallback
+```
+
+Local verification realmente eseguita su una ricostruzione del nuovo slice:
+
+```text
+tsc
 → PASS
 
-Order Operations node:test suite
-→ 19 tests
-→ 19 pass
-→ 0 fail
-
-Operations Desk Classic characterization
-→ 6 tests
-→ 6 pass
-→ 0 fail
-```
-
-Questa evidence supporta PriorityPolicy seam, adapter, target policy e shadow classification soltanto al layer locale.
-
-Non supporta ancora production shadow telemetry, candidate production cutover, PostgreSQL integration, Azure identity/network, performance/capacity o recovery.
-
-## Verification status — Capitolo 19
-
-Nuovi artefatti:
-
-```text
-docs/architecture-fitness-checklist.md
-tests/architecture-fitness.test.mjs
-```
-
-Fitness rule iniziali:
-
-```text
-AF-001 legacy isolation
-AF-002 application dependency direction
-AF-003 contract independence
-AF-004 priority isolation
-AF-005 Azure SDK boundary in semantic core
-```
-
-Gate dedicato eseguito sul current import graph ricostruito dai source correnti:
-
-```text
-node --test tests/architecture-fitness.test.mjs
+node --test tests/ai-boundary-fitness.test.mjs
 → 5 tests
 → 5 pass
 → 0 fail
 ```
 
-Questa evidence verifica solo dependency/import structure.
-
-Non supporta runtime topology, Azure Policy, data ownership runtime, recovery o production observability.
-
-## Verification status — Capitolo 20
-
-Nuovi artefatti:
+La evidence supporta soltanto:
 
 ```text
-docs/cost-model.md
-tests/cost-fitness.test.mjs
+AI Feature Contract/model boundary/eval seed present
+provider-neutral semantic source
+read-only/no-RAG-v1 mechanical boundary
+known source-reference validation
+missing-evidence deterministic guard
+eval risk-class seed presence
 ```
-
-Il Cost Model contiene:
-
-```text
-cost surface
-architectural premiums
-cost drivers
-fixed / variable / step / transition cost
-unit metric definitions
-allocation direction
-optimization order
-review triggers
-```
-
-Non contiene prezzi Azure inventati.
-
-Unit metric candidate:
-
-```text
-UM-01 cost per OperationalCase handled
-UM-02 cost per Payment Escalation delivered
-UM-03 observability cost per 1,000 critical journeys
-```
-
-Stato corretto:
-
-```text
-Cost Model structure        Designed + documented
-production billing data     Pending
-unit metrics measured       Pending
-forecast                    Pending
-real cost allocation        Pending provider/billing evidence
-```
-
-Il Bicep corrente contiene già metadata:
-
-```text
-workload = order-operations
-owner = commerce-operations
-environment = environmentName
-```
-
-Un cost-fitness test è stato aggiunto per proteggerli e per impedire al libro di hardcodare un `cost-center` inventato.
-
-La logica del nuovo test è stata esercitata localmente sulla stanza di metadata corrente ricostruita da `infra/main.bicep`:
-
-```text
-CF-001 allocation metadata
-CF-002 no fabricated hard-coded cost-center
-→ 2 tests
-→ 2 pass
-→ 0 fail
-```
-
-Questa evidence **non** equivale a una nuova esecuzione end-to-end della suite, né verifica Cost Management/Azure billing.
-
-## Verification status — Capitolo 21
-
-Nuovi artefatti:
-
-```text
-products/order-operations/AGENTS.md
-products/order-operations/docs/repository-map.md
-products/order-operations/tests/agent-context-fitness.test.mjs
-```
-
-Il context layer è volutamente tool-neutral:
-
-```text
-AGENTS.md
-→ routing operativo
-
-Repository Map
-→ navigation context
-
-canonical docs
-→ decision/semantic context
-
-executable tests
-→ evidence
-```
-
-Gate meccanico esercitato localmente:
-
-```text
-CTX-001 agent entry point + Repository Map
-CTX-002 canonical document existence
-CTX-003 golden package scripts
-CTX-004 routing + evidence vocabulary
-→ 4 tests
-→ 4 pass
-→ 0 fail
-```
-
-Questa evidence **non** dimostra che una instruction sia semanticamente corretta, sufficiente per ogni task o immune da staleness.
-
-Stato corretto:
-
-```text
-AGENTS.md                    Codified
-Repository Map               Codified
-mechanical context fitness   Codified + locally exercised
-production agent permission  Pending
-agent autonomy model         introduced in Chapter 23, runtime enforcement incomplete
-```
-
-## Verification status — Capitolo 22
-
-Nuovi artefatti:
-
-```text
-products/order-operations/work-items/TEMPLATE.md
-products/order-operations/work-items/OO-001-postgresql-escalation-outbox-atomicity.md
-products/order-operations/tests/issue-readiness-fitness.test.mjs
-```
-
-Il primo work item deriva da un gap già presente nella Testing Strategy:
-
-```text
-TST-005
-PaymentEscalation + Outbox atomicity
-higher-fidelity PostgreSQL evidence = Pending
-```
-
-`OO-001` rende espliciti:
-
-```text
-Problem
-Outcome
-Current evidence
-Scope
-Out of scope
-Canonical context
-Acceptance criteria
-Verification
-Constraints
-Stop conditions
-Dependencies
-Closure evidence
-```
-
-Il task richiede un **real PostgreSQL engine**, ma non prescrive il particolare harness. Testcontainers, Docker Compose, devcontainer o altro restano implementation choice da giustificare rispetto a riproducibilità, CI fit e costo.
-
-Issue-readiness gate eseguito localmente sulla versione corrente dei work item:
-
-```text
-ISSUE-001 template + OO-001 exist
-ISSUE-002 minimum execution contract sections
-ISSUE-003 canonical context references
-ISSUE-004 verification-oracle/evidence boundary
-→ 4 tests
-→ 4 pass
-→ 0 fail
-```
-
-Questa evidence verifica soltanto proprietà **meccaniche** del work-item contract.
 
 Non supporta ancora:
 
 ```text
-PostgreSQL migration chain execution
-PaymentEscalation + Outbox real transaction atomicity
-rollback on second-write failure
-CI integration harness
-Azure Database for PostgreSQL behavior
+real model groundedness
+prompt-injection resistance of a real model
+provider privacy/security/network configuration
+operator usefulness
+latency
+cost
+production AI quality
+model drift behavior
 ```
 
-Quindi:
+Quindi lo stato corretto è:
 
 ```text
-OO-001 execution contract    Codified
-issue readiness mechanics    Codified + locally Verified
-OO-001 execution             Not started / Pending
-TST-005 PostgreSQL evidence  Pending
+AI Feature Contract                    Codified
+CaseExplanationPort                    Codified + locally compiled
+Deterministic output/source validator  Codified + locally exercised
+Eval seed                              Codified
+Provider/model adapter                 Pending
+Provider/model decision                Pending evaluation
+Real model eval                        Pending
+Runtime AI observability               Designed / Pending
+Production deployment                  Not started
+Write tools                            Not authorized
+RAG/vector retrieval                   Not selected / not required in v1
 ```
 
-## Verification status — Capitolo 23
+---
 
-Nuovi artefatti:
+# Source pass — Capitoli 21–24
 
-```text
-products/order-operations/docs/agent-delegation-contract.md
-products/order-operations/docs/agent-verification-bundle.md
-products/order-operations/docs/ai-autonomy-matrix.md
-products/order-operations/tests/agent-governance-fitness.test.mjs
-```
-
-Prima baseline ESI:
-
-```text
-Delegation ID              ADC-OO-001-v1
-Work item                  OO-001
-Implementer autonomy       A2 bounded execution
-Independent verification  required
-Merge                      human/repository gate
-Production permission      not granted
-A4 production capability   none
-```
-
-Verification Bundle predefinisce:
-
-```text
-C-01 migration chain
-C-02 successful atomic commit
-C-03 rollback on second-write failure
-C-04 fast-suite independence
-C-05 evidence boundary
-```
-
-La logica del nuovo governance fitness è stata esercitata localmente su una ricostruzione degli artifact correnti:
-
-```text
-AGOV-001 governance artifacts exist
-AGOV-002 delegation remains bounded to OO-001/A2
-AGOV-003 verification bundle preserves claims/evidence/limitations
-AGOV-004 high-impact actions remain behind human gates
-AGOV-005 OO-001 is not falsely described as executed
-→ 5 tests
-→ 5 pass
-→ 0 fail
-```
-
-Questa evidence verifica soltanto proprietà meccaniche del governance layer.
-
-Stato corretto:
-
-```text
-Agent Delegation Contract       Codified
-Agent Verification Bundle       Codified / primary evidence Pending
-AI Autonomy Matrix              Codified
-A2 runtime enforcement          Partially platform-dependent / Pending full enforcement
-OO-001 real agent execution     Not started / Pending
-OO-001 PostgreSQL evidence      Pending
-Independent verifier result     Pending
-Human acceptance                Pending
-Production autonomy             Not authorized
-```
-
-Non descriviamo quindi la presenza dei tre documenti come prova che ESI abbia già operato un agent workflow affidabile in produzione.
-
-## Source pass — Capitoli 19–23
-
-### Capitolo 19
-
-Principali fonti:
-
-- Thoughtworks — Building Evolutionary Architectures / fitness functions;
-- AWS Architecture Blog — cloud fitness functions;
-- Microsoft Azure Well-Architected — continuous workload review;
-- GitHub Engineering — SERVICEOWNERS.
-
-### Capitolo 20
-
-Principali fonti:
-
-- Microsoft Azure Well-Architected — Cost Optimization design principles, cost model e tradeoff;
-- Microsoft Cost Management — allocation;
-- FinOps Foundation — Framework, Unit Economics, Allocation, Architecting & Workload Placement;
-- Uber Engineering — vertical CPU scaling, Big Data supply/demand, partial replication, artifact storage modernization.
-
-### Capitolo 21
+## Capitolo 21
 
 Principali fonti:
 
 - GitHub Docs — repository/custom instructions, `AGENTS.md`, build/test/validation context;
-- GitHub Docs — support matrix for custom instructions;
-- OpenAI — *How OpenAI uses Codex*;
-- OpenAI — Codex / `AGENTS.md` operational behavior.
+- OpenAI — Codex/`AGENTS.md` e task context.
 
 Uso:
 
-- proprietà degli agent instruction mechanism → claim fattuali vicini alle fonti;
-- ESI `AGENTS.md`/Repository Map design → scenario simulato e decisione editoriale, non standard universale.
+- capability/meccanismi contemporanei → claim vicini alle fonti;
+- ESI Repository Map/AGENTS design → metodo del libro, non standard universale.
 
-### Capitolo 22
+## Capitolo 22
 
 Principali fonti:
 
-- GitHub Docs — best practice per coding-agent task: problem, acceptance criteria, file hints;
-- GitHub Docs — Issue Forms / structured required fields;
-- GitHub Docs/Blog — assigning issues to coding agents;
-- GitHub Blog — WRAP: effective issues, refined instructions, atomic tasks, pairing;
-- OpenAI — *How OpenAI uses Codex*: task ben circoscritti e prompt strutturati come GitHub Issue.
+- GitHub Docs/Blog — coding-agent task ben circoscritti, acceptance criteria, Issue Forms, atomic tasks/WRAP;
+- OpenAI — task ben circoscritti e prompt strutturati come issue.
 
 Uso:
 
-- GitHub/OpenAI → evidence che i coding-agent workflow contemporanei traggono beneficio da task strutturati e ben circoscritti;
-- ESI work-item schema → metodo del libro, non claim che esista un unico template corretto;
-- OO-001 → scenario simulato derivato da un rischio già documentato nel capstone.
+- evidenza sui workflow agentici contemporanei;
+- schema ESI Execution Work Item → metodo editoriale, non unico template corretto.
 
-### Capitolo 23
+## Capitolo 23
 
 Principali fonti:
 
-- OpenAI Agents SDK — agenti, manager/agents-as-tools, handoff, guardrail, human-in-the-loop e tracing;
-- OpenAI — *A practical guide to building agents* — human intervention per high-risk actions e failure threshold;
-- Microsoft Agent Framework — sequential, concurrent, handoff, group-chat e manager-driven orchestration; HITL/tool approval;
-- GitHub Docs — constrained permission/ephemeral environment per cloud coding agent, review dell'output e limiti/overreliance di AI code review.
+- OpenAI Agents SDK — handoff, guardrail, HITL, tracing;
+- Microsoft Agent Framework — sequential/concurrent/handoff/manager orchestration e approval;
+- GitHub Docs — constrained coding-agent permissions/review.
 
 Uso:
 
-- OpenAI/Microsoft/GitHub → capability e mitigazioni contemporanee realmente documentate;
-- ruoli ESI, livelli A0–A4, Delegation Contract/Verification Bundle/Autonomy Matrix → metodo del libro e scenario simulato, non standard universale;
-- AGOV gate → selected repository-mechanical evidence, non agent-runtime reliability.
+- primitive e capability reali → claim fattuali;
+- A0…A4 ESI → tassonomia simulata del libro, non standard industriale.
 
-## Important distinctions
+## Capitolo 24
 
-### Legacy / target
+Principali fonti:
+
+- Microsoft Azure Architecture Center / Foundry — AI architecture, RAG/context engineering, prompt/context design, evaluation;
+- NIST AI 600-1 — Generative AI Profile / lifecycle risk management;
+- OWASP — prompt injection guidance;
+- OpenAI — Structured Outputs, prompt-injection source/sink framing, evaluation methodology;
+- Uber Engineering — Genie, Enhanced Agentic-RAG, Michelangelo/Gen AI Gateway.
+
+Uso:
+
+### Microsoft
+
+Supporta:
+
+```text
+RAG/context engineering as architecture concerns
+retrieval/evaluation separation
+groundedness/relevance/completeness evaluation direction
+```
+
+Non viene usata per sostenere che ESI debba adottare uno specifico Azure AI product.
+
+### NIST / OWASP
+
+Supportano lifecycle risk/security framing e prompt-injection/least-privilege controls.
+
+### OpenAI
+
+Supporta structured-output capability, source/sink security framing e cautela sui measurement/evaluation harness.
+
+Non viene usata per sostenere che ESI debba scegliere un modello OpenAI.
+
+### Uber
+
+Casi reali documentati:
+
+```text
+Genie
+→ internal support copilot / RAG use case
+
+Enhanced Agentic-RAG
+→ SME golden set + evaluation + retrieval/agentic improvement
+
+Gen AI Gateway
+→ policy/audit/cost/platform capability at larger organizational scale
+```
+
+I numeri riportati nel manoscritto come risultati Uber sono attribuiti a Uber e non diventano benchmark ESI.
+
+---
+
+# Important distinctions
+
+## Fiction / evidence
+
+```text
+ESI decision
+≠
+real-world proof
+```
+
+ESI mostra come applichiamo una decisione; le fonti sostengono proprietà, pattern, incidenti o casi reali.
+
+## Legacy
 
 ```text
 Observed legacy behavior
@@ -537,10 +373,10 @@ Observed legacy behavior
 Confirmed target requirement
 ```
 
-### Cost
+## Cost
 
 ```text
-resource price
+resource/model price
 ≠
 Total Cost of Ownership
 ```
@@ -551,85 +387,81 @@ cost per token
 cost per useful outcome
 ```
 
-```text
-lower monthly spend
-≠
-better architecture
-```
-
-quando il taglio modifica una proprietà necessaria.
-
-### Repository context / task context
-
-```text
-repository canonical context
-≠
-current task specification
-```
+## Agentic engineering
 
 ```text
 instruction
 ≠
-permission boundary
-```
-
-### Issue readiness / execution evidence
-
-```text
-issue is well-structured
-≠
-issue outcome is already Verified
+permission
 ```
 
 ```text
-acceptance criterion
+issue ready
 ≠
-verification command
+issue outcome Verified
 ```
 
 ```text
-agent can perform a change
+agent can perform action
 ≠
-agent is authorized to make the decision behind the change
-```
-
-### Agent governance
-
-```text
-capability
-≠
-authorization
-≠
-autonomy
+agent is authorized to decide it
 ```
 
 ```text
-AI reviewer opinion
+reviewer consensus
 ≠
-deterministic execution evidence
+critical finding resolved
+```
+
+## Runtime AI
+
+```text
+model output
+≠
+authoritative business fact
 ```
 
 ```text
-second agent
+grounding
 ≠
-independent verifier by definition
+vector database
 ```
 
 ```text
-Delegation Contract Codified
+RAG
 ≠
-delegated execution Verified
+mandatory architecture for every AI feature
 ```
 
 ```text
-more agents
+valid structured output
 ≠
-more maturity
+semantic correctness
 ```
 
-## Numeri simulati ESI
+```text
+citation present
+≠
+claim supported
+```
 
-SLO/RTO/RPO del Capitolo 14 restano business requirement simulati:
+```text
+eval dataset exists
+≠
+model behavior Verified
+```
+
+```text
+model benchmark improved
+≠
+workload regression gate passed
+```
+
+---
+
+# Numeri simulati ESI
+
+SLO/RTO/RPO già presenti restano requirement simulati, non benchmark:
 
 ```text
 Core journey SLO: 99.9% / rolling 28 days
@@ -640,21 +472,33 @@ Region disaster RTO: <= 8 h
 Region disaster RPO: <= 1 h
 ```
 
-La soglia priority:
+Priority:
 
 ```text
 Payment failedAttempts >= 3 → Urgent
 ```
 
-è anch'essa una policy simulata ESI.
+anche questa è policy simulata ESI.
 
-Il Capitolo 20 **non aggiunge prezzi, percentuali di saving o benchmark ESI simulati presentati come reali**.
+Il Capitolo 24 **non inventa**:
 
-Il Capitolo 22 non presenta `OO-001` come una issue realmente eseguita su PostgreSQL: è un execution contract codificato, mentre l'evidence PostgreSQL resta Pending.
+```text
+model accuracy/groundedness score
+prompt-injection pass rate
+AI SLO
+provider latency
+provider cost
+monthly AI saving
+operator productivity percentage
+```
 
-I livelli agentici A0–A4 del Capitolo 23 sono una tassonomia ESI del libro, non uno standard industriale né una scala ufficiale OpenAI/Microsoft/GitHub.
+Questi valori restano Pending finché non esiste execution evidence.
 
-## Workflow editoriale corrente
+I risultati quantitativi citati nei casi reali restano attribuiti all'organizzazione e al contesto della fonte.
+
+---
+
+# Workflow editoriale corrente
 
 ```text
 outline
@@ -669,98 +513,68 @@ outline
 → final editorial pass
 ```
 
-Per brownfield/refactoring aggiungiamo:
+Per brownfield/refactoring:
 
 ```text
 claim provenance
 → behavior classification
 → safety plan
 → intentional difference registry
-→ stop condition / rollback review
+→ stop/rollback review
 ```
 
-Per cost model aggiungiamo:
+Per cost:
 
 ```text
 cost driver
 → property purchased
-→ unit metric
-→ quality metric
+→ unit metric + quality metric
 → owner
 → review trigger
 ```
 
-Per AI-ready repository / issue-driven execution aggiungiamo:
+Per agentic execution:
 
 ```text
 persistent context
-→ task-specific work item
-→ scope/out-of-scope
-→ acceptance property
-→ verification mechanism
-→ stop condition
-→ closure evidence
-```
-
-Per delegated agent execution aggiungiamo:
-
-```text
-work item
-→ delegation mandate
-→ permission/autonomy boundary
+→ task work item
+→ delegation/permission
 → execution
 → primary evidence
 → independent verification
-→ human/policy gate
-→ autonomy review
+→ human/policy gate where required
 ```
 
-## Evidence pass rules
+Per runtime AI:
 
-Richiedono particolare attenzione e fonte:
+```text
+AI Feature Contract
+→ authority boundary
+→ authorized context
+→ model/provider adapter
+→ deterministic validation
+→ offline eval
+→ security eval
+→ staging/runtime evidence
+→ monitored drift/cost/quality
+```
 
-- proprietà di tecnologie/protocolli;
-- best practice presentate come tali;
-- standard;
-- limiti di prodotti;
-- incidenti/casi aziendali;
-- benchmark/numeri reali;
-- pricing e caratteristiche commerciali variabili;
-- affermazioni storiche;
-- raccomandazioni che dipendono da evidence esterna;
-- capability e behavior specifici dei coding agent/tool contemporanei;
-- permission, approval, handoff, tracing e orchestration behavior specifici di framework agentici correnti.
+---
 
-Non ogni frase editoriale richiede citation, ma non usiamo un vendor workflow come prova universale.
-
-## ESI compromise pass
-
-Un capitolo supera il pass quando rende leggibili:
-
-1. esigenza;
-2. tensione;
-3. decisione;
-4. costo accettato;
-5. quality floor;
-6. guardrail;
-7. evidence;
-8. trigger di revisione.
-
-## Release-candidate gates futuri
+# Release-candidate gates futuri
 
 Prima di una release candidata del libro:
 
 - nessun capitolo deve restare `da fare` nell'evidence pass;
-- casi reali e ESI devono restare distinguibili;
+- ESI e casi reali devono restare distinguibili;
 - numeri ESI non devono essere presentati come benchmark;
-- pricing volatile va verificato vicino alla release se compare nel testo;
-- artefatti `Codified` non vanno descritti come `Verified` senza execution evidence;
+- pricing/capability volatile va riverificato vicino alla release;
+- artifact `Codified` non vanno descritti come `Verified` senza execution evidence;
 - `Monitored` richiede runtime signal reale;
 - temporary migration architecture deve avere cleanup condition;
-- legacy behavior `Observed` non deve trasformarsi silenziosamente in requirement `Confirmed`;
-- Cost Model e unit economics non devono essere descritti come misurati finché non esistono billing/usage data reali;
-- un work item strutturalmente ready non deve essere descritto come outcome Verified finché la verification del task non è realmente eseguita;
-- repository/agent instructions devono essere ricontrollate per staleness e non devono duplicare silenziosamente le source of truth canonical;
-- un Agent Delegation Contract codificato non deve essere descritto come prova che l'agente abbia eseguito o verificato il task;
-- un aumento di autonomia deve avere evidence e review trigger, non derivare soltanto da un nuovo model release;
-- reviewer AI non deve essere presentato come sostituto universale di human/deterministic evidence per i gate ad alto impatto.
+- legacy `Observed` non deve diventare silenziosamente `Confirmed`;
+- work item ready non deve essere descritto come outcome Verified;
+- agent governance documentata non deve essere descritta come autonomia production provata;
+- AI eval seed non deve essere descritto come model quality Verified;
+- ogni model/provider claim corrente va ricontrollato contro documentazione aggiornata;
+- i casi reali quantitativi devono restare attribuiti alla fonte e al proprio contesto.
