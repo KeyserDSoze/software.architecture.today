@@ -1,99 +1,120 @@
 # 22.9 — Esercizi, autovalutazione e sintesi
 
-## Idee chiave
+Il Capitolo 22 ha trasformato la issue da elemento di backlog a **boundary operativo fra decisione ed execution**.
 
-1. **La issue è un boundary fra decisione ed execution.**
-2. Una issue execution-ready descrive problema, outcome, scope, acceptance, verification e stop condition.
-3. **Acceptance criterion e verification non sono la stessa cosa.**
-4. Una issue può essere chiara ma troppo grande.
-5. Atomic task significa outcome coerente e verification relativamente autonoma, non necessariamente poche righe di codice.
-6. Discovery issue ed execution issue producono output diversi.
-7. **Out of scope è un controllo contro la task amplification.**
-8. Una stop condition permette all'executor di fermarsi correttamente quando incontra una nuova decisione.
-9. Un agente non dovrebbe poter soddisfare il task cambiando silenziosamente il proprio verification oracle.
-10. Closure significa delimitare l'evidence prodotta, non scrivere semplicemente `Done`.
+Il repository del Capitolo 21 contiene ciò che resta vero fra molti task. Il work item aggiunge ciò che deve cambiare ora: outcome, scope, canonical context, acceptance, verification e punti in cui l'executor deve fermarsi.
 
-## Esercizio 1 — Da ticket a execution contract
+La distinzione più importante non riguarda il formato del ticket. Riguarda il tipo di decisione che stiamo delegando.
 
-Prendi questa issue:
+Un task è execution-ready quando molte scelte locali possono essere lasciate all'executor senza costringerlo a inventare semantics, ownership o policy. Quando questo non è ancora possibile, il lavoro corretto può essere discovery.
+
+Possiamo riassumere il flusso così:
+
+```text
+intent
+→ current evidence
+→ bounded work item
+→ discovery or execution
+→ acceptance property
+→ verification evidence
+→ closure
+→ residual gaps / follow-up
+```
+
+La issue è buona quando rende questo percorso più chiaro, non quando contiene più campi.
+
+## Le distinzioni che devono restare
+
+**Problem e Outcome** non sono sinonimi: il primo spiega perché vale la pena cambiare qualcosa, il secondo descrive ciò che deve risultare vero.
+
+**Scope e file list** non sono la stessa cosa: lo scope protegge il boundary semantico, mentre i path sono soltanto una possibile superficie tecnica.
+
+**Acceptance e Verification** sono livelli diversi: la prima nomina la proprietà, la seconda il meccanismo che produce evidence.
+
+**Discovery ed Execution** hanno output diversi: la discovery riduce uncertainty; l'execution modifica il sistema sulla base di uncertainty già abbastanza ridotta.
+
+**Closure e project completion** non coincidono: un task può essere chiuso correttamente mentre restano gap espliciti fuori scope.
+
+Infine, **stop condition e fallimento** non sono sinonimi. Fermarsi perché il task ha attraversato una nuova decisione è un comportamento corretto del sistema di delegazione.
+
+> **Il work item non deve eliminare tutte le scelte. Deve eliminare soltanto quelle che l'executor non è autorizzato a inventare.**
+
+## Artefatti operativi
+
+Il capitolo introduce due artifact complementari nel capstone:
+
+```text
+work-items/TEMPLATE.md
+→ struttura riusabile per Discovery / Execution
+
+work-items/OO-001-postgresql-escalation-outbox-atomicity.md
+→ prima istanza concreta
+```
+
+Il repository aggiunge inoltre:
+
+```text
+tests/issue-readiness-fitness.test.mjs
+```
+
+che protegge meccanicamente l'esistenza del contratto minimo, il routing verso il contesto canonical e il boundary dell'evidence.
+
+Questa automation non dimostra che il task sia semanticamente perfetto. Dimostra soltanto ciò che può verificare senza fingere judgment.
+
+## Esercizio 1 — Da richiesta vaga a execution contract
+
+Parti da:
 
 ```text
 Migliorare performance ricerca ordini.
 ```
 
-Riscrivila con:
+Trasformala in un work item con `Problem`, `Outcome`, `Current evidence`, `Scope`, `Out of scope`, `Canonical context`, `Acceptance`, `Verification` e `Stop conditions`.
+
+Poi verifica se hai definito davvero il critical journey e la metrica. Se hai prescritto Redis, un indice o una cache prima di conoscere il driver, riscrivi il task partendo dalla property.
+
+## Esercizio 2 — Property o meccanismo?
+
+Classifica queste frasi come **acceptance property**, **verification mechanism** oppure **ambigua**:
 
 ```text
-Problem
-Outcome
-Current state
-Scope
-Out of scope
-Canonical context
-Acceptance criteria
-Verification
-Constraints
-Stop conditions
+p95 < 300 ms
+k6 test verde
+no duplicate economic effect after retry
+100% code coverage
+wrong tenant receives 403
+Playwright suite passata
 ```
 
-Poi chiediti:
-
-- hai definito performance con una metrica?
-- hai definito il journey?
-- hai separato latency da throughput?
-- hai già prescritto Redis senza dimostrarne il fit?
-
-## Esercizio 2 — Acceptance vs verification
-
-Per ciascuna frase stabilisci se è:
-
-```text
-property
-verification mechanism
-ambiguous
-```
-
-1. `p95 < 300 ms`.
-2. `k6 test verde`.
-3. `nessun duplicate economic effect dopo retry`.
-4. `100% code coverage`.
-5. `wrong tenant receives 403`.
-6. `Playwright suite passata`.
-
-Riscrivi le frasi che confondono property e mechanism.
+Per ogni frase ambigua scrivi prima la property e poi il meccanismo che potrebbe dimostrarla.
 
 ## Esercizio 3 — Discovery o execution?
 
-Classifica:
+Valuta questi lavori:
 
 1. trovare tutti i consumer di un export legacy;
 2. sostituire un consumer già confermato;
 3. capire perché un indice cresce;
-4. aggiungere l'indice già deciso da ADR;
+4. aggiungere un indice già giustificato da una decisione;
 5. definire la semantica di partial refund;
-6. implementare un endpoint di partial refund dopo la decisione funzionale.
+6. implementare il contract dopo la decisione funzionale.
 
-Per ogni discovery issue scrivi gli **exit criteria**.
+Per le discovery scrivi gli exit criteria: quale evidence renderebbe decidibile il task successivo?
 
-## Esercizio 4 — Spezzare una issue grande
+## Esercizio 4 — Decomporre per evidence
 
-Issue:
+Hai questo work item:
 
 ```text
-Migrare Order Operations a una nuova regione,
+Migrare Order Operations in una nuova region,
 aggiungere failover automatico,
-aggiornare DNS,
+aggiornare routing,
 creare runbook,
-aggiungere alert e fare il cutover.
+aggiungere alert,
+eseguire il cutover.
 ```
 
-Decomponila per evidence.
-
-Quale issue deve venire prima?
-
-Quali possono essere parallelizzate?
-
-Quale contiene una one-way door?
+Non dividerlo per team o directory. Dividilo per **evidence che abilita il passo seguente**. Identifica le one-way door e indica quali parti possono realmente procedere in parallelo.
 
 ## Esercizio 5 — Task amplification
 
@@ -103,59 +124,49 @@ Un agente riceve:
 Add an integration test for PostgreSQL atomicity.
 ```
 
-Durante il lavoro trova:
-
-- nome incoerente in un commento;
-- dipendenza npm outdated;
-- migration 002 semanticamente sospetta;
-- README con un typo;
-- possibile tenant isolation bug.
+Durante il lavoro scopre un typo, una dependency outdated, una migration semanticamente sospetta, una doc obsoleta e un possibile tenant-isolation bug.
 
 Classifica ogni scoperta come:
 
 ```text
-include
+required for acceptance
 follow-up
 stop + escalate
 ```
 
-Spiega il perché.
+La classificazione deve dipendere dal boundary del task, non dalla facilità con cui la modifica potrebbe essere aggiunta al diff.
 
-## Esercizio 6 — Green-by-editing-the-oracle
+## Esercizio 6 — Proteggere l'oracle
 
-Scrivi tre esempi in cui un agente può far diventare verde una suite senza risolvere il problema.
+Immagina tre modi in cui un executor potrebbe ottenere un build verde cambiando il criterio che lo giudica invece del comportamento richiesto.
 
-Per ciascuno definisci un boundary di issue che lo impedisca.
+Per ciascuno scrivi quale elemento dovrebbe essere protetto nel work item e quale decisione servirebbe per modificarlo legittimamente.
 
-## Esercizio 7 — Closure report
+## Esercizio 7 — Closure senza overclaim
 
-Per una modifica già fatta in un tuo progetto, prova a scrivere retroattivamente:
+Prendi una modifica già conclusa in un tuo progetto e scrivi retroattivamente:
 
 ```text
 Outcome achieved
-Files changed
-Verification executed
-Evidence result
+Evidence produced
 Known limitations
 Not verified
 Follow-up
 ```
 
-Quanto della tua confidence precedente era implicita?
+Poi confronta questo report con ciò che avevi dichiarato al momento del merge. Quanta confidence era evidence e quanta era inferenza?
 
-## Esercizio 8 — Issue Form
+## Esercizio 8 — Issue Form con budget di ceremony
 
-Disegna un Issue Form per **Execution Task** con massimo sette campi obbligatori.
+Disegna un form per `Execution Task` con un massimo di sette campi obbligatori.
 
-Ogni campo deve giustificare il proprio costo.
+Per ogni campo spiega quale ambiguità riduce. Se non sai collegarlo a una decisione migliore, rimuovilo.
 
-Se non sai spiegare che decisione migliora, rimuovilo.
+Ripeti l'esercizio per una `Discovery Issue`: dovresti ottenere domande differenti.
 
-## Esercizio 9 — ESI PostgreSQL atomicity
+## Esercizio 9 — Due environment per OO-001
 
-Prendi la issue di Order Operations del capitolo.
-
-Proponi due implementazioni del test environment:
+Confronta due modi di produrre PostgreSQL reale per l'integration test:
 
 ```text
 Option A
@@ -165,153 +176,69 @@ Option B
 shared integration environment
 ```
 
-Valuta:
+Valuta fidelity, reproducibility, feedback speed, credential surface, CI fit, cost, cleanup e contention.
 
-- fidelity;
-- reproducibility;
-- feedback speed;
-- credentials;
-- CI fit;
-- cost;
-- cleanup;
-- contention.
+Non scegliere la tecnologia più moderna. Scegli il meccanismo che compra l'evidence richiesta con il minor costo e blast radius compatibili con il task.
 
-Non scegliere quella più moderna.
+## Esercizio 10 — Red-team della issue con AI
 
-Scegli quella col fit migliore.
-
-## Esercizio 10 — Issue readiness review con AI
-
-Chiedi a un agente di fare **red-team della issue**, non di implementarla.
-
-Prompt concettuale:
+Prima di delegare un work item, chiedi a un agente di **non implementarlo** e di cercare:
 
 ```text
-Trova:
-- decisioni non autorizzate che l'executor dovrebbe inventare;
-- acceptance criteria non verificabili;
-- scope ambiguo;
-- missing context;
-- stop condition mancanti;
-- possibili modi di diventare green senza soddisfare l'outcome.
-
-Non implementare.
+decisioni che l'executor sarebbe costretto a inventare
+acceptance non verificabile
+scope ambiguo
+missing canonical context
+stop condition mancante
+modo di diventare green senza soddisfare l'outcome
 ```
 
-Confronta la review AI con una review umana.
+Confronta la review con quella di una persona che conosce il dominio. Le differenze sono esse stesse evidence sulla qualità del context layer.
 
 ## Autovalutazione
 
-Dovresti saper rispondere a queste domande:
+Dopo il capitolo dovresti saper prendere una richiesta vaga e decidere se richiede discovery o execution; formulare un outcome senza prescrivere inutilmente la soluzione; separare acceptance property e test command; riconoscere un task troppo grande attraverso la sua evidence surface; proteggere un oracle senza renderlo immutabile; descrivere una stop condition osservabile; e chiudere un work item senza promuovere a `Verified` ciò che la verification non ha attraversato.
 
-1. Perché una issue non è soltanto un ticket?
-2. Qual è la differenza fra problem e outcome?
-3. Perché `Out of scope` è particolarmente utile con gli agenti?
-4. Acceptance criterion e test command sono la stessa cosa?
-5. Quando una issue è troppo grande?
-6. Che cosa significa atomic task?
-7. Che differenza c'è fra discovery ed execution?
-8. Quali exit criteria dovrebbe avere una discovery?
-9. Che cosa deve succedere quando emerge una nuova decisione durante execution?
-10. Perché una stop condition aumenta e non diminuisce l'autonomia utile?
-11. Che cos'è task amplification?
-12. Che cos'è green-by-editing-the-oracle?
-13. Perché una issue non dovrebbe copiare tutta la documentazione del repository?
-14. Che cosa deve contenere un closure report?
-15. Come eviti di promuovere a `Verified` un boundary che la issue non ha realmente attraversato?
+Se per delegare un task devi ancora raccontare oralmente la metà delle decisioni, il repository o il work item non sono pronti. Se invece il ticket descrive ogni dettaglio implementativo, probabilmente hai spostato troppo judgment a monte.
 
-## Artefatto operativo
-
-Il capitolo introduce due artefatti complementari:
-
-```text
-Issue Template
-→ formato riusabile
-
-Execution Work Item
-→ istanza concreta del lavoro
-```
-
-Per Order Operations useremo:
-
-```text
-work-items/TEMPLATE.md
-work-items/OO-001-postgresql-escalation-outbox-atomicity.md
-```
-
-Il secondo non è una simulazione astratta.
-
-Nasce da un gap già presente nella Testing Strategy:
-
-```text
-TST-005
-PaymentEscalation + Outbox atomicity
-higher-fidelity evidence pending
-```
+La qualità sta nel boundary.
 
 ## Che cosa cambia con l'AI
 
-Prima dell'AI una issue ambigua produceva spesso:
+Prima dei coding agent, un ticket ambiguo produceva spesso clarification latency. Un engineer si fermava, chiedeva, aspettava una risposta e poi ripartiva.
+
+Con un executor capace l'ambiguità può produrre qualcosa di diverso:
 
 ```text
-clarification latency
+ambiguous intent
+→ plausible interpretation
+→ fast coherent implementation
+→ late semantic correction
 ```
 
-Con un agente molto capace può produrre:
+Questo rende più preziosi outcome, out of scope, canonical context, acceptance e stop condition. Non perché l'AI abbia bisogno di ticket più burocratici, ma perché rende molto più economico **eseguire l'interpretazione sbagliata**.
+
+Allo stesso tempo l'AI può ridurre il costo di preparare il task: cercare context pointer, proporre decomposition, red-team dell'acceptance, sintetizzare evidence. La supervisione umana resta sul punto che conta: quali affermazioni diventano requirement e quale authority autorizza il cambiamento.
+
+> **L'obiettivo non è descrivere ogni riga che l'agente deve scrivere. È rendere visibili le interpretazioni che non è autorizzato a fare.**
+
+## Stato ESI dopo il Capitolo 22
+
+Il progetto può ora affermare:
 
 ```text
-interpretation
-→ large coherent patch
-→ late discovery of semantic error
+Repository operating context      Codified
+Work Item template                Codified
+OO-001 execution contract         Codified
+Issue-readiness fitness           Codified + locally verifiable
+OO-001 execution                  Pending
+PostgreSQL higher-fidelity proof  Pending
 ```
 
-Per questo aumenta il valore di:
+Questo è un avanzamento reale e deliberatamente incompleto.
 
-- outcome esplicito;
-- scope;
-- canonical context;
-- acceptance property;
-- verification boundary;
-- stop condition.
-
-Ma non dobbiamo compensare creando ticket enormi.
-
-> **L'obiettivo non è descrivere ogni riga che l'agente deve scrivere. È rendere costose le interpretazioni che non è autorizzato a fare.**
-
-## Compromesso ESI
-
-ESI vuole trasformare backlog in execution parallela con persone e agenti.
-
-Il costo è maggiore disciplina nel rendere pronti i task importanti.
-
-La decisione non è introdurre ceremony uniforme.
-
-Usiamo più struttura dove aumentano:
-
-```text
-semantic risk
-blast radius
-irreversibility
-cross-team ownership
-security impact
-```
-
-Per task piccoli e reversibili, una issue può restare piccola.
-
-Per task architetturalmente significativi, il work item deve esplicitare il boundary.
+Nel Capitolo 23 useremo questa unità di lavoro come base per una domanda nuova: non soltanto **che cosa affidiamo a un agente**, ma **come separiamo executor, verifier, permission e authority quando più agenti partecipano allo stesso cambiamento**.
 
 ## Corollario
 
-> **Il repository dice all'executor in quale mondo si trova. La issue dice quale parte di quel mondo è autorizzato a cambiare.**
-
-Nel prossimo capitolo entreremo nel livello successivo.
-
-Non avremo più soltanto una issue e un agente.
-
-Avremo più agenti con responsabilità diverse, permission diverse e verification indipendenti.
-
-La domanda diventerà:
-
-> **come si governa un team di agenti senza trasformare l'orchestratore in un collo di bottiglia o, all'opposto, in un delegatore cieco?**
-
-È il tema del **Capitolo 23 — Manager di agenti**.
+> **Il repository dice all'executor in quale mondo si trova. Il work item dice quale parte di quel mondo può cambiare adesso e quale evidence renderà legittimo dichiarare il cambiamento concluso.**
