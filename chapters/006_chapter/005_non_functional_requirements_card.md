@@ -1,16 +1,10 @@
 ## La Non-Functional Requirements Card
 
-I requisiti non funzionali diventano utili quando smettono di essere una lista generica e iniziano a funzionare come input di decisione.
+I requisiti non funzionali diventano utili quando smettono di essere un elenco standard e iniziano a funzionare come **input di decisione**. Per questo introduciamo un artefatto operativo: la **Non-Functional Requirements Card**.
 
-Per questo introduciamo un artefatto operativo:
+Non è obbligatoria per ogni task. Serve quando latency, availability, recovery, security, cost o altre proprietà possono cambiare materialmente l'architettura, il rischio o il costo di ownership.
 
-## Non-Functional Requirements Card
-
-Non è un documento obbligatorio per ogni task.
-
-Serve quando le proprietà di qualità possono cambiare materialmente l'architettura, il costo o il rischio.
-
-Una forma possibile è questa:
+La struttura resta intenzionalmente esplicita:
 
 ```markdown
 # Non-Functional Requirements Card
@@ -50,17 +44,11 @@ Una forma possibile è questa:
 ## Review triggers
 ```
 
-La parte importante non è riempire ogni campo.
+Il valore non sta nel riempire ogni campo. Sta nel capire **quali campi meritano davvero di restringere il design space**.
 
-È scoprire quali campi contano.
+## Partire dal journey, non dalla metrica
 
-### Critical journeys
-
-Prima delle metriche, identifichiamo i percorsi che meritano protezione.
-
-Per ciascuno possiamo avere requisiti differenti.
-
-Esempio:
+Prima di parlare di percentili o SLA, identifichiamo i percorsi che meritano protezione. Una stessa applicazione può contenere funzioni con qualità dominanti differenti:
 
 | Journey | Criticità | Qualità dominante |
 | --- | --- | --- |
@@ -69,49 +57,30 @@ Esempio:
 | esportare report | bassa | throughput batch |
 | aggiornare preferenze | media | consistency |
 
-Questa differenziazione evita di ottimizzare tutto allo stesso livello.
+Questa distinzione evita di imporre al report lo stesso costo del checkout o di ottimizzare la latency di una capability il cui vero rischio è la perdita di dati.
 
-### Target, non desideri
+## Target con contesto
 
-Un requisito utile tende a contenere:
+Un requisito utile tende a combinare metrica, soglia, condizione e metodo di verifica. Per esempio:
 
-```text
-metrica
-+ soglia
-+ condizione
-+ finestra
-+ metodo di verifica
-```
-
-Per esempio:
-
-> Il p95 della consultazione ordine deve restare sotto 300 ms fino a 500 richieste al secondo, misurato end-to-end in un ambiente con dataset rappresentativo.
+> Il p95 della consultazione ordine deve restare sotto 300 ms fino a 500 richieste al secondo, misurato end-to-end su un dataset rappresentativo.
 
 Oppure:
 
 > In caso di perdita completa della regione primaria, il critical journey di consultazione deve poter essere ripristinato entro 60 minuti con perdita massima di 5 minuti di dati confermati.
 
-Non tutti i requisiti possono essere espressi con una formula.
+Non tutte le proprietà hanno bisogno di un numero. Security, maintainability e operability possono essere espresse con invarianti e scenari:
 
-Per security, maintainability o operability potremmo usare invarianti e scenari.
+```text
+nessun modulo esterno a Orders può aggiornare direttamente lo stato dell'ordine
+una modifica al provider di pagamento non deve richiedere modifiche al modello dominio Orders
+```
 
-Esempio:
+Il punto è sempre lo stesso: la frase deve aiutarci a riconoscere se una soluzione soddisfa la proprietà oppure no.
 
-> Nessun modulo esterno a Orders può aggiornare direttamente lo stato di un ordine nel database.
+## Priorità: decidere prima del conflitto
 
-Oppure:
-
-> Una modifica al provider di pagamento non deve richiedere una modifica al modello dominio Orders.
-
-Il requisito rimane verificabile anche senza percentile.
-
-### Quality priorities
-
-Non possiamo massimizzare tutto.
-
-Per questo la card deve rendere esplicite le priorità.
-
-Esempio:
+Non possiamo massimizzare tutto. La card deve quindi rendere visibile una priorità, per esempio:
 
 ```text
 1. correctness
@@ -122,17 +91,13 @@ Esempio:
 6. cost
 ```
 
-Questo non significa che il costo sia irrilevante.
+Questo non significa che il costo sia irrilevante. Significa che, se due proprietà entrano in tensione, non iniziamo la discussione tecnologica fingendo che abbiano tutte lo stesso peso.
 
-Significa che, in caso di conflitto, sappiamo quali dimensioni hanno maggiore peso.
+La priorità è particolarmente utile quando team diversi ottimizzano dimensioni diverse: Platform può vedere soprattutto operability, Security il controllo, Product la user experience e Finance il costo. La card costruisce un ordine condiviso prima che il conflitto venga incorporato nella soluzione.
 
-Senza una priorità, ogni discussione tecnologica può trasformarsi in una gara tra metriche diverse.
+## Explicit non-goals: progettare anche ciò che non serve
 
-### Explicit non-goals
-
-Uno dei campi più utili è ciò che **non** stiamo cercando di ottimizzare.
-
-Per esempio:
+Uno dei campi più importanti dice che cosa **non** stiamo cercando di ottenere:
 
 ```text
 - non progettiamo oggi per 100.000 richieste al secondo;
@@ -142,13 +107,11 @@ Per esempio:
 - non ottimizziamo il sistema per analytics real-time.
 ```
 
-Questi non-goal impediscono alla paura del futuro di trasformarsi in complessità presente.
+I non-goal proteggono il progetto dalla paura di un futuro indefinito. Non impediscono al sistema di evolvere; impediscono di pagare oggi capacità che nessun requisito ha ancora reso necessarie.
 
-### Growth assumptions
+## Crescita attesa, non crescita immaginabile
 
-La crescita prevista va distinta dalla crescita immaginabile.
-
-Possiamo avere:
+La scala futura va formulata come assunzione revisionabile:
 
 ```text
 carico attuale: 20 req/s
@@ -157,31 +120,32 @@ stima a 12 mesi: 150 req/s
 stress target: 500 req/s
 ```
 
-Questo fornisce un margine senza progettare per una scala arbitraria.
+Questi numeri forniscono margine senza trasformare il massimo concepibile in requirement. Se il business cambia, scatterà un review trigger e rivedremo la card.
 
-L'assunzione deve avere un trigger di revisione.
+## Verification method: la qualità deve incontrare l'evidenza
 
-Se il business cambia, la card cambia.
+Ogni proprietà importante dovrebbe avere un modo plausibile per essere verificata. Può essere un load test, un restore drill, un contract test, una security review, un synthetic journey, una architecture review, una cost review o un incident exercise.
 
-### Verification method
+Se non sappiamo ancora come verificare una proprietà, lo dichiariamo. È meglio un limite esplicito di una confidence costruita soltanto sul documento.
 
-Ogni proprietà importante dovrebbe avere un modo plausibile per essere verificata.
+## Review trigger: anche gli NFR scadono
 
-La verifica può passare da load e chaos test, restore drill e contract test, security e architecture review. Synthetic monitoring, audit log review, cost review e incident exercise coprono altre proprietà che un singolo test non vede. Se non sappiamo come verificare una proprietà, dobbiamo almeno dichiarare il limite.
+Traffico, mercati geografici, normative, tenant enterprise, costi di downtime, incidenti ricorrenti e cambiamenti del team possono rendere obsoleta una quality assumption. La card deve quindi indicare quando riaprire la decisione.
 
-### Review triggers
+Questo rende il profilo di qualità parte di un ciclo:
 
-I requisiti non funzionali non sono eterni.
+```text
+outcome
+→ quality target
+→ architecture
+→ evidence
+→ review trigger
+→ nuovo target o nuova decisione
+```
 
-Il requisito può cambiare se il traffico raddoppia, apriamo un nuovo mercato geografico o arriva una nuova normativa. Può cambiare con un tenant enterprise, con il costo del downtime o con un nuovo critical journey; anche incidenti più frequenti, un team operativo diverso o un nuovo sistema esterno possono riaprire la decisione. Il requisito può cambiare perché cambia il prodotto.
+## La card non sceglie il prodotto
 
-E quindi può cambiare anche la scelta tecnologica.
-
-### La card non sceglie la tecnologia
-
-Questo è fondamentale.
-
-La Non-Functional Requirements Card non dovrebbe contenere frasi come:
+La NFR Card non dovrebbe contenere scorciatoie del tipo:
 
 ```text
 availability → Kubernetes
@@ -189,10 +153,6 @@ scalability → microservices
 performance → Redis
 ```
 
-Sono salti logici.
+Questi sono salti dalla proprietà alla soluzione. La card deve descrivere il problema abbastanza bene da permettere a più alternative di competere.
 
-La card descrive il problema di qualità.
-
-Le tecnologie verranno confrontate dopo.
-
-> **Un buon NFR restringe lo spazio delle soluzioni senza fingere che esista una sola soluzione possibile.**
+> **Un buon NFR restringe lo spazio delle soluzioni senza fingere che una sola tecnologia sia già contenuta nella domanda.**
