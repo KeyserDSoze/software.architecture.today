@@ -1,338 +1,162 @@
-# Ruoli e confini di delega
+# 23.2 — Ruoli e confini di delega
 
-Il modo più semplice per progettare male un sistema multi-agent è partire dai nomi degli agenti.
+Il modo più facile per progettare male un sistema multi-agent è iniziare dai nomi.
 
-`Backend Agent`.
+`Backend Agent`, `Testing Agent`, `Security Agent`, `Architecture Agent` suonano ordinati. Ma rischiano di creare un organigramma prima che esista una ragione per separare davvero il lavoro.
 
-`Testing Agent`.
+La domanda corretta viene prima dei nomi:
 
-`Security Agent`.
+> **quali responsabilità non dovrebbero appartenere automaticamente allo stesso soggetto quando il risultato autorizza un passo successivo?**
 
-`Architecture Agent`.
+Nel nostro caso le responsabilità fondamentali sono quattro: interpretare il work item, eseguire il cambiamento, verificare i claim e possedere l'approval quando la decisione supera il mandato del task.
 
-Il rischio è costruire un organigramma prima di avere capito quali responsabilità meritino davvero di essere separate.
+Possono convivere quando rischio, reversibilità ed evidence lo consentono. Devono essere separate quando la loro sovrapposizione rende troppo facile auto-certificarsi o attraversare un boundary senza authority.
 
-Il punto di partenza dovrebbe essere invece:
+## Planning: trasformare il mandato in passi, non inventare il mandato
 
-```text
-decisione
-execution
-verification
-approval
-```
+Un planner utile non riscrive la requirement. Traduce un execution contract già abbastanza chiaro in una sequenza di passi verificabili.
 
-Sono quattro responsabilità diverse.
-
-A volte possono convivere.
-
-A volte devono essere separate.
-
-## Planner
-
-Il Planner traduce un execution contract in una sequenza di passi.
-
-Non decide automaticamente nuovi requirement.
-
-Non ha il diritto implicito di ampliare lo scope.
-
-Il suo output utile non è:
+Per OO-001, per esempio, il piano può partire dal test environment, poi applicare la migration chain, poi provare il commit positivo e infine iniettare il failure sulla seconda write. Il valore del piano non sta nella sequenza in sé. Sta nel fatto che ogni passaggio dichiara quale evidence deve esistere prima di procedere.
 
 ```text
-I will implement the feature.
+prepare real PostgreSQL boundary
+→ migration evidence
+→ success transaction evidence
+→ rollback evidence
+→ closure evidence
 ```
 
-Ma qualcosa come:
+Se durante il planning emerge che migration `002` dovrebbe cambiare semanticamente, il planner non ha trovato un dettaglio implementativo. Ha trovato una stop condition.
 
-```text
-Step 1
-Create reproducible PostgreSQL test environment.
-Evidence: database accepts migration chain 001 → 002.
+> **Un piano è valido quando organizza l'execution senza estendere silenziosamente l'autorità del task.**
 
-Step 2
-Exercise successful escalation + outbox commit.
-Evidence: both facts committed.
+Per OO-001 ESI non crea un Planner Agent separato. Il task è già sufficientemente definito e l'Implementer può produrre un piano breve prima del primo write. La separazione non comprerebbe abbastanza valore da giustificare un altro handoff.
 
-Step 3
-Inject second-write failure.
-Evidence: both facts absent after rollback.
+## Implementation: il potere deriva dal mandato
 
-Stop if
-existing migration semantics must change.
-```
+L'Implementer può modificare il sistema soltanto dentro il change surface autorizzato.
 
-Un piano è buono quando rende leggibile **quale evidence abilita il passo successivo**.
+La distinzione importante non è fra ciò che tecnicamente sa fare e ciò che non sa fare. È fra ciò che il workflow gli **concede** e ciò che resta fuori dalla sua authority.
 
-## Implementer
+Per OO-001 può leggere il repository, modificare test e helper nel perimetro del work item, avviare un PostgreSQL isolato, eseguire i gate e aggiungere una dependency test-only se la giustifica.
 
-L'Implementer modifica gli artifact autorizzati.
+Non può trasformare questa capability in diritto a riscrivere migration storiche, accedere a production credential, cambiare Payments ownership o approvare una propria architecture exception.
 
-Il suo perimetro deriva dalla issue e dal Delegation Contract.
-
-Possibili capability:
-
-```text
-read repository
-edit allowed files
-run local build/tests
-create test fixtures
-produce diff
-```
-
-Possibili non-capability:
-
-```text
-merge main
-modify production data
-change enterprise policy
-approve own exception
-access production secret
-```
-
-Questa distinzione è fondamentale:
-
-> **Tool availability non è authorization.**
-
-Se il runtime tecnicamente permette una azione, non significa che il workflow debba autorizzarla.
-
-GitHub documenta un modello simile per il proprio cloud coding agent: ambiente effimero, scope di repository limitato, branch dedicato e controlli specifici attorno all'esecuzione di workflow e secret. La documentazione insiste inoltre sul fatto che l'output dell'agente debba essere revisionato e testato prima del merge.
+GitHub documenta per il proprio coding agent un modello con ambiente effimero, repository/branch scope e controlli sui secret, insieme alla necessità di revieware e testare l'output prima del merge.
 
 Fonte:
 
 - [GitHub Docs — Application card: GitHub Copilot Agents](https://docs.github.com/en/copilot/responsible-use/agents)
 
-Il dettaglio implementativo cambierà.
+Il dettaglio del prodotto può cambiare. Il principio resta:
 
-Il principio no:
+> **concedere all'executor il minimo potere che gli permette di produrre l'evidence richiesta senza trasformare una scorciatoia in permission implicita.**
 
-> **concedi all'executor il minimo potere che gli permette di produrre l'evidence richiesta.**
+## Verification: controllare ciò che autorizza il prossimo passo
 
-## Verifier
+Il Verifier non esiste per riscrivere il lavoro dell'Implementer.
 
-Il Verifier non deve necessariamente riscrivere il lavoro dell'Implementer.
+Esiste per controllare se i claim che autorizzano l'accettazione sono realmente sostenuti da evidence adeguata.
 
-Deve controllare le proprietà che autorizzano il passo successivo.
+Se l'Implementer dichiara che l'atomicità è verificata, il Verifier deve chiedere almeno se è stato usato PostgreSQL reale, se le migration correnti sono state applicate, dove è stato iniettato il failure, quale stato è rimasto dopo rollback e se il report sta evitando claim su Azure, HA o production che il test non può sostenere.
 
-Per OO-001, per esempio:
+Queste domande sono più importanti del numero di commenti sul diff.
 
-```text
-Implementer claim
-"atomicity verified"
-
-Verifier asks
-- real PostgreSQL or fake?
-- migrations 001 and 002 really applied?
-- second-write failure injected before commit?
-- both tables queried after rollback?
-- normal fast suite still independent?
-- any production semantics changed?
-```
-
-Il verifier può usare:
-
-- test eseguibili;
-- diff;
-- static analysis;
-- contract check;
-- query/result;
-- trace;
-- security scanner;
-- separate model review;
-- human review.
-
-La cosa importante è che **non confonda review con re-execution manuale completa**.
+Il Verifier può usare raw test result, query output, static analysis, contract check, scanner, trace o human review. Non deve necessariamente rifare tutta l'execution a mano.
 
 Ritorna il principio:
 
-> **Verification without re-execution.**
+> **verification without re-execution.**
 
-## Reviewer specialistico
+Il reviewer umano deve poter campionare evidence primaria senza diventare un secondo implementer.
 
-A volte il verifier generale non basta.
+## Indipendenza non significa soltanto “un altro agente”
 
-Per esempio un change può meritare:
+Due agenti identici con lo stesso contesto, le stesse instruction e lo stesso summary possono produrre due opinioni, ma non necessariamente due evidenze indipendenti.
 
-```text
-Security Reviewer
-Data Reviewer
-Architecture Reviewer
-Domain Reviewer
-```
+L'indipendenza cresce quando separiamo almeno una dimensione importante: la source di evidence, il permission set, la missione del verifier, il criterio di valutazione o la final authority.
 
-Ma il reviewer specialistico non deve diventare obbligatorio per ogni task.
-
-Deve essere attivato da trigger.
-
-Esempio:
+Un caso forte è:
 
 ```text
-new public ingress
-→ Security Reviewer
-
-new authoritative persisted fact
-→ Data/Domain Reviewer
-
-new cross-domain economic effect
-→ Payments & Risk Reviewer
-
-architecture exception
-→ Architecture Reviewer
+Implementer claim
+→ deterministic PostgreSQL result
+→ Verifier with read-only evidence access
+→ human/repository merge authority
 ```
 
-Questo limita il costo della governance.
+Qui la verification non dipende soltanto dalla narrazione del producer e il verifier non deve modificare ciò che sta giudicando.
 
-## Human Decision Owner
+Un caso molto più debole è:
 
-Il ruolo più importante rimane umano.
+```text
+Implementer summary
+→ second model reads summary
+→ second model says PASS
+```
 
-Non perché una persona debba approvare ogni riga.
+La separazione dei nomi non ha creato una separazione epistemica.
 
-Ma perché alcune decisioni cambiano il significato, il rischio o la responsabilità del sistema.
+> **La vera indipendenza sta in ciò da cui il giudizio può dissentire, non nel numero di agenti coinvolti.**
 
-Il Human Decision Owner interviene quando il task incontra:
+## Specialist review: attivarla dal rischio
 
-- una decisione funzionale non definita;
-- una one-way door;
-- una security boundary significativa;
-- un nuovo owner dei dati;
-- una deroga architetturale;
-- una azione irreversibile o ad alto impatto;
-- un conflitto fra obiettivi aziendali che il work item non autorizza a risolvere.
+Non ogni task richiede Security, Data, Architecture e Domain review.
 
-La guida pratica OpenAI alla costruzione di agenti raccomanda esplicitamente di pianificare human intervention per azioni ad alto rischio e quando vengono superate soglie di fallimento/retry.
+La governance diventa sostenibile quando i reviewer specialistici vengono attivati da trigger reali.
 
-Fonte:
+Un nuovo public ingress riapre Security. Un nuovo authoritative fact coinvolge Data/Domain ownership. Un economic side effect chiama Payments & Risk. Una deroga alla fitness policy richiede Architecture authority.
 
-- [OpenAI — A practical guide to building agents](https://cdn.openai.com/business-guides-and-resources/a-practical-guide-to-building-agents.pdf)
+Questo evita due estremi: nessun reviewer dove servirebbe e review rituale di cinque funzioni per una modifica locale reversibile.
 
-Microsoft Agent Framework e OpenAI Agents SDK espongono meccanismi human-in-the-loop che possono sospendere il workflow in attesa di approval prima di tool call sensibili.
+Il reviewer specialistico non è un badge di qualità. È un owner chiamato perché il task ha attraversato il suo boundary.
+
+## Human Decision Owner: l'authority non coincide con il lavoro manuale
+
+Il ruolo umano più importante non è “approvare tutto”. È possedere le decisioni che cambiano significato, rischio o responsabilità del sistema.
+
+Una persona deve intervenire quando emerge una business semantics non definita, una one-way door, un cambio di data ownership, una security boundary importante, una deroga architetturale o un conflitto fra obiettivi che il work item non autorizza a risolvere.
+
+La guida pratica OpenAI alla costruzione di agenti raccomanda di prevedere intervento umano per high-risk actions e quando vengono superate soglie di failure/retry. OpenAI Agents SDK e Microsoft Agent Framework espongono inoltre meccanismi human-in-the-loop che possono sospendere il workflow prima di tool call sensibili.
 
 Fonti:
 
-- [Microsoft Learn — Human-in-the-loop](https://learn.microsoft.com/en-us/agent-framework/workflows/human-in-the-loop)
+- [OpenAI — A practical guide to building agents](https://cdn.openai.com/business-guides-and-resources/a-practical-guide-to-building-agents.pdf)
 - [OpenAI Agents SDK — Human in the loop](https://openai.github.io/openai-agents-python/human_in_the_loop/)
+- [Microsoft Learn — Human-in-the-loop](https://learn.microsoft.com/en-us/agent-framework/workflows/human-in-the-loop)
 
-Il framework non decide però **quali azioni meritino approval**.
+Il framework può sospendere una run. Non può decidere al posto nostro quale decisione meriti quella sospensione.
 
-Quello è design del sistema.
+## Separation of duties proporzionata al claim
 
-## Separation of duties
+Non serve sempre un agente diverso per ogni responsabilità.
 
-Una regola utile è:
+Per una formatting fix può bastare lo stesso executor e un deterministic gate. Per un normale code change possiamo avere agent execution, test/fitness automatici e human review. Per un task che produce evidence su una proprietà critica può essere giustificato un Verifier separato. Per una decisione irreversibile serve inoltre l'owner umano appropriato.
 
-> **se un risultato autorizza un passo ad alto impatto, chiediti se chi ha prodotto il risultato dovrebbe anche essere l'unico soggetto che lo verifica.**
+Il criterio è:
 
-Non significa sempre agenti diversi.
+> **se il risultato autorizza un passo ad alto impatto, quanto è rischioso che chi lo produce sia anche l'unica fonte che lo certifica?**
 
-Possiamo avere:
+Questa domanda porta naturalmente ai tre artifact del capitolo. Il Delegation Contract governa il mandato. Il Verification Bundle governa i claim. L'Autonomy Matrix governa fino a dove una capability può procedere.
 
-```text
-same agent
-+ deterministic external gate
-```
+## ESI: il ruolo minimo che compra abbastanza separazione
 
-per un task piccolo.
-
-Oppure:
-
-```text
-Implementer Agent
-→ test/fitness gate
-→ Human Reviewer
-```
-
-Oppure:
-
-```text
-Implementer
-→ independent Verifier Agent
-→ human approval
-```
-
-per un change più critico.
-
-La vera indipendenza non deriva dal fatto che abbiamo cambiato nome al modello.
-
-Deriva dalla separazione di almeno uno fra:
-
-- context;
-- instruction;
-- permission;
-- evidence source;
-- evaluation criterion;
-- final authority.
-
-Due agenti identici con lo stesso prompt che leggono lo stesso diff possono produrre due opinioni, ma non automaticamente due evidenze indipendenti.
-
-## Il problema dell'auto-certificazione
-
-Un workflow pericoloso è:
-
-```text
-agent implements
-→ agent edits tests
-→ agent runs tests
-→ agent summarizes tests
-→ agent declares production ready
-```
-
-Anche se tutto è in buona fede, il sistema ha pochissima separazione.
-
-Per questo useremo più avanti un **Agent Verification Bundle**.
-
-Il bundle non dice:
-
-```text
-reviewer says LGTM
-```
-
-Dice:
-
-```text
-claim
-→ evidence source
-→ command/check
-→ result
-→ limitations
-→ independent review when required
-```
-
-## ESI: ruolo minimo per OO-001
-
-Per la prima delega seria ESI non crea sette agenti.
-
-Sceglie:
+Per OO-001 ESI sceglie una topologia volutamente sobria:
 
 ```text
 Human Decision Owner
-→ Commerce & Operations tech lead
-
+        ↓
 Implementer
-→ execution sul work item OO-001
-
-Verifier
-→ review indipendente del transaction evidence
-
-Specialist trigger
-→ Security/Platform solo se il test harness richiede permission/network condivisi
+        ↓
+deterministic evidence
+        ↓
+independent Verifier
+        ↓
+human/repository merge gate
 ```
 
-Il Planner può essere una fase dell'Implementer perché il task è già ben definito.
+Security o Platform entrano soltanto se il test harness richiede shared permission, network o risorse che il Delegation Contract non autorizza. Architecture entra soltanto se migration semantics o fitness policy devono cambiare. Product/Domain entra se emerge una nuova business decision.
 
-Questa è una decisione di fit.
+Non abbiamo creato sette agenti. Abbiamo separato soltanto ciò che compra permission isolation, verification independence o final authority.
 
-Il task non giustifica ancora un orchestratore gerarchico complesso.
-
-## Quality floor
-
-La separazione dei ruoli deve proteggere almeno:
-
-```text
-scope ownership
-permission ownership
-verification ownership
-approval ownership
-```
-
-La frase chiave è:
-
-> **Delegare il lavoro non significa delegare automaticamente il diritto di definire scope, criteri di successo e soglia di accettazione.**
+> **Delegare il lavoro non significa delegare automaticamente il diritto di definire scope, cambiare l'oracle e decidere la soglia di accettazione.**
