@@ -95,7 +95,7 @@ shipping.* → Shipping
 
 con una regola deliberata: un modulo non legge direttamente le tabelle possedute da un altro modulo senza un contratto esplicito.
 
-Questa scelta costa un po' più di una join libera ovunque, ma preserva la possibilità di cambiare schema, semantica e persistenza senza trasformare ogni consumer in un co-proprietario.
+Questa scelta costa un po’ più di una join libera ovunque, ma preserva la possibilità di cambiare schema, semantica e persistenza senza trasformare ogni consumer in un co-proprietario.
 
 Il compromesso ESI è quindi chiaro: **infrastruttura semplice e confini logici forti**. Accettiamo che parte dell'isolamento sia applicativo invece che fisico; non accettiamo che ownership e semantica diventino condivise per comodità.
 
