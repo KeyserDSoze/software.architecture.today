@@ -1,0 +1,129 @@
+{
+  "chapter": 4,
+  "replacements": [
+    {
+      "old": "Chiediamo:\n\n- quali decisioni stanno modellando il sistema?\n- quali vincoli le influenzano?\n- quali qualità vogliamo proteggere?\n- quali alternative abbiamo escluso?\n- che cosa stiamo pagando per questa scelta?\n- quanto sarebbe costoso cambiare direzione?\n- che cosa potrebbe invalidare la decisione in futuro?",
+      "new": "Chiediamo quali decisioni stiano modellando il sistema e quali vincoli le influenzino, quali qualità vogliamo proteggere e quali alternative abbiamo escluso. Poi chiediamo che cosa stiamo pagando per la scelta, quanto sarebbe costoso cambiare direzione e quali cambiamenti futuri potrebbero invalidare il ragionamento di oggi."
+    },
+    {
+      "old": "Perché cambiano:\n\n- il significato dei dati;\n- il rischio;\n- le qualità richieste;\n- i failure mode accettabili;\n- le scelte di deployment;\n- i controlli;\n- il costo di una modifica.",
+      "new": "Perché cambiano il significato dei dati e il rischio, le qualità richieste e i failure mode accettabili. Cambiano inoltre le scelte di deployment e i controlli necessari, fino al costo con cui potremo modificare il sistema in futuro."
+    },
+    {
+      "old": "L'architettura è continua perché continuano a cambiare:\n\n- requisiti;\n- carico;\n- team;\n- vincoli;\n- normative;\n- costi;\n- piattaforme;\n- failure mode osservati;\n- conoscenza del dominio.",
+      "new": "L'architettura è continua perché continuano a cambiare requisiti e carico, team e vincoli, normative e costi. Cambiano le piattaforme, emergono failure mode che prima non avevamo osservato e cresce — o viene corretta — la nostra conoscenza del dominio."
+    },
+    {
+      "old": "Le sezioni che seguono costruiranno una risposta attraverso:\n\n- Architecturally Significant Requirements;\n- vincoli;\n- trade-off;\n- reversibilità;\n- one-way door e two-way door;\n- Architecture Decision Record;\n- trigger di revisione;\n- applicazione ad Order Operations.",
+      "new": "Le sezioni che seguono costruiranno una risposta passando dagli Architecturally Significant Requirements ai vincoli e ai trade-off, poi alla reversibilità, alle one-way e two-way door e agli Architecture Decision Record. Chiuderemo con i trigger di revisione e con l'applicazione concreta a Order Operations."
+    },
+    {
+      "old": "È facile associare gli ASR a parole come:\n\n- performance;\n- security;\n- availability;\n- scalability;\n- compliance.\n\nMa il significato architetturale nasce dal contesto.",
+      "new": "È facile associare gli ASR a parole come performance, security, availability, scalability o compliance. Ma il significato architetturale nasce dal contesto."
+    },
+    {
+      "old": "Dobbiamo capire:\n\n- di quale journey?\n- misurata dove?\n- in quale finestra?\n- con quali esclusioni?\n- quali funzioni possono degradare?\n- quale costo è accettabile per raggiungerla?",
+      "new": "Dobbiamo capire di quale journey stiamo parlando, dove misuriamo la proprietà e in quale finestra, quali esclusioni accettiamo e quali funzioni possono degradare. Solo allora possiamo discutere quale costo sia accettabile per raggiungerla."
+    },
+    {
+      "old": "“Permettere il rimborso parziale di un ordine” potrebbe richiedere cambiamenti a:\n\n- modello dati;\n- accounting;\n- payment provider;\n- idempotency;\n- audit;\n- API compatibility;\n- workflow di fulfillment.",
+      "new": "“Permettere il rimborso parziale di un ordine” potrebbe richiedere cambiamenti al modello dati e all'accounting, al payment provider e all'idempotency, all'audit, alla compatibilità delle API e perfino al workflow di fulfillment."
+    },
+    {
+      "old": "Qui la parola “sempre” apre domande su:\n\n- disponibilità;\n- freshness;\n- fallback;\n- cache;\n- replica;\n- degradazione.",
+      "new": "Qui la parola “sempre” apre immediatamente domande su disponibilità e freshness, fallback e cache, replica e comportamento in degradazione."
+    },
+    {
+      "old": "Se chiediamo:\n\n- latency minima;\n- consistency forte;\n- availability massima;\n- costi minimi;\n- zero lock-in;\n- sviluppo velocissimo;\n- operazioni semplicissime;\n\nstiamo chiedendo un sistema senza trade-off.",
+      "new": "Se chiediamo contemporaneamente latency minima, consistency forte, availability massima e costi minimi, insieme a zero lock-in, sviluppo velocissimo e operazioni semplicissime, stiamo chiedendo un sistema senza trade-off."
+    },
+    {
+      "old": "Supponiamo che un'organizzazione abbia:\n\n- un team di quattro persone;\n- nessun on-call 24/7;\n- budget cloud limitato;\n- una piattaforma.NET già standardizzata;\n- obbligo di deployment in una regione specifica;\n- deadline di otto settimane.",
+      "new": "Supponiamo che un'organizzazione abbia un team di quattro persone, nessun on-call 24/7 e un budget cloud limitato. Immaginiamo inoltre una piattaforma .NET già standardizzata, l'obbligo di deployment in una regione specifica e una deadline di otto settimane."
+    },
+    {
+      "old": "Quindi contano:\n\n- competenze disponibili;\n- numero di team;\n- maturità operativa;\n- ownership;\n- capacità di incident response;\n- velocità di onboarding;\n- turnover;\n- autonomia decisionale.",
+      "new": "Quindi contano le competenze disponibili e il numero di team, la maturità operativa e l'ownership, la capacità di incident response e la velocità di onboarding. Anche turnover e autonomia decisionale fanno parte dell'architettura reale, perché determinano quali soluzioni l'organizzazione è in grado di sostenere."
+    },
+    {
+      "old": "Possiamo comprare option value con interventi piccoli:\n\n- confini puliti;\n- contratti espliciti;\n- migration path;\n- feature flag;\n- adapter;\n- dati esportabili;\n- API compatibili;\n- automazione di test;\n- rollback verificato.",
+      "new": "Possiamo comprare option value con interventi relativamente piccoli: confini puliti e contratti espliciti, migration path, feature flag e adapter. Dati esportabili, API compatibili, automazione dei test e rollback verificato aumentano la possibilità di cambiare senza obbligarci a implementare oggi ogni alternativa futura."
+    },
+    {
+      "old": "Esempi:\n\n- volume dati oltre una soglia;\n- aumento significativo del traffico;\n- crescita del numero di team;\n- nuovo requisito normativo;\n- aumento della latency;\n- costi cloud oltre budget;\n- incidenti ricorrenti;\n- nuovo pattern di accesso;\n- perdita di supporto da parte di un vendor;\n- capability di piattaforma diventata disponibile.",
+      "new": "Un trigger può essere il volume dati che supera una soglia, un aumento significativo del traffico o la crescita del numero di team. Può arrivare da un nuovo requisito normativo, da latency o costi cloud oltre budget, da incidenti ricorrenti o da un nuovo pattern di accesso. Anche la perdita di supporto di un vendor o, al contrario, una nuova capability di piattaforma possono riaprire la decisione."
+    },
+    {
+      "old": "Può includere:\n\n- migrazione dati;\n- downtime;\n- compatibilità con client esterni;\n- procedure operative;\n- re-training del team;\n- audit;\n- rollback;\n- rischi non coperti dai test.\n\nLa facilità di generare una patch non equivale alla facilità di cambiare un sistema in produzione.",
+      "new": "Può includere migrazione dati e downtime, compatibilità con client esterni e procedure operative, re-training del team, audit e rollback. Può soprattutto includere rischi che i test non coprono. La facilità di generare una patch non equivale alla facilità di cambiare un sistema in produzione."
+    },
+    {
+      "old": "Qualcuno apre il repository e trova:\n\n- una queue che sembra inutile;\n- un adapter apparentemente ridondante;\n- un database separato;\n- una limitazione strana nell'API;\n- un retry disabilitato;\n- una scelta di deployment che oggi appare eccessiva.\n\nLa tentazione è correggere ciò che sembra strano.",
+      "new": "Qualcuno apre il repository e trova una queue che sembra inutile, un adapter apparentemente ridondante o un database separato. Nota una limitazione strana nell'API, un retry disabilitato o una scelta di deployment che oggi appare eccessiva. La tentazione è correggere ciò che sembra strano."
+    },
+    {
+      "old": "Stati utili possono essere:\n\n- proposed;\n- accepted;\n- superseded;\n- deprecated;\n- rejected.\n\nQuando una decisione cambia, spesso è meglio **non riscrivere la storia**.",
+      "new": "Stati come `proposed`, `accepted`, `superseded`, `deprecated` e `rejected` permettono di conservare l'evoluzione della decisione. Quando una decisione cambia, spesso è meglio **non riscrivere la storia**."
+    },
+    {
+      "old": "Un buon criterio è documentare decisioni che hanno almeno uno di questi attributi:\n\n- impatto trasversale;\n- alto costo di inversione;\n- rischio significativo;\n- alternativa non ovvia;\n- conseguenze operative rilevanti;\n- probabile domanda futura sul perché.",
+      "new": "Un buon criterio è documentare decisioni con impatto trasversale o alto costo di inversione, con rischio significativo o alternative non ovvie. Vale la pena farlo anche quando le conseguenze operative sono rilevanti o quando è molto probabile che, in futuro, qualcuno debba chiedere perché quella scelta sia stata fatta."
+    },
+    {
+      "old": "Il vantaggio è che possono essere:\n\n- versionati;\n- revisionati in pull request;\n- collegati a issue e codice;\n- letti dagli agenti;\n- cercati insieme alla storia del repository.",
+      "new": "Il vantaggio è che possono essere versionati e revisionati in pull request, collegati a issue e codice, letti dagli agenti e cercati insieme alla storia del repository."
+    },
+    {
+      "old": "La decisione significativa riguarda:\n\n- shared failure domain;\n- separazione dei workload;\n- consistency;\n- complessità operativa;\n- strategia di evoluzione.\n\nLa query concreta è implementazione.",
+      "new": "La decisione significativa riguarda lo shared failure domain e la separazione dei workload, la consistency richiesta, la complessità operativa che accettiamo e la strategia di evoluzione. La query concreta è implementazione."
+    },
+    {
+      "old": "Per esempio:\n\n- non esporre lo schema del database direttamente nell'API;\n- mantenere il lookup dietro boundary applicativi;\n- isolare authorization;\n- misurare latency e volume;\n- evitare query cross-domain diffuse;\n- mantenere il contratto esterno indipendente dalla fonte dati.\n\nQueste scelte preservano reversibilità.",
+      "new": "Possiamo evitare di esporre direttamente lo schema del database nell'API, mantenere il lookup dietro boundary applicativi e isolare l'authorization. Misurare latency e volume, evitare query cross-domain diffuse e mantenere il contratto esterno indipendente dalla fonte dati sono altre scelte che preservano reversibilità."
+    },
+    {
+      "old": "Ogni decisione dovrebbe conservare il legame con:\n\n- problema;\n- ASR;\n- vincoli;\n- trade-off.\n\nCosì possiamo capire se il ragionamento è ancora valido.",
+      "new": "Ogni decisione dovrebbe conservare il legame con il problema, gli ASR, i vincoli e i trade-off che l'hanno prodotta. Così possiamo capire se il ragionamento è ancora valido."
+    },
+    {
+      "old": "Per esempio:\n\n- identity provider;\n- gestione secrets;\n- baseline di observability;\n- criteri minimi di security;\n- formati standard di audit.\n\nAltre possono essere locali al team.",
+      "new": "Identity provider, gestione dei secret, baseline di observability, criteri minimi di security e formati standard di audit sono esempi di decisioni che spesso acquistano valore a livello organizzativo. Altre possono restare locali al team."
+    },
+    {
+      "old": "L'architettura deve quindi ricevere feedback da:\n\n- metriche;\n- incidenti;\n- costi;\n- deployment;\n- support tickets;\n- tempi di sviluppo;\n- failure reali.\n\n> **Un'architettura che non riceve feedback dal sistema reale diventa rapidamente una teoria sul sistema.**",
+      "new": "L'architettura deve quindi ricevere feedback da metriche e incidenti, costi e deployment, support ticket e tempi di sviluppo, oltre che dai failure realmente osservati.\n\n> **Un'architettura che non riceve feedback dal sistema reale diventa rapidamente una teoria sul sistema.**"
+    },
+    {
+      "old": "La governance deve migliorare:\n\n- qualità del contesto;\n- confronto delle alternative;\n- comprensione del rischio;\n- ownership.\n\nSe aggiunge soltanto attesa, non sta facendo architettura.",
+      "new": "La governance deve migliorare la qualità del contesto e il confronto delle alternative, la comprensione del rischio e l'ownership. Se aggiunge soltanto attesa, non sta facendo architettura."
+    },
+    {
+      "old": "Un agente può leggere:\n\n- ADR;\n- architecture boundaries;\n- policy;\n- contract;\n- test;\n- stop condition.\n\nQuesti elementi diventano una forma di **governance leggibile dalle macchine**.",
+      "new": "Un agente può leggere ADR e architecture boundary, policy e contract, test e stop condition. Questi elementi diventano una forma di **governance leggibile dalle macchine**."
+    },
+    {
+      "old": "La risposta potrebbe essere tecnicamente plausibile, ma non sappiamo:\n\n- quali assunzioni abbia fatto;\n- quali requisiti stia privilegiando;\n- quali vincoli non abbia visto;\n- quali alternative abbia escluso;\n- quale costo stia sottovalutando.",
+      "new": "La risposta potrebbe essere tecnicamente plausibile, ma non sappiamo quali assunzioni abbia fatto o quali requisiti stia privilegiando, quali vincoli non abbia visto, quali alternative abbia escluso e quale costo stia sottovalutando."
+    },
+    {
+      "old": "Un buon output potrebbe chiedere:\n\n- traffico previsto;\n- criticità del journey;\n- RTO/RPO;\n- modello di tenancy;\n- dimensione del team;\n- dati regolamentati;\n- pattern di scrittura/lettura;\n- integrazioni esterne;\n- budget;\n- competenze operative.\n\nQuesta è spesso una funzione più preziosa della generazione diretta di diagrammi.",
+      "new": "Un buon output potrebbe chiedere quale traffico prevediamo e quanto sia critico il journey, quali RTO/RPO servano e quale modello di tenancy abbiamo. Potrebbe chiedere dimensione e competenze operative del team, presenza di dati regolamentati, pattern di lettura e scrittura, integrazioni esterne e budget. Questa è spesso una funzione più preziosa della generazione diretta di diagrammi."
+    },
+    {
+      "old": "Un agente può cercare:\n\n- alternative troppo deboli;\n- conseguenze negative mancanti;\n- trigger di revisione assenti;\n- contraddizioni con ADR esistenti;\n- claim non supportati dal contesto;\n- termini vaghi;\n- costi non considerati.",
+      "new": "Un agente può cercare alternative troppo deboli e conseguenze negative mancanti, trigger di revisione assenti e contraddizioni con ADR esistenti. Può evidenziare claim non supportati dal contesto, termini vaghi e costi che il ragionamento iniziale non aveva considerato."
+    },
+    {
+      "old": "L'AI può sintetizzare molto bene:\n\n- documentazione;\n- requisiti;\n- diagrammi;\n- dipendenze;\n- opzioni;\n- pattern.\n\nIl judgment richiede invece priorità reali.",
+      "new": "L'AI può sintetizzare molto bene documentazione e requisiti, diagrammi e dipendenze, opzioni e pattern. Il judgment richiede invece priorità reali."
+    },
+    {
+      "old": "Potrebbero condividere:\n\n- lo stesso contesto incompleto;\n- gli stessi bias di training;\n- la stessa assunzione sbagliata;\n- la stessa fonte non aggiornata.\n\nLa diversità di ruolo aiuta, ma non crea automaticamente indipendenza epistemica.",
+      "new": "Potrebbero condividere lo stesso contesto incompleto o la stessa fonte non aggiornata, gli stessi bias di training o la stessa assunzione sbagliata. La diversità di ruolo aiuta, ma non crea automaticamente indipendenza epistemica."
+    },
+    {
+      "old": "Sta nel riconoscere:\n\n- quale decisione conta davvero;\n- quale informazione manca;\n- quale trade-off è reale;\n- quale scelta è prematura;\n- quale rischio è sottovalutato;\n- quando serve fermarsi;\n- quando il contesto è cambiato abbastanza da riaprire la decisione.",
+      "new": "Sta nel riconoscere quale decisione conta davvero e quale informazione manca, quale trade-off è reale e quale scelta è prematura. Sta nel vedere il rischio sottovalutato, sapere quando fermarsi e capire quando il contesto è cambiato abbastanza da riaprire una decisione che ieri era ragionevole."
+    }
+  ]
+}
