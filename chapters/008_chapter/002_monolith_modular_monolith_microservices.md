@@ -1,6 +1,6 @@
 ## Monolite, modular monolith e microservizi
 
-Le tre etichette vengono spesso trattate come gradini di una scala evolutiva:
+Monolite, modular monolith e microservizi vengono spesso raccontati come gradini di una scala evolutiva:
 
 ```text
 monolite
@@ -8,49 +8,33 @@ monolite
 → microservizi
 ```
 
-Questa rappresentazione è pericolosa perché suggerisce una direzione obbligatoria.
+Questa immagine è seducente perché trasforma una decisione complessa in una storia di maturità: si parte semplici, si diventa modulari e infine si arriva alla distribuzione.
 
-Come se il monolite fosse l'inizio ingenuo, il modular monolith una fase di transizione e i microservizi la destinazione finale.
+Ma le tre forme non sono livelli.
 
-Non funziona così.
+Sono **topologie con trade-off differenti**.
 
-Sono **topologie differenti**, ognuna con proprietà utili e costi specifici.
+La maturità non dipende da quanto il sistema sia distribuito. Dipende dalla capacità di collegare quella distribuzione a proprietà che il sistema deve realmente ottenere.
 
-### Monolite
+## Il monolite compra località
 
-In un monolite classico l'applicazione viene costruita e distribuita come un singolo deployable.
+In un monolite il software principale viene costruito e distribuito come un singolo deployable.
 
-Può significare:
+Questa caratteristica riduce alcune categorie di complessità. Molte chiamate restano function call locali. Le transazioni possono attraversare più dati nello stesso datastore senza introdurre coordinamento distribuito. Debugging e tracing possono essere più lineari e il modello operativo parte da un numero ridotto di unità da rilasciare e osservare.
 
-```text
-frontend server-side
-+ domain logic
-+ persistence
-```
+Questo non rende il design automaticamente buono.
 
-oppure una backend API composta da molte aree funzionali.
+Se il codice non contiene boundary intenzionali, la località può trasformarsi in accesso indiscriminato. Qualunque modulo importa qualunque altro, tutti leggono le stesse tabelle e ogni feature diffonde conoscenza in punti diversi.
 
-Il vantaggio principale è che molte interazioni restano locali.
+Il problema non è la function call locale.
 
-Una chiamata interna può essere una normale function call.
+È che non esiste una regola su chi abbia il diritto di farla.
 
-Una transazione può attraversare più tabelle nello stesso database.
+## Il modular monolith compra confini senza comprare ancora rete
 
-Il deploy è coordinato perché, per definizione, esiste un singolo artefatto principale.
+Il **modular monolith** conserva un deployable condiviso ma tratta i confini interni come decisioni architetturali vere.
 
-Questo riduce alcune categorie di complessità.
-
-Ma se il codice non ha confini interni forti, il sistema può degradare rapidamente.
-
-Il problema non è avere un singolo processo.
-
-Il problema è che tutto sappia troppo di tutto.
-
-### Modular monolith
-
-Il modular monolith mantiene il vantaggio di un deployable condiviso ma prova a rendere i confini interni intenzionali.
-
-Possiamo immaginare:
+Possiamo avere:
 
 ```text
 Application
@@ -60,61 +44,54 @@ Application
 └── Identity
 ```
 
-Ogni modulo dovrebbe avere responsabilità chiare, API interne intenzionali e ownership del proprio modello. Le dipendenze devono essere controllate e i test devono proteggere i confini; quando possibile, regole automatizzate dovrebbero impedire gli accessi che il design considera illegittimi.
+Ogni modulo possiede comportamento e modello, espone capability intenzionali e nasconde i propri dettagli. Le dipendenze vengono controllate e, dove possibile, architecture test o lint rule impediscono accessi che il design considera illegittimi.
 
-La separazione fisica è debole.
+La separazione fisica rimane debole.
 
 La separazione semantica può essere molto forte.
 
-Il modular monolith è particolarmente interessante quando il dominio ha già aree distinte ma il team non ha ancora bisogno di deploy indipendenti, quando l'overhead operativo dei microservizi sarebbe sproporzionato e quando vogliamo conservare la possibilità di estrarre componenti in futuro senza pagare oggi tutta la distribuzione.
+Questa forma è particolarmente interessante quando il dominio ha già responsabilità distinte, ma non esiste ancora un bisogno sufficiente di deploy indipendente, scaling differenziato o failure isolation tramite processi separati. In quel caso possiamo ottenere modularità senza pagare tutta la distribuzione.
 
-### Microservizi
+Il vantaggio strategico è che un confine credibile può essere estratto in seguito, se il contesto cambia.
 
-Con i microservizi alcuni boundary diventano deployable indipendenti.
+## I microservizi comprano autonomia operativa
 
-Questo crea una proprietà potente:
+Con i **microservizi**, alcuni boundary diventano unità di deployment autonome.
 
-> **la separazione logica può essere accompagnata da autonomia operativa.**
+La parola chiave non è “piccoli”.
 
-Un servizio può essere rilasciato e scalare indipendentemente, fallire senza abbattere l'intero sistema e avere un proprio ciclo di delivery. Può anche avere ownership dedicata e possedere storage e security boundary differenti. Il punto è capire quali di queste proprietà ci servano davvero.
+È **autonomi**.
 
-Ma “può” è importante.
+Un servizio può avere una propria cadence di rilascio, scalare indipendentemente, possedere storage e security boundary distinti e permettere a un team di modificare una capability senza ricostruire l'intera applicazione.
 
-Dividere il codice non garantisce che queste proprietà emergano davvero.
+Queste proprietà sono preziose quando il problema le richiede.
 
-Se due servizi devono essere sempre rilasciati insieme, non abbiamo reale deploy independence.
+Ma non sono garantite dalla topologia.
 
-Se condividono lo stesso database e le stesse tabelle, l'ownership dei dati resta ambigua.
+Se due servizi devono essere sempre rilasciati insieme, non abbiamo reale deploy independence. Se condividono lo stesso schema dati e lo modificano entrambi, la data ownership rimane ambigua. Se ogni request attraversa una catena sincrona di servizi obbligatori, il failure isolation può essere minimo. Se ogni cambiamento richiede il consenso di molti team, l'autonomia organizzativa rimane teorica.
 
-Se un servizio non può rispondere senza chiamarne altri cinque sincronicamente, la failure isolation può essere minima.
+Il confine operativo ha valore soltanto se cambia davvero il modo in cui il sistema può essere costruito, rilasciato, scalato o fatto fallire.
 
-Se ogni modifica richiede una riunione tra sei team, l'autonomia organizzativa è teorica.
+## Un continuum, non tre scatole
 
-### Il continuum è più utile delle categorie
-
-Nella realtà esistono molte configurazioni intermedie.
-
-Per esempio:
+Nella pratica esistono molte configurazioni intermedie:
 
 ```text
 singolo deployable + singolo database
 singolo deployable + ownership logica per schema
-più deployable + database condiviso
-più deployable + database separati
-moduli interni + alcuni servizi estratti
+singolo deployable + alcuni worker separati
+più deployable + database condiviso con ownership distinta
+alcuni servizi estratti + nucleo modulare
+più servizi + storage separato
 ```
 
-Trattare la topologia come un continuum è spesso più utile che cercare l'etichetta perfetta.
+Queste forme non devono per forza ricevere un'etichetta perfetta.
 
-La domanda diventa:
+È più utile chiederci quali boundary siano logici e quali anche operativi.
 
-> Dove abbiamo bisogno di un boundary logico e dove abbiamo anche bisogno di un boundary operativo?
+Possiamo pensare a due assi.
 
-### Separazione logica e separazione operativa
-
-Possiamo descrivere due assi distinti.
-
-Il primo è la separazione logica:
+Il primo riguarda il significato:
 
 ```text
 responsabilità
@@ -123,7 +100,7 @@ contratti
 modello
 ```
 
-Il secondo è la separazione operativa:
+Il secondo riguarda l'esercizio:
 
 ```text
 deploy
@@ -134,12 +111,16 @@ failure domain
 scaling
 ```
 
-Una decisione matura parte dal primo asse e aggiunge il secondo quando produce valore.
+Una decisione matura costruisce prima il primo asse e aggiunge il secondo quando produce valore sufficiente.
 
-Questo ci dà una regola semplice:
+> **Non distribuire per ottenere modularità se puoi ottenere modularità senza distribuire. La distribuzione deve comprare qualcosa in più.**
 
-> **non distribuire per ottenere modularità se puoi ottenere modularità senza distribuire.**
+## Evidenze metodologiche
 
-La distribuzione dovrebbe comprare qualcosa in più.
+Microsoft Azure Architecture Center tratta gli architecture style come insiemi di vincoli con benefici e sfide specifiche, non come una scala di maturità. La documentazione sui microservizi evidenzia deploy indipendente, fault isolation, scaling e data autonomy, ma anche la maggiore complessità di service discovery, consistenza e operation: [Microsoft Learn — Architecture styles](https://learn.microsoft.com/azure/architecture/guide/architecture-styles/) e [Microsoft Learn — Microservices architecture style](https://learn.microsoft.com/azure/architecture/microservices/).
 
-Se non sappiamo cosa, forse non serve ancora.
+La stessa documentazione sottolinea che definire correttamente i service boundary non è un processo meccanico e richiede domain analysis, requisiti e architecture characteristics: [Microsoft Learn — Use domain analysis to model microservices](https://learn.microsoft.com/azure/architecture/microservices/model/domain-analysis).
+
+Queste fonti non dimostrano che il modular monolith sia sempre preferibile o che i microservizi debbano arrivare tardi.
+
+Supportano il criterio che useremo nel capitolo: **prima il boundary e le proprietà richieste, poi la topologia che ha il fit migliore**.
