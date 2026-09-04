@@ -1,10 +1,10 @@
 # Capitolo 9 — API e contratti
 
-> **Nota editoriale.** Le affermazioni su HTTP, REST, gRPC, GraphQL, WebSocket e AsyncAPI in questo capitolo vengono collegate a specifiche o documentazione ufficiale. Order Operations rimane un caso simulato/composito.
+> **Nota editoriale.** Le affermazioni su HTTP, REST, gRPC, GraphQL, WebSocket e AsyncAPI vengono collegate a specifiche o documentazione ufficiale. Order Operations rimane un caso simulato/composito.
 
 ## L'API è una promessa
 
-Quando guardiamo un'API dal codice è facile ridurla a un insieme di endpoint.
+Quando guardiamo un'API dal codice è facile ridurla alla sua superficie più visibile:
 
 ```text
 GET /orders
@@ -12,19 +12,19 @@ POST /orders
 GET /orders/{id}
 ```
 
-Ma l'endpoint è soltanto la parte più visibile.
+Ma un endpoint è soltanto un punto d'ingresso.
 
-un'API stabilisce una relazione tra chi offre una capability e chi dipende da essa.
+La parte architetturale è la promessa che esiste dietro quel punto d'ingresso.
 
-Quella relazione contiene promesse sul significato di richieste e risposte, sui dati che possono mancare e sugli errori possibili. Definisce che cosa possa essere ritentato, quali operazioni producano side effect, quali autorizzazioni e limiti esistano e come il contratto possa cambiare nel tempo senza sorprendere i consumer.
+Chi offre la capability promette al consumer che una richiesta ha un certo significato, che alcuni dati saranno presenti e altri potranno mancare, che determinate operazioni producono side effect e che certi errori indicano condizioni distinguibili. Promette anche qualcosa su authorization, retry, limiti, freshness e compatibilità futura.
 
 Per questo:
 
-> **un'API non è un controller pubblico. È un contratto tra sistemi.**
+> **Un'API non è un controller pubblico. È un contratto fra sistemi che devono poter evolvere senza conoscere reciprocamente tutti i dettagli interni.**
 
-### Un refactoring non dovrebbe diventare un breaking change
+## Nascondere l'implementazione significa preservare il cambiamento
 
-Immaginiamo che un client riceva:
+Immaginiamo che un consumer riceva:
 
 ```json
 {
@@ -33,9 +33,9 @@ Immaginiamo che un client riceva:
 }
 ```
 
-Se domani spostiamo `paymentStatus` da una tabella a un'altra, il consumer non dovrebbe essere costretto a cambiare.
+Domani possiamo spostare `paymentStatus` in un altro datastore, calcolarlo attraverso un adapter o cambiare ORM senza obbligare il consumer a saperlo.
 
-Se invece l'API espone direttamente la forma del database:
+Se invece esponiamo:
 
 ```json
 {
@@ -43,58 +43,54 @@ Se invece l'API espone direttamente la forma del database:
 }
 ```
 
-abbiamo trasformato un dettaglio interno in una dipendenza esterna.
+abbiamo trasformato una decisione di persistenza in una dipendenza esterna.
 
-Microsoft Azure Architecture Center raccomanda esplicitamente di evitare API che espongono dettagli di implementazione o rispecchiano lo schema interno del database; l'API dovrebbe modellare il dominio e servire come contratto, in modo che un refactoring interno non richieda automaticamente un cambio di interfaccia.
+Un refactoring interno diventa potenzialmente una breaking change.
 
-Fonte:
+È esattamente il tipo di coupling accidentale che abbiamo cercato di contenere nei capitoli precedenti. Cambia soltanto il confine: qui il consumer può vivere in un altro processo, in un altro team o perfino fuori dall'organizzazione.
 
-- [Microsoft Learn — API design](https://learn.microsoft.com/azure/architecture/microservices/design/api-design)
+Microsoft Azure Architecture Center raccomanda di modellare le API sul dominio invece di esporre dettagli d'implementazione o riflettere direttamente lo schema del database, proprio per preservare indipendenza fra interfaccia ed evoluzione interna: [Microsoft Learn — API design](https://learn.microsoft.com/azure/architecture/microservices/design/api-design).
 
-Questa idea è indipendente dai microservizi.
+## Il coupling del contratto è intenzionale
 
-Vale anche tra moduli, tra backend e frontend, tra un prodotto e i suoi partner o tra un'applicazione e un agent tool.
+Un sistema senza coupling non esiste.
 
-### Il contratto crea coupling intenzionale
+Il consumer deve conoscere qualcosa: la capability che può invocare, la forma del messaggio, il significato dei campi, gli errori osservabili e le regole che governano l'evoluzione.
 
-Un sistema senza coupling non è un sistema.
+Il problema è decidere **quale conoscenza meriti di attraversare il boundary**.
 
-Il problema è distinguere coupling necessario da coupling accidentale.
+Il consumer non dovrebbe sapere quale tabella venga letta, quale framework serializzi la risposta o quale cache venga usata. Non dovrebbe conoscere la topologia interna né l'ordine con cui il provider combina più componenti, a meno che quella sequenza non produca conseguenze osservabili che fanno parte del contratto.
 
-Un contratto buono rende intenzionale ciò che deve essere condiviso e nasconde ciò che non serve condividere.
+Questa distinzione crea evolvibilità.
 
-Il consumer deve conoscere il significato della capability e la forma del messaggio, le regole di compatibilità e le condizioni di errore.
+Microsoft collega API ben definite, compatibilità e versioning alla possibilità che servizi e consumer evolvano con minore coordinamento: [Microsoft Learn — Design Principles for Azure Applications](https://learn.microsoft.com/azure/architecture/guide/design-principles/).
 
-Non dovrebbe invece conoscere il nome della tabella o la struttura delle classi, il framework ORM, la topologia interna, la strategia di caching o la sequenza con cui il provider realizza internamente la capability.
+## Contract-first significa semantic-first
 
-Questa separazione crea evolvibilità.
+L'espressione *contract-first* viene spesso tradotta in:
 
-Microsoft collega esplicitamente API ben definite e versioning alla capacità dei servizi di evolvere in modo indipendente.
+```text
+prima OpenAPI
+poi il codice
+```
 
-Fonte:
-
-- [Microsoft Learn — Design Principles for Azure Applications](https://learn.microsoft.com/azure/architecture/guide/design-principles/)
-
-### Contract-first non significa schema-first
-
-L'espressione *contract-first* può essere fraintesa.
-
-Non significa necessariamente scrivere per prima cosa OpenAPI o `.proto`.
+È meglio che generare una public API accidentalmente dal controller, ma può comunque essere troppo presto.
 
 Prima dello schema viene la semantica.
 
-Per Order Operations, prima di decidere l'URI dobbiamo sapere che cosa significhi “ordine problematico”, chi possa vederlo e quanto il dato possa essere stale. Dobbiamo conoscere la source of truth e decidere che cosa debba accadere quando una dipendenza non risponde.
+Per Order Operations dobbiamo sapere che cosa significhi “ordine problematico”, chi possa vederlo, quali stati siano autorevoli e quanto una vista possa essere stale. Dobbiamo capire che cosa accada quando Payments o Shipping non rispondono e quali azioni appartengano davvero alla console.
 
-Solo dopo possiamo scegliere una rappresentazione.
+Solo allora possiamo scegliere una forma di interazione e trasformarla in un contratto machine-readable.
 
-Il flusso è:
+La sequenza che useremo è:
 
 ```text
 capability
-→ semantica
-→ invarianti
+→ consumer
+→ semantica e invarianti
 → interaction style
 → contract
+→ machine-readable schema
 → implementation
 ```
 
@@ -104,32 +100,32 @@ Non:
 framework
 → controller
 → endpoint
-→ speriamo che la semantica emerga
+→ semantica ricostruita dopo
 ```
 
-### Un contratto vive nel tempo
+Il contratto non viene prima del problema.
 
-La parte difficile di un'API raramente è la prima versione.
+Viene prima dell'implementazione.
 
-È la seconda.
+## La vera difficoltà arriva alla seconda versione
 
-Poi la terza.
+La prima versione di un'API è relativamente semplice perché provider e consumer possono nascere insieme.
 
-Un consumer può aggiornarsi lentamente.
+Il costo emerge quando uno dei due deve cambiare senza l'altro.
 
-Un partner può non essere sotto il nostro controllo.
+Un partner può aggiornarsi dopo settimane. Un'app mobile può restare installata per mesi. Un evento può essere processato molto tempo dopo la pubblicazione. Un consumer interno può avere una release cadence diversa. Alcuni consumer possono perfino essere sconosciuti al team che possiede l'API.
 
-Un'app mobile può restare installata per mesi.
+Una breaking change ha quindi una proprietà particolare:
 
-Un evento pubblicato ieri può essere processato dopo un ritardo.
+> **il suo blast radius attraversa ownership e tempo.**
 
-Una breaking change ha quindi una proprietà particolare: **il suo blast radius attraversa ownership e tempo**.
+Questa è la ragione per cui compatibility, versioning e deprecation non sono manutenzione da aggiungere più avanti. Sono proprietà architetturali del contratto.
 
-Da questo punto del libro leggeremo ogni API con quattro domande:
+Nel resto del capitolo leggeremo ogni API attraverso quattro domande:
 
-1. che cosa promette?
-2. a chi lo promette?
-3. come può fallire?
-4. come può evolvere senza costringere tutti a cambiare insieme?
+1. che cosa promette al consumer?
+2. quale semantica operativa e di failure attraversa il boundary?
+3. quale implementazione riesce a nascondere?
+4. come può cambiare senza costringere tutti a cambiare nello stesso momento?
 
 Sono domande di architettura prima che di sintassi.
