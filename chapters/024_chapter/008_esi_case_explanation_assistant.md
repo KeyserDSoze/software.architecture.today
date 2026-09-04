@@ -1,158 +1,94 @@
-# 24.8 — ESI: Case Explanation Assistant
+# 24.8 — ESI: Case Explanation Assistant entra nell'architettura
 
-È il momento di far entrare davvero l'AI dentro Order Operations.
+A questo punto Order Operations può introdurre la prima capability AI runtime senza trattarla come una demo separata.
 
-Non con una demo separata.
+Il progetto possiede già boundary di dominio, ownership, security, reliability, testing, observability e cost. Il Case Explanation Assistant deve quindi **entrare dentro quelle decisioni**, non costruire un mondo parallelo in cui il modello possiede una seconda versione della verità.
 
-Dentro l'architettura esistente.
+Il problema di prodotto è concreto. Un operatore che apre un caso deve spesso mettere insieme Operational Case, stato ordine, segnali Payments, Shipping, Payment Escalation ed eventuali failure di integrazione. I dati esistono, ma ricostruire rapidamente la storia costa attenzione.
 
-## Il problema
+La feature deve ridurre quel costo cognitivo rispondendo a una domanda precisa:
 
-Un operatore apre un caso problematico.
+> **Che cosa sappiamo, che cosa possiamo soltanto ipotizzare e quale evidence ci manca ancora?**
 
-Oggi deve leggere:
+Non deve decidere quale azione economica eseguire.
 
-- Operational Case;
-- stato ordine;
-- ultimi segnali Payments;
-- stato Shipping;
-- Payment Escalation;
-- eventuali failure di integrazione;
-- informazioni operative presenti nella console.
+## La prima scelta è togliere authority che non serve
 
-L'operatore deve poi ricostruire mentalmente una timeline.
+V1 è read-only e advisory.
 
-Il lavoro è ripetitivo ma non interamente deterministico: capire quali fatti sono rilevanti e come spiegarli in linguaggio naturale è un buon candidato per una capability generativa.
+Il modello può ricevere context autorizzato e restituire una spiegazione. Non può fare refund, retry payment, modificare Priority o `OperationalCase`, inviare comunicazioni al cliente, navigare il web o accedere arbitrariamente a dati enterprise.
 
-## Outcome
+Questa restrizione è parte del product contract, non una limitazione accidentale del primo adapter.
 
-La prima versione deve aiutare l'operatore a rispondere più velocemente a:
-
-> Che cosa sappiamo, che cosa sembra essere successo e che cosa ci manca ancora per capirlo?
-
-Non deve rispondere a:
-
-> Quale azione economica dobbiamo eseguire?
-
-## Il flow
+Il valore della feature viene dal comprendere più velocemente il caso. Concederle side effect aumenterebbe il blast radius senza essere necessario per provare quell'outcome.
 
 ```text
-Operator
-   ↓
-Order Operations API
-   ↓
-Authorization / tenant boundary
-   ↓
-CaseExplanationContextBuilder
-   ├── OperationalCase
-   ├── Orders support view
-   ├── Payments support view
-   ├── Shipping support view
-   └── deterministic derived facts
-   ↓
+read authorized facts
+→ interpret
+→ explain with sources
+```
+
+resta quindi separato da:
+
+```text
+decide remediation
+→ execute business action
+```
+
+Se Product proporrà il secondo percorso, dovremo riaprire Threat Model, authority, authorization, Autonomy Matrix, eval e recovery.
+
+## Il context path è deterministico
+
+La prima versione non usa RAG.
+
+Il context builder deve raccogliere soltanto le source note del caso:
+
+```text
+OperationalCase
+Orders support view
+Payments support view
+Shipping support view
+deterministic derived facts
+```
+
+applicando authorization e tenant boundary prima dell'acquisizione.
+
+Il risultato concettuale è `CaseExplanationContext`, che conserva `caseId`, `tenantId`, `observedAt` e una collezione di source con provenance, kind e observation time.
+
+Il design non introduce embedding o vector database perché non esiste ancora un retrieval problem che li giustifichi. Se in futuro entreranno migliaia di runbook o incident history, quella nuova forza riaprirà la strategia.
+
+> **La prima implementation compra grounding senza comprare ancora una piattaforma di retrieval.**
+
+## Il model boundary è già codice
+
+Il capstone contiene:
+
+```text
+src/ai/case-explanation.ts
+```
+
+con `CaseExplanationContext`, `CaseExplanationResult` e un port provider-neutral:
+
+```text
 CaseExplanationPort
-   ↓
-Model adapter
-   ↓
-structured output validation
-   ↓
-source-reference validation
-   ↓
-CaseExplanationResult
-   ↓
-Operator UI
+  explain(context)
+  → CaseExplanationResult
 ```
 
-Il model provider resta dietro `CaseExplanationPort`.
+Il dominio non importa SDK OpenAI, Azure o altri provider.
 
-## V1 non usa RAG
+Questo è un avanzamento concreto: **il contratto semantico della capability è Codified**.
 
-La scelta è esplicita:
+Non significa che un modello reale sia già integrato.
 
-```text
-retrieval strategy
-= deterministic context assembly
-```
+L'adapter provider resta Pending e nessuna model route è stata scelta. Il port protegge il code boundary; la futura eval dovrà proteggere il behavioral boundary.
 
-Ragione:
+## L'output separa fact, hypothesis e missing evidence
 
-```text
-sources known
-+ structured
-+ bounded per case
-+ existing authorization paths
-```
-
-Non introduciamo ancora:
+`CaseExplanationResult` espone:
 
 ```text
-embedding model
-vector database
-chunking pipeline
-semantic retrieval
-```
-
-Review trigger:
-
-> l'assistant deve usare un corpus ampio di runbook, knowledge article o incidenti storici non deterministically addressable.
-
-## V1 non usa tool di scrittura
-
-```text
-Allowed
-- read authorized case context
-- generate explanation
-
-Forbidden
-- retry payment
-- refund
-- modify Priority
-- modify case
-- send message
-- navigate external web
-- access arbitrary enterprise data
-```
-
-Questa scelta riduce il valore massimo teorico della feature.
-
-Riduce anche drasticamente il blast radius.
-
-## Il contratto semantico
-
-Input normalizzato:
-
-```text
-CaseExplanationContext
-
-caseId
-tenantId
-observedAt
-operationalCase
-orderFacts
-paymentFacts
-shippingFacts
-derivedFacts
-```
-
-Ogni fact importante conserva almeno:
-
-```text
-source
-observedAt
-reference
-```
-
-Output:
-
-```text
-CaseExplanationResult
-
-status:
-  Supported
-  PartiallySupported
-  InsufficientEvidence
-  Unavailable
-
+status
 summary
 confirmedFacts[]
 hypotheses[]
@@ -160,266 +96,170 @@ missingEvidence[]
 sourceReferences[]
 ```
 
-## Regola fact / hypothesis
+Lo status distingue `Supported`, `PartiallySupported`, `InsufficientEvidence` e `Unavailable`.
 
-Un `confirmedFact` deve poter essere ricondotto a una source autorizzata.
+Un confirmed fact deve indicare source conosciute. Una hypothesis conserva a sua volta provenance ma resta rappresentata come interpretazione. Se lo status dichiara supporto parziale o evidence insufficiente, il risultato deve rendere esplicito ciò che manca.
 
-Una `hypothesis` deve essere presentata esplicitamente come interpretazione.
+Questo contratto rende possibile una UI che non appiattisca tutto in una frase autorevole.
 
-Esempio accettabile:
+La regola di prodotto è:
 
-```text
-Confirmed fact
-L'ultimo tentativo di pagamento osservato è fallito.
-Source: payments-attempt-123
-```
+> **missing evidence è informazione da mostrare, non un vuoto che il modello deve riempire con conoscenza parametrica.**
 
-```text
-Hypothesis
-Il caso potrebbe essere in attesa di un retry o di una verifica manuale.
-```
+## Il primo validator protegge ciò che può essere deterministico
 
-Esempio non accettabile:
+Il capstone contiene anche:
 
 ```text
-Il pagamento è definitivamente fallito e va rimborsato.
+validateCaseExplanationResult(...)
 ```
 
-se nessuna source sostiene entrambe le conclusioni.
+che verifica source reference sconosciute, fact o hypothesis senza source e status parziali privi di `missingEvidence`.
 
-## Missing evidence è una feature
+Il commento nel codice è importante: questa funzione **non dichiara di provare groundedness**.
 
-Se Payments è temporaneamente indisponibile:
+Può controllare che un reference esista nel context. Non può determinare da sola che il testo della claim sia realmente supportato dalla source.
+
+Questa distinzione evita verification theatre:
 
 ```text
-status = PartiallySupported
-missingEvidence += Payments current support view
+reference integrity
+= deterministic guardrail
+
+grounded semantic claim
+= behavioral evaluation problem
 ```
 
-oppure:
+Il validator protegge il boundary che sa misurare e non finge di coprire quello successivo.
+
+## Il seed di evaluation è già versionato
+
+Il repository contiene:
 
 ```text
-status = InsufficientEvidence
+evals/case-explanation-v1.jsonl
 ```
 
-se quella source è necessaria per rispondere alla domanda.
+con otto scenari iniziali:
 
-Non chiediamo al modello di “fare del suo meglio” usando conoscenza generale.
+| ID | Rischio principale |
+|---|---|
+| EVAL-001 | nominal case con source coerenti |
+| EVAL-002 | Payments evidence mancante |
+| EVAL-003 | evidence in conflitto |
+| EVAL-004 | prompt injection in testo controllato dall'utente |
+| EVAL-005 | richiesta cross-tenant |
+| EVAL-006 | richiesta di decidere un refund |
+| EVAL-007 | richiesta di override della Priority |
+| EVAL-008 | ambiguity con più spiegazioni plausibili |
 
-Nel nostro workload:
+Ogni scenario dichiara required behavior, forbidden behavior e severità del failure.
 
-> **ammettere che manca evidence è comportamento corretto.**
+Questo significa che **l'eval oracle seed è Codified**.
 
-## Failure isolation
+Non significa che model quality sia Verified. Nessun adapter/provider è stato ancora eseguito contro il dataset e non esiste alcuno score da dichiarare.
 
-Se il model provider è down:
+Questa differenza deve restare visibile nel manoscritto e nel capstone.
+
+## AI boundary fitness: automatizzare il minimo deterministico
+
+ESI aggiunge:
 
 ```text
-Case Explanation Assistant
-→ Unavailable
+tests/ai-boundary-fitness.test.mjs
 ```
 
-ma:
+La baseline contiene cinque check:
 
-```text
-Operational Case view
-→ remains available
-```
+| ID | Proprietà protetta |
+|---|---|
+| AI-001 | AI Feature Contract, source boundary ed eval seed esistono |
+| AI-002 | il boundary semantico resta provider-neutral, read-only e senza RAG obbligatorio |
+| AI-003 | confirmed fact con source conosciuta supera la validation |
+| AI-004 | source inventate e partial result senza missing evidence vengono rifiutati |
+| AI-005 | il seed copre nominal, evidence, security, cross-tenant, authority e ambiguity |
 
-La feature AI non entra nel critical path della lettura operativa di base.
+Questi test non provano prompt-injection resistance o usefulness del modello. Rendono invece difficile perdere accidentalmente alcune proprietà strutturali che abbiamo già deciso.
 
-## Security model
+È la stessa strategia usata per architecture, context e agent governance: **fitness function dove la proprietà è meccanicamente verificabile; eval e review dove non lo è**.
 
-### Authorization
+## Failure isolation: il core continua a esistere senza AI
 
-Il context builder riceve soltanto dati già autorizzati per l'operatore e tenant correnti.
+Case Explanation Assistant non entra nel critical path della vista operativa.
 
-### Data minimization
+Se il provider è down, lo stato dell'assistant diventa `Unavailable` e l'operatore continua a usare l'Operational Case view. Se manca Payments evidence, il risultato può diventare `PartiallySupported` o `InsufficientEvidence`. Se il model output resta invalido dopo il bounded repair, la UI non mostra una explanation generata.
 
-Non inviamo interi aggregate se bastano i campi necessari alla spiegazione.
-
-### Untrusted text
-
-Note/operator/customer text vengono marcate come dati, non come instruction.
-
-### Secret
-
-Nessun secret nel context.
-
-### Tool
-
-Nessun write tool in v1.
-
-### Rendering
-
-Output Markdown/HTML, se introdotto, deve essere sanitizzato prima della UI.
-
-## Reliability
-
-Il primo AI runtime target non riceve ancora un SLO numerico inventato.
-
-Definiamo però la relazione col prodotto:
+La relazione è intenzionale:
 
 ```text
 AI unavailable
 ≠
-core Order Operations unavailable
+Order Operations unavailable
 ```
 
-E misureremo:
+Questa decisione compra graceful degradation prima ancora di avere un SLO numerico per il modello.
+
+## Observability e cost vengono progettati prima dei numeri
+
+Il contract definisce candidate event come request, completed, unavailable, insufficient-evidence, invalid-output e security-rejected. Dimension come model route, result status, failure class e versioni di prompt/context possono essere bounded; case ID, operator ID e raw prompt non diventano metric dimensions.
+
+Anche il Cost Model identifica driver candidati come token, context size, model route e retry, ma non pubblica prezzi o saving inventati.
+
+Le future unit metric possono includere `cost per accepted Case Explanation`, sempre accoppiate a quality evidence.
+
+Finché non esiste una runtime configuration eseguita, observability e unit economics restano Designed.
+
+## Il provider resta volutamente una two-way door
+
+ESI non sceglie ancora un modello.
+
+Prima vuole confrontare candidate configuration sullo stesso eval seed e misurare almeno behavior critico, latency e cost. Provider e model route restano quindi Pending.
+
+Questa è una scelta architetturale, non un buco da riempire con il nome del provider più popolare.
 
 ```text
-latency
-provider error
-invalid output
-fallback
-InsufficientEvidence
+product contract
+→ Codified
+
+eval risk surface
+→ Codified
+
+provider implementation
+→ Pending
+
+eval execution
+→ Pending
 ```
 
-prima di fissare target di produzione.
+> **Prima definiamo quale comportamento il prodotto richiede. Poi lasciamo che siano workload eval ed evidence a restringere la technology choice.**
 
-## Observability
+## Stato ESI dopo il Capitolo 24
 
-Nuovi signal candidati:
+A fine capitolo la fotografia corretta è:
 
 ```text
-case_explanation.request
-case_explanation.completed
-case_explanation.unavailable
-case_explanation.insufficient_evidence
-case_explanation.invalid_output
-case_explanation.security_rejected
+AI Feature Contract                 Codified
+CaseExplanation semantic contract   Codified
+Deterministic result validation     Codified
+Eval dataset EVAL-001…008           Codified
+AI boundary fitness AI-001…005      Codified + locally verifiable
+Deterministic context builder       Designed / Pending implementation
+Provider/model adapter              Pending
+Provider/model decision             Pending eval comparison
+Eval execution                      Pending
+Production runtime                  Not deployed
+Write tools                         Not authorized
+RAG/vector retrieval                Not selected / not required in v1
 ```
 
-Dimensioni bounded:
+Il progetto è avanzato molto senza aver ancora chiamato un modello reale.
 
-```text
-modelRoute
-resultStatus
-failureClass
-promptVersion
-contextBuilderVersion
-```
-
-Non metric dimensions:
-
-```text
-caseId
-operatorId
-raw prompt
-raw source text
-```
-
-I correlation identifier possono vivere nei trace/log appropriati secondo privacy policy.
-
-## Evaluation
-
-Il dataset iniziale deve includere almeno:
-
-```text
-EVAL-001 clear nominal case
-EVAL-002 missing Payments evidence
-EVAL-003 conflicting timeline
-EVAL-004 customer note with prompt injection
-EVAL-005 cross-tenant request
-EVAL-006 request to decide refund
-EVAL-007 request to override Priority
-EVAL-008 ambiguous multi-cause case
-```
-
-Ogni case dichiara:
-
-```text
-required facts
-forbidden claims
-required missing-evidence behavior
-required source references
-severity of failure
-```
-
-Il dataset entra nel repository, ma finché non esiste un model adapter eseguibile non dichiariamo un eval score.
-
-## Model/provider choice
-
-Non la prendiamo ancora.
-
-Abbiamo abbastanza informazioni per definire il boundary.
-
-Non abbiamo ancora:
-
-- baseline di qualità su più modelli;
-- latency comparison;
-- provider cost comparison;
-- privacy/security decision finale;
-- adapter implementation.
-
-Quindi il provider resta una **two-way door** da testare con eval.
-
-È una decisione intenzionale.
-
-> **Prima definiamo che cosa deve fare la feature. Poi confrontiamo i modelli su quella feature.**
-
-## Il compromesso ESI
-
-```text
-Product / Operations
-→ vuole spiegazioni veloci e naturali
-
-Payments & Risk
-→ vuole preservare semantic authority
-
-Security
-→ vuole minimizzare data/tool blast radius
-
-Platform
-→ vuole evitare provider coupling diffuso
-
-Finance
-→ vuole costo misurabile per useful outcome
-```
-
-Decisione:
-
-```text
-read-only assistant
-+ deterministic grounding
-+ structured source-backed output
-+ no write tool
-+ provider behind port
-+ explicit fallback
-+ eval before rollout
-```
-
-Costo accettato:
-
-- meno automazione;
-- nessun remediation agent;
-- nessun RAG su knowledge base al primo slice;
-- possibilità di risposta `InsufficientEvidence`.
-
-Quality floor:
-
-- ownership;
-- tenant isolation;
-- source provenance;
-- no hidden economic decision;
-- core journey indipendente dal model provider.
+Ed è esattamente il punto del capitolo: **la parte più importante dell'AI Architecture può essere progettata prima di scegliere l'AI provider**.
 
 ## Review trigger
 
-Riapriamo la decisione se:
+Il contract va riaperto se Product chiede action tool, entra un corpus documentale ampio, compare una nuova source sensibile, nasce cross-case analysis, la feature entra nel critical journey, cambia model/provider, le eval scoprono una nuova failure class oppure cost e latency rendono insufficiente la topologia corrente.
 
-1. Product richiede action tool;
-2. entra un corpus documentale ampio;
-3. l'operatore chiede cross-case analysis;
-4. eval dimostrano che deterministic context è insufficiente;
-5. latency/cost non sono accettabili;
-6. provider/model drift cambia la quality baseline;
-7. una nuova source contiene dati più sensibili;
-8. l'assistant diventa parte del critical journey.
+Ogni trigger allarga o modifica una delle quattro superfici viste nel capitolo: authority, context, capability o evidence/lifecycle.
 
-La feature nasce quindi volutamente stretta.
-
-Non perché l'AI sia poco capace.
-
-Perché l'architettura deve permetterci di aumentare il potere **solo dopo aver aumentato anche evidence e controlli**.
+> **ESI non concede al modello più potere perché il modello può usarlo. Gli concede soltanto il potere necessario all'outcome corrente e prepara evidence e controlli prima di allargare il boundary.**
