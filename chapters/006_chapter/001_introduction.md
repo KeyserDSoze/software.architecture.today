@@ -1,58 +1,26 @@
 # Capitolo 6 — Qualità prima della tecnologia
 
-## Gli aggettivi non sono requisiti
+“Deve essere veloce.” “Deve essere scalabile.” “Deve essere sicuro.” “Deve essere resiliente.” “Deve essere economico.”
 
-“Deve essere veloce.”
+Nei progetti software queste frasi compaiono continuamente e sembrano requisiti. In realtà, finché restano così, sono soprattutto direzioni. Non ci dicono quanto sia veloce abbastanza, quale failure sia inaccettabile, fino a quale carico debba scalare il sistema o quale costo siamo disposti a pagare per ottenere una proprietà migliore.
 
-“Deve essere scalabile.”
+L'architettura diventa concreta quando gli aggettivi smettono di essere aspirazioni e iniziano a discriminare tra alternative.
 
-“Deve essere sicuro.”
-
-“Deve essere resiliente.”
-
-“Deve essere economico.”
-
-Sono frasi che sentiamo continuamente nei progetti software.
-
-Sembrano requisiti.
-
-Spesso non lo sono ancora.
-
-Sono direzioni.
-
-Intenzioni.
-
-A volte desideri.
-
-Per diventare requisiti utili devono essere trasformati in condizioni che possiamo discutere, confrontare e verificare.
-
-Dire che un sistema deve essere veloce non ci dice se 80 millisecondi siano eccellenti, necessari o inutilmente costosi.
-
-Dire che deve essere altamente disponibile non ci dice se una singola ora di downtime all'anno sia accettabile, catastrofica o irrilevante.
-
-Dire che deve scalare non ci dice fino a quale carico, con quale profilo di traffico e con quale degradazione consentita.
-
-Dire che deve essere sicuro non identifica minacce, asset, trust boundary o rischio accettabile.
-
-L'architettura comincia a diventare concreta quando gli aggettivi smettono di essere aspirazioni e diventano proprietà osservabili.
-
-Per esempio:
-
-> Il 95° percentile di `GET /orders/{id}` deve rimanere sotto 300 ms fino a 500 richieste al secondo nel profilo di traffico atteso.
+> Il p95 di `GET /orders/{id}` deve rimanere sotto 300 ms fino a 500 richieste al secondo nel profilo di traffico previsto.
 
 Oppure:
 
-> La perdita massima accettabile di dati confermati è cinque minuti e il ripristino del servizio deve avvenire entro sessanta minuti da un incidente classificato come disaster.
+> In uno scenario di disaster, la perdita massima accettabile di dati confermati è cinque minuti e il critical journey deve tornare disponibile entro sessanta minuti.
 
 Oppure:
 
-> Un operatore non deve poter visualizzare ordini appartenenti a tenant per i quali non possiede autorizzazione esplicita.
+> Un operatore non può visualizzare ordini appartenenti a tenant per i quali non possiede autorizzazione.
 
-Adesso possiamo progettare.
+Ora possiamo discutere design, costi e verifiche. Prima avevamo soltanto parole desiderabili.
 
-### Prima la qualità, poi il prodotto
+## La tecnologia è una risposta
 
-Un errore ricorrente consiste nel scegliere una tecnologia e solo dopo chiederci quali requisiti può soddisfare.
+Un errore ricorrente consiste nel partire da una tecnologia e cercare successivamente il requisito che la giustifichi:
 
 ```text
 Kubernetes
@@ -62,7 +30,7 @@ Kubernetes
 → adesso cerchiamo il problema
 ```
 
-Il processo dovrebbe funzionare al contrario.
+Il metodo che useremo nel libro procede nella direzione opposta:
 
 ```text
 problema
@@ -73,117 +41,55 @@ problema
 ↓
 alternative
 ↓
+trade-off
+↓
 scelta
 ```
 
-Questo capitolo parte quindi da una regola semplice:
+La differenza non è accademica. Se scegliamo prima il mezzo, tenderemo a interpretare il problema attraverso ciò che quel mezzo sa fare. Se definiamo prima ciò che deve diventare vero, possiamo chiedere a tecnologie diverse di dimostrare il proprio fit.
 
 > **Prima definiamo che cosa deve essere vero. Poi discutiamo con che cosa renderlo vero.**
 
-La tecnologia viene dopo perché è una risposta.
+## “Migliore” non esiste senza contesto
 
-### La soluzione migliore non esiste nel vuoto
+Quando chiediamo quale sia il database, il framework o la piattaforma “migliore”, spesso stiamo ponendo una domanda incompleta. Una soluzione può offrire throughput superiore e costare molto di più; aumentare availability e richiedere una capacità operativa che il team non possiede; ridurre latency e indebolire consistency; comprare flessibilità futura al prezzo di molta complessità presente.
 
-Quando diciamo “scegliamo la tecnologia migliore” rischiamo di porre una domanda mal definita.
+La tecnologia non può essere valutata nel vuoto. Il contesto comprende il comportamento richiesto, i critical journey, il profilo di carico, i failure che non possiamo accettare, budget, team, compliance, capacità di recovery e costo di cambiare idea in futuro.
 
-Migliore rispetto a che cosa?
+La domanda utile diventa quindi:
 
-Una soluzione può avere throughput superiore e costare molto di più.
+> **Quale soluzione soddisfa meglio le proprietà che contano, dentro i vincoli reali che abbiamo, pagando costi e rischi che siamo disposti ad accettare?**
 
-Può avere disponibilità maggiore e richiedere un team operativo che non abbiamo.
+Questo è il significato operativo di **fit**.
 
-Può ridurre la latency e introdurre consistency più debole.
+## Fit before fashion
 
-Può essere estremamente flessibile e molto più difficile da comprendere.
+Una tecnologia non diventa adatta perché è nuova, popolare, cloud-native, usata da una big tech o molto presente nelle conferenze. Questi elementi possono fornire segnali utili: maturità dell'ecosistema, disponibilità di competenze, documentazione, esperienza operativa. Non dimostrano però che la tecnologia risolva bene il nostro problema.
 
-Può essere moderna, elegante e completamente sproporzionata al problema.
+Allo stesso modo, una tecnologia non diventa sbagliata perché è semplice o poco affascinante. PostgreSQL può avere un fit migliore di tre datastore specializzati. Una VM può essere più adatta di Kubernetes. Un singolo deployable può essere più ragionevole di una costellazione di servizi. Una queue può essere indispensabile in un workload e puro overhead in un altro.
 
-Non esiste quasi mai una tecnologia universalmente migliore.
+> **Fit before fashion: il prestigio dello strumento non è una quality attribute del prodotto.**
 
-Esiste una soluzione con un **fit migliore rispetto al contesto**.
+Chiameremo **fashion-driven architecture** il processo in cui una tecnologia desiderata diventa il punto di partenza e il requisito viene costruito a posteriori per giustificarla.
 
-Quel contesto comprende ciò che il sistema deve fare e quanto bene deve farlo, i failure mode che non possiamo accettare, il volume e la crescita attesi. Comprende budget, team e capacità operativa, rischio e vincoli normativi o organizzativi, fino al costo con cui potremo cambiare il sistema in futuro.
+Questo non è un attacco alla sperimentazione. Provare una tecnologia perché vogliamo imparare è perfettamente legittimo. Dobbiamo soltanto distinguere un **esperimento tecnologico** da una **decisione di produzione**. Nel primo il criterio di successo è l'apprendimento; nel secondo la complessità introdotta deve pagare un requisito o ridurre un rischio reale.
 
-La domanda utile non è:
+## I requisiti non funzionali restringono il design space
 
-> “Qual è il database migliore?”
+I non-functional requirements non servono a completare una sezione del documento. Servono a rendere visibili le proprietà che cambiano materialmente la soluzione.
 
-È:
+Se il target di latency passa da due secondi a cinquanta millisecondi, alcune opzioni perdono plausibilità. Se l'RPO passa da ventiquattro ore a quasi zero, il disegno dei dati cambia. Se una funzione può essere indisponibile per una notte, una strategia multi-region può non restituire mai il proprio costo. Se il comportamento muove denaro o dati sensibili, correctness e controllo possono dominare performance e convenience.
 
-> **“Quale soluzione soddisfa meglio i requisiti che contano, dentro i vincoli reali che abbiamo, pagando costi e rischi che siamo disposti ad accettare?”**
+La qualità richiesta orienta quindi l'architettura **prima** della tecnologia specifica.
 
-### Fit before fashion
+Microsoft Learn, nell'Azure Architecture Center, collega esplicitamente le decisioni progettuali ai business requirement e ai trade-off tra reliability, security, cost, operational excellence e performance; la stessa guida colloca le technology choice dopo la definizione dell'architettura e dei requisiti del workload. AWS Well-Architected insiste allo stesso modo sulla necessità di valutare i miglioramenti di performance rispetto ai requirement e ai trade-off che introducono.
 
-In questo libro useremo spesso un principio:
+Fonti primarie:
 
-> **Fit before fashion. Il fit prima della moda.**
+- [Microsoft Learn — Azure Application Architecture Fundamentals](https://learn.microsoft.com/en-us/azure/architecture/guide/)
+- [Microsoft Learn — Design principles for Azure applications](https://learn.microsoft.com/en-us/azure/architecture/guide/design-principles/)
+- [AWS Well-Architected — Evaluate how trade-offs impact customers and architecture efficiency](https://docs.aws.amazon.com/wellarchitected/latest/performance-efficiency-pillar/perf_architecture_evaluate_trade_offs.html)
 
-Una tecnologia non diventa adatta perché è nuova o popolare, perché la usa una grande azienda o compare in molte conferenze. Nemmeno l'etichetta cloud-native, il valore sul curriculum o la sicurezza con cui un agente AI la propone dimostrano il fit. Questi elementi possono essere segnali utili.
-
-Non sono criteri sufficienti.
-
-Allo stesso modo, una tecnologia non diventa automaticamente sbagliata perché è vecchia, semplice o poco affascinante.
-
-PostgreSQL potrebbe essere più adatto di tre database specializzati.
-
-Un processo singolo potrebbe essere più adatto di una costellazione di servizi.
-
-Una VM potrebbe essere più adatta di Kubernetes.
-
-Una queue potrebbe essere indispensabile in un sistema e puro overhead in un altro.
-
-La tecnologia non viene giudicata per prestigio.
-
-Viene giudicata per la qualità della risposta che offre al problema reale.
-
-### Fashion-driven architecture
-
-Chiameremo **fashion-driven architecture** il pattern in cui scegliamo prima una tecnologia desiderata e successivamente costruiamo una narrativa per giustificarla.
-
-Il segnale tipico è una conversazione che parte da:
-
-> “Dobbiamo usare X.”
-
-invece di:
-
-> “Quale proprietà del sistema stiamo cercando di ottenere?”
-
-Questo non significa che curiosità, sperimentazione e innovazione siano sbagliate.
-
-Sono essenziali.
-
-Ma dobbiamo distinguere tra:
-
-```text
-esperimento tecnologico
-```
-
-e:
-
-```text
-decisione di produzione
-```
-
-Nel primo possiamo permetterci di provare qualcosa perché vogliamo imparare.
-
-Nel secondo dobbiamo poter spiegare quale requisito giustifica il costo introdotto.
-
-### Il vero scopo dei requisiti non funzionali
-
-I non-functional requirements non servono a riempire una sezione del documento di architettura.
-
-Servono a rendere visibili le proprietà che cambiano materialmente le nostre decisioni.
-
-Se la latency richiesta passa da due secondi a cinquanta millisecondi, alcune opzioni diventano meno plausibili.
-
-Se l'RPO passa da ventiquattro ore a zero, la strategia dati cambia.
-
-Se il sistema può essere indisponibile per una notte, multi-region potrebbe essere completamente inutile.
-
-Se una funzionalità gestisce denaro o salute, il livello di controllo cambia.
-
-La qualità richiesta orienta l'architettura.
-
-Per questo il capitolo viene prima delle tecnologie specifiche.
+Il principio che useremo nel resto del capitolo è quindi semplice:
 
 > **Non scegliamo prima il mezzo e poi inventiamo il requisito. Definiamo il requisito e valutiamo quale mezzo ha il fit migliore.**
