@@ -1,363 +1,85 @@
 # AI come leverage, non come authority
 
-Nel corso del libro l'AI ha ricoperto due ruoli molto diversi.
+Nel libro l'AI ha ricoperto due ruoli diversi. Prima ha lavorato **sul software**, accelerando discovery, coding, refactoring, testing, review e documentazione. Poi è entrata **dentro il software** come runtime dependency del Case Explanation Assistant.
 
-Prima ha lavorato **sul software**:
+I failure mode cambiano, ma una regola sopravvive a entrambi i casi:
 
-```text
-ricerca
-analisi candidate
-coding
-refactoring
-testing
-review
-documentazione
-orchestrazione
-```
+> **Capability non significa authority.**
 
-Poi è entrata **dentro il software**:
+Un coding agent può essere capace di modificare uno schema senza essere autorizzato a cambiare data ownership. Un modello può spiegare in modo convincente un pagamento senza possedere la verità sul `PaymentStatus`. Un executor può modificare il test che fallisce senza avere il diritto di ridefinire l'oracolo.
 
-```text
-Case Explanation Assistant
-→ runtime dependency
-→ model boundary
-→ authorized context
-→ structured output
-→ evaluation
-```
-
-Questa distinzione è importante perché i failure mode cambiano.
-
-Ma esiste un principio comune a entrambi i casi:
-
-> **capability non significa authority.**
-
-Un agente può essere capace di modificare uno schema.
-
-Non significa che sia autorizzato a cambiare data ownership.
-
-Un modello può essere capace di produrre una spiegazione convincente di un pagamento.
-
-Non significa che possieda la verità sul PaymentStatus.
-
-Un coding agent può essere capace di modificare il test che sta fallendo.
-
-Non significa che sia autorizzato a cambiare l'oracolo per far diventare verde il proprio lavoro.
-
----
-
-## Delegare execution
+## Delegare execution senza nascondere nuove decisioni
 
 Il principio iniziale era:
 
 > **Delegare execution, non responsabilità.**
 
-Dopo tutto il percorso possiamo renderlo più operativo.
+Delegare bene significa rendere comprensibili goal, scope, out-of-scope, context, azioni consentite, verification, stop condition ed escalation path. Non serve una procedura pesante per ogni task, ma chi esegue deve sapere dove termina l'execution autorizzata e dove comincia una decisione nuova.
 
-Delegare bene significa specificare almeno:
+Questo è il vero failure da evitare: non che l'agente faccia "troppo lavoro", ma che incorpori una decisione di dominio, security o ownership senza rendere visibile che quella decisione esisteva.
 
-```text
-Goal
-Scope
-Out of scope
-Context
-Allowed actions
-Forbidden actions
-Verification
-Stop conditions
-Escalation path
-```
+Una issue `add refund endpoint` può essere implementata tecnicamente in pochi minuti e contenere ancora domande su chi può fare refund, quale importo, quali stati, quale idempotency, quale audit e chi possiede l'effetto economico.
 
-Non serve necessariamente un documento formale per ogni task.
-
-Ma queste dimensioni devono essere comprensibili da chi esegue il lavoro.
-
-Persona o agente.
-
-Il problema non è che un agente faccia troppo.
-
-Il problema è che faccia qualcosa che **richiedeva una decisione nuova senza rendere visibile che quella decisione esisteva**.
-
----
-
-## L'agente non deve inventare il dominio
-
-Abbiamo incontrato questo rischio più volte.
-
-Una issue dice:
-
-```text
-add refund endpoint
-```
-
-L'agente può facilmente generare:
-
-- route;
-- DTO;
-- service;
-- repository;
-- test;
-- UI;
-- telemetry.
-
-Ma potrebbe dover inventare:
-
-```text
-chi può fare refund
-quali stati lo permettono
-quale importo è rimborsabile
-come evitare doppio refund
-quale audit conservare
-quale owner decide il side effect economico
-```
-
-A quel punto non sta più implementando.
-
-Sta facendo analisi funzionale e prendendo decisioni di dominio senza authorization.
-
-La stop condition corretta è fermarsi.
+A quel punto l'agente non sta più eseguendo. Sta inventando semantica.
 
 > **L'agente autonomo migliore non è quello che non si ferma mai. È quello che sa distinguere un ostacolo esecutivo da una nuova decisione.**
 
----
+## Più agenti non significano automaticamente più capacità
 
-## Manager di agenti
+Planner, Implementer, Verifier, Specialist Reviewer e Human Decision Owner sono responsabilità utili, non una prescrizione di cinque processi distinti.
 
-Quando abbiamo introdotto più agenti, abbiamo evitato il mito dello swarm.
+Separare ruoli ha senso quando compra context separation, permission separation, independent evidence, specialist depth o riduzione del collision domain. Se non compra nulla, aggiunge orchestration cost.
 
-Più agenti non significano automaticamente più throughput utile.
+La stessa regola vale per l'architect: il suo lavoro non è moltiplicare agenti, ma progettare un workflow in cui l'execution può aumentare senza moltiplicare decisioni incoerenti.
 
-Abbiamo distinto responsabilità:
-
-```text
-Planner
-Implementer
-Verifier
-Specialist Reviewer
-Human Decision Owner
-```
-
-ma abbiamo anche chiarito che non devono necessariamente corrispondere a cinque processi separati.
-
-Separare un ruolo ha valore quando compra almeno una proprietà:
-
-```text
-context separation
-permission separation
-independent evidence
-specialist depth
-reduced collision domain
-```
-
-Se non compra nulla, abbiamo aggiunto orchestration cost.
-
-Questo vale anche per l'architect.
-
-Il suo lavoro non è moltiplicare agenti.
-
-È progettare un workflow in cui l'execution può aumentare **senza moltiplicare decisioni incoerenti**.
-
----
-
-## Prima sincronizzare il pensiero
-
-Una delle frasi ricorrenti del libro era:
+Da qui la frase:
 
 > **Prima sincronizzare il pensiero. Poi parallelizzare l'esecuzione.**
 
-Ora possiamo vederne la ragione.
+Cinque agenti che implementano API, schema, event contract, consumer e observability mentre data ownership è ancora aperta non sono cinque task indipendenti. Sono cinque modi di cristallizzare la stessa ambiguità.
 
-Supponiamo che cinque agenti debbano lavorare su:
+## L'AI dentro il prodotto resta una dependency con confini
 
-```text
-API
-schema
-event contract
-consumer
-observability
-```
+Nel Case Explanation Assistant abbiamo separato `confirmedFacts`, `hypotheses`, `missingEvidence` e `sourceReferences`. Il modello aiuta l'operatore a interpretare un case; non possiede PaymentStatus, Priority, refund authority o tenant authorization.
 
-Se tutti dipendono da una decisione ancora aperta su data ownership, non abbiamo cinque task indipendenti.
+Questa limitazione non nasce da una sfiducia astratta verso l'AI. Nasce dalla stessa regola usata altrove: una componente non riceve authority su un fatto soltanto perché riesce a descriverlo bene.
 
-Abbiamo cinque modi diversi di cristallizzare la stessa ambiguità.
+Grounding migliora il contesto, ma non trasferisce automaticamente l'autorità della fonte al modello. Un modello può ricevere dati corretti e interpretarli male, seguire una instruction malevola contenuta nei dati o produrre un output strutturalmente valido e semanticamente falso.
 
-Il parallelismo utile richiede che il collision domain decisionale sia sufficientemente piccolo.
+Per questo authorization prima del retrieval, source boundary, deterministic validation, least privilege, eval, fallback e runtime observability restano architecture.
 
-Quando non lo è, il primo task è spesso una decisione o una discovery.
+> **Grounding è un requisito. RAG è una possibile soluzione. Grounding non è authority.**
 
-Non un'implementazione.
+## Context engineering è una proprietà del sistema
 
----
+`AGENTS.md`, Repository Map, ADR, contract e fitness function non esistono per riempire un context window. Esistono per rendere knowledge discoverable, policy visibile, unknown espliciti e verification eseguibile.
 
-## AI dentro il prodotto
-
-Quando l'AI diventa una dependency runtime, la regola capability/authority diventa ancora più importante.
-
-Nel Case Explanation Assistant abbiamo separato:
-
-```text
-confirmedFacts
-hypotheses
-missingEvidence
-sourceReferences
-```
-
-Il modello poteva aiutare l'operatore a costruire una spiegazione.
-
-Non poteva decidere:
-
-```text
-PaymentStatus
-Priority
-refund
-remediation
-tenant authorization
-```
-
-Questa separazione non nasce da una sfiducia filosofica verso i modelli.
-
-Nasce da architecture.
-
-Se una componente non è l'owner di una decisione, non dovrebbe ricevere quell'authority soltanto perché riesce a produrre una risposta linguisticamente convincente.
-
----
-
-## Grounding non è autorità
-
-Abbiamo anche distinto:
-
-> **Grounding è un requisito. RAG è una possibile soluzione.**
-
-E possiamo aggiungere:
-
-> **Grounding migliora il contesto. Non trasferisce automaticamente l'autorità della fonte al modello.**
-
-Un modello può ricevere dati corretti e interpretarli male.
-
-Può ricevere una nota malevola e seguirne le istruzioni.
-
-Può produrre structured output valido ma semanticamente sbagliato.
-
-Per questo servono ancora:
-
-```text
-authorization before retrieval
-source boundary
-output validation
-tool least privilege
-eval
-fallback
-runtime observability
-```
-
-L'AI non elimina architecture.
-
-Aggiunge un nuovo tipo di componente con proprietà probabilistiche e failure mode propri.
-
----
-
-## Context engineering
-
-Con i coding agent abbiamo imparato che il repository stesso deve diventare parte del sistema di contesto.
-
-`AGENTS.md`, Repository Map, ADR, contract e fitness function non esistono per alimentare un modello con più token.
-
-Esistono per rendere:
-
-```text
-knowledge discoverable
-policy visible
-verification executable
-unknown explicit
-```
-
-Il contesto migliore non è necessariamente il più grande.
-
-È quello che permette di trovare la fonte giusta senza confondere copie stale, instruction e authority.
-
-Per questo abbiamo scritto:
+Il contesto migliore non è il più grande. È quello che porta alla fonte canonical senza confondere copie stale, istruzioni e authority.
 
 > **Un buon file di istruzioni non prova a contenere il repository. Insegna all'agente come attraversarlo.**
 
----
+Questo spiega anche il rischio di documentation laundering. Se un repository contiene drift, l'agente può copiarlo; la copia diventa precedente; più copie sembrano una convention; una documentazione generata può infine descrivere il drift come design intenzionale.
 
-## AI amplifica il sistema che trova
+L'AI amplifica il sistema di context ed evidence che trova.
 
-Un repository con confini chiari, test affidabili, decisioni esplicite e documentazione canonical diventa più facile da usare anche per un agente.
+## Autonomy è una decisione di rischio
 
-Un repository ambiguo insegna invece all'agente la propria ambiguità.
+I livelli A0–A4 usati da ESI non misurano intelligenza. Misurano autonomia governabile.
 
-Se il codice contiene una violazione architetturale, l'agente può copiarla.
+Maggiore autonomy ha senso quando scope e permission sono chiari, il failure è bounded, il rollback o containment sono praticabili, l'evidence è disponibile e l'escalation path esiste.
 
-La seconda copia diventa un precedente.
+Non quando il modello "sembra bravo".
 
-La terza sembra una convention.
+I modelli cambieranno e le capability cresceranno. La domanda organizzativa resterà:
 
-Poi la documentazione generata può descriverla come design intenzionale.
+> **Quanto potere siamo disposti a concedere, su quale boundary e con quale evidence?**
 
-È il motivo per cui abbiamo parlato di:
+## Il leverage che vogliamo
 
-> **documentation laundering**
+La promessa più interessante dell'AI non è produrre il massimo volume possibile. È liberare tempo dall'execution ripetitiva per problem framing, functional understanding, system discovery, trade-off, verification e learning.
 
-L'AI amplifica sia la buona context engineering sia il drift.
+Se il tempo liberato viene usato soltanto per lanciare altra execution, il sistema può produrre più software di quanto riesca a comprendere.
 
-La risposta non è aggiungere prompt sempre più lunghi.
-
-È migliorare il sistema che produce contesto ed evidence.
-
----
-
-## Autonomia come decisione di rischio
-
-Abbiamo introdotto livelli A0–A4 in ESI, ma abbiamo insistito che non sono livelli di intelligenza.
-
-Sono livelli di **rischio governabile**.
-
-Un'azione può essere concessa con maggiore autonomia quando:
-
-```text
-scope è chiaro
-failure è bounded
-rollback è praticabile
-evidence è disponibile
-permission è limitata
-escalation path esiste
-```
-
-Non quando il modello “sembra bravo”.
-
-Questa distinzione è destinata a diventare sempre più importante.
-
-I modelli miglioreranno.
-
-Le capability cresceranno.
-
-La domanda organizzativa resterà:
-
-> **quanto potere siamo disposti a concedere, su quale boundary e con quale evidence?**
-
----
-
-## Il leverage sano
-
-La promessa più interessante dell'AI non è eliminare il professionista.
-
-È permettergli di spostare tempo da execution ripetitiva verso:
-
-```text
-problem framing
-functional understanding
-system discovery
-trade-off
-review
-evidence
-learning
-```
-
-Questo accade soltanto se il tempo liberato viene usato per queste attività.
-
-Se invece usiamo l'AI soltanto per aumentare il volume di output, possiamo ottenere un'organizzazione che produce più software di quanto riesca a capire.
-
-Il leverage sano è un'altra cosa.
+Il leverage sano è diverso:
 
 > **Più execution delegata, con responsabilità ancora leggibile.**
