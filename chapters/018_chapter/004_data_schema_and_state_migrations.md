@@ -2,11 +2,11 @@
 
 Molti refactoring sembrano reversibili finché ignoriamo i dati.
 
-Cambiare una funzione è spesso semplice da annullare.
+Cambiare una funzione può essere semplice da annullare.
 
 Cambiare il significato di uno stato persistito può non esserlo.
 
-Per questo dobbiamo distinguere:
+Per questo separiamo quattro lavori che spesso vengono compressi nella parola “migrazione”:
 
 ```text
 code migration
@@ -15,226 +15,235 @@ state migration
 ownership migration
 ```
 
-Sono lavori diversi.
+Il quarto è il più importante e il più facile da dimenticare.
 
-## Expand, migrate, contract
+## Lo schema può convivere; l'authority deve essere chiara
 
-Quando vecchio e nuovo codice devono convivere, una strategia frequente è:
+Una strategia frequente durante la coexistence è:
 
 ```text
 expand
-→ rendere il nuovo modello compatibile con il vecchio
+→ aggiungere strutture compatibili
 
 migrate
-→ spostare/backfillare/verificare lo stato
+→ backfillare, sincronizzare e verificare
 
 contract
-→ rimuovere strutture e compatibility path vecchi
+→ rimuovere il vecchio schema/path
 ```
 
-Il vantaggio è che deploy del codice e trasformazione dei dati non devono accadere nello stesso istante.
+Questo disaccoppia il deploy del codice dal momento irreversibile in cui vecchi consumer non possono più funzionare.
 
-Il costo è una fase temporanea in cui il sistema deve comprendere più forme dello stesso dato.
+Il costo è una finestra in cui più rappresentazioni dello stesso concetto devono convivere.
 
-## Dual write: utile, ma non magico
+La domanda decisiva durante quella finestra è:
 
-Durante una migrazione potremmo voler scrivere su vecchio e nuovo store.
+> **Quale rappresentazione è autorevole in ogni fase?**
+
+## Dual write non crea automaticamente una transizione sicura
+
+Scrivere contemporaneamente vecchio e nuovo store può essere utile.
 
 ```text
-write
-├── legacy
-└── target
+business write
+├── legacy state
+└── target state
 ```
 
-Questo può ridurre il rischio di cutover.
+Ma introduce subito casi come:
 
-Ma introduce domande:
+```text
+legacy succeeds
+new fails
+```
 
-- quale write è autorevole?
-- cosa succede se una riesce e l'altra fallisce?
-- come riconciliamo divergence?
-- quale store viene letto?
-- chi può correggere manualmente?
-- quale ordine di switch usiamo?
+oppure:
+
+```text
+new succeeds
+legacy times out with unknown outcome
+```
+
+Senza una policy per authority, retry, ordering e reconciliation, il dual write non riduce il rischio.
+
+Crea due copie divergenti dello stesso fact.
 
 > **Dual write senza reconciliation è duplicazione del rischio, non riduzione del rischio.**
 
-## Read switch e write switch sono decisioni separate
+## Read switch e write switch sono due decisioni diverse
 
-Un percorso più controllabile può essere:
+Una migration può procedere con fasi come:
 
 ```text
 1. target schema exists
-2. target receives mirrored/backfilled state
-3. compare old/new data
-4. write target while old path remains available
+2. target receives backfill / mirrored state
+3. compare semantic projections
+4. target begins receiving authoritative writes
 5. switch reads
 6. observe
 7. stop old writes
-8. remove compatibility
-9. drop old state only after recovery window
+8. wait recovery window
+9. remove compatibility
+10. drop old state
 ```
 
-L'ordine dipende dal sistema.
+L'ordine concreto dipende dal sistema.
 
-Il punto è renderlo esplicito.
+Il valore è rendere esplicito che “il nuovo database è popolato” e “il nuovo database è authoritative” non sono la stessa milestone.
 
-## Caso reale: GitHub sposta dati persistenti fuori da Redis
+## Caso reale — GitHub sposta persistent state fuori da Redis
 
-GitHub ha documentato una migrazione di dati persistenti da Redis a MySQL in cui il team:
-
-- valutò il rischio per tipologia di dato;
-- introdusse scritture verso MySQL mantenendo quelle su Redis;
-- misurò capacity, contention e replication delay;
-- copiò i dati;
-- cambiò successivamente il read path tramite feature flag;
-- rimosse infine i call site verso Redis.
+GitHub ha documentato una migrazione da Redis a MySQL in cui il team introdusse nuove write, misurò capacity e replication behavior, copiò i dati, cambiò successivamente il read path tramite feature flag e soltanto alla fine rimosse i call site legacy.
 
 Fonte:
 
 - [GitHub Engineering — Moving persistent data out of Redis](https://github.blog/engineering/infrastructure/moving-persistent-data-out-of-redis/)
 
-Non dobbiamo copiare il dettaglio tecnologico.
+Il dettaglio tecnologico non è la lezione principale.
 
 Ci interessa la sequenza:
 
-> **scrivere, verificare, cambiare lettura, osservare, rimuovere.**
+```text
+write
+→ verify
+→ switch reads
+→ observe
+→ remove
+```
 
-## Caso reale: migrare la cifratura delle colonne
+La rimozione arriva dopo l'evidence, non insieme al primo deploy del nuovo store.
 
-GitHub ha anche descritto la migrazione incrementale di colonne verso `ActiveRecord::Encryption` usando compatibility behavior, transition di dati e feature flag per controllare il nuovo percorso.
+## Caso reale — migrazione della cifratura delle colonne
+
+GitHub ha anche descritto la conversione incrementale di colonne verso `ActiveRecord::Encryption`, mantenendo temporaneamente compatibility behavior e controllando il nuovo path con feature flag.
 
 Fonte:
 
 - [GitHub Engineering — How GitHub converts previously encrypted and unencrypted columns to ActiveRecord encrypted columns](https://github.blog/engineering/infrastructure/how-github-converts-previously-encrypted-and-unencrypted-columns-to-activerecord-encrypted-columns/)
 
-Questo caso è particolarmente utile perché mostra che una migrazione può richiedere per un periodo la capacità di leggere più rappresentazioni dello stesso dato.
+Il caso mostra bene un principio generale:
 
-## Compatibility window
+> **durante una migration, la capacità temporanea di leggere più rappresentazioni può essere una feature di recovery, non soltanto debito tecnico.**
 
-Una migration seria deve dichiarare una finestra di compatibilità.
+Ma quella compatibility window deve avere una scadenza.
 
-Esempio:
+## La compatibility window è una recovery capability temporanea
+
+Possiamo descrivere fasi come:
 
 ```text
 Phase A
-old code reads old schema
-new code not active
+old code + old representation
 
 Phase B
-old + new code can read expanded schema
+old and new code understand expanded representation
 
 Phase C
-new code authoritative
+new representation authoritative
 old code still fallback-compatible
 
 Phase D
-fallback window expires
-old schema removed
+fallback window intentionally closed
+old representation removed
 ```
 
 La compatibilità non deve durare per sempre.
 
-Ma non deve neppure essere rimossa prima che la recovery strategy sia reale.
+Ma rimuoverla troppo presto può distruggere proprio il rollback che il rollout plan promette.
 
-## One-way door sui dati
+## I dati introducono one-way door reali
 
-Alcune operazioni sono fortemente irreversibili:
+Alcune operazioni riducono drasticamente la reversibilità:
 
-- drop di una colonna senza backup;
-- reinterpretazione distruttiva di un valore;
-- merge di identità non separabili;
-- rimozione di provenance;
-- cifratura/decrittazione senza recovery key appropriata;
-- cambio di ownership senza sync/reconciliation.
+- drop di una colonna non più ricostruibile;
+- merge di identità che non possono essere separate;
+- perdita di provenance;
+- reinterpretazione distruttiva di valori storici;
+- rimozione di compatibility prima della fine del rollback window;
+- cambio di owner senza reconciliation.
 
-Prima di attraversare queste porte chiediamo:
+Prima di attraversarle chiediamo:
 
 ```text
-what evidence is enough?
-what is the recovery source?
-who approves the step?
-what is the last reversible checkpoint?
+qual è l'ultima copia autorevole recuperabile?
+quale evidence autorizza il passo?
+chi approva la perdita di reversibilità?
+qual è l'ultimo checkpoint two-way?
 ```
 
-## Data migration e shadowing
+Una migration dati è quindi anche una sequenza di **porte che si chiudono**.
 
-Per le funzioni pure confrontiamo output.
+## La comparison dello stato deve essere semantica
 
-Per lo stato possiamo confrontare:
+Contare le righe può essere utile.
+
+Non basta.
+
+Per confrontare due rappresentazioni vogliamo invariant e projection come:
 
 ```text
-row count
-business invariant
-checksum/aggregate
-semantic projection
-missing keys
-duplicate keys
+business key coverage
+missing / duplicate keys
+semantic state equivalence
+aggregate totals
 freshness
 reconciliation delta
+history/provenance preservation
 ```
 
-La comparison deve essere semantica.
+Due store possono avere esattamente lo stesso row count e rappresentare due verità business differenti.
 
-Due database possono avere lo stesso numero di righe e rappresentare due verità differenti.
+La verification deve quindi derivare dal Data Ownership Map e dai business invariant, non soltanto dal database engine.
 
-## Il caso Operations Desk Classic
+## ESI: nel primo slice non tocchiamo la persistence della priority
 
-Nel Capitolo 18 **non migreremo ancora la priority persistita**.
+Questa è una decisione deliberata del Capitolo 18.
 
-Il reason è deliberato.
-
-Prima vogliamo rendere la **decision policy** indipendente dal legacy.
-
-Quindi il primo slice sarà:
+Prima separiamo:
 
 ```text
-priority calculation
+priority decision
 ```
 
-non:
+da:
 
 ```text
 priority persistence ownership
 ```
 
-Questo mantiene piccolo il blast radius.
+Il primo slice crea e verifica la nuova policy senza modificare schema, writer o API.
 
-Solo quando la nuova policy sarà verificata potremo decidere se:
+Questo mantiene il blast radius molto più piccolo.
 
-- Order Operations deve persistere priority;
-- la priority deve essere derivata on demand;
-- serve uno stato storico/audit;
-- il legacy continua temporaneamente a essere writer;
-- esiste un consumer che richiede ancora `priority_code`.
+Solo dopo runtime evidence e consumer discovery potremo decidere se Order Operations debba:
 
-> **Prima separiamo la decisione. Poi, se serve, spostiamo lo stato.**
+- derivare la priority on demand;
+- persisterla;
+- conservare history/audit;
+- diventare authoritative writer;
+- mantenere una compatibility window per `priority_code`.
 
-## AI e migration dati
+> **Prima separiamo la decisione. Poi, se il prodotto lo richiede, spostiamo lo stato.**
 
-Un agente può accelerare:
+## L'AI può generare migration code, non decidere ownership
 
-- generation di migration;
-- backfill script;
-- schema diff;
-- compatibility adapter;
-- reconciliation query;
-- test di migration;
-- documentazione del cutover.
+Un agente può produrre schema diff, migration, backfill, reconciliation query e test in modo molto efficiente.
 
-Ma non dovrebbe autonomamente decidere:
+Non dovrebbe autonomamente decidere:
 
-- source of truth;
-- perdita dati accettabile;
-- point of no return;
-- retention;
-- compensazione;
-- cutover finale.
+```text
+source of truth
+acceptable data loss
+retention
+cutover authority
+point of no return
+compensation semantics
+```
 
-Perché questi non sono problemi di sintassi SQL.
+Queste non sono scelte di sintassi SQL.
 
-Sono decisioni di business continuity e ownership.
+Sono decisioni di continuità operativa e significato del dato.
 
 ## Regola
 
-> **Quando un refactoring tocca stato persistente, il rollback deve essere progettato sul dato, non soltanto sul deploy.**
+> **Quando un refactoring tocca stato persistente, il rollback deve essere progettato sul significato e sull'authority del dato, non soltanto sull'artifact che lo legge.**
