@@ -64,7 +64,10 @@ def transform_plain(text: str) -> str:
         result = pattern.sub(replacement, result)
     result = FEM_RE.sub(preserve_case_apostrophe, result)
     result = re.sub(r"\b([ldnu]|un|dell|all|nell)['’]\s+(?=\w)", lambda m: m.group(0).replace(" ", ""), result, flags=re.I)
-    result = re.sub(r"[ \t]+([,.;:!?])", r"\1", result)
+    # Remove spaces before punctuation, but preserve a space when a period starts
+    # a technical token such as `.NET` rather than ending a sentence.
+    result = re.sub(r"[ \t]+([,;:!?])", r"\1", result)
+    result = re.sub(r"[ \t]+\.(?![A-Za-z0-9])", ".", result)
     # Collapse repeated prose words. This intentionally does not cross punctuation or Markdown markup.
     previous = None
     while previous != result:
