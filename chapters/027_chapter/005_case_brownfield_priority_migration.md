@@ -1,75 +1,46 @@
-# 5. Caso 2 — Operations Desk Classic → Order Operations
+# Caso 2 — Operations Desk Classic → Order Operations
 
-Il secondo caso è l'opposto del primo.
+Il secondo caso parte dalla condizione opposta a Campaign Launchpad. Non dobbiamo decidere quanto poco costruire; dobbiamo decidere **quanto del sistema esistente merita di sopravvivere**.
 
-Campaign Launchpad parte quasi da zero.
+Operations Desk Classic funziona abbastanza da essere pericoloso ignorarlo, ma non è conosciuto abbastanza da poter essere copiato alla cieca.
 
-La migrazione da **Operations Desk Classic** parte invece da qualcosa di più difficile: **un sistema che funziona abbastanza da non poter essere ignorato, ma che nessuno conosce abbastanza da poter essere riscritto alla cieca**.
-
-## Il problema
-
-ESI vuole ridurre la dipendenza dal legacy e portare la decisione di Priority dentro Order Operations.
-
-La tentazione iniziale potrebbe essere:
+ESI vuole portare la decisione di Priority dentro Order Operations. La tentazione del rewrite diretto sarebbe semplice:
 
 ```text
-rewrite priority logic
-→ compare tests
+read legacy code
+→ rewrite priority logic
+→ compare
 → switch
 ```
 
-Ma il Capitolo 17 ha mostrato perché sarebbe pericoloso.
+Il problema è che il codice storico contiene insieme requirement, workaround, bug sopravvissuti e decisioni che nessuno ricorda più.
 
-Il legacy conteneva comportamenti osservati che non erano ancora requisiti confermati.
+## Characterization descrive il passato; non lo autorizza
 
-Quindi il percorso reale è diventato:
-
-```text
-inventory
-→ characterization
-→ behavior classification
-→ functional confirmation
-→ seam
-→ candidate
-→ shadow comparison
-→ cutover gate
-```
-
-## Step 1 — Capire prima di cambiare
-
-Operations Desk Classic aveva una regola osservata:
+Nel legacy osserviamo una regola:
 
 ```text
 Enterprise + age >= 30m
 → URGENT
 ```
 
-I characterization test hanno dimostrato che il comportamento esisteva.
+I characterization test dimostrano che quel comportamento esiste. Non dimostrano che il prodotto lo voglia ancora.
 
-Non hanno dimostrato che dovesse sopravvivere.
-
-Evidence state:
+Lo stato epistemico corretto è:
 
 ```text
-implementation
-= Found
-
-behavior
-= Observed
-
-business rationale
-= Unknown
+implementation  Found
+behavior        Observed
+business intent Unknown
 ```
 
-Questa distinzione ha impedito il primo errore possibile:
+Questa distinzione impedisce il primo failure del brownfield: trasformare automaticamente ogni behavior storico in requisito target.
 
-> copiare il legacy nel nuovo sistema e chiamarlo requisito.
+> **La modernizzazione non deve preservare il passato. Deve preservare ciò che del passato è ancora parte del prodotto.**
 
-## Step 2 — Analisi funzionale condivisa
+## L’analisi funzionale cambia il significato della verification
 
-Product, Operations ed Engineering ricostruiscono la semantica target.
-
-La policy confermata diventa:
+Product, Operations ed Engineering ricostruiscono la policy target e confermano una semantica diversa:
 
 ```text
 Closed
@@ -85,100 +56,11 @@ otherwise
 → Standard
 ```
 
-La vecchia regola Enterprise viene esplicitamente ritirata.
+La vecchia regola Enterprise viene ritirata intenzionalmente. Il mismatch corrispondente diventa `ED-001 — ExpectedDifference`.
 
-Quindi la differenza non è regressione.
+Questo cambia il criterio di successo della migration. Zero mismatch non è più l’obiettivo; sarebbe anzi la prova che il candidate sta conservando una regola che abbiamo deciso di eliminare.
 
-È una modifica funzionale autorizzata:
-
-```text
-ED-001 — ExpectedDifference
-```
-
-Questo è un punto importante.
-
-> **La modernizzazione non deve preservare il passato. Deve preservare ciò che del passato è ancora parte del prodotto.**
-
-## Step 3 — Creare un seam
-
-Invece di sostituire tutto in un unico diff, Order Operations introduce:
-
-```text
-PriorityPolicy
-```
-
-con due implementazioni:
-
-```text
-LegacyPriorityAdapter
-ConfirmedPriorityPolicy
-```
-
-Il nuovo dominio non parla direttamente il linguaggio del legacy.
-
-L'adapter traduce:
-
-```text
-status_code
-manual_hold
-failed_attempts
-```
-
-verso il modello target.
-
-Questo è un Anti-Corruption Layer concreto.
-
-Non rende il legacy migliore.
-
-Impedisce che il legacy continui a definire il linguaggio del nuovo sistema.
-
-## Step 4 — Branch by Abstraction
-
-Il caller dipende dall'astrazione:
-
-```text
-PriorityPolicy
-```
-
-non dall'implementazione legacy.
-
-La strategia di migrazione può quindi usare:
-
-```text
-legacy
-shadow
-candidate
-```
-
-senza cambiare continuamente i consumer.
-
-In `shadow`:
-
-```text
-legacy result
-→ authoritative response
-
-candidate result
-→ comparison only
-```
-
-Questo crea evidence senza spostare ancora l'autorità.
-
-## Step 5 — Non chiedere zero mismatch
-
-Se il candidate implementa correttamente la nuova policy, almeno un mismatch è atteso:
-
-```text
-legacy
-Enterprise + age >= 30m
-→ Urgent
-
-candidate
-Enterprise alone
-→ Standard
-```
-
-Quindi una shadow comparison seria deve distinguere:
+La shadow comparison deve quindi distinguere:
 
 ```text
 Match
@@ -186,125 +68,78 @@ ExpectedDifference
 UnexpectedDifference
 ```
 
-Se chiedessimo zero mismatch, staremmo chiedendo implicitamente al nuovo sistema di conservare proprio la regola che abbiamo deciso di eliminare.
+> **La verification corretta deriva dalla semantica target, non dalla somiglianza massima con il legacy.**
 
-> **La verification corretta dipende dalla semantica target, non dalla nostalgia per il comportamento precedente.**
+## Il seam separa authority e coexistence mechanism
 
-## Step 6 — Test ed evidence
+Order Operations introduce `PriorityPolicy` come seam. Dietro il contract convivono `LegacyPriorityAdapter` e `ConfirmedPriorityPolicy`.
 
-La migrazione ha accumulato più livelli di evidence.
+L’Anti-Corruption Layer traduce `status_code`, `manual_hold` e `failed_attempts` verso il modello target, impedendo al linguaggio legacy di continuare a definire il nuovo dominio.
 
-Legacy:
-
-```text
-6/6 characterization tests
-```
-
-Target/refactoring slice alla revisione del Capitolo 18:
+Il caller dipende dall’astrazione, così possiamo attraversare tre stati:
 
 ```text
-19/19 tests
+legacy
+→ shadow
+→ candidate
 ```
 
-Architecture fitness:
+In shadow il legacy rimane authoritative e il candidate produce soltanto comparison evidence. È una distinzione cruciale: il nuovo codice può esistere senza aver ancora ricevuto l’autorità di definire il comportamento production.
+
+## Il costo della reversibilità è coexistence
+
+ESI compra un cutover più sicuro pagando due implementation path, test aggiuntivi, adapter, telemetry di comparison e cleanup futuro.
+
+Finance e Platform potrebbero preferire una retirement più rapida. Operations vuole evitare regressioni. Product vuole invece eliminare behavior storici non più validi.
+
+Il trade-off è quindi esplicito:
 
 ```text
-AF-001…AF-005
-5/5 PASS
+Benefit
+semantic evidence + reversibility
+
+Cost
+temporary duplicated path + migration telemetry + cleanup
+
+Quality floor
+no silent semantic regression
+no legacy rule promoted without confirmation
+no cutover without fallback evidence
 ```
 
-Ma anche qui non confondiamo test locale e production cutover.
+Questa è migration architecture: complessità temporanea che deve avere una exit condition.
 
-Manca ancora:
+## Il codice locale non completa il cutover
 
-```text
-production shadow telemetry
-consumer evidence
-retirement evidence
-fallback exercise
-```
+La migration ha già accumulated evidence: characterization test, target/refactoring test e architecture fitness. Ma non possiede ancora production shadow telemetry, consumer evidence, retirement evidence e fallback exercise sufficienti.
 
-Per questo il current Production Readiness Review dice:
+Per questo la PRR corrente mantiene:
 
 ```text
 LB-PRIORITY-CANDIDATE
 = NOT AUTHORIZED
 ```
 
-La migrazione non è incompleta perché il codice manca.
+La migration non è bloccata perché manca il candidate code. È bloccata perché **l’authority non è ancora stata trasferita con evidence sufficiente**.
 
-È incompleta perché **l'autorità non è ancora stata spostata con evidence sufficiente**.
+Questa distinzione è uno dei punti più importanti dell’intero caso.
 
-## Il compromesso ESI
+## Il caso GitHub mostra la stessa logica di transizione
 
-Finance e Platform vorrebbero eliminare rapidamente Operations Desk Classic.
+GitHub ha raccontato l’upgrade del proprio monolite da Rails 3.2 a 5.2 attraverso dual boot, CI su più versioni e rollout progressivo, continuando contemporaneamente lo sviluppo del prodotto.
 
-Operations vuole evitare regressioni.
+Fonte:
 
-Product vuole eliminare regole storiche non più valide.
+- [GitHub Engineering — Upgrading GitHub from Rails 3.2 to 5.2](https://github.blog/engineering/infrastructure/upgrading-github-from-rails-3-2-to-5-2/)
 
-Engineering vuole ridurre il periodo di coexistence.
+Non è la stessa migration e non dimostra che Branch by Abstraction sia sempre la soluzione. Mostra una property più generale: **vecchio e nuovo possono convivere abbastanza a lungo da produrre evidence comparabile e ridurre il rischio di un big-bang**.
 
-La decisione è:
+## La migration finisce quando il ponte può sparire
 
-```text
-coexistence temporanea
-+ characterization
-+ explicit target semantics
-+ shadow comparison
-+ delayed cutover
-```
+Il vero end state non è “candidate implementation in production”.
 
-Costo accettato:
+La modernizzazione termina quando possiamo rimuovere legacy adapter, shadow machinery, legacy-only configuration, characterization-only scaffolding e la dependency da Operations Desk Classic senza perdere una capacità necessaria.
 
-```text
-duplicated path
-more tests
-temporary adapter
-migration telemetry
-cleanup work later
-```
+Finché il ponte serve, la migration è ancora parte dell’architettura.
 
-Quality floor:
-
-```text
-no silent semantic regression
-no legacy rule promoted without confirmation
-no cutover without rollback evidence
-```
-
-## Il caso reale GitHub
-
-GitHub ha documentato un problema diverso ma con una dinamica di migrazione molto simile durante l'upgrade del proprio monolite da Rails 3.2 a 5.2.
-
-Invece di una lunga branch separata, GitHub introdusse dual boot fra versioni Rails, CI su più versioni e rollout progressivi verso una percentuale dei server, raccogliendo exception e performance evidence prima di aumentare l'esposizione:
-
-- https://github.blog/engineering/infrastructure/upgrading-github-from-rails-3-2-to-5-2/
-
-Non è la stessa migration di ESI.
-
-Ma sostiene una proprietà importante:
-
-> **le migrazioni grandi possono essere rese più governabili mantenendo vecchio e nuovo percorso abbastanza a lungo da produrre evidence comparabile.**
-
-GitHub non dimostra che `Branch by Abstraction` sia sempre la risposta.
-
-Mostra che un big-bang non è l'unico modo di cambiare un sistema molto grande continuando contemporaneamente a svilupparlo e operarlo.
-
-## Il vero end state
-
-La migrazione finirà soltanto quando potremo rimuovere:
-
-```text
-legacy adapter
-shadow machinery
-legacy-only config
-characterization-only scaffolding
-Operations Desk Classic dependency
-```
-
-senza perdere una capacità necessaria.
-
-> **La parte finale di una modernizzazione è eliminare la modernizzazione dal sistema.**
-
-Finché il nuovo prodotto ha bisogno del ponte, la migrazione è ancora parte dell'architettura.
+> **La parte finale di una modernizzazione è eliminare la modernizzazione dal sistema — ma soltanto dopo che l’evidence ci autorizza a perdere la via di ritorno.**
