@@ -1,145 +1,65 @@
 ## Reversibilità e peso della decisione
 
-Non tutte le decisioni meritano lo stesso livello di analisi.
+Non tutte le decisioni meritano lo stesso livello di analisi. Se trattiamo ogni scelta come irreversibile, rallentiamo il progetto e costruiamo burocrazia. Se trattiamo ogni scelta come facilmente correggibile, rischiamo invece di scoprire troppo tardi che alcune conseguenze sono ormai incorporate nei dati, nei contratti, nelle operazioni e nelle abitudini del team.
 
-Se trattiamo ogni scelta come se fosse irreversibile, rallentiamo il progetto e costruiamo burocrazia.
+Serve quindi una disciplina proporzionata al **peso della decisione**.
 
-Se trattiamo ogni scelta come facilmente correggibile, possiamo scoprire troppo tardi che alcune conseguenze sono ormai incorporate nei dati, nei contratti, nelle operazioni e nelle abitudini del team.
+## One-way door e two-way door
 
-Serve quindi una disciplina proporzionata.
+Una distinzione utile è quella tra **two-way door**, relativamente facile da invertire, e **one-way door**, costosa, rischiosa o lenta da cambiare dopo che il sistema ha adottato quella direzione.
 
-### One-way door e two-way door
+Nel software quasi nulla è davvero impossibile da modificare. Con abbastanza tempo e denaro possiamo cambiare framework, database, tenancy model o persino ownership dei dati. La distinzione riguarda quindi il costo reale dell'inversione, non una presunta irreversibilità assoluta.
 
-Una distinzione utile è quella tra:
+Sostituire una libreria di logging può essere economico. Modificare un contratto pubblico usato da centinaia di client è molto più difficile. Spostare ownership di dati condivisi tra molti sistemi può richiedere mesi di migration. Ripensare il tenancy model quando autorizzazione e schema sono stati costruiti attorno a esso può diventare un progetto autonomo.
 
-**Two-way door.** Decisione relativamente facile da invertire.
+Il punto è riconoscere queste differenze **prima** che il costo sia completamente incorporato nel sistema.
 
-**One-way door.** Decisione costosa, rischiosa o lenta da cambiare dopo che il sistema ha adottato quella direzione.
+## Che cosa rende pesante una scelta
 
-Naturalmente non esistono porte completamente a senso unico nel software.
+Il peso emerge da più dimensioni contemporaneamente. Conta il blast radius, perché una decisione che attraversa molti componenti espone più parti del sistema. Conta il costo di inversione, ma anche la persistenza: una scelta incorporata nei dati o nei contratti sopravvive spesso al codice che l'ha introdotta. Conta il rischio se è sbagliata, la presenza di dipendenze esterne e, soprattutto, il livello di incertezza con cui la stiamo prendendo.
 
-Quasi tutto può essere cambiato con abbastanza tempo e denaro.
+Una decisione con grande blast radius, alto costo di inversione e forte incertezza merita esplorazione, confronto e review. Una decisione locale e facilmente reversibile può essere presa velocemente e corretta sulla base del feedback.
 
-La distinzione riguarda il **costo reale dell'inversione**.
+Questa proporzionalità evita sia architecture by committee sia architecture by accident.
 
-Per esempio:
+## Rendere più reversibile una decisione importante
 
-- cambiare una libreria di logging può essere una two-way door;
-- cambiare framework dopo anni può essere più costoso ma ancora gestibile;
-- cambiare il formato pubblico di un'API usata da centinaia di client può essere molto difficile;
-- cambiare ownership di dati condivisi tra decine di sistemi può richiedere una migrazione lunga;
-- cambiare modello di tenancy dopo che dati e autorizzazioni sono costruiti attorno a esso può essere quasi un progetto autonomo.
+Reversibilità e importanza non sono opposti. Una scelta critica può essere resa più facile da correggere attraverso feature flag, adapter, rollout progressivo, contratti compatibili o migration path.
 
-### Il peso della decisione
+Questa è una strategia architetturale potente perché cambia la domanda. Invece di cercare di prevedere perfettamente il futuro, possiamo progettare il sistema affinché alcune ipotesi siano meno costose da smentire.
 
-Possiamo valutare una decisione lungo alcune dimensioni.
-
-**Blast radius.** Quante parti del sistema influenza?
-
-**Costo di inversione.** Quanto costa cambiare idea?
-
-**Persistenza.** Quanto a lungo la scelta resterà incorporata?
-
-**Rischio.** Che cosa succede se è sbagliata?
-
-**Dipendenze esterne.** Coinvolge client, partner, normative o dati difficili da migrare?
-
-**Incertezza.** Quanto poco sappiamo oggi?
-
-Una decisione con grande blast radius, alto costo di inversione e forte incertezza merita più esplorazione.
-
-Una decisione locale, reversibile e a basso rischio può essere presa rapidamente.
-
-### Non confondere reversibilità con importanza
-
-Una decisione reversibile può comunque essere importante.
-
-Possiamo introdurre una feature flag e rendere reversibile un cambiamento critico.
-
-Possiamo creare un adapter per poter sostituire un provider.
-
-Possiamo usare un canary per limitare il blast radius.
-
-Queste tecniche **aumentano la reversibilità** di decisioni che restano importanti.
-
-È una strategia architetturale molto potente.
-
-Invece di cercare di prevedere tutto, possiamo progettare il sistema affinché alcune scelte siano più facili da correggere.
-
-### Comprare option value
-
-Preservare possibilità future ha un valore.
-
-Ma, come visto nel Capitolo 2, non significa implementare tutto in anticipo.
-
-Possiamo comprare option value con interventi relativamente piccoli: confini puliti e contratti espliciti, migration path, feature flag e adapter. Dati esportabili, API compatibili, automazione dei test e rollback verificato aumentano la possibilità di cambiare senza obbligarci a implementare oggi ogni alternativa futura.
-
-Questi elementi non implementano necessariamente la futura alternativa.
-
-Rendono meno costoso adottarla.
+Boundary puliti, dati esportabili, rollback verificato e automazione dei test non implementano tutte le alternative future. Comprano **option value**: preservano la possibilità di cambiare senza pagare subito il costo completo di quella futura soluzione.
 
 > **Una buona architettura non prevede il futuro. Riduce il costo di scoprire che avevamo torto.**
 
-### Decisioni temporanee
+## Una decisione può essere deliberatamente temporanea
 
-A volte scegliamo intenzionalmente una soluzione che sappiamo non essere finale.
-
-Può essere corretto.
+A volte scegliamo una soluzione sapendo che non sarà necessariamente quella finale. Non è un problema, se sappiamo perché la scegliamo e che cosa dovrebbe farci cambiare idea.
 
 Per esempio:
 
-> “Per i prossimi sei mesi useremo query live sul database ordini perché il traffico è basso e il team deve validare il prodotto. Rivaluteremo quando il p95 supera 300 ms o quando il carico supera una soglia definita.”
+> “Per i prossimi sei mesi useremo lookup live sui dati ordini perché il traffico è basso e dobbiamo validare il prodotto. Rivaluteremo se il p95 supera la soglia concordata o se il workload di lettura inizia a interferire con quello transazionale.”
 
-Questa non è una decisione pigra.
+Questa è una decisione temporanea con **trigger di revisione**. È molto diversa da “per ora facciamo così, poi vediamo”, perché rende osservabili le condizioni che potrebbero invalidare il reasoning.
 
-È una decisione **temporanea con trigger di revisione**.
+Un trigger può arrivare dal volume dei dati, dalla crescita del traffico, da costi cloud, nuovi requisiti normativi, incidenti ricorrenti, una nuova capability della piattaforma o la fine del supporto di un vendor. Il trigger non ci obbliga automaticamente a cambiare architettura; ci obbliga a **riaprire la decisione**.
 
-Molto diversa da:
+Così una scelta sensata oggi non diventa dogma soltanto perché nessuno ricorda più in quali condizioni era stata presa.
 
-> “Per ora facciamo così, poi vediamo.”
+## L'irreversibilità può essere accidentale
 
-La differenza è che nel primo caso sappiamo cosa dovrebbe farci cambiare idea.
+Molte scelte diventano costose da cambiare non perché il problema lo richiedesse, ma perché sono state incorporate senza boundary. Business logic dipendente direttamente dall'SDK di un vendor, schema pubblico uguale al modello interno, identità utente duplicata in decine di tabelle o query cross-domain diffuse ovunque possono trasformare una scelta inizialmente reversibile in una dipendenza profonda.
 
-### Trigger di revisione
+La tecnologia scelta conta, ma conta altrettanto **come la scelta entra nel sistema**.
 
-Ogni decisione importante dovrebbe poter avere uno o più trigger.
+Un adapter può non eliminare il lock-in, ma impedire che il modello del provider si diffonda nel dominio. Un contract versionato non rende gratuita una migration, ma evita di imporre a tutti i client un cambiamento simultaneo. La reversibilità è quindi una proprietà che possiamo progettare, non soltanto sperare di avere.
 
-Un trigger può essere il volume dati che supera una soglia, un aumento significativo del traffico o la crescita del numero di team. Può arrivare da un nuovo requisito normativo, da latency o costi cloud oltre budget, da incidenti ricorrenti o da un nuovo pattern di accesso. Anche la perdita di supporto di un vendor o, al contrario, una nuova capability di piattaforma possono riaprire la decisione.
+## AI e la falsa sensazione di reversibilità
 
-Il trigger non obbliga a cambiare decisione.
+Gli agenti rendono molto credibile la frase “possiamo sempre rifattorizzarlo dopo”. Se una modifica a migliaia di file può essere generata in minuti, il costo apparente del cambiamento si abbassa drasticamente.
 
-Obbliga a **rivalutarla**.
+Ma l'inversione di una decisione architetturale non coincide con la produzione di una patch. Può richiedere migration dei dati, downtime, compatibilità con client esterni, aggiornamento di procedure operative, re-training del team, audit, rollback e gestione di casi che i test non coprono.
 
-Questo evita che una scelta sensata nel 2026 venga trattata come dogma nel 2030.
+L'AI riduce una parte del costo: quello di modificare il codice. Non elimina il costo di modificare **la realtà che si è formata attorno al codice**.
 
-### Il rischio dell'irreversibilità accidentale
-
-Molte decisioni diventano difficili da cambiare non perché lo richiedesse il problema, ma perché sono state implementate senza separazione.
-
-Un esempio classico:
-
-- business logic dipendente direttamente dal client SDK del vendor;
-- schema dati pubblico uguale allo schema interno;
-- identità utente codificata in decine di tabelle senza boundary;
-- contratti senza versioning;
-- query cross-domain diffuse nel codice.
-
-La scelta iniziale poteva essere reversibile.
-
-Il coupling l'ha resa costosa.
-
-Quindi la reversibilità non dipende soltanto dalla tecnologia scelta.
-
-Dipende da **come la scelta viene incorporata nel sistema**.
-
-### AI e cambiamenti apparentemente facili
-
-Gli agenti possono far sembrare reversibili decisioni che non lo sono.
-
-“Possiamo sempre rifattorizzarlo dopo” è più convincente quando l'AI può modificare migliaia di file.
-
-Ma il costo di inversione non è soltanto il numero di righe.
-
-Può includere migrazione dati e downtime, compatibilità con client esterni e procedure operative, re-training del team, audit e rollback. Può soprattutto includere rischi che i test non coprono. La facilità di generare una patch non equivale alla facilità di cambiare un sistema in produzione.
-
-> **L'AI riduce il costo di modificare il codice. Non elimina il costo di modificare la realtà attorno al codice.**
+> **Più una decisione sopravvive alla singola codebase, meno il costo di inversione può essere stimato contando le righe da cambiare.**
