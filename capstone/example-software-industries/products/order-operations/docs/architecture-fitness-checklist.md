@@ -1,6 +1,6 @@
 # Order Operations — Architecture Fitness Checklist
 
-> **Scenario fittizio ESI.** Stato corrente dopo il Capitolo 19. Questo documento collega architectural intent, meccanismi di verifica, evidence, owner e review trigger. Non è una checklist universale di best practice.
+> **Scenario fittizio ESI.** Stato corrente dopo il Capitolo 20. Questo documento collega architectural intent, meccanismi di verifica, evidence, owner e review trigger. Non è una checklist universale di best practice.
 
 ## Principle
 
@@ -89,7 +89,7 @@ Questa evidence verifica soltanto le dependency/import rule AF-001…AF-005. Non
 | AF-OBS-01 | metric dimensions bounded | telemetry type contract + tests | Codified + locally exercised | telemetry adapter/change |
 | AF-OBS-02 | critical journey correlation preservata | telemetry contract | Codified at application boundary | adapter implementation |
 | AF-OBS-03 | critical alert ha owner/action/runbook | alert review/drill | Designed / Pending | alert creation/readiness |
-| AF-OBS-04 | telemetry cost/cardinality governati | cardinality budget + cost review | Designed | cost/cardinality growth |
+| AF-OBS-04 | telemetry cost/cardinality governati | cardinality budget + Cost Model | Designed | cost/cardinality growth |
 
 ## Testing fitness
 
@@ -112,8 +112,32 @@ Questa evidence verifica soltanto le dependency/import rule AF-001…AF-005. Non
 
 | ID | Property | Mechanism | State | Trigger |
 |---|---|---|---|---|
-| AF-COST-01 | managed capability nuova dichiara costo/trade-off | ADR / Compromise Ledger | Practiced | new paid capability/tier |
-| AF-COST-02 | security/reliability premium cost resta reviewable | FinOps review direction | Designed | spend data / chapter 20 |
+| AF-COST-01 | managed capability nuova dichiara costo/trade-off | ADR / Compromise Ledger / Cost Model | Practiced | new paid capability/tier |
+| AF-COST-02 | security/reliability premium cost resta reviewable | Cost Model + relevant quality artifact | Designed + documented | billing evidence / quality requirement change |
+| AF-COST-03 | workload/owner/environment allocation metadata non spariscono dall'IaC | `tests/cost-fitness.test.mjs` | Codified + locally exercised | IaC tagging/allocation redesign |
+| AF-COST-04 | il libro non inventa un `cost-center` hardcoded | `tests/cost-fitness.test.mjs` + Finance mapping boundary | Codified + locally exercised | real/simulated finance mapping becomes explicit |
+| AF-COST-05 | unit metric viene letta insieme alla quality metric relativa | `docs/cost-model.md` review | Designed | first production billing/unit metric |
+| AF-COST-06 | quality-changing cost cut riapre l'artefatto di qualità | architecture review | Designed | any optimization that changes security/SLO/recovery/observability boundary |
+
+### Verification evidence — Capitolo 20
+
+Il nuovo guardrail è stato esercitato localmente sulla stanza di metadata corrente dell'IaC ricostruita dal file `infra/main.bicep`.
+
+```text
+CF-001 workload / owner / environment metadata
+CF-002 no fabricated hard-coded cost-center
+→ 2 tests
+→ 2 pass
+→ 0 fail
+```
+
+Questa evidence non dimostra billing Azure, allocation correctness nel provider, forecast, budget o unit economics reali.
+
+Queste capability restano:
+
+```text
+Designed / Pending production billing data
+```
 
 ## Architecture exception policy
 
@@ -142,6 +166,7 @@ Periodically ask:
 3. quale protegge un'assunzione obsoleta?
 4. quale rischio importante dipende ancora soltanto dalla memoria?
 5. quale fitness function può essere rimossa?
+6. quale premium di costo non sappiamo più collegare a una proprietà?
 
 ## Sources
 
@@ -149,6 +174,8 @@ Periodically ask:
 - [Thoughtworks — Fitness function-driven development](https://www.thoughtworks.com/en-gb/insights/articles/fitness-function-driven-development)
 - [AWS Architecture Blog — Using Cloud Fitness Functions to Drive Evolutionary Architecture](https://aws.amazon.com/blogs/architecture/using-cloud-fitness-functions-to-drive-evolutionary-architecture/)
 - [Microsoft Learn — Azure Well-Architected Framework workloads](https://learn.microsoft.com/en-us/azure/well-architected/workloads)
+- [Microsoft Learn — Cost Optimization design principles](https://learn.microsoft.com/en-us/azure/well-architected/cost-optimization/principles)
+- [FinOps Framework — Unit Economics](https://www.finops.org/framework/capabilities/unit-economics/)
 - [GitHub Engineering — SERVICEOWNERS](https://github.blog/engineering/architecture-optimization/how-we-organize-and-get-things-done-with-serviceowners/)
 
 > **La checklist non certifica che l'architettura sia buona. Rende visibili le proprietà che abbiamo deciso di proteggere e l'evidence che abbiamo — o che ci manca — per sostenerle.**
