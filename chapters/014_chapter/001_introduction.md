@@ -2,267 +2,95 @@
 
 > **Scenario ESI.** Example Software Industries S.p.A. è fittizia. I requisiti e i compromessi di Order Operations sono simulati; le proprietà tecniche e i casi reali citati sono supportati da fonti esplicite.
 
-Una parte del sistema prima o poi fallirà.
+Una parte del sistema prima o poi fallirà. Non è pessimismo: è la condizione normale di qualsiasi software abbastanza reale da dipendere da processi, reti, storage, identity, configurazioni, persone e servizi che cambiano nel tempo.
 
-Può fallire un processo.
+Può morire un processo. Può rallentare una query. Può sparire una dipendenza. Può esaurirsi una connection pool. Può cadere una availability zone. Può arrivare un deployment sintatticamente valido ma semanticamente devastante. Può fallire una procedura di recovery che tutti davano per scontata perché nessuno l’aveva mai eseguita davvero.
 
-Può fallire una query.
+La domanda architetturale non è quindi come evitare ogni failure. È decidere **quali failure il prodotto deve assorbire, quali può trasformare in degradazione, quali possono interrompere il servizio e come deve tornare in uno stato accettabile**.
 
-Può fallire una dipendenza.
-
-Può fallire una availability zone.
-
-Può fallire un deployment.
-
-Può fallire una configurazione perfettamente valida dal punto di vista sintattico ma devastante nel comportamento.
-
-Può fallire la nostra ipotesi su quanto traffico avremmo ricevuto.
-
-Può fallire la procedura di recovery che nessuno aveva mai provato.
-
-La domanda architetturale non è quindi:
-
-> **Come facciamo a non avere mai failure?**
-
-È:
-
-> **Quali failure dobbiamo assorbire, quali possiamo degradare, quali possono interrompere il servizio e come torniamo in uno stato accettabile?**
-
-Microsoft Azure Well-Architected sintetizza la Reliability come capacità di resistere ai malfunzionamenti e tornare a uno stato pienamente funzionante. La stessa guidance insiste sul fatto che la reliability debba partire dai business requirement, non dall'obiettivo astratto di massimizzare ridondanza.
+Microsoft Azure Well-Architected descrive la Reliability come capacità del workload di resistere ai malfunzionamenti e recuperare verso uno stato pienamente funzionante, collegando le decisioni tecniche ai requisiti del business invece che alla ridondanza fine a se stessa.
 
 Fonti:
 
 - [Microsoft Learn — Azure Well-Architected Reliability](https://learn.microsoft.com/azure/well-architected/reliability/)
 - [Microsoft Learn — Reliability Maturity Model](https://learn.microsoft.com/azure/well-architected/reliability/maturity-model)
 
-## Availability non è reliability
+## Essere raggiungibili non basta
 
-Un servizio può essere tecnicamente raggiungibile ma non essere affidabile.
+Immaginiamo un’API che restituisce `200` in venti millisecondi, ma mostra un payment status vecchio di quaranta minuti senza dichiararlo. L’infrastruttura è disponibile; il comportamento può essere sbagliato.
 
-Esempio:
+Oppure immaginiamo App Service, PostgreSQL e Service Bus tutti verdi mentre gli operatori non riescono ad autenticarsi. Il processo web vive, ma il prodotto non è utilizzabile.
 
-```text
-HTTP 200
-+ response in 20 ms
-+ payment status stale di 40 minuti
-```
+Per questo, in questo libro, reliability non sarà sinonimo di uptime di una risorsa. Dovremo tenere insieme availability, correctness, latency, freshness, durability, recoverability e operability rispetto al **critical journey** che il business vuole proteggere.
 
-Il processo risponde.
+La stessa distinzione vale per la resilienza. Un sistema resiliente non è necessariamente un sistema che continua a fare tutto. Può entrare deliberatamente in read-only, rinviare un’elaborazione, rifiutare nuovo lavoro per proteggere quello già accettato, mostrare uno stato `Degraded`, isolare una dipendenza o chiedere intervento umano quando l’automazione non può più stabilire uno stato sicuro.
 
-Il journey può comunque essere sbagliato.
+> **Continuare a funzionare non significa continuare a fare tutto. Significa continuare a fare soltanto ciò che possiamo ancora fare correttamente.**
 
-Oppure:
+## Il problema non è il primo failure, ma la propagazione
 
-```text
-API online
-+ database disponibile
-+ queue attiva
-+ operatori non possono autenticarsi
-```
+Una dipendenza lenta può sembrare un problema locale. Poi le request restano aperte più a lungo, la concurrency cresce, le pool si saturano, aumentano i timeout, partono retry e il traffico effettivo aumenta proprio mentre la capacità utile diminuisce. In pochi passaggi abbiamo trasformato una dipendenza degradata in un incidente sistemico.
 
-La dashboard infrastrutturale può essere verde mentre il prodotto è inutilizzabile.
+Il lavoro di reliability consiste in buona parte nel progettare **dove questa propagazione deve fermarsi**. Timeout, retry bounded, queue, circuit breaker, bulkhead, headroom, load shedding e degraded mode sono utili soltanto se interrompono un failure path reale. Non sono una lista di pattern da applicare perché “un sistema affidabile li usa”.
 
-Per questo distingueremo almeno:
-
-```text
-availability
-correctness
-latency
-freshness
-durability
-recoverability
-operability
-```
-
-La reliability è una proprietà del comportamento end-to-end osservato rispetto a ciò che il business considera accettabile.
-
-## Resilienza
-
-Nel libro useremo **resilienza** per indicare la capacità del sistema di continuare a fornire valore o di recuperare in modo controllato quando incontra failure.
-
-Non significa necessariamente mantenere tutto disponibile.
-
-Un sistema resiliente può deliberatamente:
-
-- disabilitare una feature non critica;
-- passare a una modalità read-only;
-- accettare una richiesta e processarla più tardi;
-- rifiutare nuovo lavoro per proteggere quello già accettato;
-- mostrare uno stato `Degraded` invece di fingere normalità;
-- isolare un failure domain;
-- effettuare failover;
-- ripristinare da backup;
-- richiedere intervento umano quando l'automazione non può determinare uno stato sicuro.
-
-> **Continuare a funzionare non significa necessariamente continuare a fare tutto.**
-
-## Failure è inevitabile. Cascading failure no.
-
-Un singolo errore diventa incidente sistemico quando attraversa confini che non riescono a contenerlo.
-
-Un database rallenta.
-
-I client aspettano più a lungo.
-
-Le connection pool si riempiono.
-
-I timeout aumentano.
-
-Partono retry.
-
-Il traffico effettivo cresce proprio mentre la capacità utile scende.
-
-Altri componenti iniziano a saturare.
-
-Abbiamo trasformato:
-
-```text
-una dipendenza lenta
-```
-
-in:
-
-```text
-un sistema indisponibile
-```
-
-La reliability architecture serve anche a interrompere questa propagazione.
-
-Microsoft raccomanda pattern di fault isolation, graceful degradation, bounded retry e self-preservation proprio per evitare che problemi locali diventino failure estesi.
+Microsoft raccoglie diversi di questi meccanismi tra i reliability design pattern e insiste su fault isolation, self-preservation e graceful degradation proprio per evitare che failure locali allarghino il blast radius.
 
 Fonte:
 
 - [Microsoft Learn — Architecture design patterns that support reliability](https://learn.microsoft.com/azure/well-architected/reliability/design-patterns)
 
-## Reliability ha un costo
+## La reliability si compra, e quindi va scelta
 
-Possiamo aggiungere:
+Possiamo aggiungere istanze, zone, replica, standby, backup più frequenti, capacity headroom, deploy più conservativi, monitoring più ricco, circuit breaker, code, runbook, game day e on-call più strutturato. Ognuna di queste decisioni può migliorare alcune proprietà e peggiorarne altre.
 
-- più istanze;
-- più zone;
-- più region;
-- database standby;
-- replica;
-- cache;
-- queue;
-- circuit breaker;
-- capacity headroom;
-- backup più frequenti;
-- retention maggiore;
-- observability più ricca;
-- deployment più conservativi;
-- test di failure;
-- on-call più strutturato.
+Il costo non è soltanto cloud. È anche complessità, cognitive load, latency, consistency, velocità di delivery, tempo di engineering e numero di failure mode che il team deve imparare a riconoscere.
 
-Ognuno può migliorare alcune proprietà.
-
-Ognuno ha un costo.
-
-Il costo può essere:
-
-- cloud;
-- complessità;
-- operabilità;
-- latency;
-- consistency;
-- velocità di delivery;
-- cognitive load;
-- tempo di engineering.
-
-Per questo:
-
-> **"Più affidabile" non è ancora una decisione.**
-
-Serve sapere:
+Perciò “rendiamolo più affidabile” non è ancora un requisito. Una decisione utilizzabile deve dire almeno:
 
 ```text
 per quale journey
 contro quale failure
 entro quale target
 con quale costo
+con quale recovery source
+con quale evidence
 ```
 
-## Il caso ESI
+Senza questi elementi è facile costruire **reliability theater**: molta ridondanza, molte dashboard e nessuna idea precisa di che cosa il prodotto stia promettendo.
 
-Order Operations è ormai diventato un workload reale abbastanza ricco da avere failure interessanti.
+## Order Operations arriva al punto in cui il failure diventa prodotto
 
-Abbiamo:
+Il capstone ESI ora ha abbastanza parti perché le conseguenze dei guasti non siano più teoriche:
 
 ```text
 Operations UI
 → App Service
 → PostgreSQL
-→ Outbox
+→ transactional outbox
 → WebJob Publisher
 → Service Bus Queue
 → Payments & Risk
 ```
 
-E abbiamo dipendenze cloud come:
+Intorno a questo percorso esistono Entra ID, private DNS, Key Vault, Azure Monitor e la landing-zone network. Il Capitolo 13 ci ha fatto progettare questi boundary contro comportamento ostile. Adesso dobbiamo capire che cosa accade quando gli stessi boundary smettono semplicemente di funzionare.
 
-```text
-Entra ID
-Private DNS
-Key Vault
-Azure Monitor
-landing-zone network
-```
+Commerce & Operations vuole che gli operatori continuino a lavorare durante le normali finestre operative. Payments & Risk vuole che una Payment Escalation già accettata non scompaia e non produca un secondo effetto business quando viene ritentata. Platform Engineering vuole sfruttare le capability managed di Azure senza costruire una piattaforma custom per un solo workload. Finance non vuole pagare multi-region e replica “nel dubbio”.
 
-Il Capitolo 13 ha progettato trust boundary e security control.
+La domanda del capitolo diventa quindi molto concreta:
 
-Adesso dobbiamo chiederci cosa succede quando le stesse parti smettono di funzionare correttamente.
+> **Quale livello di reliability vale la pena comprare adesso per Order Operations?**
 
-### Tensione ESI
+Non inizieremo da active-active multi-region. Potremmo scoprire che, con i target correnti, ha più valore comprare zone redundancy sul compute, HA zonale sul database, capacity minima superiore a uno, un health model serio, restore drill e una recovery path documentata. Queste decisioni coprono failure frequenti senza anticipare una complessità regionale che il business non ha ancora richiesto.
 
-**Commerce & Operations** vuole che gli operatori possano lavorare durante le finestre operative senza frequenti interruzioni.
-
-**Payments & Risk** vuole che una Payment Escalation accettata non sparisca e non venga duplicata semanticamente.
-
-**Platform Engineering** vuole usare le capability di resilienza native di Azure senza costruire un sistema custom per ogni workload.
-
-**Finance / FinOps** non vuole pagare multi-region, replica e capacity headroom senza un business target che ne dimostri il valore.
-
-Il compromesso del capitolo sarà quindi:
-
-> **quale livello di reliability vale la pena comprare adesso?**
-
-## Non massimizzeremo tutto
-
-Per Order Operations la prima decisione non sarà active-active multi-region.
-
-Non perché sia una cattiva architettura in assoluto.
-
-Perché oggi non abbiamo ancora un requisito che ne paghi:
-
-- costo;
-- replication complexity;
-- failover complexity;
-- operational testing;
-- data-consistency consequences;
-- maggiore cognitive load.
-
-Potremmo invece scoprire che vale la pena comprare:
-
-- zone redundancy sul compute;
-- HA zonale sul database;
-- capacity minima > 1;
-- health model;
-- graceful degradation;
-- restore exercise;
-- queue/backlog monitoring;
-- rollback più sicuro.
-
-Queste decisioni hanno un costo inferiore e proteggono failure molto più probabili del region-wide disaster.
-
-Microsoft sottolinea esplicitamente di non concentrarsi soltanto sui rari eventi regionali, ma anche sui failure locali e transitori come network loss o database connection failure.
+Microsoft, nel principio di self-healing, ricorda proprio che il design deve considerare anche failure locali e transitori — network loss, connection failure, instance failure — invece di concentrarsi soltanto sugli eventi catastrofici più rari.
 
 Fonte:
 
 - [Microsoft Learn — Design for Self-Healing](https://learn.microsoft.com/azure/architecture/guide/design-principles/self-healing)
 
-## Reliability come disciplina di prodotto
+## Dal desiderio al contratto
 
-Il capitolo seguirà questo percorso:
+Il percorso del capitolo seguirà una sequenza precisa:
 
 ```text
 critical journey
@@ -270,79 +98,31 @@ critical journey
 → SLO
 → error budget
 → health model
-→ failure mode
-→ containment
+→ failure propagation
 → degradation
 → recovery
 → drill
 → evidence
 ```
 
-La reliability smette così di essere:
+Questo cambia anche il linguaggio.
 
-```text
-"mettiamo due istanze"
-```
+Non diremo più semplicemente “il database è altamente disponibile”. Diremo quale critical flow dipende dal database, quali failure copre la HA, quali non copre, quali RTO/RPO stiamo proteggendo e quale prova dimostra che il recovery funziona.
 
-per diventare:
+Non diremo “abbiamo i backup”. Diremo che abbiamo eseguito un restore, misurato il tempo reale e verificato il punto recuperato.
 
-```text
-"questa proprietà del journey deve restare entro questo livello,
-anche quando accadono questi failure,
-e abbiamo evidenza che sappiamo recuperare"
-```
+Non diremo “la queue ci protegge”. Diremo che disaccoppia il downstream, mentre backlog, oldest-message age, DLQ e recovery load entrano nel nostro health model.
 
-## La reliability cambia il modo di parlare
+Questa trasformazione produrrà un nuovo artefatto del capstone: il **Reliability Contract**. Non sarà una dashboard e non sostituirà la Failure Mode Map. Servirà a dire che cosa deve significare `Healthy`, `Degraded` e `Unhealthy`, quali target proteggiamo e quale evidence dovrà esistere prima di poter dire che una strategia è realmente verificata.
 
-Non diremo:
+## Cosa cambia con l’AI
 
-> "Il database è altamente disponibile."
+L’AI può generare in pochi minuti retry policy, circuit breaker, health endpoint, dashboard, chaos test, Bicep multi-region e runbook. È un vantaggio enorme, ma elimina anche una friction che prima ci costringeva almeno a pensare prima di costruire.
 
-Diremo:
+Un agente può creare dieci meccanismi di recovery senza sapere quale reliability target ESI sia disposta a finanziare. Può proporre `99.99%` perché sembra un numero professionale, e quel numero può trasformarsi immediatamente in replica, regioni e costi reali.
 
-> "Il critical flow dipende dal database. Per un node/zone failure scegliamo questa strategia. Per una corruption logica scegliamo quest'altra. Questi sono RTO/RPO, questi i test e questo il residual risk."
+La disciplina quindi diventa ancora più importante:
 
-Non diremo:
+> **La resilienza non si misura dal numero di meccanismi di recovery. Si misura da quanto bene il sistema mantiene il proprio contratto quando qualcosa va storto.**
 
-> "Abbiamo il backup."
-
-Diremo:
-
-> "Abbiamo effettuato un restore e sappiamo quanto ci mette."
-
-Non diremo:
-
-> "La queue ci protegge."
-
-Diremo:
-
-> "La queue disaccoppia il downstream, ma backlog, DLQ e consumer capacity sono parte del nostro health model."
-
-## Con AI
-
-L'AI può rendere molto economico generare:
-
-- retry;
-- fallback;
-- health endpoint;
-- circuit breaker;
-- IaC con replica e multi-region;
-- chaos test;
-- dashboard;
-- runbook.
-
-Questo non significa che sappia quale reliability target il business è disposto a finanziare.
-
-Anzi, il rischio è produrre **reliability theater**:
-
-```text
-molti meccanismi
-+ nessun SLO
-+ nessun failure model
-+ nessun restore test
-+ nessun owner
-```
-
-> **La resilienza non si misura dal numero di meccanismi di recovery. Si misura da quanto bene il sistema soddisfa il proprio contratto quando qualcosa va storto.**
-
-Nel resto del capitolo costruiremo quel contratto.
+Nel resto del capitolo costruiremo quel contratto e, soprattutto, stabiliremo come provarlo.
