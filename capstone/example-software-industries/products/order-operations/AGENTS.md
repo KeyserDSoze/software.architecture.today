@@ -27,6 +27,7 @@ Common routes:
 - architecture policy → `docs/architecture-fitness-checklist.md`
 - testing/evidence → `docs/testing-strategy.md`
 - execution/discovery task contract → `work-items/TEMPLATE.md` and the specific work item under `work-items/`
+- delegated agent execution → `docs/agent-delegation-contract.md`, `docs/agent-verification-bundle.md`, `docs/ai-autonomy-matrix.md`
 
 Do not copy inferred behavior into canonical documentation as if it were confirmed. For legacy knowledge preserve the distinction `Found → Inferred → Observed → Confirmed`.
 
@@ -39,7 +40,7 @@ Do not copy inferred behavior into canonical documentation as if it were confirm
 - `src/priority/` — confirmed priority policy and explicit legacy compatibility seam.
 - `database/` — persistence owned by Order Operations only.
 - `infra/` — Azure workload infrastructure. Security, reliability and cost decisions apply.
-- `tests/` — behavioral, architecture, cost, issue-readiness and repository-context verification.
+- `tests/` — behavioral, architecture, cost, issue-readiness, agent-governance and repository-context verification.
 - `work-items/` — bounded discovery/execution contracts for current or future work; not a second copy of canonical architecture documentation.
 
 Architecture rules are executable in `tests/architecture-fitness.test.mjs`.
@@ -79,6 +80,44 @@ If changing a legacy/refactoring behavior, preserve characterization evidence an
 
 If working from a `work-items/` execution task, preserve its outcome, scope, out-of-scope, acceptance criteria and stop conditions. New work discovered outside scope should be recorded as follow-up unless it is required to satisfy the declared acceptance properties.
 
+If the task is delegated under an Agent Delegation Contract, preserve the declared capability/permission boundary. The executor may propose a policy/autonomy change but must not grant itself broader scope or permission for the current run.
+
+## Agent governance
+
+Current Order Operations agent governance lives in:
+
+```text
+docs/agent-delegation-contract.md
+docs/agent-verification-bundle.md
+docs/ai-autonomy-matrix.md
+```
+
+For `OO-001`, the current baseline is:
+
+```text
+Implementer autonomy
+= A2 bounded execution
+
+Independent verification
+= required before scoped evidence acceptance
+
+Merge
+= human/repository gate
+
+Production permissions
+= not granted
+```
+
+`tests/agent-governance-fitness.test.mjs` protects selected mechanical properties of these documents. A green governance test does **not** prove that a delegated task was successfully executed.
+
+The current executor must not:
+
+- increase its own autonomy to finish the current task;
+- approve its own architecture exception;
+- weaken a verification oracle outside authorized scope;
+- treat an AI reviewer opinion as a substitute for required deterministic evidence;
+- describe a delegated task as `Verified` before the declared evidence exists.
+
 ## Stop conditions
 
 Stop execution and request an explicit decision if the task requires any of the following and the decision is not already documented:
@@ -91,9 +130,10 @@ Stop execution and request an explicit decision if the task requires any of the 
 - a breaking external contract change;
 - changing confirmed functional semantics without Product/Operations decision context;
 - removing legacy/fallback before its completion and rollback conditions are satisfied;
-- changing an architecture/security/reliability rule only because the current implementation fails it.
+- changing an architecture/security/reliability rule only because the current implementation fails it;
+- increasing agent permission/autonomy beyond the active delegation contract.
 
-A work item may define additional, narrower stop conditions. Those conditions remain part of the task contract.
+A work item or Agent Delegation Contract may define additional, narrower stop conditions. Those conditions remain part of the execution contract.
 
 ## Security
 
@@ -124,6 +164,7 @@ For a normal code change:
 5. `npm test` passes, or failures/gaps are explicitly reported;
 6. architecture/security boundaries were not silently weakened;
 7. the final report distinguishes what was verified from what remains designed/pending;
-8. if a work item was used, closure evidence records outcome, checks executed, limitations, `Not verified` and follow-up work.
+8. if a work item was used, closure evidence records outcome, checks executed, limitations, `Not verified` and follow-up work;
+9. if an Agent Delegation Contract was used, the result includes the required Agent Verification Bundle and any stop/escalation event.
 
 > **Do not invent missing business semantics. Do not hide missing evidence.**
