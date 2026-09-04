@@ -56,7 +56,7 @@ Quali scoperte devono interrompere l'execution e riportarci alla decisione?
 
 Il brief non dovrebbe contenere automaticamente framework, class diagram, schema database, provider cloud, nomi delle classi o numero di microservizi. Queste sono decisioni che possono arrivare dopo.
 
-Se una scelta tecnica è già un constraint reale, va dichiarata come tale. Dire che il componente deve essere eseguito sulla piattaforma .NET già supportata dal team può essere un vincolo legittimo; scrivere in anticipo che la soluzione dovrà essere composta da tre microservizi .NET, Azure Service Bus e Cosmos DB significa invece usare il brief per nascondere il solution-first development.
+Se una scelta tecnica è già un constraint reale, va dichiarata come tale. Dire che il componente deve essere eseguito sulla piattaforma.NET già supportata dal team può essere un vincolo legittimo; scrivere in anticipo che la soluzione dovrà essere composta da tre microservizi.NET, Azure Service Bus e Cosmos DB significa invece usare il brief per nascondere il solution-first development.
 
 ### Le assunzioni meritano una sezione propria
 

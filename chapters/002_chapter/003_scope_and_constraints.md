@@ -54,7 +54,7 @@ I vincoli non sono rumore intorno alla soluzione. Sono parte del problema.
 
 Non tutti i vincoli hanno la stessa natura. Un **hard constraint** non può essere violato nel perimetro corrente: una normativa, un limite contrattuale, una regione obbligatoria o una compatibilità minima possono rientrare in questa categoria. Un **soft constraint** può invece essere negoziato, ma la negoziazione ha un costo: preferire una tecnologia già nota al team, evitare una nuova piattaforma operativa o puntare a una certa data di delivery sono esempi tipici.
 
-La distinzione evita che una preferenza diventi accidentalmente una legge. “Usiamo sempre .NET” può essere una convenzione organizzativa utile; “il dato non può lasciare l’Unione Europea” può invece essere un vincolo non negoziabile per uno specifico sistema.
+La distinzione evita che una preferenza diventi accidentalmente una legge. “Usiamo sempre.NET” può essere una convenzione organizzativa utile; “il dato non può lasciare l’Unione Europea” può invece essere un vincolo non negoziabile per uno specifico sistema.
 
 ### Vincoli dichiarati e vincoli scoperti
 
