@@ -1,0 +1,97 @@
+{
+  "chapter": 2,
+  "replacements": [
+    {
+      "old": "Prima ancora dobbiamo sapere:\n\n- quale problema stiamo cercando di risolvere;\n- per chi;\n- quale outcome ci interessa;\n- quale parte del problema è davvero nel nostro scope;\n- quali vincoli non possiamo ignorare;\n- quali comportamenti devono esistere;\n- quali qualità devono essere misurabili;\n- che cosa significa, concretamente, poter dire che abbiamo finito.",
+      "new": "Prima ancora dobbiamo sapere quale problema stiamo cercando di risolvere e per chi, quale outcome ci interessa e quale parte del problema appartiene davvero al nostro scope. Dobbiamo riconoscere i vincoli che non possiamo ignorare, i comportamenti che devono esistere, le qualità che devono diventare misurabili e che cosa significhi, concretamente, poter dire che abbiamo finito."
+    },
+    {
+      "old": "È una pagina — a volte meno — che deve permettere a chiunque, umano o agente, di capire:\n\n- quale situazione vogliamo cambiare;\n- per chi;\n- quale outcome ci dirà che abbiamo creato valore;\n- cosa stiamo facendo adesso;\n- cosa non stiamo facendo;\n- quali vincoli sono già noti;\n- quali assunzioni richiedono verifica.",
+      "new": "È una pagina — a volte meno — che deve permettere a chiunque, umano o agente, di capire quale situazione vogliamo cambiare, per chi e quale outcome ci dirà che abbiamo creato valore. Deve rendere leggibile ciò che stiamo facendo adesso e ciò che non stiamo facendo, i vincoli già noti e le assunzioni che richiedono ancora verifica."
+    },
+    {
+      "old": "Ma non sappiamo ancora:\n\n- chi la userà;\n- quale decisione deve migliorare;\n- con quale frequenza;\n- quali metriche servono davvero;\n- quale livello di freschezza è necessario;\n- se esiste già un altro strumento che risolve parte del problema;\n- quale comportamento dovrebbe cambiare grazie alla dashboard.",
+      "new": "Ma non sappiamo ancora chi la userà, quale decisione dovrebbe migliorare e con quale frequenza. Non abbiamo definito quali metriche servano davvero, quale freshness sia necessaria, se esista già uno strumento che risolve parte del problema né quale comportamento dovrebbe cambiare grazie alla dashboard."
+    },
+    {
+      "old": "Significa distinguere:\n\n- ciò che sappiamo;\n- ciò che stimiamo;\n- ciò che dobbiamo ancora misurare.",
+      "new": "Significa distinguere ciò che sappiamo da ciò che stiamo stimando e da ciò che dobbiamo ancora misurare."
+    },
+    {
+      "old": "Durante l'implementazione emergono possibilità:\n\n- inviarla anche via email;\n- personalizzare il template;\n- supportare più lingue;\n- aggiungere un QR code;\n- archiviare i PDF;\n- creare una pagina amministrativa;\n- permettere la rigenerazione;\n- aggiungere firme digitali;\n- esportare tutte le ricevute del mese.",
+      "new": "Durante l'implementazione emergono facilmente nuove possibilità: inviare il risultato anche via email, personalizzare il template, supportare più lingue o aggiungere un QR code. Poi arrivano l'archiviazione dei PDF, una pagina amministrativa, la rigenerazione, le firme digitali e l'export mensile. Ognuna sembra piccola quando viene guardata da sola."
+    },
+    {
+      "old": "Ogni capacità aggiunta può introdurre:\n\n- superficie di test;\n- dati da gestire;\n- casi limite;\n- autorizzazioni;\n- dipendenze;\n- storage;\n- compatibilità futura;\n- documentazione;\n- supporto operativo;\n- responsabilità legali o fiscali.",
+      "new": "Ogni capacità aggiunta allarga la superficie di test e i dati da gestire, porta nuovi casi limite, autorizzazioni e dipendenze e può richiedere storage. Crea inoltre compatibilità futura, documentazione e supporto operativo; in alcuni domini introduce perfino responsabilità legali o fiscali."
+    },
+    {
+      "old": "Esempi:\n\n- una normativa;\n- un'API esterna che non supporta un certo comportamento;\n- un deployment obbligatorio in una determinata regione;\n- compatibilità con una versione minima;\n- un limite contrattuale.\n\n**Soft constraint** — può essere negoziato, ma ha un costo.",
+      "new": "Una normativa, un'API esterna che non supporta un certo comportamento, un deployment obbligatorio in una determinata regione, la compatibilità con una versione minima o un limite contrattuale sono esempi di hard constraint.\n\n**Soft constraint** — può essere negoziato, ma ha un costo."
+    },
+    {
+      "old": "Esempi:\n\n- preferire una tecnologia già nota al team;\n- evitare una nuova piattaforma operativa;\n- target di delivery;\n- budget desiderato;\n- standard interno modificabile.",
+      "new": "Preferire una tecnologia già nota al team, evitare una nuova piattaforma operativa, puntare a una certa data di delivery o a un certo budget e rispettare uno standard interno modificabile sono invece esempi di soft constraint."
+    },
+    {
+      "old": "La frase potrebbe esplodere rapidamente in:\n\n- dashboard;\n- workflow;\n- alert;\n- automazioni;\n- chatbot;\n- nuova coda operativa;\n- nuove API;\n- analytics;\n- notifiche al cliente.\n\nPrima di progettare, restringiamo.",
+      "new": "La frase potrebbe esplodere rapidamente in una dashboard, un workflow e nuovi alert, poi in automazioni, chatbot, una coda operativa, nuove API, analytics e notifiche al cliente. Prima di progettare, restringiamo."
+    },
+    {
+      "old": "Lo stesso vale per parole come:\n\n- attivo;\n- valido;\n- completato;\n- disponibile;\n- amministratore;\n- prioritario;\n- fallito;\n- verificato.\n\nMolti bug che appaiono tecnici sono in realtà divergenze semantiche.",
+      "new": "Lo stesso vale per parole apparentemente semplici come *attivo*, *valido*, *completato*, *disponibile*, *amministratore*, *prioritario*, *fallito* o *verificato*. Molti bug che appaiono tecnici sono in realtà divergenze semantiche."
+    },
+    {
+      "old": "esistono decine di comportamenti non definiti:\n\n- pagamento rifiutato;\n- timeout del provider;\n- risposta duplicata;\n- callback in ritardo;\n- callback prima della risposta sincrona;\n- utente che riprova;\n- ordine già pagato;\n- importo cambiato;\n- valuta non supportata;\n- autorizzazione riuscita ma persistenza fallita.",
+      "new": "esistono decine di comportamenti non definiti. Il pagamento può essere rifiutato o il provider andare in timeout; una risposta può arrivare duplicata, in ritardo o in un ordine diverso da quello atteso. L'utente può riprovare, l'ordine risultare già pagato, l'importo cambiare o la valuta non essere supportata. E possiamo perfino autorizzare correttamente il pagamento per poi fallire durante la persistenza."
+    },
+    {
+      "old": "Ma cosa implicano?\n\n- isolamento dei dati?\n- configurazioni separate?\n- quote?\n- identità separate?\n- cifratura con chiavi diverse?\n- custom domain?\n- deployment separati?\n- billing separato?",
+      "new": "Ma che cosa implicano davvero? Potrebbero richiedere isolamento dei dati e configurazioni separate, quote o identità distinte, cifratura con chiavi differenti, custom domain, deployment dedicati o persino billing separato."
+    },
+    {
+      "old": "Lo stesso vale per:\n\n- supportare offline;\n- supportare multi-region;\n- supportare real time;\n- supportare audit;\n- supportare plugin;\n- supportare AI.\n\nOgni volta dobbiamo tradurre la capacità in comportamenti e qualità osservabili.",
+      "new": "Lo stesso vale quando diciamo che il sistema deve supportare offline, multi-region, real time, audit, plugin o AI. Ogni volta dobbiamo tradurre la capacità in comportamenti e qualità osservabili."
+    },
+    {
+      "old": "Un agente può produrre codice che:\n\n- compila;\n- passa i test esistenti;\n- rispetta lo stile del repository;\n- sembra coerente con il task.\n\nEppure la feature può non essere “done”.",
+      "new": "Un agente può produrre codice che compila, passa i test esistenti, rispetta lo stile del repository e sembra coerente con il task. Eppure la feature può non essere “done”."
+    },
+    {
+      "old": "Ma restano domande:\n\n- due operatori possono prendere in carico lo stesso ordine contemporaneamente?\n- cosa vede il secondo?\n- l'assegnazione è auditabile?\n- un operatore può liberare il caso?\n- un amministratore può riassegnarlo?\n- l'utente deve vedere immediatamente il nuovo stato?\n- cosa succede se la richiesta viene ripetuta?",
+      "new": "Ma restano domande sul comportamento reale. Due operatori possono prendere in carico lo stesso ordine contemporaneamente, e che cosa vede il secondo? L'assegnazione è auditabile? Un operatore può liberare il caso e un amministratore riassegnarlo? Il nuovo stato deve essere immediatamente visibile e che cosa succede se la stessa richiesta viene ripetuta?"
+    },
+    {
+      "old": "La risposta può essere:\n\n- un test automatico;\n- una proprietà invariabile;\n- un benchmark;\n- un test manuale guidato;\n- un contract test;\n- una query di verifica;\n- una metrica osservata;\n- una review di sicurezza;\n- una combinazione di questi elementi.",
+      "new": "La risposta può essere un test automatico o una proprietà invariabile, un benchmark o un test manuale guidato, un contract test o una query di verifica. In altri casi serve una metrica osservata, una security review o una combinazione di più forme di evidence."
+    },
+    {
+      "old": "Gli acceptance criteria ci ricordano di verificare anche:\n\n- concorrenza;\n- autorizzazione;\n- audit;\n- idempotenza;\n- errore;\n- osservabilità.",
+      "new": "Gli acceptance criteria ci ricordano di verificare anche concorrenza e autorizzazione, audit e idempotenza, comportamento in errore e osservabilità."
+    },
+    {
+      "old": "Il brief non dovrebbe contenere automaticamente:\n\n- framework;\n- class diagram;\n- schema database dettagliato;\n- provider cloud;\n- struttura delle directory;\n- nomi delle classi;\n- librerie;\n- numero di microservizi.",
+      "new": "Il brief non dovrebbe contenere automaticamente framework, class diagram o uno schema database dettagliato, né prescrivere provider cloud, struttura delle directory, nomi delle classi, librerie o numero di microservizi."
+    },
+    {
+      "old": "il brief rimane breve, ma viene accompagnato da artefatti specifici:\n\n- threat model;\n- ADR;\n- migration plan;\n- data contract;\n- reliability analysis;\n- compliance review;\n- rollback plan.",
+      "new": "il brief rimane breve e, quando serve, viene accompagnato da artefatti specifici: threat model e ADR, migration plan e data contract, reliability analysis, compliance review o rollback plan."
+    },
+    {
+      "old": "ESI possiede già sistemi e capability che gestiscono:\n\n- lifecycle degli ordini;\n- pagamenti;\n- fulfillment/spedizione;\n- identity aziendale;\n- logging e observability condivisi.\n\nOrder Operations non nasce per sostituirli.",
+      "new": "ESI possiede già sistemi e capability per il lifecycle degli ordini, i pagamenti e il fulfillment, oltre a identity aziendale, logging e observability condivisi. Order Operations non nasce per sostituirli."
+    },
+    {
+      "old": "Nasce perché alcuni ordini rimangono in condizioni che richiedono intervento umano e il team Operations li scopre attraverso combinazioni di:\n\n- segnalazioni dei clienti;\n- ricerche manuali;\n- log tecnici;\n- messaggi interni;\n- conoscenza informale del sistema.",
+      "new": "Nasce perché alcuni ordini rimangono in condizioni che richiedono intervento umano e il team Operations li scopre combinando segnalazioni dei clienti, ricerche manuali e log tecnici con messaggi interni e conoscenza informale del sistema."
+    },
+    {
+      "old": "Potremmo implementare questa capability con:\n\n- query sul database esistente;\n- read model dedicato;\n- eventi;\n- polling;\n- notifiche push;\n- altre varianti.\n\nAlcune saranno migliori di altre.",
+      "new": "Potremmo implementare questa capability con query sul database esistente o con un read model dedicato, usando eventi, polling, notifiche push o altre varianti. Alcune saranno migliori di altre."
+    },
+    {
+      "old": "Può essere:\n\n- prototipo;\n- spike;\n- benchmark;\n- proof of concept;\n- simulazione;\n- test di integrazione;\n- esperimento utente.\n\nIl suo criterio di successo è l'apprendimento.",
+      "new": "Può essere un prototipo o uno spike, un benchmark o una proof of concept, una simulazione, un test di integrazione o un esperimento con utenti. Il suo criterio di successo è l'apprendimento."
+    }
+  ]
+}
