@@ -244,7 +244,43 @@ Trigger
 
 **Trigger:** billing reale disponibile, cost/unit trend diverge dal business volume, Premium/new paid capability, telemetry growth, legacy coexistence oltre milestone, SLO/security requirement change, introduzione di workload AI materialmente costoso.
 
-## Capitolo 21 e successivi
+## Capitolo 21 — AI-ready repository
+
+**Esigenza:** permettere a persone e coding agent di entrare in Order Operations senza ricostruire ogni volta struttura, boundary, comandi e criteri di evidence.
+
+**Tensione:** più persistent context vs context pollution, documentazione duplicata e instruction drift.
+
+**Decisione:** ESI introduce un `AGENTS.md` breve e tool-neutral come routing layer, `docs/repository-map.md` come navigation context e `tests/agent-context-fitness.test.mjs` per verificare proprietà meccaniche del context layer. I dettagli restano nei documenti canonical esistenti.
+
+**Costo accettato:** `AGENTS.md` e Repository Map diventano artefatti da mantenere sincronizzati con la struttura; aggiungiamo un nuovo failure mode possibile, instruction staleness.
+
+**Quality floor:** nessuna instruction diventa seconda source of truth per requisiti/architecture; verification commands devono esistere; `Designed→Codified→Verified→Monitored` resta esplicito; instruction ≠ permission.
+
+**Guardrail:** canonical context routing, golden commands, stop conditions, context fitness, no secret in instructions, human review per semantic correctness.
+
+**Evidence:** GitHub Docs su repository/custom instructions e `AGENTS.md`; OpenAI su `AGENTS.md`, environment setup e task context. Gate CTX-001…CTX-004 esercitato localmente: `4/4 PASS`.
+
+**Trigger:** top-level structure cambia, canonical doc viene rinominato/ritirato, golden command cambia, instruction cresce/duplica content, agent permission model entra in produzione.
+
+## Capitolo 22 — Issue-driven development
+
+**Esigenza:** trasformare backlog e richieste di lavoro in unità delegabili a persone e agenti senza lasciare che l'executor inventi decisioni di prodotto o architettura mancanti.
+
+**Tensione:** maggiore execution parallelism vs costo di preparare issue realmente execution-ready; abbastanza struttura vs burocrazia; autonomia locale vs task amplification.
+
+**Decisione:** ESI distingue repository context da task context e introduce `work-items/TEMPLATE.md`, il primo execution work item `OO-001-postgresql-escalation-outbox-atomicity.md` e `tests/issue-readiness-fitness.test.mjs`. Il template richiede Problem, Outcome, Current evidence, Scope, Out of scope, Canonical context, Acceptance criteria, Verification, Constraints, Stop conditions e Closure evidence.
+
+**Costo accettato:** i task a rischio materiale richiedono più lavoro di preparation e review prima dell'execution; il work-item contract deve essere aggiornato quando nuova evidence modifica scope o decision boundary.
+
+**Quality floor:** acceptance property distinta dal test command; out-of-scope esplicito; stop conditions; no green-by-editing-the-oracle; claim di closure proporzionato alla verification realmente eseguita.
+
+**Guardrail:** Issue Template, work-item readiness review, canonical document links, stop/escalation behavior, closure `Not verified`, issue-readiness fitness.
+
+**Evidence:** GitHub Docs/Blog su well-scoped coding-agent issues, acceptance criteria, Issue Forms, atomic task e WRAP; OpenAI su task ben circoscritti e prompt strutturati come GitHub Issue. Gate ISSUE-001…ISSUE-004 eseguito localmente: `4/4 PASS`.
+
+**Trigger:** work item richiede una nuova semantica/owner/one-way door, scope cresce oltre il boundary dichiarato, verification oracle dovrebbe cambiare, task diventa multi-outcome, oppure emerge una dependency che richiede discovery separata.
+
+## Capitolo 23 e successivi
 
 Il ledger continua insieme al manoscritto.
 
