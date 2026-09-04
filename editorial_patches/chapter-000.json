@@ -1,0 +1,137 @@
+{
+  "chapter": 0,
+  "replacements": [
+    {
+      "old": "La produzione ci chiede molto altro:\n\n- che cosa succede quando due richieste arrivano insieme?\n- che cosa succede quando una dipendenza rallenta?\n- possiamo ripetere una richiesta senza duplicare effetti?\n- quali dati possiamo perdere?\n- come facciamo rollback?\n- chi può leggere o modificare questa informazione?\n- come scopriamo un errore che non genera un'eccezione?\n- il sistema degrada o collassa quando il carico cresce?\n- che cosa costa tenerlo acceso?\n- chi viene svegliato quando qualcosa va storto?\n- sappiamo cambiare questa decisione tra sei mesi?",
+      "new": "La produzione ci chiede molto altro. Dobbiamo sapere che cosa accade quando due richieste arrivano insieme o quando una dipendenza rallenta, se una richiesta può essere ripetuta senza duplicare effetti e quali dati possiamo permetterci di perdere. Dobbiamo sapere come tornare indietro, chi può leggere o modificare un'informazione e come scoprire un errore che non genera un'eccezione. E dobbiamo ancora chiederci come il sistema reagirà al carico, quanto costerà tenerlo acceso, chi interverrà quando qualcosa andrà storto e se fra sei mesi saremo ancora in grado di cambiare la decisione presa oggi."
+    },
+    {
+      "old": "Nel senso di costruire ambienti di lavoro in cui il contesto importante sia leggibile e utilizzabile:\n\n- overview del sistema;\n- confini architetturali;\n- decisioni già prese;\n- contratti;\n- convenzioni;\n- comandi di build e test;\n- ownership;\n- requisiti non funzionali;\n- threat model;\n- vincoli di deployment;\n- definition of done;\n- stop condition.",
+      "new": "Nel senso di costruire ambienti di lavoro in cui il contesto importante sia leggibile e utilizzabile. Un agente dovrebbe poter ricostruire l'overview del sistema, i confini architetturali e le decisioni già prese; trovare contratti, convenzioni, comandi di build e test; capire ownership, requisiti non funzionali, threat model e vincoli di deployment; sapere infine che cosa significa done e quando deve fermarsi."
+    },
+    {
+      "old": "Un engineer al timone distingue tra:\n\n- ciò che sappiamo;\n- ciò che stiamo assumendo;\n- ciò che dobbiamo misurare;\n- ciò che possiamo decidere dopo;\n- ciò che blocca l'esecuzione.",
+      "new": "Un engineer al timone distingue ciò che sappiamo da ciò che stiamo assumendo. Sa che alcune domande richiedono misure, altre possono essere rimandate e altre ancora bloccano l'esecuzione finché non vengono chiarite."
+    },
+    {
+      "old": "Davanti a una modifica importante dovremmo riuscire a dire:\n\n- quale problema volevamo risolvere;\n- quale alternativa abbiamo scelto;\n- perché l'abbiamo scelta;\n- quali vincoli hanno influenzato la decisione;\n- quali failure mode consideriamo principali;\n- come abbiamo verificato l'implementazione;\n- che cosa ci farebbe fermare o tornare indietro.",
+      "new": "Davanti a una modifica importante dovremmo riuscire a ricostruire il filo della decisione: quale problema volevamo risolvere, quale alternativa abbiamo scelto e perché, quali vincoli e failure mode hanno pesato, come abbiamo verificato l'implementazione e quali condizioni ci farebbero fermare o tornare indietro."
+    },
+    {
+      "old": "Ma se non abbiamo sincronizzato prima:\n\n- semantica dell'operazione;\n- ownership del dato;\n- schema del contratto;\n- gestione degli errori;\n- compatibilità;\n- acceptance criteria;\n\nnon abbiamo parallelizzato un progetto.",
+      "new": "Ma se prima non abbiamo sincronizzato la semantica dell'operazione, l'ownership del dato, lo schema del contratto, il modello degli errori, la compatibilità e gli acceptance criteria, non abbiamo parallelizzato un progetto."
+    },
+    {
+      "old": "La vera complessità forse è nella semantica:\n\n- un ordine può essere annullato dopo il pagamento?\n- che cosa succede alla spedizione?\n- il rimborso è sincrono o asincrono?\n- come evitiamo due rimborsi?\n- l'annullamento è un cambio di stato o un evento separato?\n- quali sistemi esterni devono essere notificati?\n- chi può annullare?\n- fino a quale momento?",
+      "new": "La vera complessità forse è nella semantica. Dobbiamo capire se un ordine possa essere annullato dopo il pagamento, che cosa accada alla spedizione e se il rimborso sia sincrono o asincrono. Dobbiamo evitare rimborsi duplicati, decidere se l'annullamento sia un cambio di stato o un evento separato, identificare i sistemi esterni da notificare e stabilire chi possa annullare un ordine e fino a quale momento."
+    },
+    {
+      "old": "È migliore perché rende visibili:\n\n- obiettivo;\n- perimetro;\n- invarianti;\n- rischio di sicurezza;\n- criterio di verifica;\n- stop condition.",
+      "new": "È migliore perché rende visibili l'obiettivo e il perimetro, esplicita le invarianti e il rischio di sicurezza, dichiara il criterio di verifica e stabilisce una stop condition."
+    },
+    {
+      "old": "Serve profondità tecnica per riconoscere:\n\n- un'astrazione sbagliata;\n- una race condition plausibile;\n- una query che scala male;\n- un contratto fragile;\n- un errore di gestione dello stato;\n- un uso non idiomatico di una piattaforma;\n- un test che verifica l'implementazione invece del comportamento;\n- una vulnerabilità nascosta dietro codice perfettamente leggibile.",
+      "new": "Serve profondità tecnica per riconoscere un'astrazione sbagliata o una race condition plausibile, una query che scala male o un contratto fragile, un errore nella gestione dello stato o un uso non idiomatico della piattaforma. Serve anche per accorgersi quando un test verifica l'implementazione invece del comportamento o quando codice perfettamente leggibile nasconde una vulnerabilità."
+    },
+    {
+      "old": "Il problema nasce quando confondiamo due cose diverse:\n\n- delegare un'attività;\n- delegare il giudizio che rende quell'attività accettabile.\n\nLa prima è spesso desiderabile.",
+      "new": "Il problema nasce quando confondiamo il delegare un'attività con il delegare anche il giudizio che rende quell'attività accettabile. La prima forma di delega è spesso desiderabile."
+    },
+    {
+      "old": "Non spiega però:\n\n- perché quel codice è stato richiesto;\n- quale comportamento doveva implementare;\n- quali vincoli doveva rispettare;\n- quali rischi erano noti;\n- quali controlli erano previsti;\n- perché abbiamo ritenuto il risultato accettabile.",
+      "new": "Non spiega però perché quel codice sia stato richiesto, quale comportamento dovesse implementare e quali vincoli dovesse rispettare. Non dice quali rischi conoscevamo, quali controlli avevamo previsto né perché, alla fine, abbiamo ritenuto il risultato accettabile."
+    },
+    {
+      "old": "Possiamo delegare a un agente:\n\n- la scrittura dello script;\n- la preparazione dei test;\n- la generazione della rollback procedure;\n- il controllo delle dipendenze;\n- la produzione di una prima stima del blast radius.\n\nMa alcune decisioni restano nostre:\n\n- possiamo permetterci un lock sulla tabella?\n- il deployment può richiedere downtime?\n- la backward compatibility è necessaria?\n- abbiamo una finestra di rollback reale?\n- quale quantità di perdita dati sarebbe accettabile?\n- il rischio giustifica una strategia più lenta ma reversibile?",
+      "new": "Possiamo delegare a un agente la scrittura dello script, la preparazione dei test, una prima rollback procedure, il controllo delle dipendenze e persino una stima iniziale del blast radius. Restano però decisioni che non si esauriscono nell'esecuzione: possiamo permetterci un lock sulla tabella o del downtime? La backward compatibility è necessaria? Esiste davvero una finestra di rollback? Quanta perdita di dati sarebbe accettabile e il rischio giustifica una strategia più lenta ma più reversibile?"
+    },
+    {
+      "old": "Succede quando guardiamo:\n\n- nomi dei file;\n- formattazione;\n- test verdi;\n- commenti plausibili;\n- struttura apparentemente ordinata;\n\ne concludiamo che la modifica sia corretta.",
+      "new": "Succede quando ci fermiamo ai nomi dei file, alla formattazione, ai test verdi, ai commenti plausibili e a una struttura apparentemente ordinata, e da questi segnali concludiamo che la modifica sia corretta."
+    },
+    {
+      "old": "Dobbiamo piuttosto spostare il controllo dove è più efficace:\n\n- specifiche migliori prima dell'execution;\n- test e contratti automatici;\n- policy di repository;\n- architecture fitness functions;\n- static analysis;\n- security scanning;\n- canary deployment;\n- osservabilità;\n- reviewer indipendenti;\n- escalation solo sui cambiamenti ad alto rischio.",
+      "new": "Dobbiamo piuttosto spostare il controllo dove è più efficace. Una parte del lavoro avviene prima dell'execution, con specifiche migliori; una parte diventa automatica attraverso test, contratti, policy di repository, fitness function, static analysis e security scanning. Un'altra parte vive nel runtime, con canary e osservabilità, mentre la review indipendente e l'escalation umana possono concentrarsi sui cambiamenti con rischio realmente alto."
+    },
+    {
+      "old": "Per una modifica possiamo usare, per esempio:\n\n- type checking;\n- lint;\n- unit test;\n- integration test;\n- contract test;\n- property-based test;\n- mutation test;\n- static analysis;\n- security scan;\n- performance test;\n- diff review;\n- architecture test;\n- canary deployment;\n- metriche e tracing in produzione.",
+      "new": "Per una modifica possiamo combinare controlli molto diversi: type checking e lint, unit e integration test, contract e property-based test, mutation test, static analysis, security e performance scan. Possiamo poi aggiungere diff e architecture review, canary deployment e, quando il cambiamento arriva in produzione, metriche e tracing."
+    },
+    {
+      "old": "È meglio poter osservare:\n\n- contract test sulle versioni precedenti;\n- schema diff;\n- fixture realistica;\n- risposta dell'API prima e dopo;\n- test su client compatibili.",
+      "new": "È meglio poter osservare contract test sulle versioni precedenti, uno schema diff e fixture realistiche, confrontare la risposta dell'API prima e dopo la modifica e verificare il comportamento con client che rappresentino davvero la compatibilità promessa."
+    },
+    {
+      "old": "Non soltanto:\n\n- il codice è pulito?\n- i nomi sono buoni?\n- i test passano?\n\nAnche:\n\n- quali assunzioni nuove introduce?\n- cambia un boundary?\n- aumenta il coupling?\n- modifica il modello di errore?\n- introduce I/O dove prima non c'era?\n- cambia una transazione?\n- amplia i permessi?\n- modifica un contratto implicito?\n- aumenta il blast radius di un failure mode?",
+      "new": "Non basta chiedersi se il codice sia pulito, i nomi siano buoni e i test passino. Una review deve anche cercare ciò che il diff rende vero nel sistema: quali nuove assunzioni introduce, se cambia un boundary o aumenta il coupling, se modifica il modello di errore, introduce I/O dove prima non c'era, cambia una transazione o amplia i permessi. Deve inoltre far emergere contratti impliciti modificati e failure mode il cui blast radius è appena cresciuto."
+    },
+    {
+      "old": "Possiamo chiedere a un reviewer indipendente di non spiegare la soluzione, ma di cercare attivamente:\n\n- comportamenti non coperti;\n- assunzioni non dichiarate;\n- failure mode;\n- problemi di sicurezza;\n- regressioni di performance;\n- edge case;\n- modifiche fuori scope;\n- dipendenze introdotte accidentalmente.",
+      "new": "Possiamo chiedere a un reviewer indipendente di non spiegare la soluzione, ma di cercare attivamente ciò che manca: comportamenti non coperti e assunzioni non dichiarate, failure mode ed edge case, problemi di sicurezza o regressioni di performance, modifiche fuori scope e dipendenze introdotte accidentalmente."
+    },
+    {
+      "old": "Se un agente può:\n\n- modificare decine di file;\n- eseguire migration;\n- aprire pull request;\n- distribuire in un ambiente;\n- modificare configurazioni;\n\nallora non possiamo mantenere lo stesso modello di controllo.",
+      "new": "Se un agente può modificare decine di file, eseguire migration, aprire pull request, distribuire in un ambiente e modificare configurazioni, non possiamo mantenere lo stesso modello di controllo usato per un semplice suggerimento."
+    },
+    {
+      "old": "L'agente riceve un perimetro preciso e può completare il task autonomamente finché:\n\n- resta nello scope;\n- i controlli obbligatori passano;\n- non incontra una stop condition.\n\nL'umano valuta il risultato finale.",
+      "new": "L'agente riceve un perimetro preciso e può completare il task autonomamente finché resta nello scope, i controlli obbligatori passano e non incontra una stop condition. L'umano valuta il risultato finale."
+    },
+    {
+      "old": "Possiamo ragionare almeno su:\n\n- **blast radius** — quanta parte del sistema può essere influenzata;\n- **reversibilità** — quanto costa tornare indietro;\n- **osservabilità** — quanto rapidamente ci accorgiamo di un problema;\n- **criticità del dominio** — soldi, identità, salute, privacy, compliance;\n- **novità** — quanto conosciamo quella tecnologia o quel componente;\n- **ambiguità** — quanto sono incompleti i requisiti;\n- **testabilità** — quanto possiamo verificare automaticamente;\n- **privilegi** — quali risorse l'agente può modificare;\n- **tempo di propagazione** — quanto velocemente un errore produce conseguenze.",
+      "new": "Possiamo ragionare almeno su nove dimensioni, senza trasformarle in uno score meccanico. Conta il **blast radius**, cioè quanta parte del sistema può essere influenzata, e conta la **reversibilità**, cioè quanto costa tornare indietro. Contano l'**osservabilità** del problema e la **criticità del dominio**, soprattutto quando entrano soldi, identità, salute, privacy o compliance. Pesano inoltre la **novità** della tecnologia, l'**ambiguità** dei requisiti, la **testabilità**, i **privilegi** concessi all'agente e il **tempo di propagazione** con cui un errore può trasformarsi in conseguenza reale."
+    },
+    {
+      "old": "Possiamo usare:\n\n- branch dedicate;\n- ambienti temporanei;\n- database di test;\n- credenziali a privilegi ridotti;\n- namespace isolati;\n- feature flag;\n- canary;\n- limiti di spesa;\n- rate limit;\n- dry run.",
+      "new": "Possiamo farlo con branch dedicate e ambienti temporanei, database di test, credenziali a privilegi ridotti e namespace isolati. Feature flag, canary, limiti di spesa, rate limit e dry run sono altre forme dello stesso principio: concedere capacità senza concedere automaticamente tutto il possibile blast radius."
+    },
+    {
+      "old": "È quella che riesce a descrivere con chiarezza:\n\n- cosa possono fare;\n- cosa non possono fare;\n- quando possono procedere;\n- quando devono fermarsi;\n- quali evidenze devono produrre;\n- quali decisioni richiedono un essere umano.",
+      "new": "È quella che riesce a descrivere con chiarezza che cosa gli agenti possono e non possono fare, quando possono procedere e quando devono fermarsi, quali evidenze devono produrre e quali decisioni richiedono ancora un essere umano."
+    },
+    {
+      "old": "Per esempio:\n\n- generare boilerplate;\n- scrivere test ripetitivi;\n- esplorare un repository;\n- convertire configurazioni;\n- preparare una prima implementazione;\n- cercare riferimenti nella documentazione;\n- produrre varianti di una soluzione.",
+      "new": "Per esempio, possiamo delegare la generazione di boilerplate e test ripetitivi, l'esplorazione di un repository o la conversione di configurazioni. Possiamo far preparare una prima implementazione, cercare riferimenti nella documentazione o produrre più varianti della stessa soluzione senza rinunciare per questo a comprenderne il metodo e il problema."
+    },
+    {
+      "old": "Il primo usa l'AI per produrre velocemente un'API, ma poi chiede:\n\n- perché è stata scelta questa struttura?\n- che cosa succede se due richieste arrivano insieme?\n- quali errori possono essere ritentati?\n- come cambierebbe la soluzione senza framework?\n- quali test dimostrano davvero il comportamento?",
+      "new": "Il primo usa l'AI per produrre velocemente un'API, ma poi continua a interrogare la soluzione: vuole sapere perché sia stata scelta quella struttura, che cosa accada con richieste concorrenti, quali errori possano essere ritentati, come cambierebbe la soluzione senza il framework e quali test dimostrino davvero il comportamento."
+    },
+    {
+      "old": "Sa individuare:\n\n- assunzioni nascoste;\n- failure mode;\n- coupling;\n- costi futuri;\n- incompatibilità;\n- rischi operativi;\n- trade-off tra alternative plausibili.",
+      "new": "Sa individuare assunzioni nascoste e failure mode, riconoscere coupling, costi futuri e incompatibilità, vedere rischi operativi e discutere trade-off fra alternative entrambe plausibili."
+    },
+    {
+      "old": "Per esempio:\n\n- chiudere la risposta e rispiegare il concetto;\n- modificare un requisito e prevedere cosa cambia;\n- trovare un controesempio;\n- implementare una variante;\n- criticare la soluzione proposta;\n- spiegare quando non usarla.",
+      "new": "Possiamo chiudere la risposta e provare a rispiegare il concetto, modificare un requisito e prevedere che cosa cambierà, cercare un controesempio o implementare una variante. Possiamo anche criticare la soluzione proposta e, soprattutto, spiegare in quali condizioni non la useremmo."
+    },
+    {
+      "old": "Per questo il libro sosterrà entrambe:\n\n- **profondità reale almeno in alcuni domini**;\n- **ampiezza sufficiente per comprendere l'intero sistema**.",
+      "new": "Per questo il libro sosterrà entrambe: **profondità reale almeno in alcuni domini** e **ampiezza sufficiente per comprendere l'intero sistema**."
+    },
+    {
+      "old": "Un engineer dovrebbe abituarsi a fare domande fuori dal proprio ruolo:\n\n- cosa vede l'utente?\n- quale requisito di business stiamo davvero soddisfacendo?\n- chi paga questo costo cloud?\n- come viene operata questa feature alle tre di notte?\n- che cosa succede ai dati dopo cinque anni?\n- quale superficie di attacco stiamo introducendo?\n- cosa dovrà capire il prossimo developer?",
+      "new": "Un engineer dovrebbe abituarsi a fare domande fuori dal proprio ruolo. Che cosa vede l'utente e quale requisito di business stiamo davvero soddisfacendo? Chi paga il costo cloud e chi opera la feature alle tre di notte? Che cosa succederà ai dati fra cinque anni, quale superficie di attacco stiamo introducendo e che cosa dovrà capire il prossimo developer che entrerà nel sistema?"
+    },
+    {
+      "old": "Per questo a volte è utile introdurre deliberatamente una piccola frizione:\n\n- formulare prima una propria ipotesi;\n- prevedere l'output prima di eseguire;\n- scrivere i trade-off prima di chiedere confronto;\n- tentare un debug prima di chiedere la soluzione;\n- chiedere hint invece della risposta completa.",
+      "new": "Per questo a volte è utile introdurre deliberatamente una piccola frizione: formulare una propria ipotesi e prevedere l'output prima di eseguire, scrivere i trade-off prima di chiedere un confronto, tentare un debug prima di chiedere la soluzione o chiedere un hint invece della risposta completa."
+    },
+    {
+      "old": "Il contesto può includere:\n\n- requisiti;\n- architecture overview;\n- ADR;\n- contratti;\n- convenzioni del repository;\n- non-functional requirements;\n- vincoli di sicurezza;\n- comandi di test e build;\n- esempi esistenti;\n- componenti fuori scope.",
+      "new": "Il contesto può includere requisiti, architecture overview, ADR e contratti, insieme alle convenzioni del repository e ai non-functional requirements. Deve rendere visibili anche i vincoli di sicurezza, i comandi di test e build, gli esempi esistenti e i componenti che restano fuori scope."
+    },
+    {
+      "old": "Una buona escalation contiene:\n\n- il blocco;\n- perché conta;\n- quali informazioni mancano;\n- alternative plausibili;\n- impatto delle alternative;\n- eventuale raccomandazione, chiaramente distinta dalla decisione finale.",
+      "new": "Una buona escalation descrive il blocco e perché conta, esplicita le informazioni mancanti, porta alternative plausibili e il loro impatto e può includere una raccomandazione, purché resti chiaramente distinta dalla decisione finale."
+    },
+    {
+      "old": "Potrebbe invece essere molto utile per:\n\n- un refactoring repository-wide;\n- una migration;\n- una nuova integrazione;\n- una modifica cross-service;\n- un task affidato a più agenti;\n- una modifica con security implications;\n- una change che verrà eseguita con autonomia elevata.",
+      "new": "Potrebbe invece essere molto utile per un refactoring repository-wide o una migration, per una nuova integrazione o una modifica cross-service, per un task affidato a più agenti e, in generale, quando entrano security implications o un livello di autonomia elevato."
+    },
+    {
+      "old": "Per questo diventano più importanti:\n\n- context engineering;\n- contracts;\n- invariants;\n- automated verification;\n- architecture boundaries;\n- permission boundaries;\n- stop conditions;\n- independent review;\n- accountability.",
+      "new": "Per questo acquistano ancora più peso il context engineering, i contracts e le invariants, la verifica automatica e gli architecture boundary. Permission boundary, stop condition e review indipendente permettono di aumentare execution senza perdere l'accountability che resta alla fine del processo."
+    }
+  ]
+}
