@@ -1,252 +1,98 @@
-# Health model e graceful degradation
+## Health model e graceful degradation
 
-Un sistema non è soltanto:
-
-```text
-up
-oppure
-down
-```
-
-Tra i due estremi esiste uno spazio molto importante:
+Fra `up` e `down` esiste uno stato che vale la pena progettare con molta più attenzione:
 
 ```text
 Degraded
 ```
 
-È qui che spesso si vede la qualità della reliability architecture.
+È spesso qui che si vede se un sistema possiede davvero un modello di reliability oppure soltanto una collezione di health check.
 
-Microsoft propone esplicitamente un modello di health con almeno tre stati:
-
-```text
-Healthy
-Degraded
-Unhealthy
-```
-
-Lo stato deve derivare da segnali misurabili combinati con il significato business del workload.
+Microsoft propone di derivare la health del workload da stati come `Healthy`, `Degraded` e `Unhealthy`, combinando segnali misurabili con il significato dei business scenario.
 
 Fonte:
 
 - [Microsoft Learn — Health modeling for workloads](https://learn.microsoft.com/azure/well-architected/design-guides/health-modeling)
 
-## Health non è la somma dei componenti verdi
+## La health del prodotto non è la media dei componenti
 
-Immaginiamo:
+Possiamo avere App Service, PostgreSQL, Service Bus e Key Vault tutti verdi mentre il consumer di Payments & Risk è fermo da quarantacinque minuti. Dal punto di vista dell’infrastruttura, molte risorse sono sane; dal punto di vista del critical flow `Payment Escalation delivery`, il prodotto è degradato.
 
-```text
-App Service     Healthy
-PostgreSQL      Healthy
-Service Bus     Healthy
-Key Vault       Healthy
-```
+Possiamo avere anche il contrario: l’applicazione e il database sono perfettamente raggiungibili, ma Entra non permette agli operatori di autenticarsi. In quel momento Order Operations è inutilizzabile per il suo utente principale.
 
-ma:
+> **La health del prodotto non è la somma della resource health. È il significato dei critical flow nello stato corrente del sistema.**
 
-```text
-Payments & Risk consumer lag = 45 min
-```
+Questa distinzione ci obbliga a ragionare per journey.
 
-Dal punto di vista del critical flow Payment Escalation possiamo essere `Degraded`.
-
-Oppure:
+Per Order Operations ne abbiamo almeno tre:
 
 ```text
-App Service     Healthy
-PostgreSQL      Healthy
-Entra path      Unhealthy
+CF-01 Investigation
+operator → accesso → case → dati autorevoli/locali → operational view
+
+CF-02 Payment Escalation acceptance
+operator → authorization → local transaction → escalation + outbox
+
+CF-03 Payment Escalation delivery
+outbox → publisher → broker → Payments & Risk
 ```
 
-Gli operatori non entrano.
+Questi flow possono avere health diverse nello stesso istante.
 
-Il workload è `Unhealthy` anche se il nostro processo web continua a rispondere internamente.
-
-> **La health del prodotto non è la media della health dei componenti.**
-
-## Health model per flow
-
-Per Order Operations distinguiamo almeno tre flow:
-
-### Flow A — Investigation
+Se Service Bus è indisponibile ma PostgreSQL è sano, per esempio, l’operatore può continuare a investigare e può ancora registrare localmente una Payment Escalation. La delivery accumula backlog, ma l’acceptance non deve per forza fermarsi.
 
 ```text
-operator login
-→ list problematic orders
-→ open operational view
+CF-01 = Healthy
+CF-02 = Healthy
+CF-03 = Degraded
 ```
 
-### Flow B — Payment Escalation acceptance
+Questa possibilità esiste perché nel Capitolo 11 abbiamo separato il commit locale dalla consegna downstream. La graceful degradation, quindi, non nasce da un `if` aggiunto all’ultimo momento: nasce da boundary e semantiche progettati prima.
 
-```text
-operator
-→ authorized request
-→ local transaction
-→ PaymentEscalation + OutboxMessage
-```
+## Degradare significa ridurre la promessa, non nascondere il failure
 
-### Flow C — Payment Escalation delivery
+Una modalità degradata non è “qualcosa non funziona ma restituiamo comunque `200`”. Deve dire quali capability restano valide, quali informazioni sono meno affidabili, quali azioni vengono bloccate e quando il sistema deve uscire da quello stato.
 
-```text
-outbox
-→ publisher
-→ Service Bus
-→ Payments & Risk
-```
-
-I tre flow possono avere health diversa nello stesso momento.
-
-Esempio:
-
-```text
-Flow A = Healthy
-Flow B = Healthy
-Flow C = Degraded
-```
-
-Se Service Bus è temporaneamente indisponibile:
-
-- l'operatore può ancora investigare;
-- può ancora registrare localmente la Payment Escalation;
-- la delivery accumula backlog.
-
-Questo è un comportamento intenzionale costruito nel Capitolo 11.
-
-## Degraded non significa failure nascosto
-
-Una modalità degradata deve essere progettata.
-
-Non significa:
-
-```text
-qualcosa non funziona
-ma speriamo che nessuno se ne accorga
-```
-
-Significa:
-
-```text
-sappiamo quale capability è ridotta
-sappiamo perché
-sappiamo cosa resta sicuro
-sappiamo come lo comunichiamo
-sappiamo quando uscire dalla modalità degradata
-```
-
-Microsoft raccomanda che la graceful degradation continui a fornire valore riducendo temporaneamente funzionalità e rendendo visibile all'utente ciò che è cambiato.
+Microsoft descrive la graceful degradation come una strategia di self-preservation in cui il workload continua a fornire valore riducendo temporaneamente funzionalità in modo intenzionale.
 
 Fonte:
 
 - [Microsoft Learn — Self-preservation and graceful degradation](https://learn.microsoft.com/azure/well-architected/reliability/self-preservation)
 
-## Esempio: Payments & Risk down
-
-### Soluzione fragile
+Prendiamo il caso del consumer Payments indisponibile. Una soluzione sincrona fragile trasformerebbe l’escalation dell’operatore in una catena di timeout e outcome ambigui. Il design corrente fa invece:
 
 ```text
-POST payment escalation
-→ synchronous call Payments
-→ timeout
-→ 500
-```
-
-L'operatore non sa se:
-
-- la richiesta non è partita;
-- Payments l'ha ricevuta;
-- la richiesta è stata processata ma la risposta è persa.
-
-### Soluzione corrente ESI
-
-```text
-POST payment escalation
+POST escalation
 → local transaction
 → Requested + Outbox Pending
 → 202 Accepted
 ```
 
-Se il downstream è indisponibile:
+Il prodotto può quindi dire la verità: la richiesta è stata accettata localmente, ma la delivery è ancora pending o delayed.
+
+Il sistema non finge un successo downstream. Continua a fare soltanto ciò che può garantire.
+
+## Il problema più delicato: fallback di dati autorevoli
+
+La degradazione diventa più difficile quando una dependency live fornisce dati che influenzano decisioni operative.
+
+Supponiamo che la vista Order dipenda da una source autorevole momentaneamente lenta. Possiamo fallire l’intera pagina, oppure mostrare la parte locale del case e rendere esplicito che il dettaglio autorevole non è disponibile.
+
+Questa seconda opzione può essere molto utile, ma soltanto se conserva **provenance e freshness**.
+
+Un fallback tipo:
 
 ```text
-Flow B = Healthy
-Flow C = Degraded
+source down → usa cache
 ```
 
-La capability non finge una delivery già avvenuta.
+non è automaticamente resiliente. Se il payment status vecchio dice `Failed` mentre il sistema autorevole è già passato a `Captured`, presentarlo come truth corrente può indurre un’azione economicamente sbagliata.
 
-Il sistema continua a fare ciò che può fare correttamente.
-
-## Esempio: Orders dependency lenta
-
-La read view di Order Operations dipende ancora da fonti live per alcuni dati autorevoli.
-
-Se Orders rallenta, abbiamo diverse opzioni.
-
-### Opzione 1 — aspettare indefinitamente
-
-Non accettabile.
-
-Consuma thread/connection/request budget e favorisce cascading failure.
-
-### Opzione 2 — fallire tutto immediatamente
-
-Può essere corretto, ma perde anche informazioni locali che potrebbero essere ancora utili.
-
-### Opzione 3 — degraded operational view
-
-Possibile direzione:
+Perciò ogni degraded data path deve definire almeno:
 
 ```text
-OperationalCase locale     disponibile
-Order authoritative view   unavailable
-Payment view               disponibile
-Shipment view              disponibile
-```
-
-La UI potrebbe mostrare:
-
-```text
-Order data temporarily unavailable
-Last authoritative refresh: unknown/not available
-```
-
-senza trasformare un dato vecchio in verità corrente.
-
-Questa soluzione richiede però una decisione funzionale.
-
-Non possiamo inventarla solo nel codice.
-
-## Stale data vs unavailable data
-
-Un fallback molto comune è:
-
-```text
-se source down
-usa cache
-```
-
-Ma una cache può essere peggiore di un errore se l'utente usa il dato per una decisione sensibile.
-
-Per esempio:
-
-```text
-paymentStatus = Failed
-```
-
-potrebbe essere diventato:
-
-```text
-Captured
-```
-
-nel sistema autorevole.
-
-Mostrare il vecchio dato come corrente può spingere a una remediation sbagliata.
-
-Perciò un degraded mode deve definire:
-
-```text
-freshness
 provenance
+freshness
 label
 azioni consentite
 azioni bloccate
@@ -254,208 +100,109 @@ azioni bloccate
 
 > **La graceful degradation non deve degradare la verità senza dirlo.**
 
-## Health endpoint
+Nel Reliability Contract di ESI questa idea diventa `DM-01 — Authoritative read dependency unavailable`: possiamo mostrare lo stato locale, ma non inventare la current truth né permettere azioni che richiedono facts che non siamo riusciti a verificare.
 
-Un endpoint `/health` può essere utile.
+## Liveness, readiness e business health sono domande diverse
 
-Ma può diventare pericoloso se confonde liveness e readiness.
+Un endpoint `/health` può essere utile, ma non deve diventare il luogo in cui comprimiamo tutto il modello di reliability.
 
-### Liveness
+La **liveness** chiede se il processo è vivo abbastanza da non meritare un restart. La **readiness** chiede se l’istanza può ricevere nuovo lavoro utile. La **business health** chiede se un critical journey sta mantenendo il proprio contratto.
 
-Domanda:
+Sono tre livelli diversi.
 
-```text
-questo processo è vivo abbastanza da non dover essere riavviato?
-```
-
-### Readiness
-
-Domanda:
-
-```text
-questa istanza può ricevere lavoro utile adesso?
-```
-
-### Business health
-
-Domanda diversa:
-
-```text
-il critical journey sta soddisfacendo il suo contratto?
-```
-
-Non sono sinonimi.
-
-Un database temporaneamente lento potrebbe rendere il flow degradato senza richiedere il restart automatico del processo web.
-
-Riavviare processi sani in risposta a una dipendenza malata può peggiorare l'incidente.
-
-## Restart loop
-
-Immaginiamo:
+Se Payments & Risk è lento ma Order Operations può ancora accettare escalation localmente, rendere l’istanza web `unready` potrebbe peggiorare il problema. Se una dependency rallenta e la nostra liveness probe inizia a riavviare istanze sane, possiamo creare:
 
 ```text
 DB slow
-→ health check fails
-→ instance restart
-→ connection storm
+→ health check fail
+→ restart
+→ reconnect storm
 → DB ancora più slow
-→ altre restart
+→ altri restart
 ```
 
-Un meccanismo nato per self-healing è diventato traffic amplification.
-
-Quindi:
+Un meccanismo pensato per self-healing diventa un amplificatore.
 
 > **Self-healing senza failure model può diventare self-harm.**
 
-## Health tree
+La probe dell’orchestrazione deve quindi rispondere a una domanda locale e precisa. Il business health model vive sopra di essa.
 
-Un modello iniziale per ESI potrebbe essere:
+## Una health tree leggibile
+
+Per il capstone possiamo rappresentare il sistema così:
 
 ```text
 Order Operations
-├── Investigation flow
+├── CF-01 Investigation
+│   ├── workforce identity/access
 │   ├── App runtime
-│   ├── Entra access
 │   ├── PostgreSQL local state
-│   ├── Orders dependency
-│   ├── Payments dependency
-│   └── Shipping dependency
+│   ├── Orders authoritative dependency
+│   ├── Payments authoritative dependency
+│   └── Shipping authoritative dependency
 │
-└── Payment Escalation flow
-    ├── Acceptance
-    │   ├── App runtime
-    │   └── PostgreSQL
-    └── Delivery
-        ├── Outbox Publisher
-        ├── Service Bus
-        └── Payments consumer
+├── CF-02 Escalation acceptance
+│   ├── App runtime
+│   ├── application authorization
+│   └── PostgreSQL transaction
+│
+└── CF-03 Escalation delivery
+    ├── Outbox Publisher
+    ├── Service Bus
+    └── Payments consumer
 ```
 
-La health del root non deve essere calcolata con una semplice media.
+La root non viene calcolata con una media matematica dei figli. Alcuni nodi sono critical per un flow e irrilevanti per un altro.
 
-Dobbiamo stabilire quali nodi sono critici per quale journey.
+Una piccola degradation matrix aiuta a rendere questa semantica esplicita:
 
-## Degradation matrix
-
-Un artefatto utile è una piccola matrice:
-
-| Failure | Investigation | Escalation acceptance | Delivery | User behavior |
+| Failure | Investigation | Escalation acceptance | Delivery | Comportamento atteso |
 |---|---|---|---|---|
-| Payments consumer down | normale | normale | degraded | escalation resta pending |
-| Service Bus down | normale | normale | degraded | backlog visibile |
-| PostgreSQL down | degraded/unhealthy | unhealthy | existing broker messages may continue downstream | nuovi write bloccati |
-| Orders read dependency down | degraded | dipende dal case già locale | normale | authoritative order detail indisponibile |
-| Entra unavailable | unhealthy per nuovi login/token flow | unhealthy per nuovi operator action | background può continuare | accesso utente degradato |
-| telemetry backend down | functional flow può continuare | può continuare | può continuare | observability degraded |
+| Payments consumer down | normale | normale | Degraded | backlog/pending visibile |
+| Service Bus down | normale | normale | Degraded | outbox durable, retry bounded |
+| PostgreSQL down | Degraded/Unhealthy | Unhealthy | broker già popolato può proseguire | nuovi write bloccati |
+| Orders dependency down | Degraded | dipende dai facts già locali | normale | dato autorevole indicato unavailable |
+| Entra incident | Degraded/Unhealthy per user flow | Degraded/Unhealthy | background può continuare | nessun bypass dell’identity |
+| telemetry backend down | functional flow può continuare | può continuare | può continuare | observability Degraded |
 
-Questa tabella non sostituisce la Failure Mode Map.
+La Failure Mode Map spiega **come** il failure viene gestito. Questa matrice aggiunge un’altra domanda: **quanto valore resta ancora disponibile al prodotto?**
 
-La completa con una domanda diversa:
+## Feature criticality evita di proteggere tutto allo stesso modo
 
-> **Quanto valore possiamo ancora fornire?**
+Non ogni capability merita lo stesso investimento di reliability. Nel modello ESI iniziale, authentication/authorization, visualizzazione del case locale e durable escalation acceptance appartengono al critical journey. Un enrichment non essenziale o una dashboard secondaria possono invece essere degradabili.
 
-## Feature criticality
+La classificazione non è una tassonomia universale. Serve a impedire che una feature di convenienza consumi la stessa capacity o lo stesso failure budget del percorso che mantiene operativo il business.
 
-Non tutte le feature devono avere lo stesso livello di protezione.
-
-Possiamo classificare:
-
-```text
-Tier 1 — critical journey
-Tier 2 — important but degradable
-Tier 3 — convenience
-```
-
-Esempio ESI:
-
-### Tier 1
-
-- autenticazione/autorizzazione operatore;
-- visualizzazione del case locale;
-- durable Payment Escalation acceptance.
-
-### Tier 2
-
-- dettaglio live completo di tutte le dipendenze;
-- aggiornamento quasi immediato dello stato delivery.
-
-### Tier 3
-
-- enrichment non essenziale;
-- dashboard secondarie;
-- suggerimenti non critici futuri.
-
-La classificazione è simulata e deve essere negoziata con Product/Operations.
-
-## Bulkhead
-
-Il Bulkhead pattern tenta di evitare che il consumo eccessivo di una parte esaurisca la capacità dell'intero sistema.
-
-Possibili esempi:
-
-- connection pool separata per background work;
-- concurrency limit del publisher;
-- queue o worker separati per workload molto diversi;
-- resource limit che impediscono al reporting di saturare il critical path.
-
-Il pattern non deve essere applicato automaticamente.
-
-Ma la domanda è preziosa:
+Da qui emergono pattern come bulkhead e load shedding. Il loro valore non sta nel nome, ma nella domanda che ci costringono a fare:
 
 > **Quale workload può consumare la capacità di quale altro workload?**
 
-## Load shedding
+Se in futuro un report pesante saturasse la stessa pool del core operator journey, avremmo una ragione concreta per separare risorse o rifiutare lavoro non critico prima che il sistema diventi lentamente inutilizzabile.
 
-Quando la capacità disponibile non può servire tutto, una strategia può essere rifiutare deliberatamente lavoro meno importante.
+## Cosa cambia con l’AI
 
-Questo può essere più affidabile di accettare tutto e fallire lentamente.
+Un agente può proporre fallback molto velocemente. Proprio per questo dobbiamo essere severi sul significato.
 
-Esempio:
-
-```text
-critical operator action  → protetta
-heavy export/report       → throttled / delayed
-```
-
-Non abbiamo ancora export/report in Order Operations.
-
-Quindi non implementiamo load shedding adesso.
-
-Ma quando una feature simile entrerà, la reliability review dovrà valutarla.
-
-## AI e graceful degradation
-
-Un agente può proporre moltissimi fallback.
-
-Questo è uno dei casi in cui la velocità può essere pericolosa.
-
-Esempio generato:
+Una patch del tipo:
 
 ```text
 if payments unavailable:
-  use last cached payment status
+  return lastCachedPaymentStatus
 ```
 
-Sembra resiliente.
+può sembrare resiliente e violare la correctness economica.
 
-Potrebbe violare correctness economica.
-
-La domanda da porre all'agente è invece:
+La review deve chiedere invece:
 
 ```text
-quali dati possono diventare stale?
+questo dato può diventare stale?
 per quanto?
-con quale label?
-quali azioni restano consentite?
-quali devono fermarsi?
+chi lo vede?
+come viene etichettato?
+quali azioni diventano unsafe?
+quando il fallback deve essere rifiutato?
 ```
 
 > **Un fallback non è affidabile perché restituisce qualcosa. È affidabile se restituisce qualcosa che possiamo ancora usare in sicurezza.**
 
-## Corollario
-
-La reliability non si vede soltanto quando il sistema è verde.
-
-Si vede quando qualcosa diventa giallo e il resto del sistema sa ancora che cosa significa.
+Il health model di Order Operations diventa così la cerniera fra SLO e failure design: ci dice non soltanto se qualcosa è rotto, ma quale parte della promessa è ancora vera.
