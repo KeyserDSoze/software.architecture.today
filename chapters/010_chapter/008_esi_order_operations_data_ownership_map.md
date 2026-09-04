@@ -1,20 +1,10 @@
 ## ESI — Order Operations: la prima Data Ownership Map
 
-Finora abbiamo parlato di dati in astratto.
+Finora abbiamo ragionato sui dati in astratto. Ora torniamo dentro ESI e rendiamo il modello operativo.
 
-Adesso torniamo dentro ESI.
+Order Operations deve presentare una vista unificata degli ordini problematici, ma la semplicità della UI non deve trasformarsi in un nuovo database che lentamente diventa proprietario accidentale di tutto. Il journey aggrega informazioni; l’ownership continua a rimanere distribuita tra le capability che ne possiedono il significato.
 
-Order Operations deve mostrare una vista unica di ordini problematici, ma i dati necessari appartengono a più capability.
-
-Il rischio è evidente:
-
-> per rendere semplice la UI potremmo costruire un nuovo database che lentamente diventa proprietario accidentale di tutto.
-
-Non lo faremo.
-
-## Il contesto attuale
-
-Il journey principale è:
+Il journey corrente è:
 
 ```text
 Operations operator
@@ -25,139 +15,33 @@ Operations operator
 → decide se agire, attendere o escalare
 ```
 
-Per servirlo ci servono almeno questi concetti:
+Per servirlo incontriamo `Order`, `Payment`, `Shipment`, `OperationalCase`, `ProblemClassification`, `OperatorAssignment`, audit e tenant/access scope. Sono concetti vicini nel journey, ma non appartengono tutti allo stesso owner.
 
-```text
-Order
-Payment
-Shipment
-OperationalCase
-ProblemClassification
-OperatorAssignment
-Audit
-Tenant / access scope
-```
+## La mappa di ownership
 
-Ma non appartengono tutti allo stesso owner.
-
-## Data Ownership Map
+Questa è la baseline che il Capitolo 10 stabilisce. Il file vivo del capstone continuerà a evolvere nei capitoli successivi; in particolare, dal Capitolo 11 compariranno Payment Escalation e outbox. La mappa qui sotto rappresenta quindi **ciò che sappiamo e decidiamo in questo punto della narrazione**, non un tentativo di riportare indietro lo snapshot cumulativo del repository.
 
 ### Orders
 
-**Authoritative**
-
-```text
-Order
-OrderId
-Order lifecycle
-Commercial order status
-Tenant ownership of order
-Order timestamps
-```
-
-**Espone a Order Operations**
-
-```text
-orderId
-commercialStatus
-tenantId
-relevant timestamps
-```
-
-**Non trasferisce ownership di**
-
-```text
-order lifecycle rules
-commercial transitions
-cancellation policy
-```
+Orders rimane autorevole su `Order`, `OrderId`, lifecycle commerciale, status commerciale, tenant ownership e timestamp di business. Order Operations può consumare `orderId`, stato commerciale, tenant e timestamp rilevanti, ma non acquisisce il diritto di ridefinire cancellation policy o transizioni dell’ordine.
 
 ### Payments & Risk
 
-**Authoritative**
-
-```text
-Payment
-PaymentStatus
-Refund
-Payment provider reference
-Economic idempotency
-```
-
-**Espone a Order Operations**
-
-```text
-orderId
-operational payment status
-last relevant update
-```
-
-**Non trasferisce ownership di**
-
-```text
-refund semantics
-provider reconciliation
-payment lifecycle
-financial correctness
-```
+Payments & Risk rimane autorevole su `Payment`, `PaymentStatus`, refund, provider reference, lifecycle economico e idempotenza economica. Order Operations può mostrare uno stato operativo normalizzato e l’ultimo aggiornamento rilevante, ma non diventa owner di refund semantics, reconciliation o financial correctness.
 
 ### Shipping
 
-**Authoritative**
-
-```text
-Shipment
-FulfillmentStatus
-Tracking relation
-Carrier integration state
-```
-
-**Espone a Order Operations**
-
-```text
-orderId
-operational shipment status
-last relevant update
-```
+Shipping possiede fulfillment lifecycle, shipment state, tracking relation e carrier integration state. Order Operations consuma ciò che serve all’investigazione, senza trasformare il proprio modello operativo in una seconda fonte di verità sul fulfillment.
 
 ### Order Operations
 
-**Authoritative**
+Order Operations possiede invece i concetti che esistono per il lavoro Operations: `OperationalCase`, `ProblemClassification`, `OperatorAssignment` e gli altri metadati operativi che verranno introdotti esplicitamente. Questi non sono copie dei domini sorgente: sono responsabilità nuove e locali.
 
-```text
-OperationalCase
-ProblemClassification
-OperatorAssignment
-Operational note, quando introdotta
-Escalation metadata, quando definita
-```
+Le viste come `ProblematicOrderView`, `problem_category`, `case_age`, `last_relevant_update` e il combined operational summary sono invece **derived**. Devono poter dichiarare origine, freshness e regola di derivazione.
 
-Questi concetti esistono per il lavoro Operations.
+## La topologia iniziale resta semplice
 
-Non sono semplicemente copie dei domini sorgente.
-
-### Derived in Order Operations
-
-```text
-ProblematicOrderView
-problem_category
-case_age
-last_relevant_update
-combined operational summary
-```
-
-Sono rappresentazioni costruite da dati autorevoli e dati locali.
-
-Devono poter indicare:
-
-- origine;
-- freshness;
-- regola di derivazione;
-- timestamp rilevanti.
-
-## Prima topologia dati
-
-Per ora manteniamo il modello semplice:
+Per ora manteniamo una singola istanza PostgreSQL con ownership logica distinta:
 
 ```text
 PostgreSQL instance
@@ -166,7 +50,7 @@ orders schema
   owned by Orders
 
 payments schema
-  owned by Payments
+  owned by Payments & Risk
 
 shipping schema
   owned by Shipping
@@ -175,96 +59,27 @@ operations schema
   owned by Order Operations
 ```
 
-La singola istanza è una scelta infrastrutturale.
-
-L'ownership rimane logica.
-
-Il fatto che una query possa tecnicamente leggere ogni tabella non significa che ogni modulo sia autorizzato a farlo liberamente.
+La condivisione fisica dell’istanza non autorizza ogni modulo a leggere o modificare tutto. Le regole architetturali continuano a proteggere i confini, perché la possibilità tecnica di accedere a una tabella non coincide con il diritto semantico di usarla come contratto.
 
 ## Il compromesso ESI del Capitolo 10
 
-### Esigenza
+Operations vuole una lista rapida e semplice senza interrogare manualmente tre sistemi. Payments & Risk vuole evitare che una copia locale diventi la fonte economica. Commerce & Operations vuole evitare che il workload operativo danneggi il percorso transazionale. Platform Engineering, infine, non vuole introdurre pipeline, cache e datastore aggiuntivi senza un requisito misurabile.
 
-Operations vuole una lista rapida e semplice senza costringere l'operatore a interrogare tre sistemi.
+La decisione è quindi proporzionata al contesto: PostgreSQL resta il datastore operativo principale; ogni capability mantiene ownership del proprio significato; Order Operations persiste soltanto concetti che possiede davvero; la vista può aggregare dati autorevoli tramite boundary espliciti. Redis, search cluster e read model asincrono rimangono fuori finché non esiste evidence che ne paghi il costo.
 
-### Tensione
+Accettiamo che il journey resti più dipendente dal percorso live di quanto sarebbe con una projection autonoma. In cambio evitiamo di introdurre oggi propagation, reconciliation, rebuild e una seconda infrastruttura operativa.
 
-```text
-semplicità e performance della vista
-vs
-ownership dei domini
-vs
-complessità di sincronizzazione
-vs
-costo operativo di nuovi datastore
-```
+Il quality floor non cambia: una sola autorità semantica per ogni business fact, tenant isolation, correctness di Orders/Payments/Shipping, atomicità dell’assignment locale, audit quando arriveranno side effect e capacità di ricondurre ogni dato derivato alla propria source.
 
-Payments & Risk vuole evitare che una copia locale diventi fonte economica.
+## Guardrail e trigger
 
-Commerce & Operations vuole evitare query costose sul percorso transazionale.
+La Data Ownership Map è il guardrail principale. A questa aggiungiamo architecture rule contro accessi cross-owner non autorizzati, index progettati su query misurate e, se un giorno comparirà una projection, timestamp di source/freshness e validation query per backfill e reconciliation.
 
-Platform vuole evitare pipeline e store prematuri.
+Riapriremo la decisione se le query operative inizieranno a degradare materialmente il workload transazionale, se i target di latency non saranno raggiungibili con query/index ragionevoli, se Order Operations richiederà availability indipendente, se più consumer inizieranno a dipendere dalla stessa vista aggregata o se full-text search, volume, retention e freshness renderanno una rappresentazione derivata chiaramente più conveniente.
 
-### Decisione
+## Primo schema locale realmente posseduto
 
-Per la prossima iterazione:
-
-1. **PostgreSQL resta il datastore operativo principale**;
-2. ogni dominio mantiene ownership logica del proprio schema/dato;
-3. Order Operations introduce soltanto dati che possiede realmente (`OperationalCase`, assignment, classificazione);
-4. la vista può aggregare dati autorevoli tramite boundary espliciti;
-5. non introduciamo ancora Redis, search cluster o read model asincrono;
-6. prepariamo però il contratto per una futura projection, distinguendo già dati authoritative e derived.
-
-### Costo accettato
-
-Il journey resta più dipendente dal percorso live di quanto sarebbe con una projection autonoma.
-
-Alcune query aggregate possono richiedere ottimizzazione e index.
-
-Non otteniamo ancora pieno isolamento del workload di lettura.
-
-### Quality floor
-
-Non siamo disposti a sacrificare:
-
-- correctness di Order/Payment/Shipping semantics;
-- tenant isolation;
-- una sola autorità per ogni business fact;
-- atomicità dell'assignment locale;
-- capacità di ricondurre ogni dato derivato alla source;
-- audit delle future operazioni con side effect;
-- migration reversibili per quanto ragionevole.
-
-### Guardrail
-
-Introduciamo:
-
-- Data Ownership Map versionata;
-- architecture rule contro accessi cross-owner non autorizzati;
-- indici progettati su query misurate;
-- timestamp `source_updated_at` quando in futuro persisteremo projection;
-- validation query per eventuali backfill;
-- trigger espliciti prima di introdurre nuovi store.
-
-### Trigger di revisione
-
-Rivalutiamo la decisione se:
-
-- le query operative impattano materialmente il workload transazionale;
-- non raggiungiamo i target di latency con index/query design ragionevoli;
-- Order Operations richiede availability indipendente dai domain store;
-- emergono più consumer della stessa vista aggregata;
-- la ricerca full-text diventa un critical access pattern;
-- il volume rende necessario partitioning o data distribution;
-- la freshness tollerata rende conveniente una projection asincrona;
-- retention o audit impongono un lifecycle separato.
-
-## Schema locale iniziale
-
-Possiamo finalmente introdurre un primo schema che Order Operations possiede davvero.
-
-Esempio concettuale:
+A questo punto possiamo introdurre concettualmente una tabella che appartiene davvero a Order Operations:
 
 ```sql
 CREATE TABLE operations.operational_case (
@@ -279,97 +94,29 @@ CREATE TABLE operations.operational_case (
 );
 ```
 
-Non è ancora uno script production-ready.
+Non è uno script production-ready. Restano da decidere identifier strategy, foreign key cross-boundary, rappresentazione degli enum, retention, audit, tenancy enforcement, index definitivi e migration tooling. Il libro non spaccia un frammento SQL per un’architettura completa.
 
-Mancano decisioni su:
+Gli access pattern già noti rendono plausibili index come `tenant + detected_at` oppure `tenant + problem_category + detected_at`. Restano ipotesi da verificare, non regole automatiche.
 
-- identifier strategy;
-- foreign key tra boundary;
-- enum/value representation;
-- retention;
-- audit model;
-- index definitivi;
-- tenancy enforcement;
-- migration tooling.
+## Perché non copiamo subito tutto
 
-Questo è intenzionale.
+Potremmo aggiungere nella tabella Operations anche `order_status`, `payment_status`, `shipment_status`, customer name, amount e carrier. Sarebbe comodo nel brevissimo periodo. Ogni campo copiato, però, introduce una domanda su source, staleness, propagation, reconciliation e rebuild.
 
-Il libro non deve spacciare un frammento SQL per architettura completa.
-
-## Indici candidati
-
-Dagli access pattern già noti possiamo formulare ipotesi.
-
-Per esempio:
+Per ora quel costo non è giustificato. Se in futuro arriverà una `ProblematicOrderProjection`, la Data Ownership Map avrà già fissato la regola:
 
 ```text
-tenant + detected_at
-```
-
-per la coda ordinata per anzianità.
-
-Oppure:
-
-```text
-tenant + problem_category + detected_at
-```
-
-se il filtro per categoria è frequente.
-
-Ma la decisione finale verrà presa quando avremo dati e query reali.
-
-L'indice entra come ipotesi da misurare.
-
-## Perché non salviamo tutto nella tabella operations
-
-Potremmo aggiungere:
-
-```text
-order_status
-payment_status
-shipment_status
-customer_name
-payment_amount
-carrier
-```
-
-Sarebbe comodo.
-
-Ma ogni campo copiato introduce una domanda di sincronizzazione.
-
-Prima di persisterlo dobbiamo sapere:
-
-- serve davvero per un access pattern?
-- quanto può essere stale?
-- chi lo aggiorna?
-- come viene riconciliato?
-- come si comporta durante il rebuild?
-
-Per ora il costo non è giustificato.
-
-Questa è una scelta deliberata di semplicità.
-
-## Il futuro read model
-
-La Data Ownership Map rende però possibile una futura evoluzione pulita.
-
-Potremo introdurre:
-
-```text
-operations.problematic_order_projection
-```
-
-con una regola chiara:
-
-```text
-Orders/Payments/Shipping = authoritative
+Orders / Payments / Shipping = authoritative
 Order Operations projection = derived
 ```
 
-Il giorno in cui la projection arriverà, non dovremo discutere da zero chi possiede il significato.
-
-Dovremo discutere soltanto come propagare e verificare le copie.
-
-Questa è una forma concreta di architecture optionality.
+Così l’evoluzione futura riguarderà il modo in cui propagare e verificare le copie, non la ridefinizione dell’autorità nel mezzo di un incidente di performance.
 
 > **Prima definiamo chi possiede la verità. Poi decidiamo quante copie ci servono per servirla bene.**
+
+Lo snapshot cumulativo vivo resta in:
+
+```text
+capstone/example-software-industries/products/order-operations/docs/data-ownership.md
+```
+
+Quel documento prosegue con il progetto oltre questo capitolo; il manoscritto conserva invece il reasoning e la baseline raggiunta qui.
