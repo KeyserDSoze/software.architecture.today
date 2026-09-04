@@ -60,25 +60,13 @@ Application
 └── Identity
 ```
 
-Ogni modulo dovrebbe avere:
-
-- responsabilità chiare;
-- API interne intenzionali;
-- ownership del proprio modello;
-- dipendenze controllate;
-- test che proteggono i confini;
-- possibilmente regole automatizzate che impediscano accessi illegittimi.
+Ogni modulo dovrebbe avere responsabilità chiare, API interne intenzionali e ownership del proprio modello. Le dipendenze devono essere controllate e i test devono proteggere i confini; quando possibile, regole automatizzate dovrebbero impedire gli accessi che il design considera illegittimi.
 
 La separazione fisica è debole.
 
 La separazione semantica può essere molto forte.
 
-Questo rende il modular monolith particolarmente interessante quando:
-
-- il dominio ha già aree distinte;
-- il team non ha bisogno di deploy indipendenti;
-- l'operational overhead dei microservizi non sarebbe giustificato;
-- vogliamo mantenere la possibilità di estrarre componenti in futuro.
+Il modular monolith è particolarmente interessante quando il dominio ha già aree distinte ma il team non ha ancora bisogno di deploy indipendenti, quando l'overhead operativo dei microservizi sarebbe sproporzionato e quando vogliamo conservare la possibilità di estrarre componenti in futuro senza pagare oggi tutta la distribuzione.
 
 ### Microservizi
 
@@ -88,14 +76,7 @@ Questo crea una proprietà potente:
 
 > **la separazione logica può essere accompagnata da autonomia operativa.**
 
-Un servizio può potenzialmente:
-
-- essere rilasciato indipendentemente;
-- scalare indipendentemente;
-- fallire senza abbattere l'intero sistema;
-- avere un proprio ciclo di delivery;
-- avere ownership dedicata;
-- possedere storage e security boundary differenti.
+Un servizio può essere rilasciato e scalare indipendentemente, fallire senza abbattere l'intero sistema e avere un proprio ciclo di delivery. Può anche avere ownership dedicata e possedere storage e security boundary differenti. Il punto è capire quali di queste proprietà ci servano davvero.
 
 Ma “può” è importante.
 

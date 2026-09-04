@@ -16,14 +16,7 @@ Ma ciascuno di essi ha condizioni precise.
 
 Un servizio è realmente deployabile in autonomia quando possiamo modificarlo e rilasciarlo senza dover coordinare necessariamente il rilascio di altri componenti.
 
-Questo richiede:
-
-- contratti compatibili;
-- versioning o evoluzione sicura;
-- dipendenze non eccessivamente rigide;
-- migrazioni dati gestibili;
-- capacità di rollback o forward-fix;
-- osservabilità sufficiente a capire l'effetto del rilascio.
+La deployability indipendente richiede contratti compatibili ed evoluzione sicura, dipendenze non eccessivamente rigide e migrazioni dati gestibili. Richiede anche rollback o forward-fix credibili e abbastanza osservabilità da capire l'effetto di un rilascio senza dover ricostruire tutto il sistema a posteriori.
 
 Se `Orders` e `Payments` sono due servizi ma ogni modifica a uno richiede una modifica simultanea all'altro, la separazione fisica non ha comprato molta autonomia.
 
@@ -49,15 +42,7 @@ Se una singola richiesta dipende dalla disponibilità simultanea di tutti questi
 
 Il sistema può essere distribuito e continuare a fallire come un blocco unico.
 
-La separazione utile richiede meccanismi come:
-
-- timeout;
-- fallback;
-- degradazione controllata;
-- asincronia dove compatibile;
-- isolamento delle risorse;
-- circuit breaker dove giustificato;
-- dipendenze non critiche rese opzionali.
+Una separazione utile richiede timeout e fallback, degradazione controllata e asincronia dove compatibile. Richiede isolamento delle risorse, circuit breaker quando giustificati e dipendenze non critiche che possano diventare opzionali invece di trascinare tutto il journey nel failure.
 
 Quindi:
 
@@ -91,27 +76,7 @@ API Gateway
 Services
 ```
 
-Non mostra:
-
-- certificati;
-- secret rotation;
-- DNS;
-- service discovery;
-- network policies;
-- rate limiting;
-- tracing;
-- log correlation;
-- alerting;
-- deployment pipeline;
-- health checks;
-- timeout policy;
-- retry policy;
-- contract testing;
-- schema migration;
-- incident ownership;
-- backup e restore;
-- capacity planning;
-- cost attribution.
+Un diagramma con tre servizi e tre frecce non mostra certificati, secret rotation, DNS o service discovery. Non mostra network policy, rate limiting, tracing, correlazione dei log e alerting; non racconta pipeline, health check, timeout e retry policy, contract test o schema migration. E lascia fuori incident ownership, backup e restore, capacity planning e cost attribution. È lì che gran parte del costo della distribuzione vive davvero.
 
 Questa parte invisibile è spesso il vero prezzo della distribuzione.
 

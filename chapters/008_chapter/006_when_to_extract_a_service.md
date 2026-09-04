@@ -29,13 +29,7 @@ Scalare entrambi nello stesso modo può diventare inefficiente.
 
 Una capacità instabile o dipendente da sistemi esterni rischia di degradare l'intera applicazione.
 
-Separarla può permettere:
-
-- resource isolation;
-- timeout indipendenti;
-- circuit breaker dedicati;
-- deploy e rollback separati;
-- incident containment.
+Separare una capability può comprare resource isolation, timeout e circuit breaker indipendenti, deploy e rollback separati e un migliore incident containment. Sono proprietà concrete; se non servono, il servizio rischia di essere soltanto un confine più costoso.
 
 Ma dobbiamo verificare che il journey dell'utente possa davvero sopravvivere alla failure del servizio.
 

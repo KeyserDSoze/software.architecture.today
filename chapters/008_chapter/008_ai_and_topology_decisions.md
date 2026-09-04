@@ -29,15 +29,7 @@ Per esempio un agente può:
 
 Questo riduce il costo di execution.
 
-Non riduce automaticamente:
-
-- latency;
-- distributed failure;
-- consistency problem;
-- operational ownership;
-- observability burden;
-- security surface;
-- on-call complexity.
+L'AI non riduce automaticamente latency, failure distribuiti o problemi di consistency. Non elimina operational ownership, observability burden, security surface né complessità dell'on-call. Può rendere più economico creare i componenti, non possederne le conseguenze.
 
 Quindi ancora una volta:
 
@@ -102,17 +94,7 @@ Service Mesh
 
 Potrebbe sembrare plausibile.
 
-Ma non conosciamo ancora:
-
-- volume;
-- team;
-- transaction boundary;
-- availability target;
-- consistency requirement;
-- failure tolerance;
-- security constraints;
-- budget;
-- deployment model.
+Ma non conosciamo ancora volume e team, transaction boundary e availability target, consistency requirement e failure tolerance. Mancano security constraint, budget e deployment model. Senza questo contesto, una topologia generata è soltanto una possibilità ben disegnata.
 
 È una risposta senza una domanda abbastanza precisa.
 
@@ -124,13 +106,7 @@ Non dobbiamo confondere riconoscibilità con fit.
 
 C'è poi un effetto psicologico.
 
-Se un agente genera velocemente:
-
-- Kubernetes manifest;
-- Helm chart;
-- service mesh policy;
-- tracing;
-- CI/CD;
+Se un agente genera velocemente Kubernetes manifest, Helm chart, service mesh policy, tracing e CI/CD,
 
 la soluzione sembra più pronta.
 

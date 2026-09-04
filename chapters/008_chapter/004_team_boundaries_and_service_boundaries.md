@@ -47,13 +47,7 @@ vs
 architecture-centric
 ```
 
-Dobbiamo cercare un allineamento ragionevole tra:
-
-- responsabilità di dominio;
-- ownership del codice;
-- ownership dei dati;
-- responsabilità operativa;
-- capacità di delivery.
+Dobbiamo cercare un allineamento ragionevole fra responsabilità di dominio, ownership del codice e dei dati, responsabilità operativa e capacità di delivery. Quando queste dimensioni puntano in direzioni diverse, il confine tecnico tende a diventare un punto di coordinamento permanente.
 
 ### Autonomia reale
 
@@ -96,16 +90,7 @@ Se un team può produrre più cambiamenti ma non osserva gli effetti in produzio
 
 ### Quando un boundary di team suggerisce un service boundary
 
-La separazione fisica diventa più interessante quando esistono contemporaneamente più segnali:
-
-- ownership stabile e distinta;
-- ciclo di rilascio realmente diverso;
-- roadmap indipendente;
-- profilo di carico differente;
-- failure isolation utile;
-- security boundary specifico;
-- dati posseduti chiaramente;
-- necessità di autonomia operativa.
+La separazione fisica diventa più interessante quando più segnali convergono: ownership stabile e distinta, ciclo di rilascio e roadmap realmente indipendenti, profilo di carico diverso, failure isolation utile o security boundary specifico. Dati posseduti chiaramente e bisogno di autonomia operativa rafforzano ulteriormente il caso.
 
 Uno solo di questi segnali può non bastare.
 

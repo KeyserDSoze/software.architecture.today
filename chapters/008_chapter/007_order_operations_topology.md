@@ -32,13 +32,7 @@ Non abbiamo un requisito forte di failure isolation tra `Orders`, `Payments` e `
 
 Non esistono team autonomi dedicati a ciascuna capability nel perimetro del prodotto.
 
-Quindi, oggi, un'architettura a microservizi comprerebbe soprattutto:
-
-- più deployable;
-- più rete;
-- più configurazione;
-- più observability distribuita;
-- più failure mode;
+Quindi, oggi, un'architettura a microservizi comprerebbe soprattutto più deployable, più rete e configurazione, più observability distribuita e più failure mode;
 
 senza comprare abbastanza autonomia.
 

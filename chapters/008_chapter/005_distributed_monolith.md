@@ -64,13 +64,7 @@ Ancora una volta, il tema è l'ownership.
 
 Anche una libreria condivisa può trasformarsi nel bus invisibile del distributed monolith.
 
-Supponiamo di pubblicare un package comune con:
-
-- DTO;
-- domain object;
-- validation;
-- persistence model;
-- business rule.
+Supponiamo di pubblicare un package comune che contiene DTO, domain object, validation, persistence model e perfino business rule. Sembra un modo semplice per evitare duplicazione, ma può trasformare un confine di servizio in una dipendenza di release condivisa.
 
 Ogni servizio lo importa.
 
@@ -92,13 +86,7 @@ Per completare una richiesta:
 A → B → C → D → E
 ```
 
-Ogni hop aggiunge:
-
-- latency;
-- probabilità di failure;
-- timeout da configurare;
-- tracing da ricostruire;
-- capacity dependency.
+Ogni hop aggiunge latency e probabilità di failure, un timeout da configurare, tracing da ricostruire e una nuova capacity dependency. Una catena lunga rende il sistema più fragile anche quando ogni singolo servizio è localmente semplice.
 
 Se il comportamento richiede coordinamento così stretto, potremmo aver separato componenti che in realtà cambiano e operano come un'unità.
 
@@ -128,14 +116,7 @@ Il problema è quando diventa lo stato permanente.
 
 Gli agenti rendono particolarmente facile creare distributed monolith.
 
-Un agente può:
-
-- generare tre servizi;
-- creare Dockerfile;
-- produrre manifest;
-- configurare API;
-- generare client SDK;
-- aggiungere tracing;
+Un agente può generare tre servizi, creare Dockerfile e manifest, configurare API, produrre client SDK e aggiungere tracing in pochissimo tempo;
 
 in pochissimo tempo.
 
@@ -143,13 +124,7 @@ La struttura appare sofisticata.
 
 Ma l'AI non ha automaticamente dimostrato che i boundary siano autonomi.
 
-Quindi dobbiamo verificare proprietà sistemiche:
-
-- possono essere deployati indipendentemente?
-- possono evolvere il modello interno senza coordinamento?
-- possiedono davvero i dati?
-- possono degradare indipendentemente?
-- una modifica locale resta locale?
+Quindi dobbiamo verificare proprietà sistemiche: se i servizi possano essere deployati indipendentemente, evolvere il modello interno senza coordinamento e possedere davvero i propri dati; se possano degradare indipendentemente e, soprattutto, se una modifica locale resti davvero locale.
 
 Se la risposta è quasi sempre no, il numero di container non ci aiuta.
 

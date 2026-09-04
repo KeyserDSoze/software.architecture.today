@@ -38,18 +38,7 @@ Possiamo avere pessimi confini dentro una flotta di servizi.
 
 Quando scegliamo tra monolite, modular monolith e microservizi non stiamo scegliendo quanto vogliamo essere moderni.
 
-Stiamo decidendo come distribuire:
-
-- ownership;
-- deployability;
-- failure isolation;
-- dati;
-- comunicazione;
-- capacità di scalare;
-- autonomia dei team;
-- responsabilità operativa;
-- costo cognitivo;
-- costo infrastrutturale.
+Stiamo decidendo come distribuire ownership e deployability, failure isolation, dati e comunicazione. Nella stessa scelta entrano capacità di scalare, autonomia dei team e responsabilità operativa, insieme al costo cognitivo e infrastrutturale che quella distribuzione porta con sé.
 
 Ogni opzione sposta il confine della complessità.
 
@@ -104,31 +93,11 @@ La rete è quasi sempre più complicata.
 
 Il valore emerge quando la separazione fisica compra proprietà che ci servono realmente.
 
-Per esempio:
-
-- deploy indipendenti;
-- failure isolation;
-- scaling indipendente;
-- ownership organizzativa più netta;
-- security boundaries differenti;
-- technology/runtime independence dove ha valore;
-- cicli di delivery realmente autonomi.
+I microservizi possono comprare deploy e scaling indipendenti, failure isolation e ownership organizzativa più netta. Possono creare security boundary differenti e, dove serve davvero, indipendenza di runtime e cicli di delivery più autonomi.
 
 Se non stiamo comprando nessuna di queste proprietà, dovremmo chiederci che cosa stiamo pagando.
 
-Perché pagheremo comunque:
-
-- service discovery;
-- networking;
-- timeout;
-- retry;
-- tracing distribuito;
-- versioning dei contratti;
-- consistenza distribuita;
-- operabilità;
-- coordinamento degli incidenti;
-- pipeline multiple;
-- security tra servizi.
+Ma pagheremo comunque service discovery e networking, timeout e retry, tracing distribuito e versioning dei contratti. La consistenza diventa un problema più distribuito, l'operabilità e il coordinamento degli incidenti diventano più costosi e aumentano pipeline e security boundary da governare.
 
 ### Un confine non deve diventare immediatamente un servizio
 
