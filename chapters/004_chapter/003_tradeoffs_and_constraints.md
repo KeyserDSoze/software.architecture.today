@@ -84,7 +84,7 @@ Nel Capitolo 2 abbiamo distinto vincoli hard e soft.
 
 Ora vediamo il loro effetto architetturale.
 
-Supponiamo che un'organizzazione abbia un team di quattro persone, nessun on-call 24/7 e un budget cloud limitato. Immaginiamo inoltre una piattaforma .NET già standardizzata, l'obbligo di deployment in una regione specifica e una deadline di otto settimane.
+Supponiamo che un'organizzazione abbia un team di quattro persone, nessun on-call 24/7 e un budget cloud limitato. Immaginiamo inoltre una piattaforma.NET già standardizzata, l'obbligo di deployment in una regione specifica e una deadline di otto settimane.
 
 Un'architettura che richiede venti microservizi, Kubernetes multi-cluster e una piattaforma event streaming operata internamente può essere tecnicamente valida.
 

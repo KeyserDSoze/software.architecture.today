@@ -2,15 +2,7 @@
 
 I pattern classici di design restano utili perché molti problemi locali non sono cambiati.
 
-Cambiano linguaggi, framework e strumenti, ma continuiamo ad avere bisogno di:
-
-- variare comportamento;
-- creare oggetti con logiche differenti;
-- comporre responsabilità;
-- isolare dipendenze;
-- notificare cambiamenti;
-- tradurre contratti;
-- controllare accesso a risorse.
+Cambiano linguaggi, framework e strumenti, ma continuiamo ad avere bisogno di variare comportamento e comporre responsabilità, isolare dipendenze e notificare cambiamenti, tradurre contratti e controllare l'accesso alle risorse. È questa continuità dei problemi, non la longevità dei nomi, a rendere alcuni pattern ancora utili.
 
 Il modo più utile di studiarli è partire da queste esigenze.
 

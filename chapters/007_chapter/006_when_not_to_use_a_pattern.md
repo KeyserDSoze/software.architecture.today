@@ -18,17 +18,7 @@ Può essere complessità necessaria.
 
 Ma deve essere pagata.
 
-Il costo compare in:
-
-- onboarding;
-- debugging;
-- test;
-- observability;
-- deployment;
-- incident response;
-- documentazione;
-- evoluzione;
-- capacità richiesta al team.
+Il costo di un pattern compare nell'onboarding e nel debugging, nei test e nell'observability, nel deployment e nell'incident response. Continua nella documentazione, nell'evoluzione e nelle capacità che il team deve mantenere anche quando chi ha introdotto il pattern non è più presente.
 
 Possiamo pensare a una regola semplice:
 
@@ -130,16 +120,7 @@ Non quella che rinvia problemi certi.
 
 Possiamo immaginare una soglia di adozione.
 
-Un pattern entra quando almeno una combinazione di questi segnali diventa concreta:
-
-- duplicazione semantica frequente;
-- variazione reale e costosa;
-- failure ricorrente;
-- coupling che blocca delivery;
-- requisito di qualità non raggiungibile con la struttura attuale;
-- rischio operativo significativo;
-- crescita di scala misurata;
-- compliance o audit che richiedono nuove proprietà.
+Un pattern entra quando una tensione diventa concreta: duplicazione semantica frequente, una variazione reale e costosa, failure ricorrenti o coupling che blocca delivery. Può essere giustificato anche da un quality attribute non raggiungibile con la struttura attuale, da rischio operativo significativo, da crescita misurata della scala o da compliance e audit che richiedono nuove proprietà.
 
 Il pattern risponde a una pressione osservabile.
 

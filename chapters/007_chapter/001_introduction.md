@@ -54,19 +54,7 @@ Esiste una forma di overengineering molto elegante.
 
 Non produce necessariamente codice brutto.
 
-Produce codice pieno di concetti riconoscibili:
-
-- factory;
-- strategy;
-- mediator;
-- repository;
-- unit of work;
-- command;
-- handler;
-- event bus;
-- adapter;
-- gateway;
-- orchestrator.
+Produce codice pieno di concetti riconoscibili: factory e strategy, mediator e repository, unit of work, command e handler, event bus, adapter, gateway e orchestrator. La familiarità dei nomi può far sembrare il design più maturo di quanto sia il problema che sta cercando di risolvere.
 
 Ogni pezzo può essere difendibile isolatamente.
 
@@ -98,12 +86,7 @@ La parte interessante dei pattern non è il diagramma UML.
 
 È l'esperienza condensata dietro quel diagramma.
 
-Un pattern racconta implicitamente che:
-
-- una certa tensione compare spesso;
-- alcune soluzioni ingenue tendono a fallire;
-- una particolare struttura distribuisce responsabilità in modo utile;
-- questa struttura compra alcuni vantaggi pagando costi specifici.
+Un pattern racconta implicitamente che una certa tensione compare abbastanza spesso da essere riconoscibile, che alcune soluzioni ingenue tendono a fallire e che una particolare distribuzione delle responsabilità può essere utile. Soprattutto, racconta che quei vantaggi non sono gratuiti: arrivano insieme a costi specifici.
 
 Se perdiamo questa relazione tra problema, forze e conseguenze, resta soltanto la forma.
 

@@ -12,21 +12,7 @@ Ma somiglianza strutturale e necessità architetturale non sono la stessa cosa.
 
 ### Il rischio del pattern autocomplete
 
-Un agente vede:
-
-- due implementazioni simili;
-- una dipendenza esterna;
-- alcuni handler;
-- eventi di dominio;
-
-Può proporre:
-
-- interface comune;
-- abstract factory;
-- mediator;
-- event bus;
-- outbox;
-- CQRS completo.
+Un agente vede due implementazioni simili, una dipendenza esterna, alcuni handler ed eventi di dominio. Può quindi proporre un'interfaccia comune o un'abstract factory, un mediator o un event bus, fino a outbox e CQRS completo. La facilità con cui può materializzare l'astrazione rende ancora più importante chiedersi quale problema concreto stia comprando quella struttura.
 
 Il risultato può sembrare coerente proprio perché l'AI conosce bene le forme ricorrenti.
 
@@ -114,13 +100,7 @@ Le astrazioni generate dall'AI hanno una caratteristica pericolosa: costano poch
 
 Per questo possono sembrare quasi gratuite.
 
-Ma il team successivo dovrà:
-
-- capire perché esistono;
-- sapere dove aggiungere comportamento;
-- diagnosticare i failure attraverso più layer;
-- mantenere test e contratti;
-- spiegare la struttura a nuovi agenti.
+Il team successivo dovrà comunque capire perché quelle astrazioni esistano e dove aggiungere nuovo comportamento, diagnosticare failure attraverso più layer e mantenere test e contratti. Dovrà anche riuscire a spiegare la struttura ai nuovi agenti che lavoreranno sul repository.
 
 Quindi una abstraction generata in trenta secondi può creare anni di costo cognitivo.
 
@@ -158,14 +138,7 @@ Quando un pattern significativo è adottato, dovrebbe entrare nel contesto del r
 
 Non serve documentare ogni `Strategy` locale.
 
-Ma una scelta come outbox, saga o CQRS distribuito dovrebbe essere visibile in:
-
-- ADR;
-- architecture docs;
-- diagrammi rilevanti;
-- runbook;
-- test di architettura, quando utili;
-- istruzioni per gli agenti.
+Una scelta come outbox, saga o CQRS distribuito dovrebbe invece lasciare tracce coerenti negli ADR e nelle architecture docs, nei diagrammi e nei runbook rilevanti, nei test di architettura quando utili e nelle istruzioni che orientano gli agenti. Un pattern sistemico non dovrebbe esistere soltanto nella testa di chi l'ha introdotto.
 
 Altrimenti un nuovo agente potrebbe implementare una seconda strategia incompatibile.
 

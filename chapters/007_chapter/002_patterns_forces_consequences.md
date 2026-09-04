@@ -15,13 +15,7 @@ Questa sequenza è più importante del nome del pattern.
 
 Il problema descrive una tensione ricorrente.
 
-Per esempio:
-
-- vogliamo cambiare un algoritmo senza modificare chi lo usa;
-- vogliamo integrare una dipendenza esterna senza farne trapelare il modello nel dominio;
-- vogliamo isolare un guasto invece di propagarlo;
-- vogliamo disaccoppiare produttore e consumatore nel tempo;
-- vogliamo mantenere una singola fonte di verità evitando accesso diretto indiscriminato al dato.
+Per esempio, potremmo voler cambiare un algoritmo senza modificare chi lo usa, oppure integrare una dipendenza esterna senza farne trapelare il modello nel dominio. In altri casi vogliamo isolare un guasto, disaccoppiare produttore e consumatore nel tempo o proteggere una singola fonte di verità dall'accesso diretto indiscriminato. Il pattern ha senso quando quella tensione esiste davvero.
 
 Un buon problema statement evita già metà degli abusi.
 
@@ -85,19 +79,9 @@ Questa è la parte che dovremmo discutere più spesso.
 
 Prendiamo un Adapter.
 
-Può:
+Può proteggere il modello interno e ridurre il coupling verso un'API esterna, rendere più semplice sostituire la dipendenza e concentrare mapping ed error handling in un punto intenzionale.
 
-- proteggere il modello interno;
-- ridurre coupling verso un'API esterna;
-- rendere più semplice sostituire una dipendenza;
-- centralizzare mapping ed error handling.
-
-Ma può anche:
-
-- duplicare modelli;
-- nascondere capacità importanti della dipendenza;
-- diventare un layer di pass-through senza valore;
-- complicare debugging e tracing.
+Ma può anche duplicare modelli, nascondere capacità importanti della dipendenza e degenerare in un layer di pass-through che aggiunge poco valore. In quel caso debugging e tracing diventano più difficili senza che il confine abbia realmente comprato indipendenza.
 
 Lo stesso pattern può quindi essere eccellente o inutile a seconda del contesto.
 
@@ -131,14 +115,7 @@ Per esempio una Strategy usata dentro un singolo modulo può essere sostituita c
 
 Altri modificano profondamente il comportamento del sistema.
 
-Per esempio:
-
-- event sourcing;
-- saga;
-- CQRS distribuito;
-- active-active multi-region;
-- service mesh;
-- event-driven architecture.
+Event sourcing, saga, CQRS distribuito, active-active multi-region, service mesh ed event-driven architecture sono esempi di pattern o stili il cui costo tende a propagarsi ben oltre il file in cui vengono introdotti.
 
 Questi pattern hanno conseguenze su dati, failure, deployment, observability, team e operation.
 
@@ -148,13 +125,7 @@ Non dovrebbero essere trattati come semplici scelte di implementazione.
 
 Il costo di un pattern cresce quando cresce la quantità di sistema che deve adattarsi alla sua presenza.
 
-Possiamo chiederci:
-
-- quanti componenti conoscono il pattern?
-- quanti dati dipendono dalla sua semantica?
-- quanti processi operativi lo assumono?
-- quanti team devono coordinarne l'evoluzione?
-- quanto è difficile tornare indietro?
+Per stimarne il peso possiamo chiederci quanti componenti e quanti dati dipendano dalla sua semantica, quanti processi operativi lo assumano e quanti team debbano coordinarne l'evoluzione. La domanda finale è quanto costi tornare indietro quando il contesto cambia.
 
 Una Factory locale e un'architettura event sourced non hanno lo stesso peso decisionale.
 

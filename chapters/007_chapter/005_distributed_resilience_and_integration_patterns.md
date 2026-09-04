@@ -10,24 +10,9 @@ Qui la disciplina **fit before fashion** diventa ancora più importante.
 
 Una queue è utile quando producer e consumer non devono necessariamente essere disponibili nello stesso momento.
 
-Può:
+Una coda può assorbire burst e introdurre buffering, consentire retry e separare la capacità di produzione da quella di consumo. Può anche isolare temporaneamente una dipendenza lenta dal request path.
 
-- assorbire burst;
-- introdurre buffering;
-- consentire retry;
-- separare capacità di produzione e consumo;
-- isolare temporaneamente una dipendenza lenta.
-
-Ma introduce anche:
-
-- duplicate delivery;
-- ordering non banale;
-- poison message;
-- backlog;
-- retry policy;
-- dead-letter handling;
-- observability della coda;
-- nuove domande sulla consistenza.
+In cambio introduce duplicate delivery e ordering non banale, poison message e backlog, retry policy e dead-letter handling. Aggiunge inoltre un nuovo problema di observability e nuove domande sulla consistenza che prima non esistevano.
 
 Se il requisito è soltanto “chiamare un servizio e ottenere una risposta immediata”, una queue potrebbe trasformare un problema semplice in un workflow distribuito.
 
@@ -103,14 +88,7 @@ read cache
 → populate cache
 ```
 
-Sembra semplice finché non chiediamo:
-
-- quanto può essere stale il dato?
-- come invalidiamo?
-- cosa succede con update concorrenti?
-- cosa succede se la cache è indisponibile?
-- possiamo servire dati vecchi?
-- il cache stampede è possibile?
+La cache sembra semplice finché non chiediamo quanto possa essere stale il dato e come avvenga l'invalidazione, che cosa succeda con update concorrenti o quando la cache è indisponibile. Dobbiamo anche decidere se possiamo servire dati vecchi e se il workload espone il sistema a cache stampede.
 
 La cache non è “performance gratis”.
 
@@ -135,13 +113,7 @@ publisher
 
 Compra atomicità locale tra stato e intenzione di pubblicazione.
 
-Paga con:
-
-- duplicati possibili;
-- polling o CDC;
-- retention della outbox;
-- monitoring;
-- idempotenza consumer.
+L'outbox paga la propria affidabilità con duplicati possibili, un meccanismo di polling o CDC, retention e monitoring della tabella e la necessità di consumer idempotenti.
 
 È un ottimo pattern quando il problema esiste davvero.
 
@@ -155,14 +127,7 @@ Non “rende transazionale” un sistema distribuito.
 
 Gestisce invece progressione e compensazione.
 
-Questo significa che dobbiamo modellare:
-
-- passi completati;
-- retry;
-- operazioni compensative;
-- failure permanenti;
-- stato intermedio;
-- osservabilità del workflow.
+Una saga ci obbliga a modellare i passi completati e i retry, le operazioni compensative e i failure permanenti. Lo stato intermedio e l'osservabilità del workflow diventano parte dell'architettura, non dettagli da aggiungere dopo.
 
 La compensazione non è rollback.
 
@@ -188,15 +153,7 @@ Event sourcing registra gli eventi come fonte primaria dello stato.
 
 Può offrire storia, audit e capacità di ricostruzione molto potenti.
 
-Ma porta con sé problemi seri:
-
-- evoluzione degli eventi;
-- privacy e cancellazione;
-- rebuild;
-- snapshot;
-- debugging temporale;
-- idempotenza;
-- comprensione del dominio nel tempo.
+Event sourcing porta con sé problemi seri di evoluzione degli eventi, privacy e cancellazione, rebuild e snapshot. Aumentano anche il peso del debugging temporale e dell'idempotenza e la necessità di comprendere come il dominio cambia nel tempo.
 
 Non è una forma “più avanzata” di persistence.
 
