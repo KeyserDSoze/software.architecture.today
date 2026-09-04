@@ -1,0 +1,146 @@
+name: Book CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-and-build:
+    name: Validate and build book
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip && pip install -r requirements.txt
+      - name: Source normalization guardrail
+        run: python scripts/normalize_sources.py --check
+      - name: Strict editorial lint
+        run: python scripts/lint_book.py --strict
+      - name: Build release-quality Markdown DOCX PDF
+        run: python scripts/build_release.py
+      - name: Build EPUB
+        run: python scripts/build_epub.py
+      - name: Inspect build artifacts
+        run: python scripts/inspect_build.py
+      - name: Upload validated book artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: software-architecture-today
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            build/software-architecture-today.md
+            build/software-architecture-today.docx
+            build/software-architecture-today.pdf
+            build/software-architecture-today.epub
+
+  publish-release:
+    name: Publish GitHub Release
+    needs: validate-and-build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout release manifest
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Detect release.json change
+        id: release_change
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f release.json ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" -- release.json | grep -qx 'release.json'; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Set up Python
+        if: steps.release_change.outputs.changed == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Validate release manifest
+        if: steps.release_change.outputs.changed == 'true'
+        id: manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          from pathlib import Path
+          data = json.loads(Path("release.json").read_text(encoding="utf-8"))
+          required = ("tag", "name", "prerelease", "notes_file")
+          missing = [key for key in required if key not in data]
+          if missing:
+              raise SystemExit(f"release.json: missing {missing}")
+          if not isinstance(data["prerelease"], bool):
+              raise SystemExit("release.json: prerelease must be boolean")
+          notes = Path(data["notes_file"])
+          if not notes.is_file():
+              raise SystemExit(f"Release notes missing: {notes}")
+          if not str(data["tag"]).startswith("v"):
+              raise SystemExit("release.json: tag must start with v")
+          print(f"tag={data['tag']}")
+          print(f"name={data['name']}")
+          print(f"prerelease={'true' if data['prerelease'] else 'false'}")
+          print(f"notes_file={data['notes_file']}")
+          PY
+      - name: Download validated build
+        if: steps.release_change.outputs.changed == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: software-architecture-today
+          path: release-assets
+      - name: Assert release assets
+        if: steps.release_change.outputs.changed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in release-assets/software-architecture-today.docx release-assets/software-architecture-today.pdf release-assets/software-architecture-today.epub; do
+            test -s "$file"
+          done
+      - name: Create or update GitHub Release
+        if: steps.release_change.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.manifest.outputs.tag }}
+          RELEASE_NAME: ${{ steps.manifest.outputs.name }}
+          NOTES_FILE: ${{ steps.manifest.outputs.notes_file }}
+          PRERELEASE: ${{ steps.manifest.outputs.prerelease }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          assets=(release-assets/software-architecture-today.docx release-assets/software-architecture-today.pdf release-assets/software-architecture-today.epub)
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            edit_flags=()
+            if [ "$PRERELEASE" = "true" ]; then edit_flags+=(--prerelease); else edit_flags+=(--prerelease=false); fi
+            gh release edit "$TAG" --title "$RELEASE_NAME" --notes-file "$NOTES_FILE" "${edit_flags[@]}"
+            gh release upload "$TAG" "${assets[@]}" --clobber
+          else
+            flags=()
+            if [ "$PRERELEASE" = "true" ]; then flags+=(--prerelease); fi
+            gh release create "$TAG" "${assets[@]}" --target "${{ github.sha }}" --title "$RELEASE_NAME" --notes-file "$NOTES_FILE" "${flags[@]}"
+          fi
