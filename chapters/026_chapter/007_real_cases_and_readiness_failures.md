@@ -1,234 +1,114 @@
 # Casi reali e failure mode della readiness
 
-Una Production Readiness Review ha valore soltanto se impara anche dal mondo reale.
+Una Production Readiness Review impara dal mondo reale non copiando checklist altrui, ma osservando **quali domande sono diventate evidenti dopo che qualcuno ha pagato il costo di non averle fatte abbastanza presto**.
 
-Non per copiare checklist altrui.
+## Le review migliori diventano memoria degli incidenti
 
-Ma per vedere **quali domande qualcuno ha imparato a fare dopo aver pagato il costo di non averle fatte abbastanza presto**.
-
----
-
-## Caso 1 — AWS Operational Readiness Review
-
-AWS descrive le Operational Readiness Review come un meccanismo per valutare se workload, processi, procedure e persone siano pronti a operare in sicurezza.
-
-La parte interessante non è il nome `ORR`.
-
-È il principio di fondo:
-
-```text
-incident learning
-→ review question
-→ operational mechanism
-→ future workload/change
-```
-
-AWS sottolinea inoltre che le ORR non dovrebbero vivere soltanto come pre-launch checklist, ma entrare nel ciclo di sviluppo ed evolvere con le lesson learned.
+AWS descrive le Operational Readiness Review come un meccanismo per valutare workload, procedure, processi e persone e raccomanda che le review evolvano incorporando lesson learned.
 
 Fonti:
 
 - [AWS Well-Architected — Operational Readiness Reviews](https://docs.aws.amazon.com/wellarchitected/latest/operational-readiness-reviews/wa-operational-readiness-reviews.html)
 - [AWS — OPS07-BP02 Ensure a consistent review of operational readiness](https://docs.aws.amazon.com/wellarchitected/latest/framework/ops_ready_to_support_const_orr.html)
 
-### Lezione per ESI
+La conseguenza è importante: una PRR non dovrebbe essere un documento congelato. Un incidente significativo dovrebbe lasciare dietro di sé una nuova readiness question, una fitness function, un runbook o un gate migliore.
 
-La nostra Production Readiness Review non deve essere una checklist scritta una volta e congelata.
+```text
+incident
+→ learning
+→ stronger readiness mechanism
+→ next launch/change
+```
 
-Quando Order Operations avrà un incidente reale, dovremo chiedere:
+Se il sistema paga due volte lo stesso failure evitabile, la review non sta imparando abbastanza.
 
-> quale domanda o fitness function avrebbe potuto rendere questo failure più piccolo o più evidente prima?
+## Un gate è utile soltanto se produce abbastanza evidence
 
----
+La storica Launch Coordination Checklist di Google SRE include architecture, capacity, failover, dependency failure, monitoring e operational procedure. Google ha poi pubblicato production launch planning proporzionato al tipo e alla scala del launch.
 
-# Caso 2 — Google Launch Coordination Checklist
-
-La checklist storica di Google SRE includeva già categorie come:
-
-- architecture;
-- machine/datacenter;
-- volume e capacity;
-- performance;
-- failover;
-- dependency failure;
-- monitoring;
-- operational procedures.
+Fonti:
 
 - [Google SRE — Launch Coordination Checklist](https://sre.google/sre-book/launch-checklist/)
-
-Il dettaglio tecnologico è datato in alcuni punti, come è normale per una checklist del 2005.
-
-Ma il modello mentale è ancora utile:
-
-> **prima di un launch, il sistema deve essere letto dal punto di vista del traffico, del fallimento e dell'operazione, non soltanto della feature.**
-
-Google ha successivamente pubblicato anche guidance sul production launch planning sottolineando che la profondità del processo deve essere proporzionata al tipo e alla scala del launch.
-
 - [Google SRE — Creating a Production Launch Plan](https://sre.google/resources/practices-and-processes/production-launch-planning/)
 
-### Lezione per ESI
+Il principio resta attuale: prima del launch dobbiamo leggere il sistema dal punto di vista di traffico, failure e operazione, non soltanto della feature.
 
-Il nostro pilot interno non deve copiare il processo di un launch globale.
+GitHub offre un esempio concreto sul progressive rollout. Il canary al 2% non intercettava alcune regressioni prima del rollout completo; una seconda fase al 20% aumentò la capacità di osservare problemi mantenendo ancora un’esposizione controllata.
 
-Ma non può saltare tenant isolation, data integrity o ownership solo perché il cohort è piccolo.
-
----
-
-# Caso 3 — GitHub: canary insufficiente
-
-GitHub ha documentato un'evoluzione del proprio deployment system in cui il canary esistente al 2% non intercettava alcune classi di problema prima del rollout completo.
-
-Il team introdusse una seconda fase al 20% per aumentare la capacità di osservare regressioni prima del 100%, mantenendo comunque progressività.
+Fonte:
 
 - [GitHub — Improving how we deploy GitHub](https://github.blog/enterprise-software/devops/improving-how-we-deploy-github/)
 
-### Lezione
+La lezione non sono le percentuali. È che un gate può essere formalmente presente e **operativamente cieco**.
 
-Una fase di rollout non è utile perché si chiama `canary`.
+> **Un readiness gate deve generare abbastanza signal da meritare la decisione che prende.**
 
-È utile se produce abbastanza evidence per decidere se avanzare.
+## Recovery deve essere praticabile, non soltanto descritto
 
-> **Un gate troppo piccolo può essere formalmente presente e operativamente cieco.**
+GitHub ha documentato l’uso di feature flag per disabilitare rapidamente behavior rischiosi senza rollback completo del deployment.
 
----
-
-# Caso 4 — GitHub: feature flag e rollback comportamentale
-
-GitHub ha documentato l'uso delle feature flag per isolare il rischio di cambiamenti e poterli disabilitare rapidamente senza dover necessariamente eseguire un rollback completo del deployment.
+Fonte:
 
 - [GitHub — How we ship code faster and safer with feature flags](https://github.blog/engineering/infrastructure/ship-code-faster-safer-feature-flags/)
 
-### Lezione
+Ma un flag non recupera ogni side effect. Destructive schema change, data corruption o business action già avvenuta richiedono meccanismi differenti.
 
-`Rollback` deve essere scomposto.
+La stessa concretezza vale per il recovery tooling. GitHub ha discusso il rischio di dipendere dallo stesso GitHub.com durante deployment/recovery e ha descritto mirror e rollback asset fra le mitigazioni.
 
-A volte il rollback più efficace è:
+Fonte:
 
-```text
-turn off new behavior
-```
+- [GitHub — How GitHub uses eBPF to improve deployment safety](https://github.blog/engineering/infrastructure/how-github-uses-ebpf-to-improve-deployment-safety/)
 
-non:
+La domanda generale è:
 
-```text
-redeploy entire previous release
-```
+> **Il percorso di recovery funziona ancora quando il sistema che normalmente lo supporta è degradato?**
 
-Ma questo vale soltanto se il side effect è ancora reversibile a quel livello.
+Un runbook raggiungibile soltanto tramite una dependency indisponibile o un artifact recuperabile soltanto dalla piattaforma che stiamo cercando di ripristinare sono circular dependency operative da conoscere.
 
-Un database destructive change o un pagamento già eseguito non si spegne con una feature flag.
+## La readiness deve poter fermare il momentum
 
----
+Nel GitHub Availability Report di giugno 2026 GitHub ha raccontato di aver fermato per circa un mese l’aumento di traffico verso una nuova environment dopo un incidente e di aver poi ripreso con una per-turnup stability gate.
 
-# Caso 5 — GitHub, giugno 2026: fermare il ramp
-
-Nel GitHub Availability Report di giugno 2026, GitHub ha raccontato di aver fermato per circa un mese l'aumento di traffico verso una nuova environment dopo un incidente di stabilità e di aver poi riavviato il ramp con una **per-turnup stability gate** che richiede health verificata prima di ogni incremento.
+Fonte:
 
 - [GitHub Availability Report — June 2026](https://github.blog/news-insights/company-news/github-availability-report-june-2026/)
 
-### Lezione
-
-La cosa interessante non è la piattaforma specifica.
-
-È il comportamento organizzativo:
+Il comportamento organizzativo è più interessante della tecnologia:
 
 ```text
 new evidence says not ready
-→ pause expansion
+→ stop expansion
 → improve gate
 → resume gradually
 ```
 
-Questo è l'opposto del sunk-cost reasoning:
+È l’opposto del sunk-cost reasoning. Essere arrivati vicini al 100% non crea un diritto a proseguire.
 
-> siamo arrivati fin qui, quindi ormai dobbiamo continuare.
+Un altro report GitHub del marzo 2026 descrive un deployment che causò una cache expiration massiva, load e replication delay; la mitigazione incluse rollback e successivi kill switch e monitoring migliori.
 
-La readiness corretta può produrre una pausa.
-
----
-
-# Caso 6 — GitHub, marzo 2026: rollback e nuovi guardrail
-
-Nel report di marzo 2026 GitHub descrisse un deployment che, nel tentativo di ridurre il carico di alcune write, causò una scadenza massiva della cache, ricalcolo e aumento del load con replication delay a cascata. Il team mitigò con rollback e aggiunse successivamente kill switch e monitoraggio migliore sul meccanismo di caching.
+Fonte:
 
 - [GitHub Availability Report — March 2026](https://github.blog/news-insights/company-news/github-availability-report-march-2026/)
 
-### Lezione
+L’incidente lascia dietro di sé domande riutilizzabili: esiste un kill switch? Il dangerous load viene rilevato prima del broad user impact? Il failure è isolato dai workload non coinvolti?
 
-Un incidente può insegnare almeno tre readiness question:
+## Failure pattern — Checklist theatre
 
-```text
-Do we have a kill switch?
-Can we detect the dangerous load before broad user impact?
-Is the failure isolated from unrelated workloads?
-```
-
-E mostra perché la ORR dovrebbe evolvere con gli incidenti reali.
-
----
-
-# Caso 7 — Recovery path e circular dependency
-
-GitHub nel 2026 ha discusso un problema operativo molto concreto: parte del deployment/recovery del servizio dipende dallo stesso GitHub.com che potrebbe essere indisponibile. Il team descrive mirror del codice e asset di rollback come parte delle mitigazioni e l'uso di eBPF per individuare dipendenze circolari nella tooling path.
-
-- [GitHub — How GitHub uses eBPF to improve deployment safety](https://github.blog/engineering/infrastructure/how-github-uses-ebpf-to-improve-deployment-safety/)
-
-### Lezione
-
-> **Recovery infrastructure deve essere letta anche quando il sistema principale è già rotto.**
-
-Per ESI questo significa chiedere:
-
-```text
-Can we access runbooks if primary collaboration tools fail?
-Can we obtain deployment artifacts?
-Can we authenticate to recovery systems?
-Can we restore without relying on the failed dependency?
-```
-
-Non tutto deve avere una sofisticata soluzione offline.
-
-Ma il dependency loop deve essere almeno conosciuto.
-
----
-
-# Failure mode: checklist theatre
-
-Sintomo:
-
-```text
-120 items
-118 green
-2 yellow
-→ 98.3% ready
-```
-
-Problema:
-
-uno dei due yellow potrebbe essere:
-
-```text
-restore never tested
-```
-
-mentre trenta green sono:
-
-```text
-README exists
-```
+Una review con 118 item verdi su 120 non è “98,3% ready”. Uno dei due item gialli potrebbe essere `restore never tested`, mentre decine di green descrivono artifact di peso molto minore.
 
 La severità non è additiva.
 
-> **Una Production Readiness Review non è un esame a punti.**
+> **Una PRR non è un esame a punti.**
 
----
+## Failure pattern — Evidence laundering
 
-# Failure mode: evidence laundering
+Alcune equivalenze sbagliate ricorrono continuamente:
 
 ```text
 unit test green
 → transaction verified
 
-Bicep exists
+IaC exists
 → network verified
 
 manual AI demo
@@ -238,116 +118,36 @@ backup configured
 → recovery verified
 ```
 
-È la stessa famiglia di errore vista con documentation laundering e green-by-editing-the-oracle.
+La review prende evidence reale ma la usa per sostenere un claim più forte di quello che può dimostrare.
 
-La review trasforma evidence debole in claim più forte di quello che può sostenere.
+È la stessa famiglia di errore di documentation laundering e green-by-editing-the-oracle.
 
----
+## Failure pattern — Launch-date gravity
 
-# Failure mode: launch-date gravity
+Avvicinandosi alla data, blocker e unknown tendono a cambiare nome: `known issue`, `phase 2`, `accepted risk`.
 
-Più ci avviciniamo alla data, più ogni blocker tende a diventare improvvisamente:
+La domanda di controllo è sempre:
 
-```text
-known issue
-follow-up
-accepted risk
-phase 2
-```
+> **Quale nuova information ci ha fatto riclassificare il rischio?**
 
-senza che sia cambiata l'evidence.
+Se la risposta è “la data è domani”, non abbiamo nuova evidence. Abbiamo pressione.
 
-La domanda di controllo è:
+Engineering inoltre non può accettare unilateralmente un rischio che appartiene a Security, Payments, Legal o al business owner. Un ownerless acceptance non è risk management.
 
-> **che nuova informazione ci ha fatto riclassificare il rischio?**
+## Failure pattern — Architecture prestige
 
-Se la risposta è:
+Kubernetes, multi-region, service mesh, Zero Trust, RAG o event streaming non sono readiness evidence.
 
-> la data è domani.
+Un sistema semplice con restore provato, owner chiaro, alert efficaci e rollback praticabile può essere molto più production-ready di una topology sofisticata mai esercitata.
 
-non abbiamo una nuova informazione tecnica o di business.
+> **Production maturity misura la capacità dimostrata di sostenere una promessa, non il prestigio delle tecnologie usate per costruirla.**
 
-Abbiamo soltanto pressione.
+## Dopo il launch la review continua
 
----
+Anche il `GO` può diventare stale. Traffic, owner, provider, security boundary, SLO, model e business criticality cambiano.
 
-# Failure mode: ownerless acceptance
+Per questo la PRR deve avere review trigger. Il go-live non chiude la production evidence; la apre.
 
-```text
-Engineering says risk is acceptable
-```
+La domanda con cui leggere ogni caso reale resta quindi:
 
-Ma il rischio riguarda:
-
-```text
-Security policy
-payment correctness
-legal retention
-business SLA
-```
-
-Engineering può spiegare e mitigare il rischio.
-
-Non necessariamente può accettarlo per conto dell'azienda.
-
----
-
-# Failure mode: production readiness by architecture prestige
-
-```text
-Kubernetes
-multi-region
-service mesh
-zero trust
-RAG
-event streaming
-```
-
-non sono readiness evidence.
-
-Un sistema semplice con restore provato, owner chiaro, monitoring e rollback può essere molto più production-ready di una topologia sofisticata non esercitata.
-
-> **Production maturity descrive la capacità dimostrata di sostenere una promessa. Non il numero di tecnologie mature che abbiamo installato.**
-
----
-
-# Failure mode: post-launch amnesia
-
-Ultimo errore:
-
-```text
-PRR done
-→ PDF archived
-→ never revisited
-```
-
-Ma poi cambiano:
-
-```text
-traffic
-owner
-provider
-security boundary
-SLO
-AI model
-region topology
-business criticality
-```
-
-La readiness deve avere trigger di riapertura.
-
-Il go-live è l'inizio della production evidence.
-
-Non la fine.
-
----
-
-# La domanda che un caso reale deve lasciarci
-
-Non:
-
-> quale tecnologia usavano?
-
-Ma:
-
-> **quale domanda di readiness è diventata evidente soltanto dopo il failure, e come possiamo farla prima nel nostro sistema?**
+> **Quale domanda di readiness è diventata ovvia soltanto dopo il failure, e come possiamo renderla verificabile prima nel nostro sistema?**
