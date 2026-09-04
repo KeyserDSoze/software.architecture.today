@@ -41,7 +41,7 @@ REPLACEMENTS = (
     (re.compile(r"\balla AI\b", re.I), "all'AI"),
     (re.compile(r"\bdella AI\b", re.I), "dell'AI"),
     (re.compile(r"\bqual['’]è\b", re.I), "qual è"),
-    (re.compile(r"\bun po['’]?\b", re.I), "un po’"),
+    (re.compile(r"\bun po'(?!\w)|\bun po\b(?![’'])", re.I), "un po’"),
     (re.compile(r"\bperchè\b", re.I), "perché"),
     (re.compile(r"\bpoichè\b", re.I), "poiché"),
     (re.compile(r"\baffinchè\b", re.I), "affinché"),
