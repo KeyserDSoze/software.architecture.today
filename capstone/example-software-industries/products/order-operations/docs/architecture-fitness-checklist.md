@@ -1,6 +1,6 @@
 # Order Operations — Architecture Fitness Checklist
 
-> **Scenario fittizio ESI.** Stato corrente dopo il Capitolo 20. Questo documento collega architectural intent, meccanismi di verifica, evidence, owner e review trigger. Non è una checklist universale di best practice.
+> **Scenario fittizio ESI.** Stato corrente dopo il Capitolo 21. Questo documento collega architectural intent, meccanismi di verifica, evidence, owner e review trigger. Non è una checklist universale di best practice.
 
 ## Principle
 
@@ -35,8 +35,6 @@ Review Required
 
 ### Verification evidence — Capitolo 19
 
-Il gate è stato eseguito localmente sul current import graph ricostruito dai source correnti del repository.
-
 ```text
 node --test tests/architecture-fitness.test.mjs
 → 5 tests
@@ -44,7 +42,7 @@ node --test tests/architecture-fitness.test.mjs
 → 0 fail
 ```
 
-Questa evidence verifica soltanto le dependency/import rule AF-001…AF-005. Non dimostra runtime topology, Azure policy, recovery o data ownership enforcement.
+Questa evidence verifica soltanto le dependency/import rule AF-001…AF-005.
 
 ## Functional / domain fitness
 
@@ -121,8 +119,6 @@ Questa evidence verifica soltanto le dependency/import rule AF-001…AF-005. Non
 
 ### Verification evidence — Capitolo 20
 
-Il nuovo guardrail è stato esercitato localmente sulla stanza di metadata corrente dell'IaC ricostruita dal file `infra/main.bicep`.
-
 ```text
 CF-001 workload / owner / environment metadata
 CF-002 no fabricated hard-coded cost-center
@@ -133,11 +129,36 @@ CF-002 no fabricated hard-coded cost-center
 
 Questa evidence non dimostra billing Azure, allocation correctness nel provider, forecast, budget o unit economics reali.
 
-Queste capability restano:
+## Repository context / agent readiness fitness
+
+| ID | Property | Why | Mechanism | State | Trigger |
+|---|---|---|---|---|---|
+| AF-CTX-01 | esiste un entry point operativo `AGENTS.md` | ridurre rediscovery e tribal knowledge | `tests/agent-context-fitness.test.mjs` | Codified + locally exercised | agent workflow/context redesign |
+| AF-CTX-02 | esiste `docs/repository-map.md` | rendere navigabili responsabilità e knowledge source | context fitness | Codified + locally exercised | top-level structure/capability change |
+| AF-CTX-03 | i documenti canonical referenziati dal context layer esistono | evitare instruction link stale | context fitness | Codified + locally exercised | doc rename/retirement |
+| AF-CTX-04 | `typecheck` e `test` dichiarati come golden command esistono nel package | evitare execution instructions non riproducibili | context fitness | Codified + locally exercised | build/test script change |
+| AF-CTX-05 | il context layer preserva `Designed→Codified→Verified→Monitored` | impedire claim di evidence gonfiati | context fitness + review | Codified + locally exercised mechanically | evidence model change |
+| AF-CTX-06 | instruction file resta routing layer, non duplicazione dei documenti canonical | ridurre instruction drift/context pollution | human review | Designed / practiced | AGENTS.md growth or duplication |
+| AF-CTX-07 | stop condition coprono boundary business/security/one-way-door principali | limitare task amplification e unauthorized decision | `AGENTS.md` review | Codified/documented | new critical boundary |
+| AF-CTX-08 | nessuna instruction autorizza secret/production permission implicitamente | capability ≠ authorization | security review / future automated scanning | Codified/documented; automated gate Pending | agent tool/permission model change |
+
+### Verification evidence — Capitolo 21
+
+La struttura reale dei documenti canonical è stata verificata nel repository.
+
+La logica del nuovo context fitness test è stata eseguita localmente su una ricostruzione della current operating context:
 
 ```text
-Designed / Pending production billing data
+CTX-001 agent entry point + Repository Map
+CTX-002 canonical document existence
+CTX-003 golden package scripts
+CTX-004 routing + evidence vocabulary
+→ 4 tests
+→ 4 pass
+→ 0 fail
 ```
+
+Questa evidence dimostra soltanto proprietà meccaniche del context layer. Non dimostra che una instruction sia semanticamente corretta, non stale o sufficiente per ogni task.
 
 ## Architecture exception policy
 
@@ -167,15 +188,19 @@ Periodically ask:
 4. quale rischio importante dipende ancora soltanto dalla memoria?
 5. quale fitness function può essere rimossa?
 6. quale premium di costo non sappiamo più collegare a una proprietà?
+7. quale informazione stabile viene ancora riscoperta da ogni nuovo contributor/agent?
+8. quale instruction sta duplicando una source of truth invece di indirizzare verso di essa?
 
 ## Sources
 
 - [Thoughtworks — Building Evolutionary Architectures, 2nd Edition](https://www.thoughtworks.com/insights/books/building-evolutionaryarchitectures-second-edition)
-- [Thoughtworks — Fitness function-driven development](https://www.thoughtworks.com/en-gb/insights/articles/fitness-function-driven-development)
 - [AWS Architecture Blog — Using Cloud Fitness Functions to Drive Evolutionary Architecture](https://aws.amazon.com/blogs/architecture/using-cloud-fitness-functions-to-drive-evolutionary-architecture/)
 - [Microsoft Learn — Azure Well-Architected Framework workloads](https://learn.microsoft.com/en-us/azure/well-architected/workloads)
 - [Microsoft Learn — Cost Optimization design principles](https://learn.microsoft.com/en-us/azure/well-architected/cost-optimization/principles)
 - [FinOps Framework — Unit Economics](https://www.finops.org/framework/capabilities/unit-economics/)
-- [GitHub Engineering — SERVICEOWNERS](https://github.blog/engineering/architecture-optimization/how-we-organize-and-get-things-done-with-serviceowners/)
+- [GitHub Docs — Customize Copilot for your project](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/customize-copilot-overview)
+- [GitHub Docs — Support for custom instructions](https://docs.github.com/en/copilot/reference/custom-instructions-support)
+- [OpenAI — Introducing Codex](https://openai.com/index/introducing-codex/)
+- [AGENTS.md — open format](https://agents.md/)
 
 > **La checklist non certifica che l'architettura sia buona. Rende visibili le proprietà che abbiamo deciso di proteggere e l'evidence che abbiamo — o che ci manca — per sostenerle.**
