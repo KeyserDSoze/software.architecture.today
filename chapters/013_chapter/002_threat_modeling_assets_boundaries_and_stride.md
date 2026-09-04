@@ -1,81 +1,30 @@
-## Threat modeling: progettare contro un avversario plausibile
+## Threat modeling: partire da ciò che può essere abusato
 
-La security architecture inizia quando smettiamo di chiedere soltanto:
+La security architecture inizia quando alla domanda “il sistema funziona?” aggiungiamo: **come può essere abusato, da chi e con quale impatto?** Il threat modeling rende questa domanda ripetibile e la collega al design prima che i controlli vengano scelti per abitudine.
 
-> Il sistema funziona?
-
-E iniziamo a chiedere:
-
-> **Come può essere abusato, da chi e con quale impatto?**
-
-Il threat modeling serve a rendere questa domanda ripetibile.
-
-Microsoft lo descrive come processo per identificare minacce potenziali e assicurare che esistano mitigazioni appropriate; distingue inoltre il threat modeling dall'attack surface analysis, che si concentra sulle aree più esposte all'attacco.
+Microsoft descrive il threat modeling come un processo per identificare minacce potenziali e verificare che esistano mitigazioni appropriate. Lo distingue inoltre dall’attack surface analysis, che si concentra maggiormente sulle aree esposte all’attacco.
 
 Fonte:
 
 - [Microsoft Learn — Design secure applications on Azure](https://learn.microsoft.com/azure/security/develop/secure-design)
 
-## Prima gli asset
+## Prima gli asset, poi i controlli
 
-Un threat model che parte dalle tecnologie tende a produrre controlli generici.
+Un threat model che parte da Key Vault, firewall o WAF tende a produrre una lista di configurazioni. Per Order Operations partiamo invece da ciò che avrebbe valore per un attaccante o potrebbe produrre danno: `OperationalCase`, tenant isolation, Payment Escalation, operator identity, runtime identity, deployment capability, outbox, audit trail, provider credential e infrastruttura.
 
-Per Order Operations partiamo invece dagli asset.
+Un asset non è necessariamente un dato. Anche la capability “creare una Payment Escalation” è un asset, perché usarla senza authorization produce un effetto business pur senza leggere alcun secret.
 
-Esempi:
+Questa prospettiva rende il rischio più vicino al prodotto.
 
-```text
-OperationalCase
-PaymentEscalation
-operator identity
-supervisor identity
-tenant boundary
-outbox messages
-audit trail
-deployment pipeline
-runtime identity
-external provider credentials
-infrastructure configuration
-```
+## Gli attori includono anche identità legittime compromesse
 
-Gli asset non sono tutti dati.
+La minaccia non arriva sempre da un utente anonimo su Internet. Possiamo avere operatori e supervisor legittimi, workload e deployment identity, amministratori Platform, consumer Payments & Risk e provider esterni. Accanto a loro dobbiamo modellare account interni compromessi, pipeline manipolate, dependency malevole o runtime identity rubate.
 
-Anche una capability può essere un asset.
+Un account interno con privilegi troppo ampi può avere un blast radius maggiore di un attaccante anonimo che non supera l’ingress. Per questo il threat model non coincide con il firewall diagram.
 
-Per esempio:
+## Trust boundary: dove cambiano le assunzioni
 
-```text
-"creare una Payment Escalation"
-```
-
-è una capability che non deve essere disponibile a chiunque riesca a chiamare un endpoint.
-
-## Poi gli attori
-
-Dobbiamo distinguere almeno:
-
-- Operations Operator legittimo;
-- Operations Supervisor;
-- workload identity;
-- deployment identity;
-- Platform administrator;
-- Security administrator;
-- Payments & Risk consumer;
-- provider esterno;
-- attaccante anonimo;
-- account interno compromesso;
-- pipeline compromessa;
-- dipendenza software compromessa.
-
-La distinzione è importante perché una minaccia non richiede sempre un “hacker esterno”.
-
-Un account interno con privilegi eccessivi può avere un blast radius maggiore di una richiesta anonima su Internet.
-
-## Trust boundary
-
-Un trust boundary è un punto in cui cambiano le assunzioni di fiducia.
-
-Esempio semplificato:
+Un trust boundary è un punto in cui non possiamo semplicemente ereditare la fiducia dal componente precedente.
 
 ```text
 Corporate user device
@@ -91,34 +40,13 @@ PostgreSQL / Service Bus / Key Vault
 Payments & Risk
 ```
 
-Ogni freccia merita domande:
+Ogni passaggio modifica almeno una dimensione: identity, ownership, privilege, tenant context, processo, rete o data classification. La domanda utile è quale identità attraversi il boundary, quale authorization venga applicata, quali dati transitino, quale canale li protegga e soprattutto che cosa succeda se il lato a monte viene compromesso.
 
-- chi autentica chi?
-- quale identity viene propagata?
-- quale authorization viene applicata?
-- quale dato attraversa il boundary?
-- il canale è cifrato?
-- il chiamante può scegliere liberamente il target?
-- quali log vengono prodotti?
-- che cosa succede se il token viene rubato?
-- che cosa succede se il componente a monte viene compromesso?
+Esistono quindi boundary di rete, ma anche di tenant, deployment, dati, privilegi, organizzazione e supply chain.
 
-La rete è soltanto uno dei boundary.
+## STRIDE come vocabolario, non come risultato
 
-Esistono anche boundary:
-
-- organizzativi;
-- di tenant;
-- di privilegi;
-- di deployment;
-- di dati;
-- di supply chain.
-
-## STRIDE come lente, non come checklist rituale
-
-Microsoft Threat Modeling Tool usa STRIDE come metodologia guidata.
-
-Le categorie sono:
+Microsoft Threat Modeling Tool usa STRIDE come metodologia guidata:
 
 ```text
 S — Spoofing
@@ -133,190 +61,47 @@ Fonte:
 
 - [Microsoft Learn — Threat Modeling Tool threats / STRIDE](https://learn.microsoft.com/azure/security/develop/threat-modeling-tool-threats)
 
-Possiamo applicarle a una Payment Escalation.
+Il valore di STRIDE è aiutarci a guardare lo stesso flow da angoli diversi. Per una Payment Escalation, Spoofing ci fa chiedere se una sessione rubata possa impersonare un operatore; Tampering se `caseId`, tenant o reason possano essere manipolati; Repudiation quale evidence dimostri chi abbia richiesto l’azione; Information Disclosure se un case possa attraversare il tenant boundary; Denial of Service se escalation o query costose possano saturare il workload; Elevation of Privilege se un Operator possa ottenere capability da Supervisor o privilegi cloud.
 
-### Spoofing
+La categoria non è la minaccia. È una lente per trovare uno scenario concreto.
 
-Un attaccante impersona un operatore.
+## Abuse case: il modo più utile per conservare il perché
 
-Domande:
-
-- come viene autenticato l'utente?
-- il token è destinato alla nostra API?
-- la sessione può essere riutilizzata da un altro device?
-
-### Tampering
-
-Il payload viene modificato o un attaccante cambia `tenantId`, `caseId` o reason.
-
-Domande:
-
-- il tenant arriva davvero dal client o dal security context?
-- il case appartiene al tenant?
-- il server ricostruisce le decisioni sensibili da dati autorevoli?
-
-### Repudiation
-
-Un operatore nega di avere creato una escalation.
-
-Domande:
-
-- abbiamo actor id, timestamp e correlation id?
-- l'audit è separato dai normali application log?
-- l'audit può essere modificato dallo stesso attore?
-
-### Information Disclosure
-
-Un utente vede casi di un altro tenant o i log contengono informazioni economiche non necessarie.
-
-Domande:
-
-- tenant isolation viene testata?
-- i payload di log sono minimizzati?
-- i secret sono esclusi dalla telemetria?
-
-### Denial of Service
-
-Un attore genera migliaia di escalation o query costose.
-
-Domande:
-
-- rate limiting?
-- quota?
-- queue backlog?
-- database connection exhaustion?
-
-### Elevation of Privilege
-
-Un Operations Operator ottiene capability da Supervisor o privilegi cloud.
-
-Domande:
-
-- i ruoli applicativi sono distinti?
-- runtime identity può modificare infrastruttura?
-- deployment identity può leggere dati applicativi?
-
-## Abuse case prima del controllo
-
-Una tecnica molto utile è scrivere prima una frase di abuso.
-
-Esempio:
+Una checklist con `[ ] authorization` dice poco. Un abuse case come:
 
 > Un operatore compromesso tenta di creare una Payment Escalation per un `OperationalCase` appartenente a un altro tenant.
 
-Solo dopo scegliamo la mitigazione:
+ci permette invece di derivare una mitigation coerente:
 
 ```text
 server-side tenant resolution
-+ authorization sul case
++ authorization sulla risorsa
 + audit
-+ test cross-tenant negativi
++ cross-tenant negative tests
 ```
 
-Questo è più forte di una checklist tipo:
+Il controllo conserva così il proprio motivo. Se in futuro il journey cambia, possiamo capire se la mitigation sia ancora pertinente invece di mantenere una checkbox per inerzia.
+
+## Priorità senza falsa precisione
+
+Possiamo usare una classificazione pragmatica del rischio:
 
 ```text
-[ ] authorization
+Impact: Low / Medium / High / Critical
+Likelihood: Unlikely / Plausible / Likely
+Disposition: Mitigate / Accept / Avoid / Transfer / Investigate
 ```
 
-perché conserva il motivo.
+Non serve fingere una precisione numerica che non possediamo. Serve rendere visibile perché un rischio cross-tenant o economico riceva più attenzione di un finding tecnicamente interessante ma con impatto modesto.
 
-## Risk = likelihood × impact?
+Una minaccia può essere eliminata cambiando il design, ridotta con un controllo preventivo, resa osservabile, contenuta con least privilege, recuperata operativamente oppure accettata consapevolmente. A volte la soluzione più forte è eliminare la credenziale invece di proteggerla meglio, per esempio sostituendo una password applicativa con workload identity quando possibile.
 
-Le formule semplici possono aiutare, ma non devono dare una falsa precisione.
+## Il threat model è vivo perché il sistema cambia
 
-Per questo libro useremo una classificazione pragmatica:
+Nuovo endpoint, provider, identity, datastore, data classification, deployment path o business capability possono modificare il rischio. Per questo il threat model non è un PDF del go-live ma una rappresentazione dell’architettura di rischio corrente.
 
-```text
-Impact:
-Low / Medium / High / Critical
+L’AI può accelerarne l’enumerazione: applicare STRIDE a un diagramma, suggerire abuse case, cercare trust boundary dimenticati o confrontare IaC e permission. Se il contesto è incompleto, però, produrrà facilmente una lista plausibile e generica.
 
-Likelihood:
-Unlikely / Plausible / Likely
+> **L’AI può accelerare l’enumerazione delle minacce. Il team deve ancora decidere quali conseguenze sono realmente intollerabili.**
 
-Disposition:
-Mitigate / Accept / Avoid / Transfer / Investigate
-```
-
-Il valore non è il numero.
-
-È rendere visibile che una minaccia con impatto economico o cross-tenant può ricevere priorità maggiore di un finding tecnicamente interessante ma poco rilevante.
-
-## Non tutto va mitigato allo stesso modo
-
-Una minaccia può essere:
-
-- eliminata cambiando il design;
-- ridotta con un controllo preventivo;
-- rilevata con monitoring;
-- contenuta riducendo privilegi;
-- recuperata con una procedura;
-- accettata consapevolmente.
-
-Esempio:
-
-```text
-Minaccia:
-furto di password database dall'app
-
-Design alternativo:
-preferire workload identity / Entra auth quando supportato
-```
-
-Qui non stiamo “proteggendo meglio il secret”.
-
-Stiamo provando a eliminare il secret.
-
-## Threat model vivo
-
-Il threat model cambia quando cambia:
-
-- un actor;
-- un endpoint;
-- una business capability;
-- un provider;
-- una identity;
-- una rete;
-- un datastore;
-- un deployment path;
-- una dependency;
-- una data classification.
-
-Quindi non è un PDF prodotto prima del go-live e poi archiviato.
-
-È una rappresentazione dell'architettura di rischio corrente.
-
-## AI-assisted threat modeling
-
-L'AI può aiutare molto a:
-
-- enumerare threat candidate;
-- applicare STRIDE a un diagramma;
-- cercare trust boundary dimenticati;
-- generare abuse case;
-- confrontare IaC con il threat model;
-- cercare privilegi eccessivi;
-- identificare secret leakage;
-- generare negative test candidate.
-
-Ma il rischio è evidente.
-
-Se il contesto è incompleto, l'agente produce una threat list plausibile ma generica.
-
-Quindi:
-
-> **L'AI può accelerare l'enumerazione delle minacce. Il team deve ancora decidere quali conseguenze sono realmente intollerabili.**
-
-## Una regola pratica
-
-Per ogni trust boundary dovremmo riuscire a completare questa frase:
-
-> Se il lato sinistro viene compromesso, il lato destro resta protetto da ________.
-
-Se la risposta è soltanto:
-
-```text
-"perché è nella nostra rete"
-```
-
-abbiamo probabilmente bisogno di pensare meglio al boundary.
+Un test pratico riassume bene il capitolo: per ogni trust boundary dovremmo riuscire a completare la frase **“se il lato sinistro viene compromesso, il lato destro resta protetto da…”**. Se la risposta è soltanto “perché è nella nostra rete”, il boundary non è ancora stato progettato abbastanza.
