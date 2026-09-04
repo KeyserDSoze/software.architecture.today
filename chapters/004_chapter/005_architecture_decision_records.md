@@ -1,33 +1,27 @@
 ## Architecture Decision Record
 
-Una decisione importante dimenticata diventa presto un mistero.
+Una decisione importante dimenticata diventa presto un mistero. Il codice rimane, ma dopo qualche mese il contesto che lo ha prodotto comincia a evaporare.
 
-Dopo qualche mese il codice rimane, ma il contesto che lo ha prodotto scompare.
+Qualcuno apre il repository e trova una queue che sembra inutile, un adapter apparentemente ridondante, un database separato o un retry disabilitato. Magari nota una limitazione nell'API che oggi sembra arbitraria. La tentazione naturale è semplificare ciò che appare strano.
 
-Qualcuno apre il repository e trova una queue che sembra inutile, un adapter apparentemente ridondante o un database separato. Nota una limitazione strana nell'API, un retry disabilitato o una scelta di deployment che oggi appare eccessiva. La tentazione è correggere ciò che sembra strano.
+Il problema è che quella stranezza potrebbe essere la traccia di un vincolo che non vediamo più.
 
-Ma forse quella forma è la conseguenza di un vincolo che non vediamo più.
+Gli **Architecture Decision Record**, o ADR, servono a conservare abbastanza reasoning da rendere una decisione comprensibile nel tempo. Non sono verbali di riunione, non sono documenti di approvazione e non devono diventare una cronaca infinita. Sono una memoria tecnica selettiva delle scelte che vale la pena non perdere.
 
-Gli **Architecture Decision Record**, o ADR, servono a conservare il ragionamento sufficiente per comprendere una decisione nel tempo.
-
-Non sono verbali di riunione.
-
-Non sono documenti di approvazione.
-
-Non sono una cronaca infinita.
-
-Sono una memoria tecnica delle decisioni che vale la pena non perdere.
-
-### Una struttura pratica
+## Una struttura pratica
 
 Nel libro useremo una forma come questa:
 
 ```markdown
 # ADR-xxx — Titolo
 
+Status: proposed | accepted | superseded | deprecated | rejected
+
 ## Contesto
 
 ## Problema
+
+## Architecturally Significant Requirements
 
 ## Vincoli
 
@@ -46,66 +40,33 @@ Nel libro useremo una forma come questa:
 ## Trigger di revisione
 ```
 
-Non tutte le sezioni devono essere lunghe.
+Un ADR utile può stare in una pagina. La qualità non dipende dal volume, ma dalla capacità di rispondere in futuro a una domanda precisa:
 
-Un ADR utile può essere una pagina.
+> **Perché abbiamo scelto questa strada invece delle alternative credibili disponibili in quel momento?**
 
-La qualità non dipende dal volume.
+## Il contesto è parte della decisione
 
-Dipende dalla capacità di rispondere a una domanda futura:
+Scrivere “abbiamo scelto PostgreSQL” conserva il risultato e perde quasi tutto il valore. Dire invece che abbiamo scelto un database relazionale gestito perché il dominio richiede determinate transazioni, il volume iniziale è moderato, il team ha una certa capacità operativa e non esistono ancora requisiti che giustifichino una piattaforma distribuita più complessa rende la decisione rivalutabile.
 
-> **Perché abbiamo scelto questa strada invece delle alternative credibili che avevamo in quel momento?**
+Se in futuro cambiano volume, workload o requisiti, sappiamo quali assunzioni controllare. Il contesto non è una premessa decorativa: è ciò che definisce **l'intervallo di validità** della scelta.
 
-### Il contesto è parte della decisione
+## Le alternative devono essere credibili
 
-Scrivere soltanto:
+Un ADR perde valore quando mette a confronto la soluzione scelta con alternative-fantoccio. Se l'opzione A è ragionevole e l'opzione B è chiaramente assurda, non abbiamo documentato un trade-off: abbiamo scritto una giustificazione a posteriori.
 
-> “Abbiamo scelto PostgreSQL.”
+Le alternative devono essere plausibili nel contesto reale. A volte saranno due, a volte quattro. Spesso una delle più importanti è semplicemente **non introdurre una nuova soluzione** e continuare con quella esistente.
 
-ha poco valore.
+Questa possibilità merita spazio perché molte decisioni architetturali aggiungono complessità; l'onere della prova non dovrebbe ricadere automaticamente sullo status quo soltanto perché la nuova opzione è più interessante da disegnare.
 
-Meglio:
+## Le conseguenze negative sono parte del valore
 
-> “Abbiamo scelto un database relazionale gestito perché il dominio richiede transazioni multi-entità locali, il volume iniziale è moderato, il team ha esperienza operativa limitata e non esistono oggi requisiti che giustifichino una piattaforma distribuita più complessa.”
-
-La seconda frase può essere rivalutata.
-
-Se cambiano volume, pattern di accesso o requisiti, sappiamo quali assunzioni controllare.
-
-### Alternative credibili
-
-Un ADR non deve inventare alternative soltanto per riempire una sezione.
-
-Scrivere:
-
-```text
-Alternativa A: soluzione scelta
-Alternativa B: soluzione chiaramente assurda
-```
-
-non documenta un trade-off.
-
-Le alternative devono essere plausibili nel contesto.
-
-A volte sono due.
-
-A volte quattro.
-
-A volte la vera alternativa è **non introdurre nulla**.
-
-Questa è spesso la più importante da includere.
-
-### Conseguenze negative
-
-Una delle sezioni più preziose è quella delle conseguenze negative.
-
-Per esempio:
+Una delle sezioni più preziose di un ADR è quella che descrive ciò che paghiamo.
 
 ```text
 Decisione: introdurre un read model asincrono.
 
 Conseguenze positive:
-- lookup indipendente dal carico del database operativo;
+- lookup isolato dal carico del database operativo;
 - schema ottimizzato per lettura;
 - maggiore controllo della latency.
 
@@ -116,38 +77,27 @@ Conseguenze negative:
 - maggiore superficie operativa.
 ```
 
-Questa onestà rende l'ADR utile anche anni dopo.
+Se anni dopo la superficie operativa supera il beneficio, possiamo riconoscere che quel costo non è una sorpresa: era già parte del trade-off. Questo rende la decisione più facile da contestare con evidenza nuova.
 
-Se in futuro il costo operativo supera il beneficio, sappiamo che quel rischio era già parte della decisione.
+## Conservare l'evoluzione invece di riscrivere il passato
 
-### Decision status
+Gli ADR possono cambiare stato. `proposed`, `accepted`, `superseded`, `deprecated` e `rejected` permettono di raccontare l'evoluzione della decisione senza cancellarne la storia.
 
-Un ADR può evolvere.
+Quando il contesto cambia, spesso è meglio creare un nuovo ADR che supersede il precedente piuttosto che riscrivere il documento vecchio come se avessimo sempre saputo la risposta corretta. In questo modo rimane leggibile il percorso: che cosa sapevamo allora, perché avevamo scelto quella direzione e quale evidenza ci ha fatto cambiare idea.
 
-Stati come `proposed`, `accepted`, `superseded`, `deprecated` e `rejected` permettono di conservare l'evoluzione della decisione. Quando una decisione cambia, spesso è meglio **non riscrivere la storia**.
+Questa memoria è molto più utile di una storia perfettamente coerente ricostruita a posteriori.
 
-Creiamo un nuovo ADR che sostituisce il precedente.
+## ADR non significa approval board
 
-Così rimane visibile l'evoluzione del ragionamento.
+Gli ADR diventano dannosi quando ogni scelta, anche minima, richiede un documento e una catena di approvazione. A quel punto le persone smettono di usarli oppure le decisioni importanti vengono sommerse da dettagli irrilevanti.
 
-### ADR non significa approval board
+Serve proporzionalità. Un ADR ha senso quando la scelta ha impatto trasversale, alto costo di inversione, rischio significativo, alternative non ovvie o conseguenze operative che qualcuno dovrà comprendere in futuro.
 
-Gli ADR diventano dannosi quando ogni piccola scelta richiede un documento e una catena di approvazione.
+Il test è semplice: **perdere il reasoning renderebbe il sistema più difficile da governare?** Se sì, il record ha valore.
 
-Questo produce due effetti:
+## Il repository come memoria decisionale
 
-1. le persone smettono di usarli;
-2. le decisioni importanti vengono sepolte insieme a quelle irrilevanti.
-
-Serve proporzionalità.
-
-Un buon criterio è documentare decisioni con impatto trasversale o alto costo di inversione, con rischio significativo o alternative non ovvie. Vale la pena farlo anche quando le conseguenze operative sono rilevanti o quando è molto probabile che, in futuro, qualcuno debba chiedere perché quella scelta sia stata fatta.
-
-### Il repository come memoria decisionale
-
-Gli ADR funzionano particolarmente bene vicino al codice.
-
-Per esempio:
+Gli ADR funzionano particolarmente bene vicino al codice:
 
 ```text
 architecture/
@@ -157,48 +107,20 @@ adr/
   0003-tenant-isolation-strategy.md
 ```
 
-Il vantaggio è che possono essere versionati e revisionati in pull request, collegati a issue e codice, letti dagli agenti e cercati insieme alla storia del repository.
+In questo modo possono essere versionati, revisionati nelle pull request, collegati a issue e implementazione e cercati insieme alla storia del repository. Diventano anche una fonte di contesto persistente per gli agenti.
 
-### ADR e agenti AI
+Un coding agent vede soprattutto lo stato corrente del sistema. Senza storia può interpretare una decisione deliberata come accidental complexity, oppure replicare una tecnologia senza sapere che era stata scelta per un vincolo temporaneo che non esiste più.
 
-Gli ADR diventano ancora più importanti nei repository AI-ready.
+## AI come assistente della memoria decisionale
 
-Un agente vede soprattutto lo stato corrente del sistema.
+L'AI può aiutare a preparare un ADR: riassumere alternative discusse, cercare trade-off mancanti, evidenziare contraddizioni con record esistenti, proporre trigger di revisione o trasformare note grezze in una prima bozza leggibile.
 
-Senza storia può interpretare una decisione deliberata come accidental complexity.
+Il rischio è scambiare la qualità retorica della bozza per qualità della decisione. Un modello può scrivere una motivazione molto convincente anche per una scelta fragile.
 
-Oppure può replicare una tecnologia senza sapere che era stata scelta soltanto per un vincolo temporaneo.
+Per questo l'ADR è un **decision record**, non un decision generator. Non rende buona una decisione; la rende esplicita, verificabile e contestabile.
 
-Un ADR fornisce contesto che il codice non può esprimere completamente.
+Il record raggiunge davvero il suo scopo quando, anni dopo, qualcuno può dire:
 
-L'AI può anche aiutarci a prepararli.
+> “Questa scelta aveva senso nel contesto di allora, ma il trigger X è scattato e oggi il bilancio è cambiato.”
 
-Per esempio:
-
-1. riassume le alternative discusse;
-2. evidenzia trade-off mancanti;
-3. cerca contraddizioni con ADR esistenti;
-4. propone trigger di revisione;
-5. produce una prima bozza.
-
-Ma la decisione non va delegata alla qualità retorica della bozza.
-
-Un modello può scrivere una motivazione convincente anche per una scelta sbagliata.
-
-### Decision record, non decision generator
-
-Questa distinzione è fondamentale.
-
-L'ADR non rende buona una decisione.
-
-La rende **esplicita e contestabile**.
-
-Un'architettura debole documentata perfettamente resta debole.
-
-Un ADR utile deve permettere a qualcuno di dire:
-
-> “Questa decisione aveva senso allora, ma il trigger X è scattato e oggi il bilancio è cambiato.”
-
-È in quel momento che la documentazione diventa parte dell'architettura evolutiva.
-
-> **Documentiamo il ragionamento non per difendere il passato, ma per rendere possibile cambiare idea con cognizione di causa.**
+> **Documentiamo il reasoning non per difendere il passato, ma per renderci capaci di cambiare idea con cognizione di causa.**
