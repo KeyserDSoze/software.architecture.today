@@ -1,12 +1,8 @@
 ## Feedback loop e failure domain
 
-Un sistema non produce soltanto output.
+Un sistema non produce soltanto output. Produce conseguenze che, a loro volta, possono modificare il comportamento futuro del sistema. È qui che entra in gioco il concetto di **feedback loop**.
 
-Produce conseguenze che tornano a influenzarlo.
-
-Questo è un **feedback loop**.
-
-Nel software può essere evidente:
+Nel software alcuni loop sono facili da vedere. Immaginiamo un servizio che rallenta sotto carico:
 
 ```text
 request
@@ -16,24 +12,15 @@ request
 → load increases further
 ```
 
-Oppure meno evidente:
+Il comportamento iniziale produce una conseguenza che alimenta la causa stessa del problema. Il sistema non sta semplicemente “ricevendo più traffico”: sta reagendo al proprio degrado in un modo che può amplificarlo.
 
-```text
-recommendation algorithm
-→ users click certain content
-→ training data changes
-→ future recommendations reinforce the pattern
-```
+Esistono anche loop meno tecnici ma altrettanto architetturali. Un algoritmo di raccomandazione influenza ciò che gli utenti vedono; i click risultanti entrano nei dati futuri; quei dati influenzano nuove raccomandazioni. Oppure un processo di delivery doloroso porta il team a rilasciare meno spesso; i batch diventano più grandi, i rilasci più rischiosi e proprio per questo ancora più dolorosi.
 
-I feedback loop sono importanti perché possono stabilizzare oppure destabilizzare il sistema.
+Pensare per sistemi significa riconoscere questi circuiti prima di trattare ogni azione come un evento isolato.
 
-## Retry come feedback loop
+### Quando una tecnica locale cambia il comportamento globale
 
-Un retry sembra una tecnica locale di resilienza.
-
-Una chiamata fallisce, quindi riproviamo.
-
-Ma se mille client fanno la stessa cosa durante un degrado, otteniamo:
+Il retry è un esempio particolarmente istruttivo. Guardato localmente sembra quasi sempre ragionevole: una chiamata fallisce, quindi la ripetiamo. Se però migliaia di client fanno la stessa cosa durante un degrado, il retry smette di essere soltanto una misura di resilienza e diventa parte del carico che il servizio deve sopportare.
 
 ```text
 service slows down
@@ -43,17 +30,9 @@ service slows down
 → service slows down more
 ```
 
-Il comportamento che localmente sembra aumentare affidabilità può sistemicamente peggiorarla.
+Il punto non è concludere che i retry siano sbagliati. È capire che il loro comportamento dipende da timeout, backoff, jitter, idempotency, rate limit, capacity e recovery time. Una decisione che sembra corretta dentro il client può risultare distruttiva osservando il journey intero.
 
-Questo è un esempio perfetto di perché il pensiero sistemico serve prima del catalogo dei pattern.
-
-Il retry non è “buono”.
-
-È una scelta che interagisce con timeout, backoff e jitter, ma anche con capacity, idempotency e rate limiting. Queueing e recovery time completano un sistema di feedback che non può essere compreso guardando un solo parametro.
-
-## Autoscaling come feedback loop
-
-Anche l'autoscaling crea un loop:
+Lo stesso vale per l'autoscaling. Un loop del tipo:
 
 ```text
 load rises
@@ -63,160 +42,54 @@ load rises
 → load per instance falls
 ```
 
-Sembra stabilizzante.
+può essere stabilizzante, ma soltanto se la metrica osservata rappresenta davvero il collo di bottiglia e se il ritardo tra rilevazione e nuova capacità è compatibile con il sistema. Se il database è già saturo, aumentare il numero di istanze applicative può peggiorare la pressione a valle. L'autoscaling non ha fallito come feature; abbiamo modellato male il sistema che stavamo cercando di stabilizzare.
 
-Ma contiene ritardi.
+### Il software include anche il modo in cui viene operato
 
-Se l'avvio delle nuove istanze richiede tempo, il sistema può continuare a degradarsi prima che la capacità arrivi.
+I feedback loop non terminano ai confini del runtime. Un sistema difficile da osservare produce incidenti più lunghi; incidenti lunghi spingono le persone a introdurre procedure manuali difensive; le procedure aumentano la complessità operativa e quella complessità rende il prossimo incidente ancora più difficile da capire.
 
-Se la metrica scelta è sbagliata, può scalare troppo tardi o troppo presto.
+In altri casi il loop è organizzativo: release rischiose inducono rilasci meno frequenti, che producono cambiamenti più grandi, che rendono le release ancora più rischiose. Architettura e processo non sono due mondi indipendenti. Si influenzano reciprocamente.
 
-Se il database non scala nello stesso modo, aumentare application instances può semplicemente spostare il collo di bottiglia.
+Questo è uno dei motivi per cui il confine del sistema dipende dalla domanda. Se stiamo analizzando una query lenta, probabilmente non ci interessa il processo organizzativo. Se vogliamo capire perché ogni cambiamento di produzione è diventato traumatico, escludere quel processo ci farebbe perdere metà del sistema rilevante.
 
-Ancora una volta: il comportamento emerge dall'interazione.
+## Failure domain: capire che cosa può fallire insieme
 
-## Feedback organizzativi
+Un **failure domain** è un insieme di elementi che possono essere coinvolti dallo stesso evento di failure. La domanda non è soltanto “che cosa può rompersi?”, ma “quali parti possono rompersi contemporaneamente per la stessa causa?”.
 
-I sistemi software includono anche persone e processi.
+Dieci servizi sulla stessa macchina condividono quel failure domain. Servizi distribuiti su macchine diverse possono comunque condividerne un altro se dipendono dallo stesso database o dallo stesso identity provider. Due region geograficamente separate possono fallire insieme quando ricevono la stessa configurazione errata. Due cluster possono essere indipendenti dal punto di vista hardware e dipendere dalla stessa quota, dallo stesso certificato o dalla stessa pipeline di deployment.
 
-Un sistema difficile da osservare produce incidenti lunghi.
-
-Incidenti lunghi generano procedure manuali difensive.
-
-Procedure manuali aumentano complessità operativa.
-
-La complessità rende ancora più difficile capire gli incidenti.
-
-Questo è un feedback loop organizzativo.
-
-Oppure:
-
-```text
-release painful
-→ team releases less often
-→ batches become larger
-→ releases become more risky
-→ releases become even more painful
-```
-
-L'architettura e il processo si influenzano reciprocamente.
-
-## Failure domain
-
-Un **failure domain** è un insieme di elementi che possono essere coinvolti dallo stesso evento di failure.
-
-Se dieci servizi girano sulla stessa macchina, quella macchina è un failure domain.
-
-Se tutti dipendono dallo stesso database, il database può diventare un failure domain condiviso.
-
-Se due region usano la stessa configurazione errata distribuita automaticamente, la separazione geografica potrebbe non proteggerci dal failure logico.
-
-Se tutti i servizi dipendono dallo stesso identity provider, quell'integrazione può essere un failure domain trasversale.
-
-Il punto non è soltanto capire **che cosa può fallire**.
-
-È capire **che cosa può fallire insieme**.
-
-## Correlated failure
-
-Molte architetture sembrano resilienti finché assumiamo failure indipendenti.
-
-Due istanze possono sembrare ridondanti.
-
-Ma se condividono lo stesso processo di deploy o la stessa configurazione, la stessa image corrotta, la stessa availability zone, lo stesso database o perfino la stessa quota, possono fallire contemporaneamente.
-
-La ridondanza fisica non implica indipendenza del failure.
+La separazione fisica, quindi, non garantisce indipendenza del failure.
 
 > **Due copie dello stesso errore non sono alta disponibilità.**
 
-## Blast radius
+### Correlated failure e ridondanza apparente
 
-Il failure domain è strettamente collegato al blast radius.
+Molte architetture sembrano robuste finché immaginiamo failure indipendenti. Due istanze ci fanno sentire ridondanti, ma se vengono aggiornate nello stesso momento con la stessa image difettosa, la ridondanza non ci protegge. Un secondo database non aiuta se replica immediatamente una cancellazione logica sbagliata. Una seconda regione non è sufficiente se il controllo plane che la configura è unico e propaga la stessa policy errata ovunque.
 
-Una modifica di configurazione centrale può avere blast radius enorme.
+Questo sposta il ragionamento dalla quantità di copie all'indipendenza delle cause. La domanda diventa: **quale evento comune potrebbe rendere inutili contemporaneamente le nostre difese?**
 
-Una feature flag limitata a un tenant può averlo piccolo.
+Da qui emerge naturalmente il concetto di **blast radius**. Una configurazione globale può esporre tutto il traffico allo stesso errore; un rollout progressivo limita invece il numero di utenti coinvolti mentre raccogliamo evidenza. Una feature flag per tenant restringe ulteriormente il perimetro. Allo stesso modo, un agente con permessi repository-wide può trasformare un task locale in un failure domain molto più ampio di quanto il ticket lasci intendere.
 
-Un deployment globale simultaneo aumenta il numero di utenti esposti allo stesso errore.
+Progettare resilienza significa quindi anche progettare contenimento.
 
-Un rollout progressivo lo riduce.
+### I failure domain possono essere logici e cognitivi
 
-Un permission model troppo ampio per un agente può trasformare un task locale in un rischio repository-wide.
+Non tutti i failure domain sono infrastrutturali. Se più servizi interpretano un campo `status` attraverso la stessa libreria condivisa, un errore semantico in quella libreria può propagarsi ovunque. Se tutti gli agenti utilizzano lo stesso documento architetturale obsoleto come fonte autorevole, quella documentazione diventa un failure domain cognitivo: l'errore viene replicato con efficienza proprio perché il contesto è centralizzato.
 
-Pensare per failure domain significa quindi anche progettare **contenimento**.
+Una source of truth è potente perché riduce divergenza. Per la stessa ragione, quando è sbagliata può amplificare l'errore. Centralizzazione della conoscenza e review devono quindi crescere insieme.
 
-## Failure domain logici
+## Order Operations: due topologie di failure diverse
 
-Non tutti i failure domain sono infrastrutturali.
+Nel nostro caso iniziale, anche senza aver scelto l'architettura definitiva, alcuni failure domain sono già visibili. La UI dipende dal percorso di rete, dall'identità aziendale e dalla capacità Order Operations di ottenere dati affidabili. Se la soluzione interrogasse live Orders, Payments e Shipping, l'indisponibilità o la lentezza di una di queste dipendenze potrebbe entrare direttamente nel journey dell'operatore.
 
-Immaginiamo che tutti i servizi interpretino uno stesso campo `status` attraverso una libreria condivisa.
+Un read model separato cambierebbe la situazione, ma non eliminerebbe il rischio. Sposterebbe parte del failure domain verso pubblicazione degli eventi, consumer, projection storage, lag e processo di rebuild. La domanda interessante non è quindi se il read model sia “più resiliente” in astratto. È quali failure introduce, quali rimuove dal percorso interattivo e quali rende più facili da rilevare, contenere e recuperare.
 
-Un bug nella libreria può propagarsi ovunque.
+Questa è una delle idee più importanti del capitolo: una decisione architetturale modifica anche la **topologia del fallimento**.
 
-Oppure tutti gli agenti usano lo stesso documento architetturale obsoleto.
+### Disegnare anche ciò che succede quando le cose vanno male
 
-La documentazione errata diventa un failure domain cognitivo.
+Quando analizziamo un componente o un journey significativo, non basta sapere cosa succede quando risponde correttamente. Dobbiamo capire che cosa cambia se non risponde, se risponde lentamente, se restituisce dati vecchi o sbagliati, se riceve due volte lo stesso input o se gli eventi arrivano in un ordine diverso da quello atteso. Poi dobbiamo allargare ancora lo sguardo: quali altre parti condividono la stessa causa di failure, qual è il blast radius, come ce ne accorgiamo e quale percorso di recovery esiste?
 
-Questo è particolarmente importante nei repository AI-ready.
+Non serve produrre un catalogo infinito di catastrofi. Serve rendere espliciti i failure mode che possono cambiare la decisione.
 
-Una source of truth centrale è potente.
-
-Ma se è sbagliata, può distribuire l'errore con grande efficienza.
-
-Per questo source of truth e review devono andare insieme.
-
-## Order Operations: failure domain iniziali
-
-Per il nostro caso possiamo già identificare alcuni domini di failure:
-
-```text
-Support UI
-Orders API
-Order database
-Identity provider
-Network path
-Deployment/configuration
-```
-
-Se scegliessimo un read model separato, ne introdurremmo altri:
-
-```text
-event publication
-consumer
-projection storage
-lag
-rebuild process
-```
-
-Questo non significa che il read model sia una cattiva idea.
-
-Significa che una decisione architetturale cambia anche la topologia dei failure mode.
-
-La domanda non è soltanto:
-
-> “Quanto è elegante?”
-
-Ma:
-
-> **“Quali failure introduce, quali elimina e quali rende più facili da contenere?”**
-
-## Disegnare il fallimento
-
-Per ogni componente o journey importante possiamo chiedere:
-
-- che cosa succede se non risponde?
-- che cosa succede se risponde lentamente?
-- che cosa succede se restituisce dati sbagliati?
-- che cosa succede se restituisce dati vecchi?
-- che cosa succede se riceviamo due volte lo stesso input?
-- che cosa succede se l'ordine degli eventi cambia?
-- che cosa può fallire insieme a lui?
-- qual è il blast radius?
-- come ce ne accorgiamo?
-- come recuperiamo?
-
-Queste domande non servono a progettare paranoia.
-
-Servono a evitare che il happy path venga scambiato per il sistema.
-
-> **L'architettura non è completa finché conosciamo soltanto come funziona. Dobbiamo sapere anche come smette di funzionare.**
+> **L'architettura non è completa quando sappiamo soltanto come il sistema funziona. Dobbiamo capire anche come può degradare, propagare un errore e recuperare.**
