@@ -40,7 +40,10 @@ CLEAR_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"\bsopratutto\b", re.I), "usare 'soprattutto'"),
     (re.compile(r"\bdaccordo\b", re.I), "usare 'd\'accordo'"),
     (re.compile(r"\b(?:l|un|dell|all|nell)['’][ \t]+\w", re.I), "rimuovere lo spazio dopo l'apostrofo"),
-    (re.compile(r"[ \t]+[,.;:!?]"), "rimuovere lo spazio prima della punteggiatura"),
+    (re.compile(r"[ \t]+[,;:!?]"), "rimuovere lo spazio prima della punteggiatura"),
+    # Un punto può iniziare un token tecnico (.NET, .env, .gitignore): in quel
+    # caso lo spazio precedente è corretto e non deve essere segnalato.
+    (re.compile(r"[ \t]+\.(?![A-Za-z0-9])"), "rimuovere lo spazio prima della punteggiatura"),
     (re.compile(r"[,;:!?]{2,}"), "punteggiatura duplicata"),
     # [ \t]+ è intenzionale: non segnaliamo una parola che chiude un heading e
     # ricompare correttamente all'inizio del paragrafo successivo.
