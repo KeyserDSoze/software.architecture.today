@@ -1,379 +1,185 @@
-# 16.3 — Test layer senza dogma
+## Test layer senza dogma
 
-Parlare di unit, integration ed end-to-end test è utile soltanto se ricordiamo che sono **livelli di evidence**, non identità professionali.
+Unit, integration, contract ed end-to-end sono parole utili finché ricordiamo che descrivono **quantità diverse di realtà incluse nella prova**. Non sono livelli di maturità e non sono quote da rispettare.
 
-Un team può avere una suite eccellente senza usare esattamente le stesse proporzioni di un altro.
+Ogni volta che saliamo di layer compriamo realismo e paghiamo con più dipendenze, execution time, costo ambientale e possibilità che il test fallisca per una ragione diversa dalla property che volevamo verificare.
 
-La domanda resta:
+La domanda resta una sola:
 
-> **qual è il layer più economico che riesce a catturare il rischio reale con sufficiente fedeltà?**
+> **Qual è il boundary più economico che può rendere falsa questa claim con sufficiente fedeltà?**
 
-## Unit test
+## Piccolo non significa banale
 
-Un unit test verifica comportamento in uno scope piccolo e controllabile.
+Un test piccolo può verificare una business property molto importante se tutte le cause del comportamento sono locali.
 
-Microsoft definisce gli unit test come test che esercitano componenti o unità di lavoro individuali e non includono normalmente infrastruttura come database, file system o network resource.
-
-Fonte:
-
-- [Microsoft Learn — Testing in.NET](https://learn.microsoft.com/en-us/dotnet/core/testing/)
-
-Per Order Operations sono candidati naturali:
-
-- classificazione di un OperationalCase;
-- authorization decision pure;
-- validazione di un command;
-- idempotency rule a livello use case;
-- mapping `failure → result class`;
-- retry policy;
-- backoff calculation;
-- telemetry classification;
-- serialization helper puro.
-
-Il vantaggio principale non è che sono “unit”.
-
-È che possono essere:
+Per Order Operations sono ottimi candidati:
 
 ```text
-fast
-isolated
-deterministic
-cheap to run
-precise when they fail
+Payment category eligibility
+authorization policy pure
+command validation
+idempotency conflict rule
+retry classification/backoff
+telemetry failure classification
 ```
 
-## Component/application test
+Il vantaggio è precisione: quando fallisce, poche cose possono essere responsabili. Se resta hermetic può essere veloce, deterministico e adatto al feedback loop di ogni change.
 
-Fra unit test e integration test completo esiste spesso un livello molto utile: testare una capability applicativa con porte controllate ma logica reale.
-
-Per esempio:
+Tra il test di una singola funzione e l’integrazione con infrastruttura esiste anche un livello applicativo molto utile: eseguire una capability reale con porte controllate.
 
 ```text
 requestPaymentEscalation
-+ fake transaction boundary
-+ real validation/idempotency logic
++ real business orchestration
++ controlled UnitOfWork/Broker/Clock
 ```
 
-Qui non testiamo una singola funzione matematica.
+Qui la property può attraversare più classi o moduli senza coinvolgere PostgreSQL o Azure. Litigare se chiamarlo `unit`, `component` o `application` aggiunge poco. Conta sapere quale parte è reale e quale boundary stiamo sostituendo.
 
-Testiamo una business capability completa senza PostgreSQL o Service Bus.
+## Integration test: quando la tecnologia è parte della claim
 
-Questo è un buon fit quando vogliamo verificare:
+Se vogliamo verificare una property che dipende da semantics reali, il boundary deve entrare nel test.
 
-- business invariant;
-- orchestration locale;
-- error mapping;
-- interaction fra moduli sotto il nostro controllo;
-- stato prodotto dal use case.
+Per PostgreSQL ci interessano migration, transaction rollback, unique constraint, concurrency/isolation, query behavior e atomicità dell’outbox. Una struttura in-memory non è evidence di queste proprietà.
 
-Non è importante litigare sul nome `unit` o `component`.
+Per l’HTTP host ci interessano route, serialization, Problem Details, authentication/authorization integration e compatibility del contract esposto.
 
-È importante sapere quale boundary è reale e quale è controllato.
+Per il messaging ci interessano wire payload, broker adapter e comportamenti che dipendono realmente dal servizio o dal client SDK.
 
-## Integration test
-
-Un integration test diventa necessario quando la property dipende dall'integrazione con qualcosa che non possiamo simulare fedelmente con il solo codice locale.
-
-Microsoft evidenzia proprio questa differenza: gli integration test includono spesso database, file system, network o altri elementi infrastrutturali perché devono verificare che più componenti funzionino insieme.
+Microsoft distingue appunto gli integration test perché includono database, file system, network o altri componenti che l’unit test normalmente evita.
 
 Fonti:
 
-- [Microsoft Learn — Testing in.NET](https://learn.microsoft.com/en-us/dotnet/core/testing/)
+- [Microsoft Learn — Testing in .NET](https://learn.microsoft.com/en-us/dotnet/core/testing/)
 - [Microsoft Learn — Testing ASP.NET Core services and web apps](https://learn.microsoft.com/dotnet/architecture/microservices/multi-container-microservice-net-applications/test-aspnet-core-services-web-apps)
 
-Per Order Operations:
+Il principio è indipendente dallo stack:
 
-### PostgreSQL integration
+> **Se stai testando il boundary, usa una rappresentazione abbastanza fedele del boundary.**
 
-Serve per verificare davvero:
+## Contract test: compatibilità senza distribuire tutto
 
-- migration;
-- constraint;
-- transaction rollback;
-- isolation/concurrency;
-- query/index behavior rilevante;
-- outbox atomicity.
+Quando Order Operations e Payments & Risk evolvono indipendentemente, non vogliamo che ogni incompatibilità venga scoperta soltanto in un ambiente condiviso dopo aver deployato entrambi.
 
-### HTTP integration
+Un contract test restringe la domanda:
 
-Serve per verificare:
+> consumer e provider condividono ancora la stessa comprensione dell’interazione?
 
-- route;
-- serialization;
-- validation;
-- Problem Details;
-- authentication/authorization integration;
-- API compatibility.
+Pact formalizza proprio questa idea e distingue esplicitamente contract test e functional test.
 
-### Messaging integration
-
-Serve per verificare:
-
-- wire payload;
-- broker adapter;
-- message property;
-- retry/dead-letter behavior che dipende dal broker.
-
-Un mock dell'SDK non dimostra che abbiamo configurato correttamente Azure Service Bus.
-
-## Contract test
-
-I contract test sono particolarmente importanti quando due sistemi evolvono indipendentemente.
-
-Pact descrive il contract testing come verifica della comprensione condivisa dei messaggi scambiati fra consumer e provider, con l'obiettivo di rilevare incompatibilità senza dover sempre distribuire l'intero sistema integrato.
-
-Fonte:
+Fonti:
 
 - [Pact — Introduction](https://docs.pact.io/)
-
-Questa categoria include almeno due esigenze differenti.
-
-### Provider/schema conformance
-
-Il provider deve rispettare il contratto dichiarato.
-
-Per esempio:
-
-```text
-OpenAPI says field X is required
-→ real response must obey it
-```
-
-### Consumer-provider expectation
-
-Il provider deve continuare a soddisfare ciò che i consumer usano davvero.
-
-Questo è il caso classico del consumer-driven contract.
-
-Pact sottolinea che contract test e functional test non sono equivalenti: il contract test verifica il messaggio e la compatibilità dell'interazione; il test funzionale del provider deve ancora verificare che il side effect business corretto avvenga.
-
-Fonte:
-
 - [Pact — Contract Tests vs Functional Tests](https://docs.pact.io/consumer/contract_tests_not_functional_tests)
 
-Per Order Operations la distinzione è preziosa.
+Per `OperationalCasePaymentEscalatedV1` un contract verde può dimostrare che il wire shape e le expectation condivise restano compatibili. Non dimostra che Payments & Risk deduplichi correttamente `EscalationId` o produca il side effect business giusto.
 
-Il contract:
+La compatibility è una claim. La business correctness del consumer è un’altra.
 
-```text
-OperationalCasePaymentEscalatedV1
-```
+## End-to-end: comprare il viaggio completo soltanto dove serve
 
-può essere valido sul wire e tuttavia il consumer Payments & Risk potrebbe gestirlo semanticamente male.
-
-Servono entrambe le forme di evidence.
-
-## End-to-end test
-
-Un end-to-end test attraversa il sistema come farebbe un attore reale.
-
-Per esempio:
+Un E2E può attraversare:
 
 ```text
 operator
 → private ingress
-→ authentication
+→ identity
 → Order Operations
 → PostgreSQL
 → outbox
 → Service Bus
-→ Payments consumer
+→ Payments & Risk
 ```
 
-Questo tipo di test può produrre evidence che nessun layer isolato può dare.
+Questo test può scoprire problemi che nessun layer isolato vede: DNS, permission, deployment, config, serialization, wiring e interaction fra componenti reali.
 
-Ma è costoso.
+Proprio per questo è costoso da eseguire e da diagnosticare. Può fallire per environment, shared data, identity, network, timing, quota o dependency esterna senza che la business rule testata sia sbagliata.
 
-Può fallire per:
+Google ha documentato il costo dei large/end-to-end test in lentezza e flakiness; Microsoft Well-Architected raccomanda di usarli in modo selettivo sui critical user journey.
 
-- network;
-- environment;
-- shared test data;
-- identity;
-- DNS;
-- deployment;
-- provider esterno;
-- timing;
-- race;
-- quota.
-
-Ed è proprio per questo che non deve diventare il posto dove verifichiamo ogni combinazione di business rule.
-
-Google ha pubblicato più volte il costo dei large/end-to-end test in termini di lentezza, debugging e flakiness, proponendo un approccio con molti test piccoli e un numero selettivo di test completi.
-
-Fonte:
+Fonti:
 
 - [Google Testing Blog — Just Say No to More End-to-End Tests](https://testing.googleblog.com/2015/04/just-say-no-to-more-end-to-end-tests.html)
-
-Microsoft Well-Architected dà una raccomandazione coerente: gli E2E sono utili per critical user journey, ma vanno mantenuti selettivi perché hanno costo e maintenance burden maggiori.
-
-Fonte:
-
 - [Microsoft Learn — Architecture strategies for testing](https://learn.microsoft.com/en-us/azure/well-architected/operational-excellence/testing)
 
-## Synthetic production-like test
+La conseguenza è semplice: le combinazioni della business rule devono vivere nei layer piccoli; l’E2E dimostra che i boundary che abbiamo scelto di attraversare funzionano davvero insieme.
 
-Nel Capitolo 15 abbiamo già progettato synthetic journey per misurare health e SLO.
+## Synthetic production verification non è regression testing
 
-Un synthetic test non sostituisce la pre-production suite.
+Il synthetic journey del Capitolo 15 attraversa un ambiente operativo reale o production-like per rispondere a:
 
-Risponde a una domanda diversa:
+> **Il critical journey continua a funzionare qui e adesso?**
 
-> il journey continua a funzionare **nell'ambiente operativo reale**?
+È quindi più vicino al monitoring attivo che alla normale pre-production suite.
 
-È quindi più vicino al monitoring attivo che al normale regression testing.
+Per Order Operations una private synthetic identity con synthetic tenant può verificare il core read journey senza customer data e senza aprire un endpoint pubblico soltanto per il probe.
 
-Per Order Operations:
+Quando questa evidence gira continuamente, la property si avvicina a `Monitored`, non soltanto `Verified`.
 
-```text
-private synthetic identity
-→ synthetic tenant
-→ controlled read journey
-```
+## Exploratory test: il giudizio umano può essere evidence
 
-può verificare periodicamente il critical flow senza usare dati reali di clienti.
+Non tutte le qualità utili sono riducibili a una assertion automatica. Un’interfaccia operativa può essere tecnicamente corretta e cognitivamente confusa. Un journey può produrre dati corretti ma renderne impossibile l’interpretazione sotto pressione.
 
-Questo tipo di test entra nel modello `Monitored`, non soltanto `Verified`.
-
-## Exploratory test
-
-Non tutto ciò che ha valore è automatizzabile.
-
-Un'interfaccia operativa complessa può avere:
-
-- affordance confuse;
-- informazioni tecnicamente corrette ma poco comprensibili;
-- journey lenti per ragioni cognitive;
-- combinazioni inattese di azioni.
-
-Microsoft include exploratory testing fra gli strumenti utili quando l'area è nuova, ambigua o difficile da scriptare.
+Microsoft include exploratory testing tra gli approcci utili quando l’area è nuova o difficile da scriptare.
 
 Fonte:
 
 - [Microsoft Learn — Build confidence in Azure workloads with effective testing practices](https://learn.microsoft.com/en-us/azure/well-architected/design-guides/testing)
 
-L'errore sarebbe interpretare “manual” come “non ingegneristico”.
+`Manual` non significa improvvisato. Una sessione può avere charter, risk hypothesis, scope, evidence e follow-up.
 
-Anche un exploratory session può avere:
+## Performance, security e reliability non sono “test speciali”: verificano claim diverse
 
-```text
-charter
-scope
-risk hypothesis
-evidence
-finding
-follow-up
-```
+Un load test non vale perché usa molti virtual user. Deve essere collegato a workload model, latency/error SLI, saturation e headroom. Altrimenti produce un grafico interessante, non acceptance evidence.
 
-## Performance test
+Un reliability test non vale perché spegne qualcosa. Deve partire da un failure mode e verificare degraded behavior, recovery, stop condition e target.
 
-La performance non si dimostra con un unit test.
+Un security test non vale perché usa uno scanner. Deve falsificare una claim del Threat Model o della Security Control Matrix: cross-tenant denial, least privilege, no secret leakage, no public access dove vietato.
 
-Per Order Operations dobbiamo in futuro verificare:
-
-- latency del critical read journey;
-- saturation;
-- connection pressure;
-- outbox throughput;
-- queue backlog recovery;
-- behavior sotto burst;
-- retry amplification.
-
-Il test deve essere derivato dai workload model e dagli SLO, non da un numero arbitrario di virtual user.
-
-Se non conosciamo il modello di traffico, un load test produce soprattutto un grafico.
-
-## Reliability/failure test
-
-Il Capitolo 14 ha già definito required drill:
-
-1. Payments consumer unavailable;
-2. App instance loss;
-3. PostgreSQL failover;
-4. PostgreSQL PITR/restore;
-5. private DNS failure;
-6. bad deployment rollback.
-
-Questi sono test architetturali.
-
-Non verificano semplicemente una funzione.
-
-Verificano se la topologia reale soddisfa il Reliability Contract.
-
-## Security test
-
-Anche la security richiede più layer.
-
-### Unit/application
-
-- policy decision;
-- input validation;
-- log redaction.
-
-### Integration
-
-- authentication setup;
-- cross-tenant negative test;
-- wrong-role negative test;
-- database permission.
-
-### Infrastructure
-
-- public access disabled;
-- RBAC scope;
-- runtime identity cannot modify infrastructure;
-- Key Vault reachability.
-
-### Verification standard
-
-OWASP ASVS offre una base esplicita di requirements per verificare technical security control e può essere usato come riferimento per definire il livello di assurance richiesto.
+OWASP ASVS può fornire una base di verification requirement per technical security control, ma la suite deve comunque essere collegata alle minacce specifiche del workload.
 
 Fonte:
 
 - [OWASP — Application Security Verification Standard](https://owasp.org/www-project-application-security-verification-standard/)
 
-## Infrastructure test
+## Infrastructure test: un template valido non è ancora un workload funzionante
 
-IaC che compila non significa workload funzionante.
+Per l’IaC distinguiamo almeno:
 
-Microsoft Well-Architected raccomanda di separare application e infrastructure test, ma anche di aggiungere cross-layer evidence perché un template può provisionare correttamente risorse che l'applicazione non riesce poi a usare.
+```text
+static template validation
+policy validation
+actual deployment
+network/identity behavior
+application critical journey
+failure/recovery behavior
+```
+
+Microsoft Well-Architected raccomanda cross-layer validation proprio perché una resource può essere provisionata correttamente e risultare inutilizzabile dall’applicazione.
 
 Fonte:
 
 - [Microsoft Learn — Architecture strategies for testing](https://learn.microsoft.com/en-us/azure/well-architected/operational-excellence/testing)
 
-Per il nostro Bicep vogliamo almeno distinguere:
+`Bicep build = PASS` dimostra syntax/schema. Non dimostra private connectivity, effective RBAC o App Service recovery.
 
-```text
-static template validation
-policy validation
-deployment smoke test
-network reachability
-identity/RBAC negative test
-application journey
-```
+## La Risk-to-Layer Map di Order Operations
 
-## La matrice layer × risk
+| Property | Cheap evidence | Real boundary necessario | High-fidelity evidence |
+|---|---|---|---|
+| category eligibility | application | no | selettivo HTTP |
+| idempotency intent | application | PostgreSQL/API | critical flow selettivo |
+| outbox atomicity | orchestration | **PostgreSQL** | failure path |
+| event compatibility | serialization | **consumer/provider contract** | E2E selettivo |
+| duplicate business effect | consumer component | **consumer persistence** | redelivery flow |
+| tenant isolation | application negative | **authenticated HTTP/Azure identity** | private journey |
+| Service Bus least privilege | IaC inspection | **Azure RBAC** | staging negative test |
+| restore RTO/RPO | procedure review | **real recovery environment** | drill |
 
-Per Order Operations possiamo iniziare così:
+La tabella non assegna prestigio ai layer. Dice quale claim smette di essere dimostrabile se togliamo quel boundary.
 
-| Property | Small/application | Integration | Contract | E2E/operational |
-|---|---:|---:|---:|---:|
-| category eligibility | forte | opzionale | n/a | minimo |
-| idempotency key | forte | forte DB | API contract | critical journey selettivo |
-| outbox atomicity | parziale | **forte DB** | event schema | selettivo |
-| downstream duplicate tolerance | parziale | consumer integration | **forte** | selettivo |
-| tenant isolation | application | **forte** | API | private journey |
-| Service Bus RBAC | n/a | **cloud** | n/a | deployment verification |
-| restore RTO/RPO | n/a | n/a | n/a | **recovery drill** |
+## Evitare la duplicazione rituale
 
-La tabella non assegna prestigio ai layer.
-
-Assegna responsabilità.
-
-## Non testare la stessa cosa ovunque
-
-Un errore comune è duplicare ogni scenario a ogni layer:
+Un anti-pattern frequente è copiare lo stesso scenario in:
 
 ```text
 unit
@@ -383,19 +189,14 @@ E2E
 UI
 ```
 
-Questo aumenta costo e maintenance senza necessariamente aumentare confidence.
+La suite cresce, ma la nuova evidence è quasi nulla.
 
-Meglio avere:
+Preferiamo:
 
-- molte combinazioni business al layer piccolo;
-- integration case mirati sui boundary reali;
-- contract case sulle aspettative cross-team;
-- pochi E2E sui critical journey.
+- molte combinazioni business nel layer piccolo;
+- integration test mirati alle semantics reali;
+- contract test sulle expectation cross-team;
+- pochi E2E sui critical journey;
+- operational drill sui failure che nessun test locale può simulare credibilmente.
 
-Se un E2E fallisce perché una business rule locale è sbagliata, bene.
-
-Ma non dovrebbe essere **l'unico** posto capace di rilevarla.
-
-## Corollario
-
-> **La piramide non ci dice quanti test scrivere. Ci ricorda che il realismo ha un costo e che dobbiamo comprarlo soltanto dove produce evidence che i layer più economici non possono dare.**
+> **La piramide non ci dice quanti test scrivere. Ci ricorda che ogni aumento di realismo deve giustificare il proprio costo con una claim che i layer più economici non possono falsificare.**
