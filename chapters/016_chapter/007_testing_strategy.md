@@ -1,14 +1,12 @@
-# 16.7 — Testing Strategy
+## Testing Strategy
 
-Una Testing Strategy non è un elenco di framework.
+Una Testing Strategy non è l’elenco dei framework usati dal repository e non è il test plan della prossima release.
 
-Non è nemmeno un test plan dettagliato per la prossima release.
+È il contratto con cui il team decide:
 
-È il contratto di lungo periodo con cui il team decide:
+> **quale confidence vuole costruire, rispetto a quali rischi, usando quali boundary di evidence e con quali costi accettabili.**
 
-> **quale confidence vuole costruire, rispetto a quali rischi, usando quali layer di evidence e con quali costi accettabili.**
-
-Microsoft Well-Architected distingue esplicitamente test strategy e test plan: la prima definisce direzione, scope, metodi, ruoli, environment, rischi e criteri a livello workload; il secondo traduce quella direzione in attività specifiche per una release.
+Microsoft Well-Architected distingue test strategy e test plan proprio in questi termini: la strategy definisce direzione, scope, metodi, environment, ruoli, rischi e criteri a livello workload; il test plan traduce quella direzione in attività concrete per una release o un incremento.
 
 Fonti:
 
@@ -17,40 +15,23 @@ Fonti:
 
 ## Perché serve un artefatto
 
-Senza una strategy, una suite tende a crescere per accumulo:
+Senza una strategy la suite cresce per sedimentazione:
 
 ```text
-bug
-→ nuovo test
-
-framework nuovo
-→ nuova suite
-
-incident
-→ nuovo script
-
-security request
-→ nuovo scanner
-
-team nuovo
-→ nuovo E2E
+bug → nuovo regression test
+incident → nuovo script
+security review → nuovo scanner
+framework → nuova suite
+team → nuovo E2E
 ```
 
-Dopo qualche anno nessuno sa più:
+Ogni aggiunta può essere ragionevole e lasciare, qualche anno dopo, un sistema di prova in cui nessuno sa quali test proteggano i rischi importanti, quali siano gate, quali duplicati, quali flaky, quali environment indispensabili e quali quality attribute restino senza evidence.
 
-- quali test proteggono quali rischi;
-- quali sono obbligatori per merge;
-- quali sono release gate;
-- quali sono flaky;
-- quali environment servono;
-- quali test duplicano gli stessi scenari;
-- quali quality attribute non hanno evidence.
+La strategy mantiene intenzionale questa crescita.
 
-La Testing Strategy serve a mantenere intenzionale questa crescita.
+## Template operativo
 
-## Template
-
-Nel libro useremo questo artefatto:
+Nel libro usiamo:
 
 ```markdown
 # Testing Strategy
@@ -63,19 +44,17 @@ Nel libro useremo questo artefatto:
 
 ## Risk inventory
 
-## Test layers
+## Risk-to-Evidence Map
 
-## Risk-to-evidence map
+## Test / evaluation layers
 
-## Contract testing
-
-## Data and migration testing
+## Contract and data testing
 
 ## Security testing
 
-## Reliability and recovery testing
+## Reliability / recovery testing
 
-## Performance and capacity testing
+## Performance / capacity testing
 
 ## Infrastructure testing
 
@@ -89,7 +68,7 @@ Nel libro useremo questo artefatto:
 
 ## Flakiness policy
 
-## Coverage and mutation policy
+## Coverage / mutation policy
 
 ## AI-generated-test policy
 
@@ -102,260 +81,179 @@ Nel libro useremo questo artefatto:
 ## Review triggers
 ```
 
-Non tutte le sezioni devono essere lunghe.
+Non tutte le sezioni devono diventare documenti lunghi. Devono rendere leggibile perché crediamo alle claim che chiamiamo `Verified`.
 
-Devono essere sufficienti per rendere le decisioni visibili.
+## Risk inventory: usare gli artefatti come sorgente del test backlog
 
-## Quality goals
-
-La strategy parte dai quality attribute del prodotto.
-
-Per Order Operations:
-
-```text
-business correctness
-security / tenant isolation
-reliable escalation delivery
-recoverability
-contract compatibility
-operability
-fast feedback for engineers
-```
-
-Una suite con 95% coverage ma nessun cross-tenant negative test fallirebbe la strategy.
-
-Una suite con molte UI automation ma nessun restore drill fallirebbe la strategy.
-
-## Critical journey
-
-Ogni critical journey deve avere una evidence chain.
-
-Esempio:
-
-```text
-CF-02 Payment Escalation acceptance
-```
-
-può essere protetto da:
-
-```text
-application tests
-→ business eligibility / idempotency / conflict
-
-PostgreSQL integration
-→ transaction / constraint
-
-HTTP integration
-→ authorization / serialization / status
-
-synthetic journey
-→ deployed path remains usable
-```
-
-La chain non significa testare ogni combinazione quattro volte.
-
-Significa scegliere quale risk appartiene a quale layer.
-
-## Risk inventory
-
-La strategy deve collegarsi agli artefatti già esistenti.
-
-Per Order Operations:
+Per Order Operations la strategy non nasce da un brainstorming separato. Legge:
 
 ```text
 Functional Analysis
 → business rule
 
 API / Event Contract
-→ compatibility risk
+→ compatibility
 
 Data Ownership Map
-→ persistence/authority risk
+→ persistence / authority
 
 Failure Mode Map
-→ distributed/recovery risk
+→ distributed failure / recovery
 
-Threat Model
-→ security risk
+Threat Model / Security Control Matrix
+→ security claim
 
 Reliability Contract
-→ SLO/RTO/RPO risk
+→ SLO / RTO / RPO
 
 Observability Contract
-→ detection/diagnostic risk
+→ detection / diagnostic evidence
 ```
 
-Questi documenti diventano sorgenti del test backlog.
+Questa relazione trasforma gli artefatti architetturali in un sistema di traceability. Se il Threat Model cambia, la Testing Strategy deve poter vedere quale evidence non è più sufficiente.
 
 ## Risk-to-Evidence Map
 
-L'artefatto centrale della strategy è una tabella simile:
+L’artefatto centrale è una tabella compatta:
 
-| ID | Risk/property | Impact | Best cheap evidence | Higher-fidelity evidence | Gate |
-|---|---|---|---|---|---|
-| TST-01 | same escalation idempotent | high | application | PostgreSQL/API | PR |
-| TST-02 | no cross-tenant escalation | critical | application negative | authenticated integration | PR/release |
-| TST-03 | escalation+outbox atomic | critical | component contract | PostgreSQL transaction | PR |
-| TST-04 | v1 event compatible | high | serialization/schema | consumer contract | PR |
-| TST-05 | duplicate delivery harmless | critical | consumer component | consumer persistence | release |
-| TST-06 | restore meets RTO/RPO | critical | procedure review | actual drill | readiness |
+| ID | Risk/property | Fast evidence | Higher-fidelity evidence | Gate |
+|---|---|---|---|---|
+| TST-001 | same escalation intent idempotent | application | PostgreSQL/API | PR |
+| TST-002 | no cross-tenant escalation | negative application | authenticated staging | PR/release |
+| TST-003 | escalation + outbox atomic | orchestration | PostgreSQL transaction | PR |
+| TST-004 | event v1 compatible | serialization | consumer/provider contract | PR |
+| TST-005 | duplicate delivery harmless | consumer component | consumer persistence | release |
+| TST-006 | restore meets RTO/RPO | runbook review | actual drill | readiness |
 
-La colonna `Gate` è importante.
+La colonna `Gate` impedisce un altro dogma: non tutta la evidence deve bloccare ogni commit.
 
-Non tutta la evidence deve bloccare ogni commit.
+## La pipeline come evidence pipeline
 
-## Pipeline layers
+La suite ha più velocità perché i rischi hanno boundary e costi diversi.
 
-Una pipeline sostenibile può avere più velocità.
+### Local / commit fast loop
 
-### Commit / local fast loop
-
-Target:
+Obiettivo: secondi o pochi minuti.
 
 ```text
-seconds / few minutes
+typecheck/build
+application/component tests
+deterministic schema/contract checks
+static security baseline
 ```
 
-Include:
-
-- typecheck;
-- unit/application test;
-- deterministic contract/schema checks;
-- static security baseline.
+Questa evidence deve essere abbastanza economica da non essere aggirata.
 
 ### Pull request gate
 
-Include:
+Aggiunge ciò che serve a verificare boundary frequenti ma ancora relativamente economici:
 
-- fast loop;
-- database integration;
-- migration test;
-- API integration;
-- contract test;
-- selected security negative test;
-- IaC build/lint.
+```text
+PostgreSQL integration
+migration chain
+API integration
+consumer/provider contract
+selected negative security cases
+IaC build/lint/static policy
+```
 
-### Deployment / staging gate
+### Staging / deployment gate
 
-Include:
+Qui attraversiamo boundary cloud che non possiamo simulare localmente:
 
-- deployment validation;
-- private connectivity;
-- identity/RBAC negative test;
-- smoke/synthetic critical journey;
-- selected performance/reliability validation.
+```text
+private connectivity
+Entra authentication
+RBAC negative verification
+Service Bus adapter
+managed PostgreSQL connectivity
+smoke / synthetic critical journey
+```
 
-### Scheduled / readiness suite
+### Scheduled / readiness evidence
 
-Include:
+Le prove costose non spariscono soltanto perché non girano a ogni PR:
 
-- full regression;
-- expensive performance;
-- mutation on critical area;
-- chaos/failure test;
-- restore drill;
-- security verification più ampia.
+```text
+performance / capacity
+selected mutation
+failure injection
+PostgreSQL failover / PITR
+alert drill
+broader security verification
+```
 
 ### Production continuous verification
 
-Include:
-
-- SLI;
-- synthetic journey;
-- canary/health;
-- alert verification periodica;
-- drift detection.
-
-La pipeline è quindi una **evidence pipeline**, non semplicemente una sequenza di command.
-
-## Fast feedback come quality attribute della suite
-
-Una suite che richiede un'ora per ogni typo verrà aggirata.
-
-Quindi la testing architecture deve ottimizzare anche:
+In produzione la confidence continua a essere aggiornata da:
 
 ```text
-feedback latency
+SLI/SLO
+private synthetic journey
+canary/health
+drift detection
+alert behavior
 ```
 
-Microsoft raccomanda di non inserire ogni possibile test nell'initial build pipeline proprio perché una suite troppo pesante può rallentare il ciclo e incoraggiare bypass; suggerisce di concentrare i test frequenti sui critical workflow e spostare suite costose nei gate appropriati.
+Questa non sostituisce i layer precedenti. Misura claim che soltanto l’ambiente operativo reale può continuare a falsificare.
+
+> **La pipeline non è una sequenza di command. È una sequenza di claim sempre più costose da mettere in pericolo.**
+
+## Feedback latency è un quality attribute del quality system
+
+Una pipeline che richiede un’ora per ogni modifica minima verrà bypassata, parallelizzata male o trattata come rumore. La suite deve quindi progettare anche il proprio tempo di feedback.
+
+Microsoft raccomanda di concentrare i test frequenti sui critical workflow e spostare evidence costosa nel gate appropriato invece di rendere l’initial build insostenibile.
 
 Fonte:
 
 - [Microsoft Learn — Architecture strategies for testing](https://learn.microsoft.com/en-us/azure/well-architected/operational-excellence/testing)
 
-## Flakiness budget
+Questo non è un compromesso contro la qualità. È ciò che permette alla qualità di restare nel normale execution path del team.
 
-Una strategy deve dire cosa succede a un flaky test.
+## Flakiness policy
 
-Policy ESI:
+Per ESI:
 
 ```text
 flaky detected
 → issue + owner
-→ quarantine only if needed to unblock unrelated work
-→ still visible in quality reporting
-→ fix/remove within explicit window
+→ quarantine soltanto se serve a sbloccare lavoro non correlato
+→ failure resta visibile nel quality reporting
+→ fix/remove entro una finestra esplicita
 ```
 
 Non:
 
 ```text
-retry automatically until pass
+retry until green
 → forget
 ```
 
-Possibili signal:
+Segnali utili sono rerun discrepancy, fail senza product change, environment-sensitive failure e quarantine age.
 
-- rerun discrepancy;
-- pass/fail without product change;
-- environment-sensitive failure;
-- historical flake rate;
-- quarantine age.
-
-Meta ha mostrato in produzione che anche l'affidabilità dei test può essere trattata come qualcosa da misurare e monitorare.
+Meta mostra come la flakiness stessa possa essere misurata e monitorata su larga scala.
 
 Fonte:
 
 - [Engineering at Meta — Probabilistic flakiness](https://engineering.fb.com/2020/12/10/developer-tools/probabilistic-flakiness/)
 
-## Coverage policy
+Un flaky test non è “solo un problema della CI”. È un sensore difettoso nella evidence pipeline.
 
-La strategy deve evitare due estremi.
+## Coverage e mutation policy
 
-### Nessuna coverage visibility
-
-Possiamo lasciare intere aree non esercitate senza saperlo.
-
-### Coverage come KPI assoluto
-
-Possiamo incentivare test senza valore.
-
-Policy consigliata nel nostro capstone:
+ESI usa:
 
 ```text
 coverage = diagnostic signal
-not proof of correctness
+coverage != proof of correctness
 ```
 
-Per aree critiche possiamo impostare guardrail più severi, ma accompagnati da risk/fault evidence.
+La coverage aiuta a trovare zone mai esercitate; non diventa un KPI che incentiva test inutili.
 
-## Mutation policy
+Mutation testing resta selettivo sulle aree in cui un assertion gap avrebbe impatto alto: tenant authorization, escalation idempotency, conflict detection, outbox behavior, redaction e future operation economiche.
 
-Mutation testing viene applicato in modo selettivo.
-
-Candidate area Order Operations:
-
-- tenant authorization;
-- Payment Escalation idempotency;
-- conflict detection;
-- outbox atomicity adapter logic;
-- log redaction;
-- future economic action.
-
-Non inseguiamo il 100% di mutation score.
-
-Microsoft formula una guidance simile: concentrare l'analisi sui surviving mutant significativi e sulle aree ad alto rischio, senza trasformare il punteggio in obiettivo assoluto.
+Microsoft suggerisce analogamente di concentrarsi sui surviving mutant significativi e sulle aree ad alto rischio, senza inseguire un punteggio assoluto.
 
 Fonte:
 
@@ -363,78 +261,60 @@ Fonte:
 
 ## AI-generated-test policy
 
-La Testing Strategy deve dire esplicitamente come usiamo gli agenti.
-
-Per ESI:
-
-### Consentito
-
-- generate test candidate da requirement;
-- derive negative case;
-- generate fixture sintetiche;
-- propose mutation/fault;
-- review coverage gap;
-- explain failing test;
-- minimize reproduction;
-- classify redundant test.
-
-### Richiede review umana
-
-Ogni test merged.
-
-La review verifica:
+Gli agenti possono:
 
 ```text
-requirement/risk source
+derivare test candidate da requirement/invariant
+proporre negative case
+generare fixture sintetiche
+proporre fault/mutation
+minimizzare reproduction
+analizzare coverage gap
+classificare test ridondanti
+```
+
+Ogni test merged richiede però review della sua evidence:
+
+```text
+risk/source
 fault detected
 assertion strength
 layer fit
 determinism
-security of test data
+data safety
+redundancy
 maintenance cost
 ```
 
-### Non accettato come evidence sufficiente
+Non accettiamo come evidence sufficiente:
 
 ```text
-"AI says tests are comprehensive"
+AI says comprehensive
 ```
 
-oppure:
+né:
 
 ```text
-"all generated tests pass"
+all generated tests pass
 ```
 
-Il pass/fail è evidence soltanto rispetto alla property che il test rappresenta.
+Il `PASS` ha significato soltanto rispetto alla claim che il test rappresenta.
 
-## Test data policy
+## Test data ed environment policy
 
-Definiamo:
+Il default è:
 
 ```text
-synthetic by default
+synthetic data
 explicit tenant ownership
 no production secret
 no uncontrolled production PII dump
-deterministic fixture where possible
-cleanup ownership
+deterministic fixture when possible
 ```
 
-Per integration/E2E environment:
+Per test paralleli servono identifier unici, isolamento e lifecycle chiaro.
 
-- fixture seed versionata;
-- unique identifier per run;
-- isolamento fra test paralleli;
-- lifecycle chiaro.
-
-## Test environment policy
-
-La strategy non richiede full production parity per ogni test.
-
-Richiede fidelity rispetto alla property.
-
-Esempio:
+L’environment viene scelto per fidelity della property:
 
 ```text
 business rule
@@ -446,112 +326,44 @@ PostgreSQL semantics
 Azure private RBAC
 → Azure non-production
 
-region recovery
-→ environment capable of regional recovery exercise
+regional recovery
+→ environment capace del recovery exercise
 ```
 
-Questo contiene il costo senza fingere equivalenza dove non esiste.
+Non chiediamo full production parity per ogni test e non fingiamo equivalenza quando il boundary reale manca.
 
-## Ownership
+## Ownership: la qualità non appartiene al QA team
 
-Testing non appartiene al QA team.
+Può esistere specializzazione, ma il risk model deve essere condiviso.
 
-Come per l'analisi funzionale, può esistere specializzazione.
+Order Operations possiede application/integration/data/migration e health della suite. Payments & Risk possiede consumer semantics e downstream idempotency. Platform possiede foundation e capability per environment/deployment verification. Security contribuisce alla verification dei threat e dei privileged boundary. Reliability/on-call possiede drill e incident-derived regression. Product/domain stakeholder contribuisce alla correctness dei critical journey e alle acceptance claim che richiedono giudizio.
 
-Ma la conoscenza della qualità deve essere condivisa.
-
-Per Order Operations:
-
-### Workload team
-
-- unit/component/integration;
-- API;
-- data/migration;
-- application security;
-- test suite health.
-
-### Payments & Risk
-
-- consumer contract;
-- downstream idempotency;
-- payment semantic behavior.
-
-### Platform
-
-- landing-zone/IaC verification capability;
-- ephemeral/test environment foundation;
-- deployment evidence.
-
-### Security
-
-- security verification baseline;
-- threat-derived test review;
-- privileged boundary tests.
-
-### Reliability/on-call
-
-- drills;
-- alert/recovery validation;
-- incident-derived regression.
-
-### Product/domain stakeholder
-
-- acceptance criteria;
-- critical journey correctness;
-- exploratory/acceptance evidence quando serve giudizio umano.
-
-## Test plan vs strategy
-
-Il prossimo incremento “aggiungere acknowledgement di Payments” potrà avere un test plan specifico.
-
-La Testing Strategy invece rimane e ci dice:
-
-- che tipo di risk map usare;
-- quali gate esistono;
-- quali quality floor non sono negoziabili;
-- come gestiamo flaky test;
-- come usiamo AI;
-- come scegliamo environment.
+La Testing Strategy impedisce che una property cross-team rimanga “owned by everyone”, cioè da nessuno.
 
 ## Evidence status
 
-La Testing Strategy stessa usa il modello del capstone:
+Anche la suite usa il modello del capstone:
 
 ```text
 Designed
-→ test requirement/strategy exists
+→ test requirement / strategy esiste
 
 Codified
-→ automated/manual executable asset exists
+→ executable/manual asset esiste
 
 Verified
-→ test has run and demonstrated expected evidence
+→ asset eseguito e expected evidence osservata
 
 Monitored
-→ test/signal health is continuously observed
+→ test/signal health osservato continuamente o operativamente
 ```
 
-Un test file appena committed è `Codified`.
-
-Non è `Verified` finché non lo eseguiamo.
+Un test appena committed è `Codified`. Non è `Verified` finché non è stato eseguito sul boundary che dichiara di rappresentare.
 
 ## Review trigger
 
-Rivedere la strategy quando cambia almeno uno fra:
+La strategy va riaperta quando cambiano critical journey, threat, SLO/RTO/RPO, topology, database/broker, team boundary, exposure, incident class, CI cost/time, suite flakiness o autonomia degli agenti nel development workflow.
 
-- critical journey;
-- threat model;
-- RTO/RPO/SLO;
-- topology;
-- database/broker;
-- team boundary;
-- public/private exposure;
-- regulatory requirement;
-- incident class;
-- CI time/cost;
-- suite flakiness;
-- AI autonomy nel development workflow.
-
-## Corollario
+Nel capstone vivo questa stessa strategy continuerà infatti a crescere nei Capitoli 17–24 con legacy/refactoring e runtime AI evaluation. La sezione corrente descrive la **baseline del Capitolo 16**.
 
 > **Una buona Testing Strategy non prova tutto. Rende esplicito perché crediamo alle cose che decidiamo di chiamare vere.**
