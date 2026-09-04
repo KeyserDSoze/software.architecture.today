@@ -1,24 +1,20 @@
 ## Idee chiave
 
-1. Una feature descrive lavoro; un confine descrive responsabilità.
-2. La modularità utile contiene il cambiamento, non moltiplica cartelle.
-3. Cohesion alta significa che le parti interne condividono ragioni forti per cambiare insieme.
-4. Coupling basso non significa zero dipendenze: significa dipendenze comprensibili e con costo controllato.
-5. Il coupling semantico può essere molto più forte di quello visibile nelle firme o nei diagrammi.
-6. Information hiding serve a mantenere locali le decisioni volatili.
-7. Un database condiviso non obbliga a condividere ownership.
-8. Dependency inversion riguarda la direzione della conoscenza, non il numero di interface.
-9. Il domain model deve proteggere significato e invarianti, non riprodurre lo schema database.
-10. Un bounded context non implica automaticamente un microservizio.
-11. Duplicate data può essere accettabile; duplicate meaning è molto più pericoloso.
-12. Il Component Responsibility Map rende visibili ownership, overlap, gap e dipendenze.
-13. Gli agenti possono proporre confini velocemente, ma tendono anche verso pattern-shaped architecture.
-14. Boilerplate economico non significa complessità gratuita.
-15. Un buon confine riduce il contesto necessario per cambiare il sistema senza nascondere dipendenze essenziali.
+Una feature descrive lavoro; un confine descrive responsabilità. La modularità utile non si misura dal numero di cartelle, ma dalla capacità di contenere il cambiamento e impedire che una decisione locale diventi conoscenza globale.
+
+Cohesion e coupling ci aiutano a giudicare questa capacità. Teniamo insieme ciò che cambia per ragioni correlate e riduciamo la conoscenza necessaria tra parti che devono poter evolvere indipendentemente. Il coupling più pericoloso non è sempre quello visibile nelle firme: timing, dati condivisi, convenzioni e significati impliciti possono creare legami molto più profondi.
+
+Information hiding serve a localizzare decisioni volatili. Dependency inversion protegge policy e significato dai dettagli che cambiano per motivi differenti. Nessuno dei due principi richiede di introdurre interfacce o servizi per rituale: l'astrazione ha valore quando sappiamo quale decisione sta nascondendo e quale costo di cambiamento sta riducendo.
+
+Il domain modeling aggiunge la dimensione semantica. Il database non coincide con il dominio, un bounded context non implica automaticamente un microservizio e duplicare un dato non significa duplicarne l'ownership. Il rischio maggiore è **duplicate meaning**: più parti del sistema autorizzate a definire indipendentemente la stessa regola.
+
+La Component Responsibility Map rende questi problemi discutibili. Esplicita ownership, invarianti, contratti e dettagli nascosti e ci permette di cercare overlap, gap e leak. Con gli agenti diventa anche context containment: un buon boundary riduce la quantità di repository che deve essere compresa per eseguire una modifica corretta.
+
+L'AI accelera enormemente boundary discovery e refactoring, ma rende anche economico produrre decomposizioni sbagliate e astrazioni superflue. Il nuovo collo di bottiglia non è spostare il codice: è capire se la nuova struttura rappresenti davvero meglio le responsabilità reali.
 
 ## Artefatto operativo — Component Responsibility Map
 
-Per una responsibility significativa, prova a compilare:
+Per una responsabilità significativa usiamo:
 
 ```text
 Component:
@@ -42,7 +38,7 @@ Failure rilevanti:
 Ragioni tipiche di cambiamento:
 ```
 
-Poi cerca tre categorie di problema:
+Poi cerchiamo tre categorie di problema:
 
 ```text
 overlap
@@ -55,13 +51,13 @@ leak
 → un consumer conosce dettagli che dovrebbero restare interni
 ```
 
-Non correggere automaticamente ogni problema con un nuovo servizio.
+Non correggiamo automaticamente ogni problema con un nuovo servizio. Prima chiediamo se serva un boundary logico, un contratto migliore o semplicemente ownership più esplicita.
 
-Prima verifica se serve un confine logico, una responsabilità più chiara o semplicemente un contratto migliore.
+---
 
-## Esercizi
+# Esercizi
 
-### 1. Dal layout tecnico ai confini
+## 1. Dal layout tecnico ai confini
 
 Hai un'applicazione organizzata così:
 
@@ -73,73 +69,37 @@ models/
 utils/
 ```
 
-Una nuova feature “modifica indirizzo di consegna” richiede cambiamenti in nove file distribuiti in tutte le cartelle.
+La feature “modifica indirizzo di consegna” richiede cambiamenti in nove file distribuiti in tutte le cartelle.
 
-Ricostruisci almeno due possibili responsabilità di dominio che potrebbero essere nascoste dal layout tecnico.
+Ricostruisci almeno due possibili responsabilità di dominio nascoste dal layout tecnico. Per ciascuna indica dati rilevanti, invarianti, dipendenze e dettagli che dovrebbero rimanere interni. Non proporre ancora microservizi.
 
-Per ciascuna indica:
+## 2. Cohesion review
 
-- dati rilevanti;
-- invarianti;
-- dipendenze;
-- dettagli da nascondere.
+Un modulo `CustomerManagement` contiene registrazione cliente, preferenze marketing, autenticazione, loyalty points, esportazione CSV, reset password e rendering invoice PDF.
 
-Non proporre ancora microservizi.
+Dividi le responsabilità soltanto dove esistono ragioni di cambiamento realmente differenti. Spiega anche quali elementi lasceresti insieme e perché.
 
-### 2. Cohesion review
+## 3. Coupling invisibile
 
-Un modulo `CustomerManagement` contiene:
-
-- registrazione cliente;
-- preferenze marketing;
-- autenticazione;
-- calcolo loyalty points;
-- esportazione CSV clienti;
-- reset password;
-- rendering invoice PDF.
-
-Dividi le responsabilità soltanto dove ritieni che esistano ragioni di cambiamento realmente differenti.
-
-Spiega anche quali elementi lasceresti insieme e perché.
-
-### 3. Coupling invisibile
-
-Due servizi comunicano attraverso un'API con una sola operazione:
+Due servizi espongono una sola operazione:
 
 ```text
 POST /reserve
 ```
 
-Il consumer deve però conoscere:
+Il consumer deve però conoscere timeout di tre secondi, reservation TTL di dieci minuti, tre codici di errore retryable, un ordine obbligatorio rispetto a una seconda operazione e un comportamento speciale nei weekend.
 
-- timeout di 3 secondi;
-- reservation TTL di 10 minuti;
-- tre codici di errore retryable;
-- ordine obbligatorio rispetto a una seconda operazione;
-- comportamento speciale nei weekend.
+Descrivi il contratto reale e proponi come rendere esplicita quella semantica senza necessariamente cambiare protocollo.
 
-Analizza il coupling reale.
+## 4. Information hiding
 
-Proponi come rendere più esplicito il contratto senza necessariamente cambiare il protocollo.
+Cinque moduli leggono direttamente `payments.transactions`: uno per visualizzare lo stato, uno per decidere se spedire, uno per reporting, uno per customer support e uno per refund.
 
-### 4. Information hiding
+Per ciascun consumer identifica l'informazione che serve davvero, se debba essere sincrona o storica e quale dettaglio della persistenza possa essere nascosto. Disegna almeno due contratti distinti invece di sostituire tutte le query con una singola API generica.
 
-In un sistema, cinque moduli leggono direttamente `payments.transactions`.
+## 5. Dependency inversion
 
-Uno usa la tabella per visualizzare lo stato, uno per decidere se spedire, uno per reporting, uno per customer support e uno per refund.
-
-Per ciascun consumer chiediti:
-
-- quale informazione gli serve davvero?
-- deve essere sincrona?
-- è storica o autorevole?
-- quale dettaglio della persistenza potrebbe essere nascosto?
-
-Disegna almeno due contratti differenti invece di sostituire tutte le query con una singola API generica.
-
-### 5. Dependency inversion
-
-Considera questo codice:
+Considera:
 
 ```ts
 class InvoiceService {
@@ -151,183 +111,76 @@ class InvoiceService {
 }
 ```
 
-Non creare interface meccanicamente.
+Non creare interfacce meccanicamente. Identifica prima policy, dettagli infrastrutturali e decisioni che vale la pena rendere locali. Poi proponi una dependency direction migliore e spiega quali dipendenze possono restare concrete.
 
-Identifica prima:
+## 6. Duplicate meaning
 
-- policy;
-- dettagli infrastrutturali;
-- decisioni che vale la pena rendere locali;
-- dipendenze che possono restare concrete.
-
-Poi proponi una versione migliorata.
-
-### 6. Duplicate meaning
-
-Frontend, backend e mobile implementano indipendentemente questa regola:
+Frontend, backend e mobile implementano indipendentemente:
 
 ```text
 un ordine può essere annullato se status = PAID e shippedAt è null
 ```
 
-Spiega perché il problema non è semplicemente duplicazione di codice.
+Spiega perché non è soltanto duplicazione di codice. Proponi almeno due strategie per mantenere una fonte autorevole senza obbligare la UI a una chiamata remota per ogni dettaglio visuale.
 
-Proponi almeno due strategie per avere una fonte autorevole senza rendere la UI inutilmente dipendente da chiamate remote per ogni dettaglio visuale.
+## 7. Domain language
 
-### 7. Domain language
+La parola `completed` viene usata da Payments, Warehouse, Shipping, Orders e Analytics.
 
-In un sistema e-commerce la parola `completed` viene usata da:
+Per ogni contesto descrivi che cosa potrebbe significare. Poi scegli tra definizione unica, termini differenti o mapping espliciti e giustifica la scelta.
 
-- Payments;
-- Warehouse;
-- Shipping;
-- Orders;
-- Analytics.
+## 8. Order Operations — cancellazione concorrente
 
-Per ogni contesto proponi cosa potrebbe significare.
+Due richieste di cancellazione arrivano quasi contemporaneamente. La cancellation policy appartiene a Orders, mentre un eventuale refund appartiene a Payments.
 
-Poi decidi se vuoi:
+Disegna invarianti, contratto tra i componenti, meccanismo di idempotenza e punto in cui la responsabilità di Orders deve fermarsi. Non risolvere il problema introducendo semplicemente una transaction database cross-module.
 
-- una definizione unica;
-- termini diversi;
-- mapping espliciti tra contesti.
+## 9. AI boundary discovery
 
-Giustifica la scelta.
+Prendi un repository che conosci e chiedi a un agente di identificare responsabilità, file che cambiano frequentemente insieme, accessi diretti a dati di altre aree e tre boundary hypothesis.
 
-### 8. Order Operations — cancellazione concorrente
+Per ogni ipotesi deve fornire evidenza e incertezza. Poi critica manualmente il risultato: quale decomposizione sembrava elegante ma non reggeva alla conoscenza reale del sistema?
 
-Nel capstone, due richieste di cancellazione arrivano quasi contemporaneamente.
+## 10. Adversarial decomposition
 
-La cancellation policy appartiene a Orders, mentre il refund appartiene a Payments.
+Prendi una decomposizione proposta da te o dall'AI ed esegui due review opposte.
 
-Disegna:
+Prima prova a dimostrare che abbiamo **separato troppo**, cercando invarianti condivise, transazioni, change coupling, latency sensibile e deployment coordinati. Poi prova a dimostrare che abbiamo **separato troppo poco**, cercando ownership distinta, vocabolari differenti, failure domain, security boundary e ragioni indipendenti di cambiamento.
 
-- le invarianti;
-- il contratto tra i componenti;
-- un meccanismo di idempotenza;
-- il punto in cui la responsabilità deve fermarsi.
+Confronta le due analisi e prendi una decisione esplicita.
 
-Non risolvere il problema distribuendo semplicemente una transaction database cross-module.
-
-### 9. AI boundary discovery
-
-Prendi un repository che conosci.
-
-Chiedi a un agente di:
-
-1. identificare responsabilità;
-2. trovare file che cambiano frequentemente insieme;
-3. individuare accessi diretti a dati appartenenti ad altre aree;
-4. proporre 3 boundary hypothesis;
-5. indicare evidenza e incertezza per ciascuna.
-
-Poi critica manualmente il risultato.
-
-Quale ipotesi sembrava elegante ma non reggeva alla conoscenza reale del sistema?
-
-### 10. Adversarial decomposition
-
-Prendi una decomposizione proposta da te o dall'AI.
-
-Esegui due review opposte.
-
-Prima:
-
-> “Dimostra che abbiamo separato troppo.”
-
-Cerca:
-
-- invarianti condivise;
-- transazioni;
-- change coupling;
-- latency sensibile;
-- deployment sempre coordinati.
-
-Poi:
-
-> “Dimostra che abbiamo separato troppo poco.”
-
-Cerca:
-
-- ownership distinta;
-- vocabolari differenti;
-- failure domain;
-- security boundary;
-- ragioni indipendenti di cambiamento.
-
-Confronta le due analisi e prendi una decisione.
+---
 
 ## Domande di autovalutazione
 
 1. Riesco a distinguere una classificazione tecnica da un confine di responsabilità?
-2. So spiegare la cohesion senza usare soltanto la parola “insieme”?
+2. So spiegare la cohesion in termini di ragioni di cambiamento?
 3. Quando valuto il coupling considero anche semantica, tempo, dati e cambiamenti coordinati?
 4. Riesco a identificare quali decisioni un modulo dovrebbe nascondere?
-5. So distinguere un'astrazione utile da una interface introdotta per rituale?
+5. So distinguere un'astrazione utile da un'interfaccia introdotta per rituale?
 6. Riesco a spiegare la direzione delle dipendenze tra policy e dettagli?
 7. So distinguere ownership del dato dalla semplice presenza del dato?
 8. Riesco a riconoscere duplicate meaning anche quando il codice non è letteralmente duplicato?
 9. So usare un bounded context senza trasformarlo automaticamente in un microservizio?
-10. Posso descrivere per ogni componente cosa possiede, espone e non deve conoscere?
+10. Posso descrivere per ogni component cosa possiede, espone e non deve conoscere?
 11. Quando l'AI propone una decomposizione, so chiedere evidenza invece di accettare il layout?
 12. Riesco a ridurre astrazioni senza perdere invarianti e reversibilità?
 
 ## Cosa cambia con l'AI
 
-L'AI rende molto più economico:
+Dependency graph, change history, decomposizioni alternative, adapter, import e refactoring repository-wide diventano molto più economici. Questa capacità sposta il collo di bottiglia.
 
-- esplorare dependency graph;
-- individuare duplicazioni;
-- analizzare change history;
-- proporre bounded context;
-- generare adapter;
-- spostare file;
-- aggiornare import;
-- produrre test;
-- confrontare decomposizioni alternative.
+La domanda non è più soprattutto “quanto lavoro serve per riorganizzare il repository?”. Diventa:
 
-Questo sposta ancora una volta il collo di bottiglia.
+> **Siamo sicuri che la nuova organizzazione rappresenti meglio le responsabilità reali?**
 
-Il problema non è più principalmente:
-
-> “Quanto lavoro serve per riorganizzare il repository?”
-
-Diventa:
-
-> **“Siamo sicuri che la nuova organizzazione rappresenti meglio le responsabilità reali?”**
-
-Un agente può rendere economica una ristrutturazione sbagliata.
-
-Può persino renderla pulita, coerente e ben testata.
-
-Ma se abbiamo assegnato la regola al componente sbagliato, il sistema continuerà a pagare quella decisione.
+Un agente può rendere economica una ristrutturazione sbagliata e può perfino renderla pulita, coerente e ben testata. Se però abbiamo assegnato il significato al component sbagliato, il sistema continuerà a pagare quella decisione.
 
 ## Dal design alla qualità
 
-A questo punto Order Operations ha:
+A questo punto Order Operations ha un problema definito, un contesto sistemico, decisioni architetturali esplicite e una prima struttura di responsabilità. Manca ancora una dimensione fondamentale: sappiamo **dove** vogliamo far vivere il comportamento, ma non abbiamo ancora definito con precisione **quali qualità** il sistema debba garantire.
 
-- un problema definito;
-- un contesto sistemico;
-- decisioni architetturali esplicite;
-- una prima struttura di responsabilità.
-
-Ma manca ancora una dimensione fondamentale.
-
-Dire che il sistema deve essere:
-
-- veloce;
-- affidabile;
-- sicuro;
-- scalabile;
-- economico;
-
-non ci aiuta abbastanza.
-
-Nel prossimo capitolo trasformeremo questi aggettivi in **condizioni verificabili**.
-
-Entreremo nei non-functional requirements e negli architecturally significant quality attributes.
-
-Perché una buona decomposizione non basta se non sappiamo che cosa il sistema deve sopportare.
+“Veloce”, “affidabile”, “sicuro”, “scalabile” ed “economico” non discriminano abbastanza tra alternative. Nel prossimo capitolo trasformeremo questi aggettivi in condizioni verificabili e architecturally significant quality attributes.
 
 ## Corollario
 
