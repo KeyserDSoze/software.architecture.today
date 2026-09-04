@@ -1,362 +1,91 @@
 # 28.5 — Systems thinking: il sistema include anche l'organizzazione
 
-Un software system non finisce al confine del deployable.
+Un software system non finisce al confine del deployable. Include persone, team, processi, budget, support model, compliance, supplier, piattaforme interne e vincoli contrattuali.
 
-Include:
-
-```text
-persone
-team
-processi
-budget
-support model
-compliance
-supplier
-clienti
-piattaforme interne
-vincoli contrattuali
-```
-
-Per questo l'architect del 2030 non può essere soltanto un esperto di componenti software.
-
-Deve capire abbastanza l'organizzazione da riconoscere quando una decisione tecnicamente elegante produce un sistema aziendale peggiore.
+Questo significa che una decisione tecnicamente elegante può produrre un sistema aziendale peggiore. L'architect deve quindi saper osservare non soltanto i componenti, ma anche l'organizzazione che dovrà finanziarli, cambiarli, proteggerli e operarli.
 
 > **Un'architettura può essere localmente ottima e globalmente sbagliata.**
 
----
+## Il costo vive fuori dal cloud bill
 
-## Il costo della soluzione vive anche fuori dal cloud bill
+Nel Capitolo 20 abbiamo trattato il costo come somma di infrastructure, operation, complexity, migration, verification, support, skill e coordination.
 
-Nel Capitolo 20 abbiamo modellato il costo come:
+Se estraiamo una capability in un servizio separato, il costo non è soltanto compute più database. Entrano una pipeline in più, contract evolution, observability, on-call surface, incident coordination, data migration, permission boundary, nuovi failure mode e ownership.
 
-```text
-infrastructure
-+ operation
-+ complexity
-+ migration
-+ verification
-+ support
-+ skill
-+ coordination
-```
+Questo non rende sbagliata la separazione. Rende più preciso il conto.
 
-Questa prospettiva è essenziale per l'architect.
+L'architect deve aiutare l'organizzazione a vedere ciò che una soluzione compra e ciò che sposta altrove.
 
-Prendiamo una proposta:
+## Il software e il team boundary si influenzano
 
-```text
-estraiamo Payment in un servizio separato
-```
+Chi possiede una capability, chi la cambia più spesso, chi viene svegliato se fallisce, chi conosce il dominio e chi può accettare un rischio sono domande architetturali tanto quanto il protocollo usato fra due servizi.
 
-Il costo non è soltanto:
+A volte un problema di coupling si risolve cambiando il software. A volte chiarendo ownership. A volte con una capability di piattaforma. A volte evitando una distribuzione che aumenterebbe il coordinamento senza comprare indipendenza reale.
 
-```text
-compute + DB + network
-```
+La tecnologia non corregge automaticamente una struttura organizzativa incoerente.
 
-Comprende:
+## Tradurre economie differenti
 
-```text
-new deployment pipeline
-contract evolution
-observability
-on-call surface
-incident coordination
-data migration
-permission boundary
-new failure mode
-team ownership
-```
+Product, Finance, Security, Platform, Operations ed Engineering ottimizzano metriche diverse. Opportunity cost, spend predictability, expected loss, supportability, recoverability e cognitive load non hanno un'unità comune immediata.
 
-La decisione può restare corretta.
+Il lavoro architetturale consiste spesso nel rendere queste economie comparabili attraverso il significato della property acquistata.
 
-Ma deve essere valutata sul costo vero.
+`Service Bus Premium`, per esempio, non va difeso o attaccato come etichetta di prezzo. Va discusso in relazione a ciò che compra nel design corrente, come private-link capability, isolation o operating model, e ai trigger che renderebbero quel premium non più giustificato.
 
----
+Questo consente a Security e Finance di discutere la stessa decisione senza ridurla a slogan contrapposti.
 
-## Organization-aware architecture
+## Standardizzazione dove la varietà non produce valore
 
-Nel Capitolo 8 abbiamo visto che team boundary e service boundary sono collegati ma non equivalenti.
+Una software house come ESI beneficia di identity, secrets, CI/CD, logging, security scanning, landing-zone guardrail e cost allocation riusabili. Sono aree in cui il business value della differenza è spesso basso e il costo della varietà alto.
 
-L'architect deve saper leggere domande organizzative come:
+La standardizzazione smette però di essere leverage quando impone a workload molto diversi lo stesso compute model, database, messaging, topology o AI stack senza che condividano le stesse forze.
 
-```text
-Chi possiede questa capability?
-Chi la cambia più spesso?
-Chi viene svegliato se fallisce?
-Chi può approvare un rischio?
-Quale team conosce il dominio?
-Quale dipendenza richiede coordinamento continuo?
-```
+La regola resta quella emersa nel portfolio del Capitolo 27:
 
-A volte la risposta corretta è cambiare il software.
+> **Standardizza ciò che non differenzia il business. Conserva scelta dove il contesto del workload cambia davvero.**
 
-A volte è cambiare ownership.
+Anche l'eccezione deve guadagnarsi il proprio costo. Ma una paved road non diventa corretta soltanto perché è già asfaltata.
 
-A volte è creare una platform capability.
+## Rendere il conflitto decisionabile
 
-A volte è non distribuire affatto.
+Una parte importante del lavoro dell'architect non consiste nel trovare una soluzione tecnica, ma nel trasformare tensioni legittime in alternative confrontabili.
 
-La tecnologia non risolve automaticamente una struttura organizzativa incoerente.
+Se Sales vuole un launch in quattro settimane, Security non ha ancora verification sulla private connectivity e Operations non ha eseguito il restore drill, la risposta utile non è un `GO` o `NO` pronunciato dall'architect come autorità universale.
 
----
-
-## L'architect come traduttore fra economie differenti
-
-Ogni stakeholder ottimizza qualcosa di diverso.
-
-```text
-Product
-→ opportunity cost
-
-Finance
-→ spend / predictability
-
-Security
-→ expected loss / blast radius
-
-Platform
-→ reuse / supportability
-
-Operations
-→ recoverability / toil
-
-Engineering
-→ change cost / cognitive load
-```
-
-Queste metriche non hanno una unità comune immediata.
-
-Il lavoro architetturale consiste spesso nel rendere leggibile il trade-off.
-
-Per esempio:
-
-```text
-Service Bus Premium
-```
-
-non viene discusso come:
-
-> “Costa troppo.”
-
-ma come:
-
-```text
-Cost premium
-→ buys private-link capability in current design
-→ reduces public reachability
-→ adds operational/platform constraints
-→ review if threat model or workload changes
-```
-
-Questo permette a Security e Finance di discutere la stessa decisione senza ridurla a preferenze.
-
----
-
-## Standardizzazione vs autonomia
-
-In una azienda come ESI, Platform Engineering vuole evitare che ogni prodotto reinventi:
-
-```text
-identity
-secrets
-CI/CD
-logging
-cost allocation
-security scanning
-landing zone
-```
-
-È ragionevole.
-
-Ma se la standardizzazione diventa:
-
-```text
-same compute
-same database
-same messaging
-same topology
-same AI stack
-```
-
-per qualunque workload, smette di essere leverage e diventa imposizione.
-
-L'architect deve distinguere:
-
-```text
-undifferentiated capability
-→ standardize / paved road
-
-workload-specific decision
-→ preserve contextual choice
-```
-
-Questa distinzione richiede sia comprensione tecnica sia comprensione del business.
-
----
-
-## Il ruolo nelle tensioni fra stakeholder
-
-Una parte del lavoro non può essere automatizzata in modo semplice perché non consiste nel trovare una soluzione tecnica.
-
-Consiste nel negoziare cosa l'organizzazione accetta di pagare.
-
-Esempio:
-
-```text
-Sales
-→ cliente importante chiede launch in 4 settimane
-
-Security
-→ private connectivity non verificata
-
-Engineering
-→ implementation quasi completa
-
-Operations
-→ restore drill non eseguito
-```
-
-L'architect non dovrebbe semplicemente dire:
-
-```text
-NO
-```
-
-oppure:
-
-```text
-GO
-```
-
-Dovrebbe trasformare il conflitto in alternative:
-
-```text
-A. full launch tra 4 settimane
-   risk: X, Y, Z
-
-B. bounded internal/private pilot
-   excludes feature A/B
-   closes blocker X/Y first
-
-C. delay
-   preserves full target boundary
-```
-
-Poi la decision authority appropriata può scegliere con cognizione di causa.
+Può esistere un full launch con determinati rischi, un pilot più bounded che esclude alcune capability oppure un delay che preserva il boundary originale. L'architect rende espliciti rischio, costo e conseguenza; poi la decision authority corretta sceglie.
 
 > **L'architect non elimina il conflitto. Lo rende decisionabile.**
 
----
+## Tradurre property tecniche in conseguenze business
 
-## Comunicazione come capacità tecnica
+"La consistenza è eventuale" può essere vero e inutile. "Dopo una Payment Escalation, la console può mostrare per alcuni minuti che Payments non ha ancora preso in carico la richiesta; l'intenzione non viene persa, ma lo stato downstream è ritardato" rende la property discutibile da Product e Operations.
 
-Dire:
+"RTO 8 ore" diventa più concreto se significa che, durante un outage regionale, il prodotto interno può restare indisponibile per una parte della giornata lavorativa perché oggi non stiamo pagando una seconda regione sempre pronta.
 
-> “La consistenza è eventuale.”
+Questa traduzione non è comunicazione accessoria. È una capacità tecnica: se la conseguenza viene tradotta male, il business accetta un rischio diverso da quello reale.
 
-può essere tecnicamente vero e completamente inutile per Product.
+## Documentare per ridurre coordinamento
 
-Meglio:
+Una buona documentazione architetturale permette a qualcuno di capire una decisione senza convocare una riunione, sapere chi coinvolgere, riconoscere un review trigger e distinguere ciò che è stato deciso da ciò che resta aperto.
 
-> “Dopo una Payment Escalation, la console può mostrare per alcuni minuti che Payments non ha ancora preso in carico la richiesta. L'intenzione non viene persa; lo stato downstream è ritardato.”
+Con gli agenti questo valore aumenta. Ogni decisione che vive soltanto in una conversazione privata è contesto che deve essere ricostruito e può essere reinterpretato.
 
-Dire:
+La documentazione non deve aumentare per principio. Deve rendere trasferibile il significato.
 
-> “Abbiamo RTO 8 ore.”
+## L'architect che scala non approva tutto
 
-può essere astratto.
-
-Meglio:
-
-> “In un outage regionale accettiamo che il prodotto interno possa restare indisponibile per una parte della giornata lavorativa; non stiamo pagando oggi una seconda regione sempre pronta.”
-
-L'architect deve saper tradurre:
-
-```text
-technical property
-↔
-business consequence
-```
-
-Questa è una competenza tecnica perché una traduzione sbagliata produce decisioni sbagliate.
-
----
-
-## Scrivere per ridurre coordinamento
-
-Una buona documentazione architetturale non serve a dimostrare che abbiamo lavorato.
-
-Serve a permettere ad altri di:
-
-- capire una decisione senza meeting;
-- sapere chi coinvolgere;
-- riconoscere un trigger;
-- evitare di ripetere una discussione chiusa;
-- capire quali assunzioni sono ancora aperte.
-
-Questo è particolarmente importante con gli agenti.
-
-Ogni decisione che vive soltanto in una conversazione privata diventa context che deve essere ricostruito manualmente.
-
-La documentazione buona riduce coordination cost per persone e agenti.
-
----
-
-## Architecture non come gate centrale
-
-Se ogni decisione passa dall'architect, l'architect diventa un collo di bottiglia.
-
-Il modello migliore è:
-
-```text
-principi / guardrail
-→ rendono molte decisioni locali
-
-fitness function
-→ verificano policy meccaniche
-
-ADR / review
-→ per decisioni significative
-
-specialist gate
-→ per authority/risk specifici
-```
-
-In questo modello l'architect aumenta l'autonomia del sistema invece di accumulare approvazioni.
+Se ogni scelta passa da Architecture, Architecture diventa un collo di bottiglia. I principi e i guardrail devono rendere sicure molte decisioni locali; le fitness function devono verificare policy meccaniche; gli ADR devono essere riservati alle decisioni significative; gli specialist gate devono entrare dove esiste una specifica authority o un rischio alto.
 
 > **L'architect più scalabile non prende più decisioni degli altri. Rende più decisioni sicure senza di lui.**
 
----
-
-## Microsoft: business, operations e stakeholder
-
-La guidance Microsoft Well-Architected descrive il ruolo dell'architect come bilanciamento di considerazioni tecniche, operative e di business e include stakeholder input, budget, timeline, compliance, operations e supportability.
+Microsoft Well-Architected descrive il ruolo dell'architect come bilanciamento di considerazioni tecniche, operative e di business lungo il lifecycle del workload.
 
 Fonte:
 
-- Microsoft Learn — *Solution Architect's Responsibilities and Guiding Principles*: https://learn.microsoft.com/en-us/azure/well-architected/architect-role/fundamentals
+- [Microsoft Learn — Solution Architect's Responsibilities and Guiding Principles](https://learn.microsoft.com/en-us/azure/well-architected/architect-role/fundamentals)
 
-Ancora una volta non usiamo la fonte per imporre una job description.
+Nella Capability Map ESI questa dimensione diventa `Enterprise Systems & Communication`: identificare stakeholder e authority, tradurre property in consequence, modellare cost driver, riconoscere coordination cost, proporre launch boundary alternativi e costruire guardrail invece di approvazioni seriali.
 
-La usiamo come riscontro che il lavoro architetturale contemporaneo viene trattato anche fuori da questo libro come attività cross-functional e lifecycle-oriented.
-
----
-
-## ESI: l'architect come integratore di decisioni
-
-Nella capability map ESI, la capacità `Enterprise & Organizational Systems` richiede di saper:
-
-```text
-identificare stakeholder e decision authority
-tradurre property tecniche in consequence business
-modellare cost driver
-riconoscere coordination/cognitive cost
-proporre launch boundary alternativi
-separare standardizzazione da uniformità
-costruire guardrail invece di approvazioni seriali
-```
-
-La frase guida è:
+La frase guida è semplice:
 
 > **Il sistema che stiamo progettando comprende anche l'organizzazione che dovrà finanziarlo, cambiarlo, proteggerlo e operarlo.**
