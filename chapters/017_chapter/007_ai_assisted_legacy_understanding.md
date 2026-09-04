@@ -2,313 +2,288 @@
 
 Il legacy è uno dei contesti in cui gli agenti AI possono produrre più leva.
 
-Ed è anche uno dei contesti in cui possono produrre più falsa confidenza.
+È anche uno dei contesti in cui possono produrre più falsa confidence.
 
-## Perché l'AI è utile nel legacy
+La ragione è semplice: una codebase grande contiene enormi quantità di informazione meccanicamente esplorabile, ma soltanto una parte di quella informazione descrive davvero il comportamento operativo e il significato di business.
 
-Una codebase grande contiene molta informazione meccanicamente esplorabile.
+## L'AI riduce il costo della discovery
 
 Un agente può accelerare attività come:
 
 - inventory di package e runtime;
 - ricerca di entry point;
 - dependency graph;
-- chiamate database;
+- accessi database;
 - query SQL duplicate;
 - configuration key;
 - feature flag;
-- event producer/consumer;
-- outbound HTTP dependency;
+- producer/consumer di eventi;
+- outbound dependency;
 - scheduled job;
-- test coverage gap;
-- candidate business rule;
 - high fan-in module;
-- co-change analysis;
-- dead-code hypothesis;
+- candidate business rule;
+- test gap;
 - documentation draft.
 
-Microsoft sta esplicitamente portando l'uso di agenti in questo spazio: GitHub Copilot modernization analizza code, configuration e dependency, produce assessment e migration plan e automatizza parte delle trasformazioni, mantenendo recommendation reviewable e human validation nel loop.
+Microsoft sta portando esplicitamente gli agenti in questo spazio con GitHub Copilot modernization, che analizza code, configuration e dependency, produce assessment e migration plan e automatizza parte della trasformazione mantenendo review e validation umana nel ciclo.
 
 Fonte:
 
 - [Microsoft Learn — GitHub Copilot modernization](https://learn.microsoft.com/en-us/azure/developer/github-copilot-app-modernization/overview)
 
-L'importante è leggere bene la promessa.
+Questo rende molto più economico costruire una prima mappa.
 
-Il tool può accelerare assessment e transformation.
+Non trasforma però il repository in una specifica completa del sistema.
 
-Non può trasformare automaticamente il repository in una specifica completa del business.
+## Repository intelligence non è system intelligence
 
-## Repository intelligence vs system intelligence
-
-Un agente con accesso al repository può sapere molto su:
+Un agente con accesso al repository può conoscere molto bene:
 
 ```text
 source
 build
 static configuration
-test
+tests
 documentation
 ```
 
-ma può non vedere:
+Può non vedere:
 
 ```text
 production configuration
 runtime traffic
-manual procedure
-consumer esterno
-private data contract
+manual procedures
+consumer outside repository
 incident history
 tribal knowledge
-organizational dependency
 customer commitment
+organizational dependency
 ```
 
-Quindi distinguiamo:
+Per questo distinguiamo:
 
 ```text
 Repository intelligence
-= cosa possiamo dedurre dai materiali disponibili
+→ ciò che possiamo trovare o inferire dai materiali disponibili
 
 System intelligence
-= cosa sappiamo del comportamento operativo complessivo
+→ ciò che sappiamo del comportamento operativo complessivo
 ```
 
-La prima è un sottoinsieme della seconda.
+La prima è una parte della seconda.
 
-## L'agente deve citare la provenance
+Un agente può essere eccellente nel primo livello e ancora non possedere evidence sufficiente per una decisione di modernization.
 
-Per legacy discovery non vogliamo risposte soltanto fluenti.
+## La provenance deve viaggiare con la claim
 
-Vogliamo risposte verificabili.
+Nel legacy non vogliamo output soltanto fluidi.
 
-Prompt operativo:
+Vogliamo output verificabili.
+
+Un formato utile è:
 
 ```text
-Per ogni claim restituisci:
-- claim;
-- file/symbol/query/config che lo supporta;
-- grado: Found / Inferred;
-- alternative explanation;
-- evidence mancante per passare a Observed/Confirmed.
+Claim
+
+Evidence
+file / symbol / query / config / trace
+
+State
+Found / Inferred / Observed / Confirmed
+
+Alternative explanation
+che cosa potrebbe spiegare diversamente l'evidence?
+
+Missing evidence
+che cosa serve per aumentare confidence?
 ```
 
-Esempio:
+Per esempio:
 
 ```text
 Claim
 PriorityRouting decide l'urgenza dei case Payment.
 
 Evidence
-legacy/priority-routing.cjs:42-67
-caller: route-case.cjs:18
+priority-routing.cjs + caller route-case.cjs
 
 State
 Inferred
 
 Alternative
-potrebbe essere bypassato in produzione da feature flag.
+production config potrebbe bypassare il path.
 
-Missing evidence
-runtime trace + current config + Operations confirmation.
+Missing
+runtime trace + Operations confirmation.
 ```
 
-Questa forma è meno elegante di una spiegazione narrativa.
+Questo output è meno elegante di una pagina architetturale completa.
 
-È molto più utile.
+È molto più utile perché conserva il confine della conoscenza.
 
-## Multi-agent discovery
+## Parallelizzare la ricerca, non la convinzione
 
-Per una codebase complessa possiamo parallelizzare l'esplorazione per prospettiva.
+Una codebase complessa può essere esplorata da agenti con prospettive differenti.
 
-### Agent A — Runtime/dependency
+Uno può cercare runtime e dependency, uno dati e schema, uno business behavior, uno test ed evidence.
 
-Cerca:
-
-- entry point;
-- network call;
-- queue;
-- scheduler;
-- config.
-
-### Agent B — Data
-
-Cerca:
-
-- table;
-- stored procedure;
-- query;
-- schema coupling;
-- migration.
-
-### Agent C — Domain behavior
-
-Cerca:
-
-- branching;
-- enum;
-- status transition;
-- validation;
-- special case.
-
-### Agent D — Testing/evidence
-
-Cerca:
-
-- test esistenti;
-- uncovered critical path;
-- flaky pattern;
-- fixture;
-- missing characterization.
-
-### Agent E — Skeptical reviewer
-
-Riceve i risultati e chiede:
+Un reviewer separato può poi chiedere:
 
 ```text
-quali claim sono soltanto inferred?
+quali claim sono soltanto Inferred?
 quali dependency potrebbero essere fuori repo?
 quali behavior sembrano accidentali?
 quali mappe non hanno runtime evidence?
 ```
 
-Ma prima di parallelizzare dobbiamo sincronizzare la domanda.
+La parallelizzazione è utile quando la domanda comune è già chiara.
 
-> **Prima sincronizzare il pensiero. Poi parallelizzare l'esecuzione.**
+La regola del Capitolo 0 resta valida:
 
-## Il rischio del documentation laundering
+> **prima sincronizzare il pensiero, poi parallelizzare l'esecuzione.**
 
-Un agente legge codice ambiguo.
+Altrimenti otteniamo quattro mappe incompatibili e una falsa sensazione di completezza.
 
-Produce una spiegazione.
+## Documentation laundering
 
-La spiegazione viene salvata in `architecture.md`.
+Uno dei failure mode più pericolosi dell'AI-assisted archaeology nasce quando una inferenza perde progressivamente la propria origine.
 
-Il prossimo agente legge `architecture.md` come fonte autorevole.
-
-Dopo tre iterazioni l'ipotesi iniziale è diventata “documentazione ufficiale”.
-
-Questo è un failure mode serio.
-
-Lo chiamiamo:
-
-> **documentation laundering**
-
-Per evitarlo, la documentazione discovery deve distinguere:
+Il ciclo può essere:
 
 ```text
-Observed fact
-Inferred behavior
+agent reads ambiguous code
+→ writes plausible explanation
+→ explanation enters architecture.md
+→ next agent treats architecture.md as authoritative
+→ assumption becomes "known fact"
+```
+
+Chiamiamo questo fenomeno **documentation laundering**.
+
+Non serve che qualcuno menta.
+
+Basta che il grado di evidence venga perso durante il passaggio da output a documento.
+
+Per evitarlo, la documentazione discovery deve distinguere almeno:
+
+```text
+Found
+Inferred
+Observed
+Confirmed
 Open question
-Confirmed rule
 ```
 
-## AI e characterization test
+Una pagina può essere molto autorevole nella forma e ancora contenere ipotesi.
 
-L'AI può generare rapidamente characterization test a partire dal comportamento corrente.
+La provenance è ciò che impedisce alla forma di sostituire l'evidence.
 
-È utile per:
+## AI-generated characterization test: utile, ma non automaticamente forte
 
-- branch coverage iniziale;
-- boundary input;
-- legacy special case;
-- serialization;
-- input minimization;
-- snapshot normalization.
+Un agente può generare rapidamente characterization test a partire dal comportamento corrente.
 
-Ma abbiamo già visto nel Capitolo 16 il rischio della test illusion.
+Può trovare branch, boundary value, special case, input minimizzati e candidate fixture.
 
-Un agente che legge implementazione e genera test può semplicemente riscrivere l'implementazione in forma di assertion.
+Il rischio è lo stesso del Capitolo 16: leggere l'implementazione e trasformarla in assertion tautologiche.
 
-Quindi chiediamo anche:
+Per ogni test generato chiediamo quindi:
 
 ```text
-Quale comportamento osservabile protegge?
-Quale modifica sbagliata dovrebbe rilevare?
-È un requisito confermato o solo characterization?
+quale behavior osservabile protegge?
+quale modifica sbagliata dovrebbe rilevare?
+il behavior è Confirmed o soltanto Observed?
 ```
 
-## AI e refactoring candidate
+La terza domanda è specifica del legacy.
 
-Un agente può individuare candidati come:
+Un test può essere forte come regression detector e ancora proteggere un comportamento che decideremo deliberatamente di eliminare.
 
-- classe con fan-in enorme;
+## Candidate boundary non significa boundary giusto
+
+Gli agenti sono ottimi nell'individuare segnali strutturali:
+
 - duplicated switch;
-- utility usata da tutti;
-- repository che accede a troppe tabelle;
-- package con high co-change;
-- business rule replicata.
+- modulo ad alto fan-in;
+- repository che tocca molte tabelle;
+- utility usata ovunque;
+- cluster di file che cambiano insieme;
+- regola replicata.
 
-Questi sono segnali.
+Questi segnali possono suggerire un seam.
 
-Non sono ancora boundary.
+Non lo dimostrano.
 
-Un modulo molto accoppiato può essere:
+Un modulo molto accoppiato può essere una responsabilità da separare oppure il punto reale in cui convergono concetti inseparabili.
 
-- il problema da separare;
-- oppure il luogo dove convergono davvero responsabilità inseparabili.
+La decisione richiede ancora dominio, ownership e consequence analysis.
 
-Serve ancora domain reasoning.
+## Human-in-the-loop significa governare le decisioni irreversibili
 
-## Human-in-the-loop non significa approvare ogni riga
+Non serve che una persona legga manualmente ogni import trovato dall'agente.
 
-Nel legacy l'essere umano deve governare soprattutto:
+La review umana deve concentrarsi soprattutto su:
 
-- claim semantics;
-- business importance;
-- risk;
-- stop condition;
-- destructive operation;
-- schema/data migration;
-- cutover;
-- rollback;
-- acceptance evidence.
+```text
+claim semantics
+business importance
+risk
+security/data ownership
+schema migration
+cutover
+rollback
+acceptance evidence
+```
 
-Non deve necessariamente leggere manualmente ogni import trovato dall'agente.
+In altre parole, l'AI può comprimere il lavoro meccanico.
 
-L'obiettivo è spostare la review dal volume di esecuzione alla qualità delle decisioni.
+L'umano deve governare le trasformazioni in cui una interpretazione sbagliata può diventare un one-way door.
 
 ## Stop condition per l'agente
 
-Un agente che esplora il legacy deve fermarsi quando incontra:
-
-- credential;
-- production write path;
-- destructive migration;
-- unclear data ownership;
-- security boundary ambiguo;
-- externally consumed schema;
-- behavior con impatto economico;
-- evidence contraddittoria;
-- assenza di test su area critica.
-
-Non vogliamo che “continua finché funziona” diventi una strategia di modernization.
-
-## Il principio della minimum sufficient understanding
-
-Non serve conoscere tutto prima di qualsiasi change.
-
-Serve conoscere abbastanza per il **prossimo change sicuro**.
-
-Questo significa:
+La discovery autonoma deve fermarsi o richiedere escalation quando incontra:
 
 ```text
-Decision scope
+credential
+production write path
+destructive migration
+unclear data ownership
+externally consumed schema
+security boundary ambiguity
+economic behavior
+contradicting evidence
+critical area without test/evidence
+```
+
+La regola non è “continua finché trovi qualcosa”.
+
+È “continua finché il costo di un'assunzione sbagliata resta nel blast radius autorizzato”.
+
+## Minimum sufficient understanding
+
+Il contrario della big-bang discovery non è l'ignoranza.
+
+È la **minimum sufficient understanding** per il prossimo change sicuro.
+
+```text
+decision scope
 → required understanding
-→ evidence
+→ evidence collection
 → safe change
-→ new evidence
+→ new runtime/test evidence
 → next decision
 ```
 
-L'AI rende questo ciclo più veloce.
+Non dobbiamo completare l'enciclopedia del sistema prima di ogni modifica.
 
-Non cambia la logica.
+Dobbiamo però conoscere abbastanza da sapere che cosa potrebbe rompersi, come lo rileveremmo e come torneremmo indietro.
+
+L'AI rende questo ciclo più rapido.
+
+Non ne cambia la logica.
 
 ## Un caso interessante nel 2026
 
-Martin Fowler ha commentato nel 2026 un caso di ristrutturazione di una codebase legacy Laravel/React in cui i primi passi furono characterization test, static analysis e quality gate; solo dopo l'autore aumentò l'autonomia dell'agente AI. Fowler collega esplicitamente la capacità di usare agenti con maggiore fiducia alla presenza di test e harness più forti.
+Martin Fowler ha commentato nel 2026 un caso di ristrutturazione di una codebase Laravel/React in cui i primi passi furono characterization test, static analysis e quality gate; soltanto dopo l'autore aumentò l'autonomia dell'agente AI. Fowler collega esplicitamente la maggiore fiducia nell'automazione alla presenza di harness e test più forti.
 
 Fonte:
 
@@ -318,24 +293,24 @@ Fonte:
 
 > **l'autonomia utile cresce quando cresce la verificabilità del sistema.**
 
-## L'output che vogliamo
+## Il risultato che vogliamo dall'AI-assisted archaeology
 
-L'obiettivo dell'AI-assisted archaeology non è produrre una documentazione monumentale.
+Il successo non è un documento di cinquanta pagine.
 
-È ridurre l'incertezza della prossima decisione.
-
-Un buon output può essere soltanto:
+Può essere qualcosa di molto più piccolo:
 
 ```text
-5 behavior confirmed
-3 behavior observed but not confirmed
+5 behavior Confirmed
+3 behavior Observed but not Confirmed
 2 hidden consumers found
-1 data ownership conflict
+1 ownership conflict
 1 seam candidate
-4 characterization tests added
-2 questions blocking migration
+4 characterization tests
+2 blockers before migration
 ```
 
-Questo vale molto più di cinquanta pagine di descrizione plausibile.
+Questo riduce direttamente l'incertezza del prossimo passo.
+
+Ed è questo il vero prodotto della discovery.
 
 > **L'AI può leggere il legacy più velocemente di noi. La responsabilità resta decidere quali delle sue conclusioni meritano di diventare conoscenza del sistema.**
