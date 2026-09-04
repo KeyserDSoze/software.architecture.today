@@ -4,58 +4,67 @@ Quando ereditiamo codice che non comprendiamo, il primo test utile non è sempre
 
 Spesso è un test di **caratterizzazione**.
 
-La domanda non è ancora:
+La domanda iniziale non è:
 
-> “Questo comportamento è giusto?”
+> Questo comportamento è giusto?
 
 È:
 
-> **“Che cosa fa il sistema oggi, in condizioni osservabili e ripetibili?”**
+> **Che cosa fa il sistema oggi, in condizioni che possiamo osservare e ripetere?**
 
-## Behavior first
+Questa distinzione è essenziale perché nel legacy il comportamento esistente e il requisito desiderato possono divergere.
 
-Un characterization test cattura un comportamento esistente per poter rilevare variazioni durante una modifica successiva.
+## Osservare prima di prescrivere
 
-Microsoft descrive esplicitamente i characterization test come una regression suite utile a determinare il comportamento di codice esistente e come base per affrontare refactoring di legacy o codice non familiare.
+Un characterization test cattura un comportamento corrente per permetterci di rilevare una variazione successiva.
+
+Microsoft descrive i characterization test come una regression suite utile a determinare il comportamento del codice esistente e a sostenere il lavoro su codice non familiare o legacy.
 
 Fonte:
 
 - [Microsoft Learn — IntelliTest: Characterization tests](https://learn.microsoft.com/en-us/visualstudio/test/intellitest-manual/)
 
-Martin Fowler ha discusso lo stesso uso nel lavoro con codice legacy: prima rendere osservabile il comportamento, poi introdurre seam e refactoring con una rete di sicurezza.
+Martin Fowler ha discusso lo stesso principio nel lavoro sul legacy: rendere prima osservabile il comportamento, poi creare seam e migliorare la struttura con una rete di sicurezza.
 
 Fonte:
 
 - [Martin Fowler — Modern Mocking Tools and Black Magic](https://martinfowler.com/articles/modernMockingTools.html)
 
-## Characterization non significa approvazione
+Il valore del characterization test non è dire che il sistema abbia ragione.
 
-Questo punto è fondamentale.
-
-Supponiamo che il legacy produca:
+È dirci:
 
 ```text
-Enterprise tenant + Payment case + age > 30 min
-→ Priority = Urgent
+prima faceva X
+ora fa Y
 ```
 
-Un characterization test può fissare:
+così il cambiamento non resta invisibile.
+
+## Observed non significa Confirmed
+
+Supponiamo che Operations Desk Classic produca:
 
 ```text
-input X
-→ output Urgent
+Enterprise tenant
++ Payment case
++ age > 30 min
+→ Priority = URGENT
 ```
 
-Questo dimostra che il comportamento esiste.
+Un test può dimostrare che quel risultato avviene davvero per un input controllato.
 
-Non dimostra che:
+Lo stato della claim diventa `Observed`.
 
-- sia ancora richiesto;
-- sia corretto;
-- sia stato progettato intenzionalmente;
-- debba essere portato nel nuovo sistema.
+Non sappiamo ancora se la regola:
 
-Per questo separiamo:
+- sia richiesta da un contratto;
+- sia una policy ancora valida;
+- sia un workaround storico;
+- sia un bug;
+- debba essere portata nel target.
+
+Per questo il capitolo insiste sulla separazione:
 
 ```text
 Observed behavior
@@ -63,159 +72,118 @@ Observed behavior
 Confirmed requirement
 ```
 
-## Tre categorie di comportamento
+Il test rende il comportamento visibile.
 
-Durante la discovery classifichiamo progressivamente ciò che osserviamo.
+La decisione di dominio ne stabilisce il significato.
 
-### 1. Required behavior
+## Classificare progressivamente il comportamento
 
-Il comportamento è confermato da:
+Dopo averlo osservato, un comportamento significativo deve essere classificato.
 
-- Product/domain owner;
-- contratto;
-- compliance;
-- processo operativo corrente;
-- requirement esplicito.
+### Required
 
-Deve essere preservato o sostituito con una semantica deliberatamente equivalente.
+È confermato da Product, domain owner, contratto, compliance o altro requirement esplicito.
 
-### 2. Compatibility behavior
+Deve essere preservato oppure sostituito da una semantica deliberatamente equivalente.
 
-Il comportamento esiste perché un consumer legacy lo richiede ancora.
+### Compatibility
 
-Potrebbe non essere desiderabile nel target finale, ma non può essere rimosso immediatamente.
+Esiste perché un consumer attuale continua a dipenderne.
 
-### 3. Accidental behavior
+Può non appartenere al target finale, ma non può essere rimosso finché la dependency non viene migrata o ritirata.
 
-Il comportamento è un effetto storico non più desiderato.
+### Accidental
 
-Può essere:
+È un effetto storico non più desiderato: bug, workaround obsoleto, default errato, dead branch o comportamento senza consumer.
 
-- bug;
-- workaround obsoleto;
-- default sbagliato;
-- dead branch;
-- output non più consumato.
+La modernization dovrebbe eliminarlo, non consacrarlo.
 
-La modernizzazione dovrebbe eliminarlo, non conservarlo per fedeltà archeologica.
+### Unknown
 
-## Golden master
+Abbiamo osservato qualcosa, ma non possediamo ancora evidence sufficiente per classificarlo.
 
-Per sistemi complessi può essere utile catturare output esistenti su un insieme rappresentativo di input e confrontare il nuovo comportamento con il baseline.
+Questa quarta categoria è importante.
 
-Schema:
+Costringe il team ad ammettere che non ogni behavior deve ricevere subito una spiegazione.
+
+## Golden master: confronto, non culto dello snapshot
+
+Quando la semantica è complessa possiamo costruire un corpus rappresentativo e confrontare vecchia e nuova implementazione.
 
 ```text
-representative input corpus
+representative inputs
 → legacy implementation
-→ normalized observable output
+→ normalized observable outputs
 → baseline
 
-new implementation
-→ same input corpus
-→ normalized observable output
+same inputs
+→ candidate implementation
+→ normalized observable outputs
 → diff
 ```
 
-Questo approccio è spesso chiamato **golden master**.
+Questo approccio, spesso chiamato **golden master**, è utile quando l'output è deterministico o normalizzabile e la specifica non è ancora completa.
 
-È potente quando:
+Il rischio nasce quando fotografiamo indiscriminatamente ogni byte.
 
-- l'output è deterministico o normalizzabile;
-- la semantica è complessa;
-- non abbiamo ancora una specifica completa;
-- possiamo costruire un corpus rappresentativo.
+Timestamp, random ID, ordering accidentale, cache metadata e formatting irrilevante creano diff rumorosi.
 
-È pericoloso quando fotografiamo indiscriminatamente tutto.
+Il team inizia allora ad approvare snapshot per far tornare verde la suite.
 
-## Snapshot illusion
-
-Un enorme snapshot può dare falsa sicurezza.
-
-Se contiene:
-
-- timestamp;
-- ID random;
-- ordering accidentale;
-- formatting irrilevante;
-- implementation detail;
-- cache metadata;
-
-ogni modifica produrrà rumore.
-
-Il team inizierà ad aggiornare snapshot senza capirli.
-
-A quel punto il test non protegge più il comportamento.
+A quel punto il test non protegge più la semantica.
 
 Protegge il file snapshot.
 
-Regola:
+La regola è:
 
-> **Caratterizza l'output semanticamente importante, non ogni byte che il sistema produce.**
+> **caratterizza ciò che un consumer o un operatore può realmente distinguere, non ogni dettaglio dell'implementazione corrente.**
 
-## Testare dal boundary
+## Il boundary del test conta
 
-Quando possibile, caratterizziamo il sistema attraverso boundary stabili:
+Quando possibile, caratterizziamo attraverso un boundary relativamente stabile:
 
 ```text
 public function
 API
-message contract
+message
 DB result
 batch output
-file format
+file contract
 ```
 
-Questo riduce il rischio di legare i test alla struttura interna che vogliamo proprio cambiare.
+Un test che verifica la sequenza di private method diventa fragile proprio quando iniziamo il refactoring.
 
-### Esempio
-
-Fragile:
+Un test che verifica invece:
 
 ```text
-assert private method A calls private method B twice
+input X
+→ priority URGENT
+→ export eligibility true
 ```
 
-Più utile:
+protegge una proprietà osservabile indipendentemente dalla struttura interna.
 
-```text
-when Payment case has current legacy input X
-then priority result is Urgent
-and nightly-export eligibility is true
-```
+## Il legacy può essere difficile da osservare
 
-## Il problema delle dipendenze reali
+Molti sistemi sono intrecciati con clock globale, filesystem, database statico, singleton, network call, environment variable e framework lifecycle.
 
-Il legacy spesso è difficile da testare perché il comportamento è intrecciato con:
+Non dobbiamo per forza risolvere tutto prima di ottenere la prima evidence.
 
-- clock globale;
-- filesystem;
-- database statico;
-- singleton;
-- network call;
-- environment variable;
-- framework lifecycle;
-- global configuration.
+Possiamo iniziare dal boundary più esterno che riusciamo a controllare.
 
-Non dobbiamo necessariamente risolvere tutto prima del primo test.
+Poi creare seam più piccoli.
 
-Possiamo iniziare catturando un comportamento abbastanza esterno.
-
-Poi introdurre seam progressivamente.
-
-Ma un mock molto potente può nascondere quanto il codice sia accoppiato.
+Ma dobbiamo evitare un'altra illusione: un mocking framework molto potente può rendere testabile qualunque cosa senza rendere il design più comprensibile.
 
 Il test passa.
 
-La progettazione resta fragile.
+Il coupling resta.
 
-Fowler mostra proprio questa tensione: strumenti di mocking potenti possono rendere testabile il legacy senza costringerci a migliorare i seam; una piccola ristrutturazione può rendere sia codice sia test più leggibili.
+La testability del Capitolo 16 vale anche qui: il seam dovrebbe rappresentare una dipendenza significativa, non soltanto un trucco della suite.
 
-## Characterization corpus
+## Un corpus intenzionale vale più di cento input casuali
 
-Per una capability significativa costruiamo un corpus intenzionale.
-
-Categorie:
+Per una capability importante vogliamo casi che rappresentino classi semantiche:
 
 ```text
 normal case
@@ -229,104 +197,89 @@ duplicate/retry case
 historical compatibility case
 ```
 
-Il corpus deve includere soprattutto casi che hanno conseguenze business.
+La priorità non è massimizzare il numero di fixture.
 
-Non soltanto input facili da generare.
+È includere i casi che possono cambiare business outcome o compatibilità.
 
-## Production-derived input
+Production evidence può aiutarci a scoprire input che non avremmo immaginato, ma non giustifica copiare dati reali senza governance.
 
-I dati di produzione possono aiutare a trovare casi che non avremmo immaginato.
+Possiamo usare synthetic reconstruction, anonymization, schema-preserving generation, aggregate distributions o replay sottoposto a privacy review.
 
-Ma non copiamo production data senza governance.
+La modernization non sospende Security by Design.
 
-Possibili strategie:
+## Gli incidenti sono specification recovery
 
-- synthetic reconstruction;
-- anonymization;
-- schema-preserving generation;
-- sampled identifier-free fixtures;
-- aggregate distribution analysis;
-- privacy-reviewed replay.
-
-Security e privacy restano quality floor anche durante la modernization.
-
-## Characterization e incidenti
-
-Gli incidenti storici sono una fonte preziosa di casi.
+Un incidente storico contiene spesso informazioni preziose su ciò che il sistema non deve più permettere o deve continuare a gestire.
 
 Per ogni incidente significativo chiediamo:
 
-- quale input/stato lo ha reso possibile?
-- esiste oggi un regression test?
-- il test vive al layer giusto?
-- quale assumption mancava?
-- quale monitoring lo ha scoperto?
+```text
+quale stato/input lo ha reso possibile?
+quale behavior è stato osservato?
+quale regression test esiste oggi?
+quale assumption mancava?
+quale signal lo ha scoperto?
+```
 
-Il legacy spesso contiene conoscenza sedimentata proprio negli incidenti.
+L'incidente può diventare characterization evidence e, dopo conferma, requisito o guardrail.
 
-## Characterization con AI
+## L'AI accelera la raccolta, non la classificazione finale
 
-Un agente può accelerare molto questa fase.
+Un agente può enumerare branch, generare candidate input, trovare boundary value, confrontare output e minimizzare failing case.
 
-Può:
+Può quindi rendere molto più economica la creazione della baseline.
 
-- enumerare branch;
-- trovare boundary value;
-- generare input candidate;
-- confrontare output;
-- minimizzare un failing case;
-- proporre regression test;
-- estrarre fixture da trace/log anonimizzati.
+Ma non dovrebbe compiere automaticamente questo salto:
 
-Ma non deve decidere da solo che un comportamento osservato sia desiderabile.
+```text
+behavior observed
+→ requirement accepted
+```
 
-Workflow:
+Il workflow corretto è:
 
 ```text
 AI finds behavior
 → characterization test
-→ runtime evidence if needed
+→ runtime/data evidence when needed
 → domain review
-→ classify behavior
-   required / compatibility / accidental
+→ classify
+   Required / Compatibility / Accidental / Unknown
 ```
 
-## Un test può preservare anche un bug
+## Anche un bug può essere preservato temporaneamente
 
-È una conseguenza intenzionale della fase.
+Può sembrare paradossale, ma durante la fase di understanding è a volte corretto.
 
-Se non sappiamo ancora se il comportamento sia corretto, possiamo temporaneamente preservarlo per ridurre il rischio di cambiamento simultaneo.
+Se non sappiamo ancora se una differenza sia voluta, evitare di cambiarla insieme alla struttura riduce il numero di variabili contemporanee.
 
-Poi apriamo una decisione separata:
+Quando poi il comportamento viene confermato come bug, la modifica diventa deliberata:
 
 ```text
-current behavior
-→ confirmed bug
-→ new requirement
-→ explicit behavior change
-→ test updated deliberately
+current behavior observed
+→ bug confirmed
+→ target behavior decided
+→ test changed intentionally
 ```
 
-Non cambiamo semantica nel mezzo di una modernization tecnica senza renderlo visibile.
+Questo evita di nascondere un cambiamento funzionale dentro una modernization “tecnica”.
 
-## Il valore della baseline
+## La baseline non rende buono il legacy
 
-Una characterization suite ben costruita non rende il legacy buono.
+Una characterization suite non certifica il sistema.
 
-Rende il legacy **misurabile durante il cambiamento**.
+Rende visibile una parte del suo comportamento.
 
-Questo cambia la nostra posizione.
+Prima avevamo:
 
-Prima:
+> Speriamo di non rompere niente.
 
-> “Speriamo di non rompere niente.”
+Dopo abbiamo:
 
-Dopo:
+> Questi behavior sono osservati e protetti; questi altri restano sconosciuti; soltanto alcuni sono già confermati.
 
-> “Questi comportamenti noti sono protetti; questi altri restano non verificati.”
+È una forma di confidence incompleta.
 
-È ancora incompleto.
+Ma è finalmente una confidence con confini espliciti.
 
-Ma è una forma molto più onesta di confidence.
-
-> **Prima di migliorare un comportamento dobbiamo essere capaci di accorgerci quando lo abbiamo cambiato.**
+> **Prima di migliorare un comportamento dobbiamo essere capaci di accorgerci quando lo abbiamo cambiato, e sapere se quel cambiamento era davvero autorizzato.**
