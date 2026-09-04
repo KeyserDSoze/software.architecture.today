@@ -4,7 +4,7 @@ Dentro Marketing Technology, ESI incontra un problema molto diverso da Order Ope
 
 Nasce così **Campaign Launchpad**.
 
-Il rischio iniziale non è costruire troppo poco. È trasformare una esigenza circoscritta in un CMS general purpose o in una nuova marketing platform prima che il problema lo richieda.
+Il rischio iniziale non è costruire troppo poco. È trasformare un'esigenza circoscritta in un CMS general purpose o in una nuova marketing platform prima che il problema lo richieda.
 
 ## Il problema definisce anche ciò che non dobbiamo costruire
 
