@@ -1,120 +1,88 @@
-# Il repository come contesto persistente
+# 21.2 — Il repository come contesto persistente
 
 Quando un agente entra in un repository, la prima attività reale non è scrivere codice.
 
-È costruire un modello del sistema.
+È costruire un modello del sistema abbastanza buono da non confondere ciò che **esiste** con ciò che **è intenzionale**.
 
-Anche quando non lo vediamo, deve capire almeno:
+Deve capire che cosa fa il prodotto, quali directory contengono la semantica rilevante, quali documenti sono autorevoli, quali boundary non vanno attraversati implicitamente, quali comandi producono evidence affidabile e quali failure obbligano a fermarsi.
 
-- che cosa è il prodotto;
-- quale parte del prodotto è in scope;
-- dove vive il codice rilevante;
-- quali boundary sono intenzionali;
-- quali documenti sono autorevoli;
-- quali comandi sono affidabili;
-- quali errori sono normali;
-- quali failure devono fermare il lavoro.
+Se il repository non rende queste informazioni economiche da trovare, l'agente deve inferirle. E più inferenza usiamo per ricostruire decisioni stabili, più aumenta la probabilità di una modifica localmente plausibile e globalmente fuori traiettoria.
 
-Se il repository non fornisce queste informazioni in modo economico, l'agente deve inferirle.
+## Dal repository-archivio al repository come sistema operativo del lavoro
 
-Più inferenza serve, più aumenta la probabilità che l'esecuzione sia veloce ma semanticamente fuori traiettoria.
-
-## Dal repository come archivio al repository come sistema operativo del lavoro
-
-Per molti team il repository è ancora trattato come:
+Per molti team il repository coincide ancora con:
 
 ```text
 source code
 + configuration
-+ test
++ tests
 ```
 
-Per un workflow agentico dobbiamo vederlo in modo più ampio:
+Per una execution sempre più delegata serve una visione più ampia:
 
 ```text
 source
-+ constraints
 + decisions
-+ verification
++ constraints
 + ownership
++ verification
 + operating instructions
 ```
 
-Questo non significa mettere ogni informazione aziendale nel Git repository.
+Non significa trasferire tutta la conoscenza aziendale in Git. Significa che ciò che serve per modificare responsabilmente quel software deve essere contenuto, o almeno raggiungibile, attraverso un percorso stabile.
 
-Significa che il repository dovrebbe contenere o referenziare in modo stabile il contesto necessario per modificare responsabilmente il software.
+Una business policy può vivere in un sistema Product esterno, una permission enterprise in una platform policy, una runtime metric in observability. Il repository non deve copiarle tutte. Deve sapere **dove sta la fonte autorevole e quando il task deve consultarla**.
 
-## Knowledge locality
+## Knowledge locality: avvicinare la regola alla conseguenza
 
-Un principio utile è la **knowledge locality**.
+Una regola globale merita un punto di ingresso globale. Una regola che riguarda soltanto `src/priority/` non dovrebbe occupare sempre il context window di chi modifica `infra/`. Una procedura legata a una migration dovrebbe vivere vicino alla migration o essere raggiungibile dal relativo route di contesto.
 
-La regola che riguarda tutto il repository può stare vicino alla root.
+Questo principio possiamo chiamarlo **knowledge locality**: più un'informazione è distante dal luogo in cui produce conseguenze, più cresce il rischio che venga dimenticata, duplicata o reinterpretata.
 
-La regola che riguarda soltanto `src/priority/` dovrebbe stare vicino a quella capability o essere referenziata chiaramente dal documento operativo.
+La locality non è soltanto geografica. È anche semantica. Il documento che spiega perché Payments possiede gli effetti economici deve essere associato a ogni change che prova a introdurre un nuovo `PaymentStatus` locale, anche se i due file stanno in directory diverse.
 
-La regola che riguarda un deployment specifico dovrebbe vivere con l'IaC o con la relativa documentazione, non in una pagina generica che nessuno associa più alla modifica.
+## Canonical knowledge e routing non sono la stessa cosa
 
-Più un'informazione è distante dal luogo in cui produce una conseguenza, più aumenta il rischio che venga dimenticata.
+Uno dei modi più rapidi per rovinare il context layer è copiare la stessa informazione in troppi posti.
 
-Questo vale per umani e agenti.
+Immaginiamo che `README.md`, `AGENTS.md`, una instruction Copilot, una wiki e un prompt template descrivano tutti la stessa ownership rule. All'inizio sembrano coerenti. Poi una sola copia viene aggiornata e iniziano a esistere cinque versioni del sistema.
 
-## Canonical context vs duplicated context
+A quel punto il problema non è più la scarsità di contesto. È **context conflict**.
 
-Un errore frequente nell'onboarding AI è duplicare lo stesso contenuto in molti formati:
-
-```text
-README.md
-AGENTS.md
-copilot-instructions.md
-CLAUDE.md
-GEMINI.md
-wiki
-prompt template
-```
-
-Dopo poche settimane compaiono divergenze.
-
-Una copia dice:
-
-```text
-PaymentStatus è letto live.
-```
-
-Un'altra dice:
-
-```text
-PaymentStatus è una projection locale.
-```
-
-A questo punto il problema non è più la mancanza di contesto.
-
-È il conflitto fra contesti.
-
-La strategia più sostenibile è distinguere:
+La distinzione che vogliamo mantenere è:
 
 ```text
 canonical knowledge
-vs
-agent/tool routing instructions
+→ explains the decision
+
+routing instruction
+→ says when and where to read it
 ```
 
-Per esempio:
+Per Order Operations questo significa, per esempio:
 
 ```text
-Data ownership       → docs/data-ownership.md
-API semantics        → docs/api-contract.md
-Reliability target   → docs/reliability-contract.md
-Architecture rules   → docs/architecture-fitness-checklist.md
-Agent entry point    → AGENTS.md
+Data ownership
+→ docs/data-ownership.md
+
+Priority semantics
+→ docs/priority-functional-analysis.md
+
+Reliability target
+→ docs/reliability-contract.md
+
+Architecture rules
+→ docs/architecture-fitness-checklist.md
+
+Operational entry point
+→ AGENTS.md
 ```
 
-`AGENTS.md` non deve riscrivere tutti quei documenti.
+`AGENTS.md` non deve riscrivere quei documenti. Deve insegnare a raggiungerli.
 
-Deve dire quando leggerli.
+## `AGENTS.md` come entry point, non come seconda architettura
 
-## `AGENTS.md` come indice operativo
-
-Il formato `AGENTS.md` è pensato come un luogo prevedibile per fornire istruzioni ai coding agent. Il sito ufficiale del formato lo descrive come un README per agenti e prevede anche file annidati per sottoprogetti o aree con istruzioni specifiche. GitHub supporta `AGENTS.md` in varie superfici Copilot, mentre OpenAI Codex lo usa come sorgente di istruzioni persistenti con scope legato alla directory.
+Il formato `AGENTS.md` nasce come luogo prevedibile per istruzioni rivolte ai coding agent. GitHub supporta varie forme di repository custom instruction, mentre il formato `AGENTS.md` prevede anche scope locali attraverso file annidati; OpenAI Codex usa a sua volta istruzioni persistenti legate al repository e alla directory.
 
 Fonti:
 
@@ -122,90 +90,49 @@ Fonti:
 - [GitHub Docs — Support for different types of custom instructions](https://docs.github.com/en/copilot/reference/custom-instructions-support)
 - [OpenAI — Unrolling the Codex agent loop](https://openai.com/index/unrolling-the-codex-agent-loop/)
 
-Questo suggerisce una struttura utile:
+Queste capability sono utili perché offrono un punto di ingresso stabile. Ma il design resta nostro.
+
+Per ESI l'entry point deve rispondere rapidamente a poche domande: che prodotto è questo, dove si trova la Repository Map, quali documenti leggere per classi di change, quali comandi eseguire, quali boundary non modificare implicitamente e quando fermarsi.
+
+Se comincia a contenere schema completo, incident history, API encyclopedia e tutte le decisioni di ogni capitolo, ha smesso di fare routing.
+
+## La Repository Map descrive responsabilità, non file
+
+Un agente può cercare semanticamente. Questo non rende inutile una mappa.
+
+La ricerca risponde bene a “dove compare questa stringa?”. Una Repository Map dovrebbe rispondere a “quale parte del sistema **possiede questa responsabilità**?”.
+
+Per Order Operations la baseline del Capitolo 21 può essere letta così:
+
+| Area | Responsabilità | Vincolo importante |
+|---|---|---|
+| `src/application/` | orchestrazione dei use case | non dipende direttamente dai meccanismi infrastrutturali |
+| `src/contracts/` | contract indipendenti dall'implementazione | non deve importare semantica da layer applicativi/infrastrutturali |
+| `src/integration/` | broker, outbox e integrazione | contiene i meccanismi, non la business authority |
+| `src/observability/` | telemetry boundary | non diventa dominio |
+| `src/priority/` | target priority semantics + compatibility seam | legacy resta dietro boundary esplicito |
+| `database/` | persistence posseduta da Order Operations | niente seconda authority per fatti di altri domini |
+| `infra/` | workload infrastructure | security/reliability/cost decision si applicano qui |
+
+Questa tabella è molto più utile di un inventario di quattordici file. Riduce il rischio che l'agente scelga il file “più simile” invece del boundary corretto.
+
+## Un decision route riduce il costo di discovery
+
+La mappa diventa ancora più utile quando non descrive soltanto directory, ma collega il tipo di change al contesto che deve essere aperto **prima** del diff.
+
+Per esempio:
 
 ```text
-AGENTS.md
-├── repository purpose
-├── repository map
-├── canonical docs
-├── build/test commands
-├── architectural constraints
-├── stop conditions
-└── definition of done
-```
-
-Non:
-
-```text
-AGENTS.md
-└── entire architecture handbook copied again
-```
-
-## Repository map
-
-Un agente può cercare semanticamente il codice.
-
-Questo non elimina il valore di una repository map.
-
-Una map esplicita riduce due rischi:
-
-1. esplorazione ripetitiva;
-2. scelta del file “più simile” invece del boundary corretto.
-
-Una map efficace non elenca ogni file.
-
-Descrive responsabilità.
-
-Esempio:
-
-```text
-src/application/
-  use case orchestration; no Azure SDK; no infrastructure dependency
-
-src/contracts/
-  external/integration contract types; implementation-independent
-
-src/integration/
-  broker/outbox/infrastructure mechanisms
-
-src/priority/
-  target priority policy + legacy compatibility seam
-
-infra/
-  Azure workload infrastructure; security/reliability decisions apply
-
-database/
-  Order Operations-owned persistence only
-```
-
-Questa informazione è molto più utile di:
-
-```text
-there are 14 TypeScript files
-```
-
-## Decision index
-
-Un'altra cosa utile è un piccolo indice delle decisioni.
-
-Non necessariamente un documento nuovo.
-
-Può essere una sezione del repository map:
-
-```text
-If changing...
-
-Payment Escalation
-→ api-contract.md
-→ data-ownership.md
-→ event contract
-→ failure-mode-map.md
-
 Priority behavior
 → priority-functional-analysis.md
 → legacy-understanding-map.md
 → refactoring-safety-plan.md
+
+Payment Escalation
+→ api-contract.md
+→ events/
+→ data-ownership.md
+→ failure-mode-map.md
 
 Cloud topology
 → cloud-deployment.md
@@ -214,137 +141,57 @@ Cloud topology
 → cost-model.md
 ```
 
-L'obiettivo è evitare che l'agente debba scoprire la documentazione rilevante soltanto dopo aver prodotto il diff.
+Il valore è temporale. L'agente trova il decision context prima di produrre una soluzione che poi scopriamo incompatibile con il sistema.
 
-## Il problema della discoverability
+## Discoverability: corretto ma introvabile è quasi inutile
 
-Documentazione corretta ma non scopribile ha valore limitato.
+Documentazione buona con naming ambiguo, directory incoerenti e file come `design-final-v2.md` ha un valore operativo molto più basso di quanto sembri.
 
-Se il repository contiene venti documenti con nomi generici:
+La discoverability migliora quando i documenti canonical hanno nomi stabili, ownership chiara e link espliciti fra requirement, decisione ed evidence. Non serve una tassonomia perfetta. Serve che un nuovo contributor possa distinguere rapidamente ciò che è corrente da ciò che è storico, target o sperimentale.
 
-```text
-design.md
-notes.md
-architecture2.md
-old-plan.md
-migration-final.md
-migration-final-v2.md
-```
+Questo punto è particolarmente importante nel capstone, dove una `Legacy Understanding Map` e una `Functional Analysis` contengono entrambe regole di priority ma con status epistemico diverso. Il nome e il routing devono impedirci di trattarle come due copie equivalenti.
 
-un agente non ha un criterio affidabile per scegliere.
+## Stale context: il rischio peggiore
 
-La discoverability migliora con:
+Un documento assente costringe l'agente a cercare. Un documento autorevole ma obsoleto può invece convincerlo di sapere.
 
-- naming stabile;
-- directory coerenti;
-- documenti canonical dichiarati;
-- indici brevi;
-- ownership;
-- link tra requirement, decisione ed evidence.
+Per questo il context layer deve essere sincronizzato con il change workflow. Se cambia una business rule, Functional Analysis, Requirements e test devono restare coerenti. Se cambia un cross-boundary contract, vanno rivalutati compatibility, ownership e consumer evidence. Se cambia topology, devono riaprirsi Threat Model, Reliability e Cost Model.
 
-La stessa cosa vale per gli umani.
+La documentazione smette così di essere un archivio che aggiorniamo “quando c'è tempo”. Diventa una parte della Definition of Done quando il change modifica il significato che il documento governa.
 
-## Stale context
+## Context dichiarativo e context eseguibile
 
-Il rischio più pericoloso non è un documento mancante.
+La Repository Map può dire che `src/application` non deve importare `src/integration`. Il test AF-002 può verificarlo.
 
-È un documento autorevole ma sbagliato.
+I due livelli non si duplicano: il documento spiega **perché** il confine esiste e come orientarsi; il test rende difficile violarlo accidentalmente.
 
-Per questo il repository deve rendere chiaro anche **quando aggiornare il contesto**.
+Questa è una delle idee più importanti del capitolo.
 
-Esempio:
+> **Il miglior contesto stabile non è sempre quello che chiediamo all'agente di ricordare. Quando una proprietà è meccanicamente verificabile, il repository dovrebbe poter rispondere da solo.**
 
-```text
-If you change a business rule:
-- update functional analysis
-- update tests
-- check requirements
-
-If you change a cross-boundary contract:
-- update API/event contract
-- check compatibility
-- update consumer evidence
-
-If you change infrastructure topology:
-- update threat/reliability/cost models
-- rerun relevant gates
-```
-
-Questa regola trasforma la documentazione da archivio passivo a parte del change workflow.
-
-## Contesto dichiarativo e contesto eseguibile
-
-Una repository map può dire:
-
-```text
-application must not depend on integration
-```
-
-Un architecture test può verificarlo.
-
-I due livelli hanno funzioni diverse.
-
-La documentazione spiega **perché**.
-
-Il test impedisce che il principio venga violato accidentalmente.
-
-Quindi il repository AI-ready dovrebbe spostare verso l'esecuzione le regole che possono essere verificate meccanicamente.
-
-Non dobbiamo chiedere all'agente di ricordare:
-
-```text
-non importare @azure/* nel core
-```
-
-se abbiamo già una fitness function che può fallire in modo deterministico.
-
-> **Il contesto migliore non è quello che l'agente deve ricordare. È quello che il sistema può verificare.**
+L'architecture test diventa quindi anche una forma di context engineering: comunica il boundary attraverso feedback deterministico.
 
 ## Context budget
 
-Anche il contesto ha un costo.
+Anche il contesto ha un costo. Più testo carichiamo sempre, più aumentano token, rumore, conflitto e manutenzione.
 
-Più istruzioni vengono caricate sempre, più aumentano:
-
-- token;
-- rumore;
-- probabilità di conflitto;
-- difficoltà nel capire quale regola sia rilevante;
-- manutenzione.
-
-Dobbiamo quindi applicare anche qui *fit before fashion*.
-
-Contesto globale solo per regole globali.
-
-Contesto locale per regole locali.
-
-Documenti dettagliati caricati quando il task li tocca.
-
-In forma sintetica:
+La strategia ESI sarà quindi:
 
 ```text
-small global context
-+ discoverable local context
-+ executable constraints
+small global routing context
++ discoverable canonical knowledge
++ local context when the task needs it
++ executable constraints where possible
 ```
 
-è spesso migliore di:
+Non un universal prompt che tenta di raccontare tutto il sistema in anticipo.
 
-```text
-one enormous universal prompt
-```
+Questo è ancora `fit before fashion`: il context layer deve essere proporzionato alla decisione.
 
-## Una repository map è una forma di architecture
+## Una Repository Map è architecture navigabile
 
-Se una repository map è ben fatta, racconta:
+Una buona mappa non sostituisce il modello architetturale. Rende visibile dove vivono responsabilità, knowledge source e dependency direction.
 
-- quali responsabilità esistono;
-- quali confini vogliamo preservare;
-- quali knowledge source sono autorevoli;
-- quali dependency direction sono intenzionali.
+Nel prossimo paragrafo aggiungeremo l'altra metà dell'AI-readiness: non basta sapere dove andare. Il repository deve anche offrire un percorso corto e ripetibile da modifica a evidence.
 
-Non sostituisce l'architettura.
-
-Ma rende l'architettura navigabile.
-
-> **L'AI non ha bisogno che il repository sia autoesplicativo. Ha bisogno che sia meno costoso distinguere ciò che sappiamo da ciò che deve ancora inferire.**
+> **Ridurre l'inferenza non significa eliminare l'esplorazione. Significa evitare di far riscoprire continuamente ciò che il team ha già deciso e può rendere persistente.**
