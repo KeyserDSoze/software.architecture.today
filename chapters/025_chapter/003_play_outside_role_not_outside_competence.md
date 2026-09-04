@@ -1,270 +1,83 @@
 # Giocare fuori ruolo senza fingere competenza
 
-Una delle conseguenze più interessanti dell'AI è che il confine fra ruoli diventa più permeabile.
+Una delle conseguenze più interessanti dell’AI è che i confini fra ruoli diventano più permeabili.
 
-Un backend engineer può produrre una prima bozza di UI.
+Un backend engineer può costruire una prima UI. Un architect può esplorare una query complessa. Un product engineer può preparare una candidate IaC change. Un developer può leggere un’analisi funzionale, proporre acceptance criteria e costruire un primo threat flow.
 
-Un architect può esplorare una query SQL complessa.
+Questa elasticità rende possibile una parte del leverage del One-Man Project: molte attività non richiedono più necessariamente un handoff completo soltanto perché appartengono a una disciplina diversa.
 
-Un product engineer può costruire un prototipo infrastrutturale.
-
-Un security specialist può generare test applicativi.
-
-Un developer può leggere un'analisi funzionale, proporre acceptance criteria e preparare un ADR.
-
-Questo è uno dei motivi per cui il One-Man Project diventa possibile.
-
-Ma dobbiamo distinguere:
+Ma c’è una distinzione che dobbiamo proteggere:
 
 ```text
 role elasticity
 ≠
-competence illusion
+competence transfer
+≠
+authority transfer
 ```
 
-## Giocare fuori ruolo
-
-Nel modello del libro, **giocare fuori ruolo** significa poter attraversare temporaneamente un boundary professionale abbastanza da:
-
-- formulare una prima ipotesi;
-- costruire una prima versione;
-- parlare il linguaggio dello specialista;
-- riconoscere i punti di rischio;
-- produrre evidence utile;
-- sapere quando serve escalation.
-
-Non significa diventare automaticamente esperti di tutto.
-
-> **L'AI può ridurre il costo di entrare in un territorio. Non riduce automaticamente il costo di essere responsabili delle conseguenze in quel territorio.**
+> **L’AI può ridurre il costo di entrare in un territorio. Non riduce automaticamente il costo di essere responsabili delle conseguenze in quel territorio.**
 
 ## Il rischio della competenza sintetica
 
-Un agente può generare una configurazione Kubernetes corretta sintatticamente.
+Un output generato può avere la forma di un lavoro specialistico: terminologia corretta, struttura plausibile, configurazione sintatticamente valida, riferimenti tecnici convincenti.
 
-Questo non rende il lead un Kubernetes platform engineer.
+Questa qualità superficiale crea un rischio particolare. Possiamo iniziare a confondere “sono riuscito a produrre una candidate solution” con “comprendo abbastanza il dominio da possederne la decisione”.
 
-Può scrivere un threat model plausibile.
+Un agente può generare una configurazione Kubernetes funzionante e il lead può comunque non sapere riconoscere i failure mode di scheduling, network policy o upgrade. Può produrre un threat model plausibile senza trasformare Engineering nel proprietario della security posture. Può scrivere una formula fiscale senza trasferire Legal o Finance dentro il repository. Può proporre un payment workflow senza spostare la verità economica da Payments & Risk a Commerce & Operations.
 
-Questo non rende inutile Security.
+Questa è una forma di **competence laundering**: la qualità dello stile dell’output nasconde la distanza fra capacità di generazione e capacità di giudizio.
 
-Può costruire una formula fiscale.
+Il One-Man Project deve essere progettato proprio per evitare che il leverage renda più difficile riconoscere ciò che non sappiamo.
 
-Questo non autorizza Engineering a sostituire Legal o Finance.
+## La breadth che serve davvero
 
-Può suggerire un workflow payment.
+Il lead non deve diventare lo specialista migliore in ogni area. Deve però possedere abbastanza breadth da riconoscere quando un task cambia classe.
 
-Questo non trasferisce la semantica economica da Payments & Risk a Commerce & Operations.
+Deve accorgersi che una modifica apparentemente locale cambia un contract, sposta data ownership, apre una trust boundary, introduce un economic side effect o crea una one-way door. Deve sapere dove vive la source of truth e quale evidence sarebbe sufficiente a giudicare il risultato.
 
-Il problema è che la qualità superficiale dell'output può farci sembrare più competenti di quanto siamo davvero.
+Questa è la competenza trasversale che rende governabile la delega.
 
-Questa è una forma di **competence laundering**:
+> **Il manager di agenti non deve sapere fare meglio tutto. Deve sapere quando il sistema gli sta chiedendo una decisione che non può prendere da solo.**
 
-```text
-specialist output style
-+
-credible terminology
-+
-AI confidence
-→ perceived expertise
-```
+Qui torna con forza la functional literacy del Capitolo 2. Se il lead conosce soltanto la tecnologia, gli agenti amplificano subito ogni ambiguità sul comportamento del prodotto. Per governare execution deve saper leggere attori, journey, stati, regole, eccezioni, authorization semantics, acceptance criteria e open question.
 
-Il One-Man Project deve difendersi da questa illusione.
+Più possiamo delegare l’implementazione, meno possiamo permetterci di non capire la funzione.
 
-## Breadth prima di delegation
+Lo stesso vale per architecture e security literacy. Il lead deve riconoscere boundary, coupling, ownership, consistency, reversibilità, blast radius; deve sapere che authentication non equivale ad authorization, credential non equivale a permission e tool availability non equivale ad autorizzazione.
 
-Una persona che governa agenti deve avere una competenza a T.
-
-Non deve essere lo specialista migliore in ogni area.
-
-Deve però possedere abbastanza breadth da riconoscere almeno:
-
-```text
-this is a normal implementation choice
-this changes a contract
-this changes security posture
-this changes data ownership
-this changes money semantics
-this creates a one-way door
-this requires a specialist
-```
-
-In altre parole:
-
-> **Il manager di agenti non deve sapere fare tutto. Deve sapere quando il sistema sta chiedendo una decisione che non può prendere da solo.**
-
-## Functional literacy
-
-Qui ritorna una posizione importante del Capitolo 2.
-
-Un One-Man Project non può funzionare se il lead conosce soltanto la tecnologia.
-
-Deve essere in grado di leggere e produrre almeno una prima analisi funzionale:
-
-- attori;
-- journey;
-- stati;
-- transizioni;
-- regole;
-- eccezioni;
-- authorization semantics;
-- acceptance criteria;
-- open question.
-
-Perché gli agenti amplificano immediatamente qualunque ambiguità funzionale.
-
-Se il lead non comprende il prodotto, non sta governando agenti.
-
-Sta distribuendo supposizioni.
-
-> **Più puoi delegare l'implementazione, meno puoi permetterti di ignorare la funzione.**
-
-## Architecture literacy
-
-Lo stesso vale per l'architettura.
-
-Il lead deve riuscire almeno a riconoscere:
-
-- boundary;
-- coupling;
-- ownership;
-- consistency;
-- failure domain;
-- reversibilità;
-- quality attribute;
-- cost premium;
-- blast radius.
-
-Non perché debba produrre personalmente tutti gli artefatti.
-
-Ma perché deve poter valutare se una proposta dell'agente cambia il sistema oltre lo scope autorizzato.
-
-## Security literacy
-
-Un One-Man Project senza security literacy è particolarmente pericoloso.
-
-La persona deve almeno riconoscere:
-
-```text
-authentication != authorization
-credential != permission
-private network != trusted system
-input != instruction
-AI tool availability != authorization
-```
-
-E sapere quando fermarsi.
-
-La ricerca Microsoft pubblicata nel 2025 su 860 developer ha trovato che l'apertura all'uso dell'AI varia significativamente per tipo di task e che reliability/security diventano priorità particolarmente importanti nei task che toccano sistemi reali; mentoring e attività più centrate sulle relazioni umane mostrano limiti diversi all'automazione.
+Una ricerca Microsoft del 2025 su 860 developer ha rilevato che l’apertura verso l’uso dell’AI varia in modo significativo per tipo di task e che reliability e security diventano priorità particolarmente importanti quando il lavoro tocca sistemi reali. È un’ulteriore conferma che “quanto AI usare” non è una proprietà uniforme del ruolo, ma dipende dal rischio e dalla conoscenza coinvolti.
 
 Fonte:
 
 - [Microsoft Research — AI Where It Matters](https://www.microsoft.com/en-us/research/publication/ai-where-it-matters-where-why-and-how-developers-want-ai-support-in-daily-work/)
 
-La lezione non è creare una matrice universale di “AI sì / AI no”.
+## Specialist gate: l’authority resta dove serve
 
-È:
+Per evitare sia l’hero developer sia la burocrazia, ESI usa **specialist gate trigger-based**.
 
-> **la quantità di AI appropriata dipende dal tipo di rischio e di conoscenza coinvolti nel task.**
+Il lead può esplorare, preparare una proposta e produrre evidence. Ma quando il lavoro attraversa una certa boundary, l’authority della decisione resta presso la funzione appropriata.
 
-## Specialist gate
+Una nuova business semantic richiede Product/Operations. Un nuovo payment side effect o una modifica a ledger truth richiede Payments & Risk. Una nuova trust boundary, public ingress o sensitive-data path richiede Security. Una capability condivisa, una nuova topology o un enterprise identity/network change può richiedere Platform. Retention, regulated data o jurisdictional constraint possono richiedere Legal/Compliance.
 
-Per questo introduciamo il concetto di **specialist gate**.
-
-Il lead può fare discovery e preparare una proposta, ma alcuni trigger richiedono la review di una funzione specifica.
-
-Esempi ESI:
-
-### Product / Domain
-
-Trigger:
+Non tutti questi gate devono comparire in ogni task. Il valore del modello sta proprio nel renderli **condizionali**.
 
 ```text
-new business semantics
-customer-visible behavior
-priority/remediation rule
-new actor or workflow
+boundary non attraversata
+→ lead proceeds within existing authority
+
+boundary attraversata
+→ specialist gate
 ```
 
-### Payments & Risk
+La distinction è importante: lo specialista non deve produrre necessariamente tutto il lavoro della propria area. Mantiene però authority sulla decisione che appartiene a quella funzione.
 
-Trigger:
+## Il test prima di accettare lavoro fuori ruolo
 
-```text
-economic side effect
-refund
-payment retry semantics
-ledger/payment truth
-financial idempotency
-```
+Prima di portare avanti un task fuori dalla propria specializzazione, il lead dovrebbe essere in grado di rispondere a quattro domande: quale failure mode principale sto rischiando? Dove vive la source of truth? Quale evidence mi permetterà di giudicare il risultato? Quale scoperta mi obbliga a fermarmi e coinvolgere un’altra authority?
 
-### Security
+Se queste risposte sono confuse, il fatto che un agente possa produrre subito una soluzione non risolve il problema. Lo rende soltanto meno visibile.
 
-Trigger:
+L’obiettivo non è restare dentro il proprio job title. È attraversare i confini professionali mantenendo chiari i confini di responsabilità.
 
-```text
-new trust boundary
-public ingress
-new sensitive data
-new AI tool permission
-weaker isolation
-```
-
-### Platform
-
-Trigger:
-
-```text
-new shared platform capability
-new region/topology
-cluster/runtime ownership
-enterprise identity/network policy
-```
-
-### Legal / Compliance
-
-Trigger:
-
-```text
-new regulated data
-retention/legal hold
-customer communication constraint
-new jurisdictional obligation
-```
-
-Il lead mantiene ownership dell'integrazione del lavoro.
-
-Lo specialista mantiene authority sulla decisione che appartiene alla sua area.
-
-## Non trasformare i gate in burocrazia
-
-Il contrario sarebbe sbagliare nella direzione opposta.
-
-Se ogni modifica deve attraversare tutti gli specialisti, il One-Man Project perde qualunque leverage.
-
-Per questo i gate devono essere **trigger-based**.
-
-```text
-no trigger
-→ lead proceeds within documented boundary
-
-trigger crossed
-→ specialist review required
-```
-
-Le fitness function e il repository context aiutano proprio a rendere questi trigger visibili.
-
-## Un nuovo test mentale
-
-Prima di accettare un task fuori dal proprio ruolo, chiedere:
-
-1. posso riconoscere i principali failure mode?
-2. conosco la source of truth della decisione?
-3. so quale evidence dimostra che il risultato è buono?
-4. so quando devo fermarmi?
-5. qualcuno con authority specialistica deve approvare una parte della scelta?
-
-Se la risposta alle ultime quattro domande è confusa, l'AI non ha eliminato il bisogno di competenza.
-
-Lo ha soltanto reso più facile da nascondere.
-
-> **Gioca fuori ruolo. Non giocare fuori responsabilità.**
+> **Gioca fuori ruolo. Non giocare fuori competenza, authority e responsabilità.**
