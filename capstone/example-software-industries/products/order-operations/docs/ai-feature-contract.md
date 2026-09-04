@@ -412,11 +412,12 @@ Cost review
 
 ```text
 AI Feature Contract                    Codified
-CaseExplanation domain contract        Next: Codified in src/ai
+CaseExplanation domain contract        Codified
+Deterministic result validation        Codified
 Deterministic context builder          Designed / Pending implementation
 Provider/model adapter                 Pending
 Model/provider decision                Pending eval comparison
-Eval dataset                           Next: Codified
+Eval dataset                           Codified (EVAL-001..EVAL-008 seed)
 Eval execution                         Pending
 Production runtime                     Not deployed
 Write tools                            Not authorized
