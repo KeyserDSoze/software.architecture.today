@@ -1,20 +1,28 @@
 ## Architecture Context Map
 
-Finora abbiamo introdotto il system of interest e gli attori esterni, confini, dipendenze e ownership. Abbiamo aggiunto critical user journey, failure domain, coupling e feedback loop. Serve un modo leggero per mettere insieme questi concetti senza trasformarli in nove documenti separati.
+A questo punto abbiamo abbastanza elementi da rischiare un problema opposto: conoscere molti concetti utili e tenerli separati. System of interest, attori esterni, ownership, dipendenze, critical journey, failure domain, coupling e vincoli hanno valore soltanto se ci aiutano a prendere una decisione concreta.
 
-L'artefatto operativo di questo capitolo è l'**Architecture Context Map**.
+Per questo introduciamo l'artefatto operativo del capitolo: l'**Architecture Context Map**.
 
-Non è un diagramma standard universale.
+Non è un nuovo standard universale di diagrammazione e non vuole sostituire C4, UML, deployment view o altri modelli esistenti. È un contenitore decision-oriented che ci obbliga a rendere visibile il contesto architetturale necessario prima di scegliere una soluzione.
 
-È una rappresentazione decision-oriented del contesto architetturale.
-
-Il suo scopo è rispondere a una domanda:
+La domanda a cui deve rispondere è semplice:
 
 > **Che cosa dobbiamo sapere del sistema e del suo ambiente prima di prendere questa decisione?**
 
+## Una mappa costruita per una domanda
+
+Il rischio dei diagrammi di architettura è voler mostrare tutto. Il risultato può essere tecnicamente ricco e cognitivamente povero: una parete di scatole e frecce in cui ogni dettaglio ha lo stesso peso.
+
+Una Context Map efficace parte invece da una domanda. Se stiamo decidendo come rendere più affidabile un journey, ci interesseranno soprattutto dipendenze sincrone, fallback, failure domain e punti in cui la latency si accumula. Se stiamo analizzando security, la stessa realtà verrà osservata attraverso identity, trust boundary, dati sensibili, ingress ed egress. Durante una migration diventeranno centrali consumer, compatibilità, sequencing, ownership e schema evolution.
+
+Il sistema reale non cambia. Cambia ciò che scegliamo di rendere visibile perché cambia la decisione.
+
+> **Un buon diagramma omette intenzionalmente ciò che non serve alla domanda che sta aiutando a risolvere.**
+
 ## Struttura minima
 
-Una versione semplice può contenere:
+Qui ha senso mantenere una struttura esplicita, perché la mappa è un artefatto riutilizzabile e deve poter essere scansionata rapidamente.
 
 ```markdown
 # Architecture Context Map
@@ -26,35 +34,38 @@ Che cosa stiamo progettando o modificando?
 Chi interagisce con il sistema?
 
 ## External systems
-Da quali sistemi esterni dipendiamo?
+Da quali sistemi o capability esterne dipendiamo?
 
 ## Responsibilities
-Quali responsabilità appartengono al sistema?
+Quali responsabilità appartengono al system of interest?
 
 ## Data ownership
 Quali dati sono autorevoli e dove?
 
 ## Critical journeys
-Quali flussi end-to-end dobbiamo proteggere?
+Quali comportamenti end-to-end dobbiamo proteggere?
 
 ## Dependencies
-Quali dipendenze sono obbligatorie?
+Quali dipendenze sono obbligatorie e quali opzionali?
 
 ## Failure domains
 Che cosa può fallire insieme?
 
+## Trust boundaries
+Dove cambiano fiducia, identità o privilegi?
+
 ## Constraints
-Quali vincoli cambiano le opzioni disponibili?
+Quali vincoli cambiano lo spazio delle opzioni?
 
 ## Open questions
-Quali assunzioni devono ancora essere validate?
+Quali informazioni o assunzioni devono ancora essere validate?
 ```
 
-A questo possiamo aggiungere un diagramma.
+Non tutte le sezioni hanno lo stesso peso in ogni decisione. Per una modifica piccola possono bastare cinque domande: qual è il system of interest, da cosa dipende, quale journey stiamo proteggendo, dove vive la verità e che cosa può fallire insieme. Per un cambiamento più significativo useremo invece la struttura completa.
 
-## Un diagramma utile
+## Il diagramma è una parte della mappa, non la mappa
 
-Per un sistema piccolo può bastare:
+Una rappresentazione molto semplice potrebbe essere:
 
 ```mermaid
 flowchart LR
@@ -64,170 +75,38 @@ flowchart LR
     Orders --> Identity[Identity Provider]
 ```
 
-Ma il diagramma da solo non basta.
+È utile, ma non ci dice se `Orders DB` sia authoritative per tutti i dati mostrati, quale freshness sia accettabile, che cosa accada quando Identity non risponde o chi possieda il significato dello stato ordine. Le frecce descrivono relazioni; non descrivono automaticamente il contratto di quelle relazioni.
 
-Non ci dice, per esempio, se `Orders DB` sia authoritative, quanto possa essere vecchio il dato o che cosa accada se Identity non risponde. Non chiarisce chi possieda il significato dello stato ordine né quali vincoli di accesso esistano. Per questo la Context Map unisce rappresentazione e annotazioni decisionali.
+Per questo la Context Map combina una vista visuale, quando serve, con annotazioni decisionali. Il diagramma ci aiuta a vedere la forma. Le annotazioni ci aiutano a capire che cosa quella forma significa.
 
-## Non è documentation theater
+## Proporzionare l'artefatto alla decisione
 
-L'Architecture Context Map non deve diventare una tavola da mantenere ossessivamente aggiornata per ogni sistema.
+La Context Map non deve diventare documentation theater. Non serve una tavola mantenuta ossessivamente per ogni componente e per ogni commit. Possiamo creare una mappa di una pagina per una feature importante, una versione più ricca per un nuovo prodotto, una vista temporanea per analizzare un incidente oppure una mappa living per un dominio complesso.
 
-La creiamo quando serve.
+Il test è lo stesso che abbiamo già applicato agli altri artefatti del libro: **questa rappresentazione modifica o migliora una decisione?** Se richiede tre giorni per documentare una modifica di un'ora, probabilmente la stiamo usando male. Se in mezz'ora rende visibile una dipendenza che avrebbe invalidato il design, ha già prodotto valore.
 
-Possiamo avere una versione di una pagina per una feature importante.
+## Relazione con modelli esistenti
 
-Una versione più ricca per un nuovo prodotto.
+C4 e altri approcci a più livelli di astrazione rimangono strumenti molto utili. Una Context Map può usare un diagramma di contesto, una container view, una deployment view o qualunque notazione aiuti a rispondere alla domanda corrente.
 
-Una mappa temporanea per analizzare un incidente.
+Il punto non è inventare una notazione proprietaria del libro. È separare il mezzo dal reasoning. Una mappa graficamente impeccabile che non chiarisce ownership, vincoli o failure topology può essere poco utile. Una rappresentazione molto semplice che rende evidente una decisione sbagliata può essere architetturalmente preziosa.
 
-Oppure una mappa living per un dominio complesso.
+## Una mappa come contesto per gli agenti
 
-L'artefatto deve essere proporzionato alla decisione.
+Questo artefatto diventa particolarmente utile quando deleghiamo lavoro. “Implementa la ricerca ordini” lascia all'agente il compito di ricostruire il sistema implicito attorno alla feature. Se invece forniamo Problem & Outcome Brief, Architecture Context Map, contract rilevanti, acceptance criteria e stop condition, stiamo trasferendo non soltanto il task ma il contesto entro cui quel task deve essere giudicato.
 
-Se richiede tre giorni per documentare una modifica di un'ora, probabilmente stiamo usando lo strumento male.
+La differenza è importante. Un agente che vede il critical journey sa che ottimizzare una query non basta se la source of truth è sbagliata. Un agente che vede il failure domain può riconoscere che aggiungere una dipendenza sincrona cambia availability e blast radius. Un agente che conosce un'open question può evitare di trasformarla accidentalmente in una decisione implementativa.
 
-## Mappe per domande, non mappe per completezza
+### Il rischio della mappa obsoleta
 
-Un errore comune nei diagrammi di architettura è voler mostrare tutto.
+Una Context Map vecchia può essere peggiore dell'assenza di mappa se viene trattata come fonte autorevole. Con gli agenti il problema si amplifica: una rappresentazione obsoleta può essere consumata rapidamente, ripetutamente e con grande fiducia.
 
-Il risultato è spesso una parete di scatole e frecce.
-
-Tecnicamente completa.
-
-Cognitivamente inutile.
-
-Una mappa efficace deve avere un punto di vista.
-
-Per esempio:
-
-**Context Map per reliability**
-
-Mostra:
-
-- dipendenze sincrone;
-- failure domain;
-- fallback;
-- critical journey.
-
-**Context Map per security**
-
-Mostra:
-
-- trust boundary;
-- identity;
-- dati sensibili;
-- ingress/egress;
-- privilege.
-
-**Context Map per migration**
-
-Mostra:
-
-- consumer;
-- schema;
-- compatibility;
-- ownership;
-- sequencing.
-
-La realtà è la stessa.
-
-La vista cambia perché cambia la decisione.
-
-> **Un buon diagramma omette intenzionalmente ciò che non serve alla domanda che sta aiutando a risolvere.**
-
-## Relazione con C4 e altri modelli
-
-Esistono approcci consolidati per rappresentare architetture a più livelli di astrazione.
-
-Possiamo utilizzare diagrammi di contesto, container, componenti, deployment view o altre notazioni quando aiutano.
-
-L'Architecture Context Map non vuole sostituirli.
-
-È un artefatto operativo del libro che può usare quelle rappresentazioni.
-
-Il suo focus non è la notazione.
-
-È il reasoning.
-
-Una mappa disegnata benissimo che non chiarisce ownership, vincoli e failure non ci basta.
-
-Una mappa semplice che fa emergere la decisione giusta può essere molto più utile.
-
-## Context Map come input per agenti
-
-Questo artefatto è particolarmente utile quando deleghiamo lavoro.
-
-Invece di dare a un agente soltanto:
-
-> “Implementa la ricerca ordini.”
-
-possiamo fornire il Problem & Outcome Brief e l'Architecture Context Map, insieme ai contract rilevanti, agli acceptance criteria e alle stop condition. L'agente riceve così non soltanto il compito, ma una rappresentazione del sistema in cui il compito vive.
-
-Questo riduce la probabilità di ottimizzazioni locali incoerenti.
-
-### Ma attenzione alla mappa obsoleta
-
-Una mappa vecchia è peggiore dell'assenza di mappa se viene trattata come fonte autorevole.
-
-Con gli agenti il rischio cresce perché una rappresentazione obsoleta può essere utilizzata ripetutamente e con grande fiducia.
-
-Una Context Map living dovrebbe quindi indicare almeno:
-
-```text
-owner
-last reviewed
-scope
-assumptions
-```
-
-Non serve una governance pesante.
-
-Serve sapere quando fidarsi.
-
-## Versione lightweight
-
-Per un task medio possiamo usare cinque domande:
-
-```text
-1. Qual è il system of interest?
-2. Da quali sistemi dipende?
-3. Qual è il journey da proteggere?
-4. Dove vive la verità?
-5. Che cosa può fallire insieme?
-```
-
-Queste cinque risposte possono già evitare molti errori.
-
-## Versione standard
-
-Per cambiamenti più importanti:
-
-```text
-System of interest
-Actors
-External systems
-Responsibilities
-Data ownership
-Critical journeys
-Dependencies
-Failure domains
-Trust boundaries
-Constraints
-Open questions
-```
-
-Possiamo aggiungere Mermaid o un diagramma esterno.
+Per una mappa living conviene quindi rendere visibili almeno `owner`, `scope`, `last reviewed` e le assunzioni ancora aperte. Non è governance pesante; è un modo per dichiarare quanto possiamo fidarci del documento.
 
 ## Il valore reale
 
-L'Architecture Context Map non crea architettura.
+L'Architecture Context Map non crea architettura e non prende decisioni al posto nostro. Rende visibile il sistema abbastanza da impedirci di decidere come se il resto non esistesse.
 
-Rende visibile il contesto in cui l'architettura viene decisa.
-
-Questa distinzione è importante.
-
-Il documento non prende la decisione per noi.
-
-Ci impedisce di prenderla fingendo che il resto del sistema non esista.
+Questa distinzione sarà centrale nei prossimi capitoli. Prima di confrontare pattern, tecnologie o topologie, dobbiamo sapere quali forze stanno realmente agendo sul problema.
 
 > **Prima di ottimizzare una parte, rendi visibile il sistema a cui appartiene.**
