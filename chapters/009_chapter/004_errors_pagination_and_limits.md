@@ -1,28 +1,24 @@
 ## Errori, collezioni e limiti fanno parte del contratto
 
-Molte API vengono progettate con attenzione sul caso `200 OK` e improvvisate appena qualcosa va storto.
+Molte API vengono progettate con grande attenzione sul `200 OK` e improvvisate appena il percorso felice finisce.
 
-È un errore.
+È un errore di prospettiva.
 
-Per un consumer, capire **come una capability fallisce** è parte della capability stessa.
+Per un consumer, una capability non è definita soltanto da ciò che accade quando tutto funziona. È definita anche da ciò che può fare quando la risposta è incompleta, la richiesta è invalida, una dipendenza non risponde o il provider gli chiede di rallentare.
 
-### Uno status code non racconta tutto
+La domanda che un buon contratto deve permettere di rispondere è:
 
-HTTP offre status code con semantica condivisa.
+> **“Che cosa posso fare adesso, usando soltanto le informazioni promesse dall'API?”**
 
-Un `404` comunica una classe di problema.
+## L'errore deve guidare il consumer senza esporre l'interno
 
-Un `403` ne comunica un'altra.
+Uno status code HTTP comunica già una classe di risultato. `404`, `403`, `409` e `503` non sono semplici numeri: permettono a client e intermediari di riconoscere famiglie di comportamento.
 
-Un client spesso ha bisogno di informazioni applicative più precise: quale regola sia stata violata o quale campo sia invalido, se l'errore sia transitorio e se il consumer possa correggere la richiesta. Un identifier utile per supporto o tracing può essere altrettanto importante dello status code.
+Spesso, però, il consumer ha bisogno di più contesto. Deve sapere quale regola sia stata violata, se possa correggere la richiesta, se il problema sia temporaneo o se serva un'azione diversa.
 
-RFC 9457 definisce **Problem Details for HTTP APIs**, un formato machine-readable pensato proprio per evitare che ogni API inventi un proprio envelope di errore generico.
+RFC 9457 definisce **Problem Details for HTTP APIs**, un formato machine-readable pensato per descrivere errori applicativi senza costringere ogni API a inventare il proprio envelope: [RFC 9457 — Problem Details for HTTP APIs](https://www.rfc-editor.org/rfc/rfc9457.html).
 
-Fonte primaria:
-
-- [RFC 9457 — Problem Details for HTTP APIs](https://www.rfc-editor.org/rfc/rfc9457.html)
-
-Un esempio potrebbe essere:
+Per esempio:
 
 ```json
 {
@@ -34,13 +30,11 @@ Un esempio potrebbe essere:
 }
 ```
 
-Non useremo questo formato perché è uno standard e quindi “obbligatorio”.
+Il valore non sta nell'avere cinque campi standard.
 
-Lo useremo quando evita di reinventare una convenzione già interoperabile.
+Sta nel fatto che il consumer riceve una semantica stabile senza dover conoscere l'eccezione interna che l'ha prodotta.
 
-### L'errore non deve perdere il dominio
-
-Un errore come:
+Una response come:
 
 ```json
 {
@@ -48,7 +42,7 @@ Un errore come:
 }
 ```
 
-espone un dettaglio interno e spesso non aiuta il consumer.
+rivela un dettaglio del provider e non dice quasi nulla su ciò che il client dovrebbe fare.
 
 Un errore come:
 
@@ -58,110 +52,104 @@ Un errore come:
 }
 ```
 
-può invece rappresentare una condizione del dominio.
+può invece esprimere una condizione di dominio utile, purché il contratto ne definisca il significato.
 
-Questo non significa esporre stack trace o dettagli sensibili.
+RFC 9457 mette anche in guardia dall'usare i problem detail come dump di debugging. Stack trace, query, dettagli di configurazione e informazioni sensibili non diventano sicuri soltanto perché sono dentro un formato standard.
 
-RFC 9457 richiama esplicitamente il rischio di usare i problem detail come strumento di debug dell'implementazione e di esporre informazioni che aumentano la superficie d'attacco.
+## Una collection promette un modo di attraversare dati che cambiano
 
-Il contratto di errore deve essere utile al consumer e prudente verso l'interno.
-
-### Collection API: il dataset cresce
-
-Questo endpoint funziona benissimo con 30 ordini:
+Consideriamo:
 
 ```http
 GET /problematic-orders
 ```
 
-Che cosa succede con 3 milioni?
+Con trenta risultati la semantica sembra ovvia.
 
-Una collection API deve decidere pagination, ordering e filtering, i limiti della page size e la stabilità del cursore. Deve soprattutto definire che cosa accada quando i dati cambiano fra due pagine, perché quella semantica è parte dell'esperienza del consumer.
+Con tre milioni di elementi, aggiornati continuamente, non lo è più.
 
-Azure Architecture Center include pagination e filtering tra le considerazioni esplicite di design per API che devono evitare payload inutilmente grandi.
+Pagination, ordering, filtering e limiti non sono semplici ottimizzazioni di performance. Decidono che cosa significhi “scorrere la collection” mentre il dataset cambia.
 
-Fonte:
+Azure Architecture Center include esplicitamente pagination e filtering fra le decisioni di design necessarie per evitare payload eccessivi e offrire collezioni utilizzabili: [Microsoft Learn — RESTful web API design](https://learn.microsoft.com/azure/architecture/best-practices/api-design).
 
-- [Microsoft Learn — RESTful web API design](https://learn.microsoft.com/azure/architecture/best-practices/api-design)
+### Offset e cursor comprano proprietà differenti
 
-### Offset o cursor?
-
-L'offset è intuitivo:
+L'offset è facile da comprendere:
 
 ```http
 GET /problematic-orders?offset=100&limit=50
 ```
 
-Ma in dataset che cambiano rapidamente può produrre salti o duplicati e può diventare costoso a grandi offset, a seconda del datastore.
+Ma se nuovi elementi entrano in testa alla lista fra due richieste, il consumer può vedere duplicati o saltare risultati. A seconda del datastore, offset elevati possono inoltre diventare costosi.
 
-Un cursor può rendere più stabile la navigazione:
+Un cursor opaco:
 
 ```http
 GET /problematic-orders?cursor=eyJ...
 ```
 
-Ma introduce una semantica da definire:
-
-- il cursor scade?
-- è opaco?
-- incorpora ordering?
-- può essere riutilizzato?
-- che cosa succede se il criterio cambia?
+può rendere più stabile la navigazione, ma crea a sua volta un contratto. Dobbiamo sapere se il cursor scada, quale ordering rappresenti, se possa essere riutilizzato e che cosa accada quando i criteri della collection cambiano.
 
 Non esiste “pagination” come checkbox.
 
-Esiste un contratto di navigazione.
+Esiste una promessa su come il consumer prosegue la lettura.
 
-### Filtering è anche una scelta di capability
+## Il filtering definisce quanta parte del modello rendiamo interrogabile
 
-Se accettiamo:
+Offrire:
 
 ```http
-?status=anything&field=anything&expression=anything
+?field=anything&operator=anything&value=anything
 ```
 
-potremmo trasformare un'API di dominio in un query engine generico.
+sembra molto flessibile.
 
-Più flessibilità aumenta la superficie di supporto e la complessità dell'authorization, rende possibili query più costose e può legare maggiormente il consumer al modello interno che volevamo nascondere.
+Può anche trasformare un'API di dominio in un query engine generico sopra il modello interno.
 
-Meglio esporre filtri coerenti con use case reali.
+Ogni nuovo campo interrogabile allarga la superficie di authorization, crea nuovi workload da sostenere e può congelare nomi e strutture che volevamo mantenere locali.
 
-### Rate limiting
+I filtri dovrebbero quindi partire dagli use case del consumer.
 
-Ogni API ha una capacità finita, anche quando non espone esplicitamente un limite.
+`category=Payment` può essere una capability intenzionale della console operativa.
 
-Un contratto maturo deve chiarire almeno:
+`where=payments.internal_state_code=7` è probabilmente un leak di implementazione.
 
-- quali limiti esistono;
-- a quale identità si applicano;
-- che cosa accade quando vengono superati;
-- se e quando il client può ritentare.
+La flessibilità ha valore quando corrisponde a bisogni reali, non quando rende il provider incapace di cambiare il proprio modello.
 
-La parte importante non è soltanto restituire `429`.
+## Rate limit e timeout definiscono il ritmo della relazione
 
-È evitare che client, gateway e retry policy trasformino un limite in un'amplificazione dell'incidente.
+Ogni API ha capacità finita, anche quando non la documenta.
 
-### Timeout fa parte dell'esperienza del consumer
+Un rate limit utile deve chiarire a quale identità o quota si applichi, che cosa accada quando venga superato e se il consumer possa riprovare dopo una certa finestra.
 
-Un'API che “prima o poi risponde” non ha un contratto utile.
+Restituire `429` senza una policy coerente può essere insufficiente. Se il client reagisce con retry aggressivi, il meccanismo di protezione può diventare un amplificatore del sovraccarico.
 
-Dobbiamo capire:
+Lo stesso vale per i timeout.
 
-- quanto può aspettare il consumer;
-- quale timeout applica il server verso downstream;
-- quale budget resta per retry;
-- quando un'operazione lunga deve diventare asincrona.
+Un'API che “prima o poi risponde” non offre un contratto operativo utile. Il consumer deve sapere quale attesa sia ragionevole e il provider deve distribuire il latency budget sulle dipendenze a valle. Se un'operazione richiede troppo tempo per una normale request, può diventare necessario trasformarla in un workflow asincrono con stato interrogabile.
 
-Azure Architecture Center descrive anche il pattern request-reply asincrono per operazioni HTTP che non possono completarsi ragionevolmente dentro la request iniziale.
+Azure Architecture Center descrive proprio l'async request-reply come una soluzione per operazioni che non possono concludersi ragionevolmente nella request iniziale: [Microsoft Learn — RESTful web API design](https://learn.microsoft.com/azure/architecture/best-practices/api-design).
 
-Fonte:
+## Il failure behavior è semantica di prodotto
 
-- [Microsoft Learn — RESTful web API design](https://learn.microsoft.com/azure/architecture/best-practices/api-design)
+Supponiamo che una vista operativa dipenda da Orders, Payments e Shipping e che Payments sia temporaneamente indisponibile.
 
-### Il test del consumer
+Possiamo fallire l'intera response, restituire una vista parziale marcata come tale oppure mostrare un ultimo dato noto con freshness esplicita.
 
-Per ogni response non felice chiediamo:
+Nessuna delle tre risposte è universalmente corretta.
 
-> **“Un consumer che conosce soltanto il contratto sa che cosa può fare dopo?”**
+La scelta dipende da ciò che l'operatore farà dopo. Se un dato stale può causare un'azione economica sbagliata, essere “più disponibili” può essere peggio che dichiarare l'indisponibilità.
 
-Se la risposta richiede leggere il codice server o chiamare il team proprietario, il contratto probabilmente è incompleto.
+Questa decisione non dovrebbe emergere da un `catch` implementato in fretta.
+
+È parte del contratto fra prodotto e consumer.
+
+## Il test del consumer
+
+Per ogni errore, limite o comportamento di navigazione possiamo usare una prova molto semplice:
+
+> **Un consumer che conosce soltanto il contratto sa interpretare ciò che è successo e scegliere un'azione compatibile?**
+
+Se deve leggere il codice server, conoscere una tabella interna o chiamare il team proprietario per capire se possa ritentare, il contratto sta lasciando semantica importante fuori dal boundary.
+
+> **L'happy path descrive che cosa sa fare l'API. Il failure path descrive quanto possiamo fidarci della promessa quando il sistema reale smette di essere ideale.**
