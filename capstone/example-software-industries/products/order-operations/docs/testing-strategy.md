@@ -1,48 +1,40 @@
 # Order Operations — Testing Strategy
 
-> **Scenario fittizio ESI.** Stato corrente dopo il Capitolo 17. Questa strategy governa quali proprietà vogliamo verificare, a quale layer e con quale evidence. I riferimenti a Microsoft, Google, Meta, OWASP e Pact descrivono guidance o casi reali; risk, target e compromessi Order Operations restano simulati.
+> **Scenario fittizio ESI.** Stato corrente dopo il Capitolo 18. La strategy governa quali proprietà vogliamo verificare, a quale layer e con quale evidence.
 
 ## Purpose
 
-Costruire confidence su Order Operations senza trasformare la suite in una collezione di test ridondanti, flaky o troppo costosi da eseguire.
+Costruire confidence senza trasformare la suite in una collezione di test ridondanti, flaky o incapaci di attraversare il boundary che pretendono di verificare.
 
 > **Il numero di test non misura la confidenza. Ogni test deve poter dire quale errore importante dovrebbe riuscire a rilevare.**
 
-Dal Capitolo 17 la strategy copre anche la **characterization evidence** necessaria quando Order Operations deve convivere con un sistema legacy.
+Dal Capitolo 17–18 la strategy copre anche:
+
+- characterization del legacy;
+- target behavior derivato da decisione funzionale;
+- refactoring safety;
+- shadow comparison;
+- intentional difference registry.
 
 ## Quality goals
 
 1. business correctness;
 2. tenant isolation e authorization;
 3. atomicità degli intenti locali;
-4. API/event contract compatibility;
+4. API/event compatibility;
 5. duplicate-delivery safety;
 6. reliability/recovery evidence;
-7. operability e telemetry verification;
-8. fast feedback per il team;
+7. telemetry verification;
+8. fast feedback;
 9. costo sostenibile della test estate;
-10. legacy behavior visibility prima del refactoring.
-
-## Critical journeys
-
-```text
-CF-01 Investigation
-operator → authenticated/private access → operational view
-
-CF-02 Payment Escalation acceptance
-operator → authorization → local transaction
-         → PaymentEscalation + OutboxMessage → 202 Accepted
-
-CF-03 Payment Escalation delivery
-outbox → publisher → Service Bus → Payments & Risk
-```
+10. legacy behavior visibility;
+11. refactoring differences classificabili prima del cutover.
 
 ## Risk sources
 
-La strategy deriva da:
-
 ```text
 docs/functional-analysis.md
+docs/priority-functional-analysis.md
 docs/requirements.md
 docs/api-contract.md
 docs/events/operational-case-payment-escalated-v1.md
@@ -53,238 +45,270 @@ docs/security-control-matrix.md
 docs/reliability-contract.md
 docs/observability-contract.md
 docs/legacy-understanding-map.md
+docs/refactoring-safety-plan.md
 ```
 
 ## Risk-to-Evidence Map
 
-| ID | Property / risk | Impact | Fast evidence | Higher-fidelity evidence | Gate |
-|---|---|---:|---|---|---|
-| TST-001 | solo case `Payment` può essere escalato | high | application test | HTTP integration | PR |
-| TST-002 | stessa `EscalationId` + stesso intent è idempotent replay | high | application test | PostgreSQL/API integration | PR |
-| TST-003 | stessa `EscalationId` non può rappresentare intent diverso | critical | application negative test | DB/API integration | PR |
-| TST-004 | tenant A non può operare su case tenant B | critical | application negative test | authenticated staging integration | PR/release |
-| TST-005 | `PaymentEscalation + OutboxMessage` sono atomici | critical | orchestration test | PostgreSQL transaction test | PR |
-| TST-006 | event v1 resta wire-compatible | high | serialization/schema | consumer/provider contract | PR |
-| TST-007 | duplicate delivery non produce duplicate business effect | critical | consumer component | Payments persistence integration | release |
-| TST-008 | publisher retry è bounded e preserva `messageId` | high | deterministic unit/component | broker integration | PR |
-| TST-009 | exhausted delivery entra nel recovery path | high | deterministic publisher test | broker/DLQ integration | PR/release |
-| TST-010 | runtime identity è least privilege | critical | IaC/RBAC inspection | Azure negative permission test | staging |
-| TST-011 | private ingress/data plane realmente funzionano | high | IaC/static | Azure connectivity test | staging |
-| TST-012 | restore/failover rispettano RTO/RPO | critical | procedure review | real drill | readiness |
-| TST-013 | telemetry non espone secret/token | high | adapter/policy unit | staging telemetry query | PR/staging |
-| TST-014 | alert criticali raggiungono owner/runbook | high | alert definition review | alert drill | readiness |
-| TST-015 | migration chain preserva schema/data | high | SQL static review | real PostgreSQL migration test | PR |
-| TST-016 | legacy priority behavior cambia accidentalmente durante modernization | high | characterization suite | shadow/coexistence comparison | PR/migration |
-| TST-017 | behavior legacy osservato viene promosso a requisito senza domain confirmation | high | Legacy Understanding Map review | Product/Operations confirmation | migration decision |
+| ID | Property / risk | Fast evidence | Higher-fidelity evidence | Gate |
+|---|---|---|---|---|
+| TST-001 | solo case Payment può essere escalato | application test | HTTP integration | PR |
+| TST-002 | stessa EscalationId/same intent è replay idempotente | application | PostgreSQL/API | PR |
+| TST-003 | stessa EscalationId/different intent è conflict | negative application | DB/API | PR |
+| TST-004 | cross-tenant operation denied | negative application | authenticated staging | PR/release |
+| TST-005 | PaymentEscalation + Outbox atomici | orchestration | PostgreSQL transaction | PR |
+| TST-006 | event v1 wire-compatible | serialization/schema | consumer/provider | PR |
+| TST-007 | duplicate delivery non duplica business effect | consumer component | Payments persistence | release |
+| TST-008 | publisher retry bounded + stable messageId | deterministic | broker integration | PR |
+| TST-009 | exhausted path visibile | publisher test | DLQ integration | PR/release |
+| TST-010 | runtime identity least privilege | IaC inspection | Azure negative RBAC | staging |
+| TST-011 | private ingress/data plane reali | IaC/static | Azure connectivity | staging |
+| TST-012 | restore/failover rispettano RTO/RPO | procedure | drill reale | readiness |
+| TST-013 | telemetry non espone secret/token | adapter/policy | staging query | PR/staging |
+| TST-014 | alert raggiunge owner/runbook | definition review | alert drill | readiness |
+| TST-015 | migration chain preserva schema/data | SQL review | PostgreSQL migration | PR |
+| TST-016 | legacy priority behavior cambia accidentalmente | characterization | shadow/coexistence | PR/migration |
+| TST-017 | behavior legacy promosso a requirement senza conferma | Legacy Map review | Product/Operations confirmation | decision |
+| TST-018 | target priority precedence diverge da PF-01..PF-04 | target policy tests | staged shadow | PR/migration |
+| TST-019 | legacy adapter traduce male naming/codici | adapter vs real legacy calculator | integration/coexistence | PR |
+| TST-020 | ED-001 trattata erroneamente come regression | shadow unit test | runtime comparison | PR/migration |
+| TST-021 | mismatch non approvato viene nascosto come expected | negative comparison test | rollout stop condition | PR/migration |
 
 ## Test layers
 
 ### Layer A — Fast deterministic
 
-- TypeScript typecheck;
-- application/component test;
-- outbox publisher test;
-- telemetry classification test;
-- schema/serialization check;
-- legacy characterization test;
-- static security checks quando introdotti.
+```text
+TypeScript typecheck/build
+application/component tests
+outbox publisher tests
+telemetry classification
+priority target policy
+legacy adapter
+shadow comparison
+legacy characterization
+schema/serialization checks
+```
 
 ### Layer B — Integration
 
-- PostgreSQL real integration;
-- migration chain;
-- API host integration;
-- contract verification;
-- real serialization adapter;
-- future legacy/new adapter integration.
+```text
+real PostgreSQL
+migration chain
+API host
+contract verification
+real serialization adapter
+future legacy/new adapter integration
+```
 
 ### Layer C — Staging / cloud
 
-- Entra authentication;
-- tenant/wrong-role negative test;
-- private connectivity;
-- Service Bus adapter;
-- PostgreSQL managed connectivity;
-- runtime RBAC negative test;
-- deployment smoke/synthetic journey.
+```text
+Entra auth
+wrong-role/cross-tenant
+private connectivity
+Service Bus adapter
+managed PostgreSQL
+runtime RBAC negative test
+deployment smoke/synthetic journey
+future priority shadow telemetry
+```
 
 ### Layer D — Scheduled / readiness
 
-- performance/capacity;
-- selected mutation testing;
-- failure injection;
-- PostgreSQL failover;
-- PITR/restore;
-- alert drill;
-- broader security verification;
-- migration/shadow comparison when legacy coexistence begins.
+```text
+performance/capacity
+selected mutation testing
+failure injection
+PostgreSQL failover/PITR
+alert drill
+security verification
+migration/shadow comparison review
+```
 
 ### Layer E — Production continuous verification
 
-- SLI/SLO measurement;
-- private synthetic journey;
-- canary/health evidence;
-- alerting;
-- drift detection;
-- controlled coexistence telemetry when introduced.
+```text
+SLI/SLO
+private synthetic journey
+canary/health evidence
+alerting
+drift detection
+controlled coexistence telemetry
+```
 
-## Current executable suite — Order Operations
+## Executable suite — Order Operations
 
 ```text
 tests/payment-escalation.test.mjs
 tests/outbox-publisher.test.mjs
+tests/priority-policy.test.mjs
 ```
 
-Copre:
+### Payment Escalation / outbox coverage
 
-- Payment category eligibility;
+- Payment eligibility;
 - tenant mismatch;
-- idempotent replay;
-- conflicting idempotency intent;
-- escalation/outbox orchestration;
+- idempotent replay/conflict;
+- escalation + outbox orchestration;
 - bounded retry;
-- exhausted delivery path;
+- exhausted path;
 - stable message identity;
-- telemetry acceptance/rejection classification.
+- telemetry classification.
 
-Test runner:
+### Priority refactoring coverage
+
+- Closed precedence;
+- ManualReview precedence;
+- repeated Payment failure urgency;
+- target removal of Enterprise 30-minute timer;
+- real legacy calculator through `LegacyPriorityAdapter`;
+- shadow retains legacy result;
+- ED-001 classified ExpectedDifference;
+- unapproved mismatch classified UnexpectedDifference;
+- candidate mode returns target semantics without pretending shadow evidence.
+
+## Legacy characterization suite
+
+Separate system:
 
 ```text
-TypeScript tsc build
-→ Node built-in node:test
+legacy/operations-desk-classic/tests/priority-routing.characterization.test.mjs
 ```
 
-Decisione intenzionale:
+It protects **what the legacy currently does**, including the retired Enterprise timer.
 
-> nessun framework aggiuntivo finché la suite non richiede capability che giustifichino un'altra dependency.
+It does not define what the target must do.
 
-### Verification evidence — Capitolo 16
+This distinction is intentional:
+
+```text
+characterization
+→ Observed legacy behavior
+
+target policy test
+→ Confirmed ESI requirement
+```
+
+## Verification evidence — Capitolo 18
+
+Repository source was reconstructed locally after the Chapter 18 changes and TypeScript was compiled with the current strict configuration.
+
+Result:
 
 ```text
 tsc -p tsconfig.json
 → PASS
 
-node --test tests/*.test.mjs
-→ 11 tests
-→ 11 pass
+Order Operations node:test suite
+→ 19 tests
+→ 19 pass
 → 0 fail
-→ 0 skipped
-```
 
-Questa evidence verifica il **fast local layer** soltanto.
-
-Non dimostra PostgreSQL, Azure, Service Bus reale, contract downstream o recovery.
-
-## Legacy characterization suite — Capitolo 17
-
-Operations Desk Classic vive come sistema separato:
-
-```text
-../../legacy/operations-desk-classic/
-```
-
-Suite:
-
-```text
-../../legacy/operations-desk-classic/tests/priority-routing.characterization.test.mjs
-```
-
-Behavior:
-
-```text
-LB-01 CLOSED → NONE
-LB-02 manual hold → MANUAL_REVIEW
-LB-03 Payment + failed_attempts >= 3 → URGENT
-LB-04 Enterprise + age >= 30 min → URGENT
-LB-05 Enterprise before threshold → STANDARD
-LB-06 ordinary case → STANDARD
-```
-
-Verification eseguita durante il Capitolo 17:
-
-```text
-node --test priority-routing.characterization.test.mjs
+Operations Desk Classic characterization
 → 6 tests
 → 6 pass
 → 0 fail
-→ 0 skipped
 ```
 
-Questa evidence significa:
+Of the 19 Order Operations tests:
 
 ```text
-behavior under characterized input
-= Observed + locally Verified
+11 = previously existing application/outbox/telemetry tests
+8  = new priority/refactoring tests
 ```
 
-Non significa:
+This evidence verifies only the local deterministic layer.
 
-```text
-business requirement
-= Confirmed
-```
+It does **not** prove:
 
-La semantica resta governata da:
-
-```text
-docs/legacy-understanding-map.md
-```
-
-Il comando `npm test` del capstone è stato aggiornato per includere sia la suite Order Operations sia la characterization legacy. Il nuovo pattern combinato è **Codified**; i due gruppi di test hanno evidence di esecuzione locale separata (11/11 e 6/6).
+- production shadow comparison;
+- PostgreSQL semantics;
+- API host/authentication;
+- Payments consumer contract;
+- Azure networking/RBAC;
+- performance;
+- recovery;
+- legacy consumer retirement.
 
 ## Contract testing
 
-### API
+API/event contract testing remains `Designed/Pending` until the actual HTTP host and Payments & Risk consumer are implemented.
 
-Direction:
+Pact remains a candidate capability, not an architectural requirement.
 
-- provider conformance rispetto all'API Contract;
-- consumer expectation quando la Operations UI diventerà implementazione reale.
+Reference:
 
-### Event
-
-`OperationalCasePaymentEscalatedV1` deve avere:
-
-- serialization test;
-- compatibility policy;
-- consumer/provider verification con Payments & Risk.
-
-Pact è una capability candidata, non una scelta già presa.
-
-Riferimento:
-
-- [Pact — Introduction](https://docs.pact.io/)
+- [Pact Docs](https://docs.pact.io/)
 
 ## Data / migration testing
 
-Pending:
+Pending real PostgreSQL environment.
 
-```text
-real PostgreSQL test environment
-```
-
-Scenari obbligatori:
+Required scenarios:
 
 1. empty DB → migration 001 → 002;
-2. schema/data after 001 → migration 002;
-3. escalation + outbox same transaction;
-4. uniqueness/concurrency behavior;
+2. existing schema/data → migration 002;
+3. escalation + outbox transaction atomicity;
+4. uniqueness/concurrency;
 5. rollback on second write failure;
-6. representative query/index behavior quando esiste un performance target.
+6. future priority persistence migration only after ownership decision.
 
-Un fake repository non viene considerato evidence delle semantics PostgreSQL.
+A fake repository is not evidence of PostgreSQL semantics.
+
+## Refactoring verification policy
+
+A refactoring slice must state:
+
+```text
+what must stay identical
+what may intentionally change
+what is unknown
+what layer proves each claim
+```
+
+For priority:
+
+```text
+Preserve:
+Closed / ManualReview / Payment repeated failure / Standard default
+
+Intentional change:
+ED-001 Enterprise timer removed
+
+Unknown / future:
+priority persistence
+nightly export consumers
+manual override workflow
+```
+
+## Shadow comparison policy
+
+Comparison class:
+
+```text
+Match
+ExpectedDifference
+UnexpectedDifference
+```
+
+Rules:
+
+1. `ExpectedDifference` requires a pre-approved registry entry.
+2. A difference cannot be reclassified as expected merely to keep rollout moving.
+3. Any new unexpected semantic mismatch blocks candidate rollout until explained.
+4. Shadow candidate must not create external side effects.
+5. Runtime comparison signal must respect telemetry cardinality/data-minimization rules.
 
 ## Security testing
 
-Derivato da Threat Model e Security Control Matrix.
-
-Minimum:
+Minimum remains:
 
 ```text
 unauthenticated denied
 wrong-role denied
 cross-tenant denied
-no persistence after denied operation
+no persistence after denial
 runtime cannot administer infrastructure
 Service Bus publisher send-only
 no production secret in repository
@@ -292,13 +316,13 @@ telemetry redaction
 public access disabled in production baseline
 ```
 
-Riferimento:
+Reference:
 
 - [OWASP ASVS](https://owasp.org/www-project-application-security-verification-standard/)
 
 ## Reliability / recovery testing
 
-Required drills:
+Required drills remain:
 
 1. Payments consumer outage;
 2. App instance loss;
@@ -307,38 +331,11 @@ Required drills:
 5. private DNS failure;
 6. bad deployment rollback.
 
-Ogni drill deve produrre:
-
-```text
-actual RTO
-actual RPO
-unexpected behavior
-manual steps
-recovery evidence
-follow-up actions
-```
-
-## Performance / capacity testing
-
-Non esiste ancora workload measurement reale.
-
-Quindi:
-
-- niente target RPS presentati come reali;
-- eventuali load model iniziali devono essere marcati come ipotesi ESI;
-- acceptance criteria devono collegarsi a SLI/SLO e saturation/headroom.
-
-Scenari futuri:
-
-- core read journey;
-- PostgreSQL connection pressure;
-- outbox throughput;
-- backlog drain after consumer recovery;
-- retry amplification.
+Each drill must produce actual RTO/RPO and unexpected behavior.
 
 ## Infrastructure testing
 
-Per `infra/main.bicep` distinguiamo:
+For `infra/main.bicep`:
 
 ```text
 build/lint
@@ -346,276 +343,106 @@ policy/static validation
 deployment validation
 private connectivity
 RBAC negative tests
-application cross-layer smoke
+application smoke
 zone/recovery exercise
 ```
 
-La compilazione del template non equivale a workload verification.
-
-## Synthetic / production verification
-
-Stato:
-
-```text
-Designed
-```
-
-Direzione:
-
-```text
-private runner
-+ dedicated low-privilege identity
-+ synthetic tenant/data
-+ no public health endpoint introduced for convenience
-```
+Template compilation is not workload verification.
 
 ## Test environment policy
 
-Usiamo il minimo environment capace di dimostrare la property.
+Use the cheapest environment that can demonstrate the property:
 
 ```text
-business rule                → process-local
-legacy observed behavior     → characterization at legacy boundary
-PostgreSQL semantics         → PostgreSQL reale
-Azure identity/network       → Azure non-production
-region/recovery              → environment capace del drill
-```
-
-## Test data
-
-Default:
-
-- synthetic;
-- tenant esplicito;
-- deterministic fixture;
-- unique identifier per run quando serve;
-- nessun production secret;
-- nessun production PII dump non governato.
-
-## Pipeline direction
-
-### Local
-
-```bash
-npm run typecheck
-npm test
-```
-
-### Pull request — target futuro
-
-```text
-typecheck
-fast tests
-legacy characterization
-PostgreSQL integration
-migration test
-API integration
-contract
-security static checks
-Bicep build/lint
-```
-
-### Staging
-
-```text
-deploy
-private connectivity
-Entra auth
-RBAC negative
-broker/database integration
-synthetic smoke
-```
-
-### Scheduled/readiness
-
-```text
-mutation selected risk
-load/capacity
-failure injection
-restore
-alert drill
-security verification
-migration/shadow comparison when applicable
+business rule            → process-local
+legacy behavior          → characterization
+adapter translation      → real local legacy calculator
+PostgreSQL semantics     → real PostgreSQL
+Azure identity/network   → Azure non-production
+recovery                 → environment capable of the drill
 ```
 
 ## Flakiness policy
 
-Un flaky test è un defect del quality system.
-
 ```text
 detected
 → issue + owner
-→ quarantine only if necessary
-→ still visible
+→ quarantine only when necessary and still visible
 → fix or remove
 ```
 
-Non usiamo `retry-until-green` come definizione di successo.
+`retry-until-green` is not success.
 
-## Coverage policy
+## Coverage / mutation policy
 
 ```text
 coverage = diagnostic signal
 coverage != proof of correctness
 ```
 
-Coverage può evidenziare area mai esercitata.
+Mutation remains selective on high-risk logic such as tenant check, idempotency and priority precedence.
 
-Non richiediamo una percentuale uniforme come KPI di quality.
-
-## Mutation policy
-
-Applicazione selettiva futura su:
-
-- tenant check;
-- Payment category eligibility;
-- idempotency/conflict;
-- outbox append/atomicity adapter;
-- logging/redaction;
-- eventuali future action economiche;
-- future priority policy **dopo** averne confermato la semantica.
-
-Non usiamo mutation per trasformare automaticamente behavior legacy non confermato in requisito.
-
-Riferimenti:
+References:
 
 - [Microsoft Learn — Mutation testing](https://learn.microsoft.com/en-us/dotnet/core/testing/mutation-testing)
-- [Engineering at Meta — LLMs Are the Key to Mutation Testing and Better Compliance](https://engineering.fb.com/2025/09/30/security/llms-are-the-key-to-mutation-testing-and-better-compliance/)
+- [Engineering at Meta — mutation-guided LLM testing](https://engineering.fb.com/2025/09/30/security/llms-are-the-key-to-mutation-testing-and-better-compliance/)
 
 ## AI-generated-test policy
 
-Gli agenti possono:
+Agents may propose tests from requirements, invariants, threat and failures.
 
-- derivare test candidate da requirements;
-- proporre negative cases;
-- generare synthetic fixture;
-- proporre realistic fault/mutant;
-- cercare coverage gap;
-- generare characterization candidate;
-- minimizzare failure reproduction;
-- fare adversarial review della suite.
-
-Ogni test merged richiede review umana su:
+Every merged test needs review of:
 
 ```text
 risk/source
-fault or behavior detected
+fault detected
 assertion strength
 layer fit
 determinism
 data safety
 redundancy
 maintenance cost
-requirement state: Confirmed vs Characterized
 ```
 
-Non accettiamo come evidence:
-
-```text
-"AI says comprehensive"
-```
-
-## Ownership
-
-### Order Operations team
-
-- fast/application tests;
-- DB/API integration;
-- migration;
-- application security;
-- suite health;
-- modernization adapter tests quando introdotti.
-
-### Operations / legacy owner
-
-- characterization semantics review;
-- legacy operational behavior confirmation;
-- hidden consumer discovery.
-
-### Payments & Risk
-
-- event consumer contract;
-- duplicate-delivery business safety;
-- payment semantic behavior.
-
-### Platform Engineering
-
-- non-production Azure test capability;
-- IaC/deployment verification foundation;
-- landing-zone test path.
-
-### Security
-
-- threat-derived verification baseline;
-- privileged-boundary review;
-- security tooling guidance.
-
-### Reliability / on-call
-
-- drills;
-- incident-derived regression;
-- alert/runbook verification.
+`AI says comprehensive` is not evidence.
 
 ## Evidence status
 
 ```text
-Testing Strategy                    = Designed + documented
-Order Operations fast test suite    = Codified + Verified locally (11/11)
-Legacy characterization suite       = Codified + Verified locally (6/6)
-Combined npm test command            = Codified
-TypeScript build                    = Verified locally in Chapter 16
-PostgreSQL integration suite        = Designed / Pending
-Payments contract suite             = Designed / Pending cross-team
-Azure security integration          = Designed / Pending
-Performance evidence                = Pending
-Recovery drills                     = Designed / Pending
-Production synthetic journey        = Designed / Pending
-Legacy business semantics           = Observed, not yet Confirmed
+Testing Strategy                 = Designed + documented
+TypeScript build                 = Verified locally
+Order Operations fast suite      = Codified + Verified locally (19/19)
+Legacy characterization          = Codified + Verified locally (6/6)
+Priority seam/candidate/adapter   = Codified + Verified locally
+Shadow classification logic      = Codified + Verified locally
+Production shadow telemetry      = Designed / Pending
+PostgreSQL integration           = Designed / Pending
+Payments contract                = Designed / Pending
+Azure security integration       = Designed / Pending
+Performance/recovery             = Pending
+Production synthetic journey     = Designed / Pending
 ```
 
-## Test debt register — current
+## Test debt register
 
 Open:
 
-- PostgreSQL integration environment missing;
-- API host not yet implemented;
-- consumer contract not yet implemented;
-- Azure adapter verification pending;
-- Bicep build/deploy verification pending;
-- recovery drill pending;
-- production synthetic runner pending;
-- legacy owner/domain confirmation pending;
-- legacy hidden consumer inventory pending;
-- shadow/coexistence test not yet designed in executable form.
-
-Questi gap restano visibili e non vengono coperti dai test locali verdi.
-
-## Review triggers
-
-Rivedere la strategy quando cambia:
-
-- critical journey;
-- API/event version;
-- data ownership;
-- threat model;
-- RTO/RPO/SLO;
-- cloud topology;
-- public/private ingress;
-- team ownership;
-- incident class;
-- suite runtime/flakiness;
-- AI autonomy nel repository;
-- legacy behavior classification;
-- modernization seam/cutover plan.
+- PostgreSQL integration/migration environment;
+- API host;
+- Payments consumer contract;
+- OpenTelemetry/Azure adapter verification;
+- Bicep build/deploy gate;
+- recovery drills;
+- production synthetic runner;
+- runtime priority shadow telemetry;
+- consumer evidence for Operations Desk Classic retirement.
 
 ## Sources
 
 - [Microsoft Learn — Architecture strategies for testing](https://learn.microsoft.com/en-us/azure/well-architected/operational-excellence/testing)
-- [Microsoft Learn — Build confidence in Azure workloads with effective testing practices](https://learn.microsoft.com/en-us/azure/well-architected/design-guides/testing)
-- [Microsoft Learn — IntelliTest characterization tests](https://learn.microsoft.com/en-us/visualstudio/test/intellitest-manual/)
+- [Microsoft Learn — Safe deployment practices](https://learn.microsoft.com/azure/well-architected/operational-excellence/safe-deployments)
 - [Google Testing Blog — Just Say No to More End-to-End Tests](https://testing.googleblog.com/2015/04/just-say-no-to-more-end-to-end-tests.html)
 - [Engineering at Meta — Probabilistic flakiness](https://engineering.fb.com/2020/12/10/developer-tools/probabilistic-flakiness/)
-- [OWASP ASVS](https://owasp.org/www-project-application-security-verification-standard/)
-- [Pact Docs](https://docs.pact.io/)
+- [AWS Prescriptive Guidance — Branch by abstraction](https://docs.aws.amazon.com/prescriptive-guidance/latest/modernization-decomposing-monoliths/branch-by-abstraction.html)
 
-> **Una suite non è completa quando ha tanti test. È completa abbastanza quando i rischi che decidiamo di accettare sono diversi dai rischi che abbiamo semplicemente dimenticato di verificare.**
+> **Il refactoring è verificato abbastanza per il passo successivo soltanto quando la evidence dimostra proprio la property che quel passo metterà a rischio.**
