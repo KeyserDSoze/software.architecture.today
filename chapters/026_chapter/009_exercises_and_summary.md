@@ -1,200 +1,70 @@
-# Esercizi, autovalutazione e sintesi
+# Esercizi e sintesi
 
-Production Readiness è il punto in cui il libro smette quasi completamente di tollerare formule vaghe.
+Production Readiness è il punto in cui formule come “robusto”, “sicuro” o “quasi pronto” smettono di essere sufficienti.
 
-Non basta più dire:
-
-> il sistema è robusto.
-
-Dobbiamo riuscire a dire:
+Per una promessa di launch dobbiamo riuscire a indicare:
 
 ```text
-quale property
-quale launch boundary
-quale evidence
-quale limitation
-quale owner
-quale rischio residuo
+property
+launch boundary
+evidence
+limitation
+owner
+residual risk
 ```
 
----
+Se una di queste parti è opaca, la review ha ancora lavoro da fare.
 
-# Idee chiave
+## Esercizio 1 — Trasforma “siamo pronti” in claim
 
-1. **Production-ready non è una proprietà del codice.**
-2. Una readiness review deve valutare workload, processi, procedure e persone.
-3. `Designed`, `Codified`, `Verified` e `Monitored` non sono sinonimi.
-4. Ogni readiness claim dovrebbe essere collegato a evidence e limitation.
-5. La freshness dell'evidence conta.
-6. Un launch deve avere un boundary esplicito.
-7. Core, write capability, migration e AI feature possono avere readiness differenti.
-8. Un blocker non diventa follow-up perché la data si avvicina.
-9. Risk acceptance richiede l'autorità corretta.
-10. Progressive rollout deve avere progression criteria e stop condition.
-11. Rollback può significare codice, config, traffico, feature, dati, forward repair o compensazione.
-12. Backup configurato non significa recovery verificato.
-13. Dashboard esistente non significa observability ready.
-14. Un sistema senza owner/support path non è production-ready.
-15. Runbook esistente non significa procedura esercitata.
-16. AI Feature Contract esistente non significa model behavior verificato.
-17. Continuity è una property operativa, non una frase nel README.
-18. Production Readiness non è una percentuale di checkbox verdi.
-19. Una review che conclude `NO-GO` può aver svolto perfettamente il proprio lavoro.
-20. Il go-live è l'inizio della production evidence, non la fine della governance.
-
----
-
-# Esercizio 1 — Trasforma un “siamo pronti” in claim
-
-Prendi una frase:
+Parti da:
 
 > Il database è production-ready.
 
-Scomponila in almeno cinque claim verificabili.
+Scomponi la frase in claim verificabili: migration repeatable, transaction invariant, backup, restore, security/connectivity boundary. Per ciascuno indica required evidence, current evidence, limitation e owner.
 
-Esempio:
+L’obiettivo è mostrare quanto poco significhi una readiness label unica.
 
-```text
-schema migration is repeatable
-transaction invariant is verified
-backup exists
-restore meets target
-connection/security boundary is verified
-```
+## Esercizio 2 — Due launch boundary
 
-Per ogni claim indica:
+Definisci per lo stesso sistema un internal pilot e un external 24x7 launch.
 
-```text
-required evidence
-current evidence
-limitation
-owner
-```
+Confronta user cohort, traffic, support, DR, capacity, security exposure, rollout e compliance. Poi identifica quali quality floor non cambiano nonostante la scala diversa.
 
----
+## Esercizio 3 — Blocker, Accepted Risk o Follow-up?
 
-# Esercizio 2 — Launch boundary
-
-Definisci due launch boundary per lo stesso sistema.
-
-### A — internal pilot
-
-### B — external 24x7 production
-
-Confronta almeno:
-
-- user cohort;
-- traffic;
-- support;
-- DR;
-- capacity;
-- security exposure;
-- rollout;
-- compliance;
-- monitoring.
-
-Domanda:
-
-> quali quality floor non cambiano fra A e B?
-
----
-
-# Esercizio 3 — Blocker o Accepted Risk?
-
-Classifica:
+Classifica questi gap rispetto a un launch boundary esplicito:
 
 ```text
 restore never tested
 no multi-region
 alert drill pending
-one optional dashboard missing
+optional dashboard missing
 cross-tenant negative test missing
 AI assistant not evaluated but disabled
 ```
 
-Non usare soltanto:
+Per ogni caso aggiungi impact, mitigation e acceptance authority. Se non hai abbastanza information per classificare il rischio, usa `Unknown` invece di forzare una risposta.
 
-```text
-blocker / non blocker
-```
+## Esercizio 4 — Che cosa significa davvero rollback?
 
-Aggiungi:
+Prendi una modifica reale e descrivi code rollback, configuration rollback, feature/traffic rollback, data recovery, forward repair e business compensation.
 
-```text
-launch boundary
-impact
-acceptance authority
-mitigation
-```
+Quali sono realmente disponibili? In quale momento una via di ritorno scompare?
 
----
+## Esercizio 5 — Evidence audit
 
-# Esercizio 4 — Rollback taxonomy
+Prendi cinque righe verdi di una checklist esistente e chiedi quale primary evidence le sostiene. Se trovi soltanto screenshot, document presence o memoria di qualcuno, descrivi il claim che quella evidence può realmente sostenere e quello che invece sta implicitamente promettendo troppo.
 
-Per una modifica reale del tuo progetto elenca:
+## Esercizio 6 — Runbook exercise
 
-```text
-code rollback
-configuration rollback
-feature rollback
-traffic rollback
-data rollback
-forward repair
-business compensation
-```
+Fai eseguire un runbook da una persona che non lo ha scritto. Registra permission mancanti, command stale, decision point ambigui e hidden knowledge.
 
-Quali sono disponibili?
+Non correggere silenziosamente il documento durante l’esercizio: il gap è parte dell’evidence.
 
-Quali non servono?
+## Esercizio 7 — Alert chain
 
-Quali stavi implicitamente chiamando tutti “rollback”?
-
----
-
-# Esercizio 5 — Readiness evidence audit
-
-Prendi cinque righe verdi di una checklist esistente.
-
-Per ciascuna chiedi:
-
-> qual è l'evidence primaria?
-
-Se trovi soltanto:
-
-```text
-screenshot
-document exists
-someone remembers testing it
-```
-
-classifica la strength dell'evidence.
-
----
-
-# Esercizio 6 — Runbook exercise
-
-Scegli un runbook operativo.
-
-Fallo eseguire da una persona che non lo ha scritto.
-
-Registra:
-
-```text
-step unclear
-permission missing
-command stale
-missing decision
-hidden knowledge
-result
-```
-
-Non correggere il runbook durante l'esercizio senza registrare il gap.
-
----
-
-# Esercizio 7 — Alert chain
-
-Prendi un failure critico e costruisci:
+Scegli un failure critico e costruisci:
 
 ```text
 failure
@@ -205,30 +75,15 @@ failure
 → resolution signal
 ```
 
-Se un passaggio manca, hai trovato un readiness gap.
+Ogni passaggio assente è un candidate readiness blocker o accepted-risk question.
 
----
+## Esercizio 8 — Separare il launch AI
 
-# Esercizio 8 — AI launch separation
+Hai un prodotto deterministico maturo a cui hai aggiunto un AI assistant ancora privo di eval sufficiente.
 
-Hai un prodotto stabile a cui hai aggiunto un AI assistant.
+Confronta due decisioni: ritardare tutto oppure lanciare il core con AI disabled. Spiega quali dependency e product constraint renderebbero corretta l’una o l’altra scelta.
 
-L'AI eval non è ancora sufficiente.
-
-Progetta due opzioni:
-
-```text
-A. delay entire launch
-B. launch deterministic core with AI disabled
-```
-
-Quale scegli?
-
-Da quali dependency e product constraint dipende?
-
----
-
-# Esercizio 9 — Go/No-Go senza votazione
+## Esercizio 9 — Go/No-Go senza maggioranza
 
 Simula:
 
@@ -240,264 +95,80 @@ Operations     CONDITIONAL
 Finance        GO
 ```
 
-Definisci:
+Definisci il finding di Security, quello di Operations e chi possiede l’authority pertinente. Prova poi a ridurre il launch boundary senza indebolire il quality floor.
 
-- quale finding ha Security;
-- quale finding ha Operations;
-- chi ha l'autorità di accettare i rischi;
-- quale launch boundary alternativo potrebbe sbloccare il go-live.
+## Esercizio 10 — Costruisci una PRR
 
----
+Usa un sistema reale o simulato e crea una review che renda espliciti launch boundary, decision, readiness claims, blocker, accepted risk, disabled capability, deployment/recovery, operational ownership, security, reliability, observability, capacity, cost, AI readiness se applicabile, continuity e next review trigger.
 
-# Esercizio 10 — Crea la Production Readiness Review
+Non assegnare una percentuale unica. La review deve poter spiegare **perché** un singolo blocker pesa più di molti item verdi.
 
-Usa un sistema reale o simulato.
+## Artefatto operativo
 
-La review deve avere almeno:
+La **Production Readiness Review** non deve duplicare tutti gli artifact precedenti. È la vista che collega le loro property alla launch decision.
+
+Una forma minima contiene:
 
 ```text
 Launch boundary
 Decision
-Readiness matrix
-Blocker register
-Accepted risk register
-Disabled/deferred capability
+Readiness claims + evidence + limitation
+Blockers
+Accepted risks + authority
+Disabled/deferred capabilities
 Deployment / rollback
 Operational ownership
-Security
-Data
-Reliability / recovery
-Observability
-Capacity
-Cost
-AI readiness if applicable
+Security / reliability / observability
+Capacity / cost
+AI readiness when applicable
 Continuity
-Evidence package
-Next review triggers
+Not verified
+Next review trigger
 ```
 
----
+Il template è un vocabolario di launch risk, non una checklist universale.
 
-# Self-assessment
+## Stato ESI a fine capitolo
 
-Prova a rispondere senza tornare al testo.
-
-1. Perché production readiness non coincide con code completeness?
-2. Qual è la differenza fra readiness claim ed evidence?
-3. Perché una evidence può scadere?
-4. Che cosa significa launch boundary?
-5. Perché non vuoi un readiness score unico tipo `87%`?
-6. Quando un gap può diventare Accepted Risk?
-7. Chi può accettare un security risk?
-8. Che differenza c'è fra rollback del codice e rollback del sistema?
-9. Perché feature flag non risolve ogni rollback?
-10. Perché backup e recovery non sono sinonimi?
-11. Che cosa deve dimostrare un alert drill?
-12. Perché il support model fa parte dell'architettura operativa?
-13. Che relazione c'è fra runbook e continuity?
-14. Perché capacity evidence dipende dal launch boundary?
-15. Perché un AI assistant può restare disabilitato mentre il core va in produzione?
-16. Quali proprietà AI-specifiche entreresti nella PRR?
-17. Qual è il rischio di checklist theatre?
-18. Che cos'è evidence laundering?
-19. Perché un `NO-GO` può essere un ottimo risultato?
-20. Quando riapriresti una Production Readiness Review dopo il launch?
-
----
-
-# Artefatto operativo — Production Readiness Review
-
-Template minimo:
-
-```text
-# Production Readiness Review
-
-## Launch boundary
-Users:
-Capabilities:
-Environment/region:
-Traffic/volume:
-Support promise:
-Explicitly excluded:
-
-## Decision
-READY | CONDITIONAL GO | NO-GO
-
-## Readiness claims
-Area | Claim | Evidence | Limitation | State | Owner
-
-## Blockers
-ID | Condition | Required evidence | Owner | Closure
-
-## Accepted risks
-ID | Risk | Impact | Mitigation | Authority | Expiry/trigger
-
-## Deployment
-Artifact:
-Rollout:
-Progression criteria:
-Stop condition:
-Rollback/fallback:
-Data consequence:
-
-## Operations
-Owner:
-On-call/support window:
-Runbooks/playbooks:
-Incident access:
-Escalation:
-
-## Security
-Required controls:
-Runtime evidence:
-Residual risk:
-
-## Reliability / recovery
-SLO:
-RTO/RPO:
-Backup:
-Restore/failover evidence:
-
-## Observability
-SLI:
-Alerts:
-Alert drill:
-Synthetic/smoke:
-
-## Capacity
-Expected load:
-Headroom:
-Evidence:
-
-## Cost
-Allocation:
-Major premiums:
-Unit metric:
-
-## AI — if applicable
-Authority:
-Eval:
-Security:
-Latency/cost:
-Fallback:
-
-## Continuity
-Secondary maintainer:
-Continuity drill:
-
-## Not verified
-...
-
-## Next review trigger
-...
-```
-
-Il template non è una checklist obbligatoria per ogni sistema.
-
-È un vocabolario di launch risk.
-
----
-
-# ESI — stato finale del capitolo
-
-La review di Order Operations produce:
-
-```text
-Decision
-NO-GO — evidence closure required
-```
-
-con launch boundary separati:
+Order Operations conserva launch boundary separati:
 
 ```text
 LB-CORE
-→ not yet ready
+→ NO-GO until core evidence closes
 
 LB-ESCALATION
-→ blocked by PostgreSQL/integration evidence
+→ BLOCKED by OO-001 and related runtime evidence
 
 LB-PRIORITY-CANDIDATE
-→ not authorized
+→ NOT AUTHORIZED
 
 LB-AI
-→ not ready / disabled
+→ NOT READY / DISABLED
 ```
 
-Questo è il risultato corretto rispetto allo stato reale del capstone.
-
-Non abbiamo scritto venticinque capitoli sulla differenza fra `Designed` e `Verified` per dimenticarcene quando arriva la pressione del launch.
-
----
-
-# Che cosa cambia con l'AI
-
-L'AI accelera molte attività di readiness:
+La decisione canonica resta:
 
 ```text
-generate checklist candidate
-inspect configuration
-build evidence matrix
-summarize gaps
-produce runbook draft
-review logs
-simulate failure hypotheses
-prepare launch report
+PRR-OO-001
+NO-GO — evidence closure required
 ```
 
-Ma introduce anche nuovi rischi:
+Questa conclusione è coerente con tutto ciò che il libro ha costruito. Non avrebbe senso distinguere `Designed`, `Codified`, `Verified` e `Monitored` per venticinque capitoli e poi fonderli insieme quando compare una data di launch.
 
-```text
-AI says all checks pass
-→ which checks?
-→ against which environment?
-→ with which authority?
-```
+## Che cosa cambia con l’AI
 
-Un agente può aiutare a raccogliere evidence.
+L’AI può aiutare a costruire evidence matrix, ispezionare configuration, preparare runbook, sintetizzare gap e generare failure hypothesis.
 
-Non deve trasformare absence of evidence in green status.
+Ma introduce anche un nuovo rischio di evidence laundering: “l’agente dice che tutti i check passano” non spiega quali check, contro quale environment e con quale authority.
 
-E quando l'AI è dentro il prodotto, il modello stesso diventa un nuovo launch boundary con:
+Quando l’AI entra nel prodotto, il modello diventa inoltre un launch boundary con eval, provider, security, fallback, latency, cost e monitoring propri.
 
-```text
-eval
-provider
-security
-fallback
-latency
-cost
-monitoring
-```
+Un agente può accelerare la raccolta della prova. Non può trasformare absence of evidence in green status.
 
----
-
-# Corollario
-
-> **Production-ready non significa che non succederà niente di brutto. Significa che abbiamo abbastanza evidenza per sapere quale promessa stiamo facendo, quali failure abbiamo preparato e chi è responsabile quando la realtà si discosta dal piano.**
+> **Production-ready non significa che non accadrà nulla di brutto. Significa che sappiamo quale promessa stiamo facendo, quale evidence la sostiene, quali failure abbiamo preparato e chi è responsabile quando la realtà si discosta dal piano.**
 
 E soprattutto:
 
 > **Readiness non è ottenere un sì. È rendere costoso dire sì senza sapere perché.**
 
----
-
-# Il prossimo passo
-
-Il Capitolo 27 chiude la parte operativa con **casi end-to-end**.
-
-Non introdurremo una nuova area tecnica.
-
-Faremo qualcosa di diverso:
-
-```text
-problem
-→ analysis
-→ architecture
-→ implementation
-→ evidence
-→ production decision
-```
-
-attraversando sistemi con caratteristiche differenti.
-
-Dopo aver studiato le singole decisioni, vedremo finalmente **come si concatenano quando nessuna di esse vive da sola**.
+Nel Capitolo 27 attraverseremo casi end-to-end. Non introdurremo una nuova disciplina: vedremo come problem, analysis, architecture, implementation, evidence e production decision si concatenano quando nessuna decisione vive da sola.
