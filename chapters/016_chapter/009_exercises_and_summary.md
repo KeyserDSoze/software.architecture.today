@@ -1,100 +1,113 @@
 # 16.9 — Esercizi, autovalutazione e sintesi
 
-Il Capitolo 16 ha spostato il testing da una domanda quantitativa:
+Il Capitolo 16 ha cambiato la domanda con cui guardiamo una suite.
+
+Non chiediamo più soltanto:
 
 > quanti test abbiamo?
 
-verso una domanda architetturale:
+Chiediamo:
 
-> **quale evidence possediamo rispetto ai rischi che contano?**
+> **quali claim importanti del sistema siamo davvero in grado di falsificare prima che una modifica arrivi troppo lontano?**
 
-Questo cambia il modo in cui progettiamo suite, pipeline e perfino il production code.
+Da qui discende tutto il resto.
 
-## Idee chiave
+La code coverage diventa un segnale strutturale, non una prova di qualità. La piramide diventa un'euristica economica, non una costituzione. Integration, contract, E2E, security, reliability e performance test smettono di essere categorie da collezionare e diventano boundary da attraversare quando una proprietà non può essere verificata a un livello più economico.
 
-1. Il numero di test non misura la confidenza.
-2. Code coverage misura esecuzione strutturale, non capacità di rilevare fault.
-3. I test devono derivare da requirement, invariant, contract, threat e failure mode, non soltanto dall'implementazione.
-4. La testability è una proprietà architetturale.
-5. Il layer più piccolo adeguato è generalmente il miglior punto di partenza.
-6. Integration test servono quando la property dipende da tecnologia o boundary reali.
-7. Contract test e functional test rispondono a domande diverse.
-8. End-to-end test comprano realismo pagando velocità, isolamento e maintenance.
-9. Security, reliability, performance e observability richiedono verification specifica.
-10. IaC che compila non dimostra che il workload funzioni.
-11. Un backup che esiste non dimostra che il restore funzioni.
-12. Un flaky test è un defect della quality system.
-13. I test generati dall'AI richiedono una sorgente di verità più forte del codice che stanno testando.
-14. Mutation testing può misurare la forza di una suite rispetto a fault concreti, ma non deve diventare un nuovo KPI assoluto.
-15. Una Testing Strategy governa risk, layer, environment, gate, ownership e test debt nel tempo.
-
-## Artefatto operativo del capitolo
-
-**Testing Strategy**.
-
-Il minimo utile contiene:
+La Testing Strategy serve proprio a rendere esplicita questa relazione:
 
 ```text
-Quality goals
-Critical journeys
-Risk inventory
-Risk-to-Evidence Map
-Test layers
-Pipeline gates
-Contract/data/security/reliability testing
-Test environment/data policy
-Flakiness policy
-Coverage/mutation policy
+risk
+→ property / claim
+→ cheapest sufficient evidence
+→ higher-fidelity evidence when needed
+→ gate
+→ confidence
+```
+
+Il test più prezioso non è quello più grande, né quello più intelligente, né quello scritto con il framework più moderno.
+
+È quello che avrebbe buone probabilità di fermare un errore importante prima che quell'errore diventi un problema reale.
+
+## Cosa dobbiamo portarci via
+
+Una property critica dovrebbe avere una sorgente più forte dell'implementazione che stiamo testando: Functional Analysis, requirement, invariant, contract, threat, failure mode, Reliability Contract o altra decisione esplicita.
+
+Il layer più piccolo adeguato è normalmente il punto di partenza perché offre feedback rapido e diagnostica precisa. Quando però la property dipende da PostgreSQL, broker, identity, network, failover o altro comportamento reale, dobbiamo attraversare quel boundary. Un fake può verificare la nostra logica; non può certificare la semantica di una tecnologia che non sta usando.
+
+Contract test e functional test non sono intercambiabili. Un messaggio può essere wire-compatible e produrre comunque un effetto business sbagliato. Un database migration script può essere sintatticamente valido e distruggere dati esistenti. Un backup può esistere e non essere recuperabile entro l'RTO. Un alert può compilare e non essere azionabile.
+
+Questo capitolo ha quindi allargato il concetto di testing: **security, reliability, recovery, observability e operabilità sono anch'esse proprietà da verificare**.
+
+L'AI rende questa disciplina ancora più importante. Generare cento test è economico. Capire quali cento non servono, quale test è tautologico, quale assertion protegge una vera property e quale fault manca resta un lavoro di judgment.
+
+## Artefatto operativo — Testing Strategy
+
+L'artefatto del capitolo collega i rischi ai layer di evidence.
+
+Una versione compatta deve rendere visibili almeno:
+
+```text
+quality goals
+critical journeys
+risk inventory
+risk-to-evidence map
+test layers
+pipeline gates
+contract/data/security/reliability testing
+test environment and data policy
+flakiness policy
+coverage and mutation policy
 AI-generated-test policy
-Ownership
-Evidence status
-Review triggers
+ownership
+evidence status
+review triggers
+```
+
+Non deve diventare il catalogo di ogni test file.
+
+Deve permettere a un reviewer di rispondere a domande come:
+
+```text
+quale rischio resta senza evidence?
+quale test costoso non compra più nuova confidence?
+quale property è verificata soltanto con un fake?
+quale gate protegge questo change?
+chi possiede un flaky test?
 ```
 
 ## Esercizio 1 — Coverage non significa confidence
 
-Prendi una funzione con almeno tre branch.
+Prendi una funzione con almeno tre branch e raggiungi il 100% statement coverage.
 
-Scrivi o genera test che raggiungano il 100% statement coverage.
-
-Poi introduci manualmente tre fault:
+Poi introduci temporaneamente tre fault:
 
 1. inverti una condition;
 2. rimuovi una validation;
-3. restituisci un valore semanticamente sbagliato mantenendo lo stesso tipo.
+3. restituisci un valore semanticamente errato mantenendo lo stesso tipo.
 
-Domande:
+Per ciascuno chiedi:
 
-- quali test falliscono?
-- quali mutant sopravvivono?
-- la coverage è cambiata?
-- quale assertion mancava?
+```text
+quale test fallisce?
+la coverage cambia?
+il fault sopravvive?
+quale assertion mancava?
+```
 
-Obiettivo:
+L'obiettivo è separare **code executed** da **fault detected**.
 
-separare **code executed** da **fault detected**.
-
-## Esercizio 2 — Dal requirement al test layer
+## Esercizio 2 — Scegliere il layer dalla property
 
 Requirement:
 
-> una Payment Escalation è consentita soltanto per un OperationalCase di categoria Payment.
+> una Payment Escalation è consentita soltanto per un `OperationalCase` di categoria `Payment`.
 
-Progetta:
+Progetta una evidence chain con application test, HTTP integration ed eventuale E2E.
 
-- un application test;
-- un HTTP integration test;
-- un E2E test.
+Poi elimina gli scenari duplicati che non aggiungono nuova evidence.
 
-Poi rispondi:
-
-- quali scenario metteresti in ciascun layer?
-- quali non duplicheresti?
-- dove verificheresti tutte le categorie possibili?
-
-Obiettivo:
-
-scegliere il layer per costo/evidence invece che per abitudine.
+Spiega quale parte della property può essere verificata senza infrastruttura e quale richiede un boundary più realistico.
 
 ## Esercizio 3 — Atomicità reale
 
@@ -105,9 +118,9 @@ PaymentEscalation + OutboxMessage
 commit atomically
 ```
 
-Spiega perché un fake Unit of Work può verificare l'orchestration ma non basta a dimostrare l'atomicità PostgreSQL.
+Spiega che cosa può dimostrare un fake `UnitOfWork` e che cosa non può dimostrare.
 
-Progetta un integration test che provochi un failure dopo l'inserimento della escalation ma prima del completamento della transaction.
+Poi progetta un integration test PostgreSQL che introduca un failure nella finestra tra le due write.
 
 Pass criterion:
 
@@ -115,36 +128,40 @@ Pass criterion:
 0 partial commits
 ```
 
-## Esercizio 4 — Contract vs functional
+## Esercizio 4 — Contract non significa comportamento
 
-Per `OperationalCasePaymentEscalatedV1` scrivi due scenari:
+Per `OperationalCasePaymentEscalatedV1` definisci:
 
-### Contract test
+```text
+serialization/schema test
+consumer-provider contract test
+functional consumer test
+```
 
-Che cosa deve verificare sul messaggio?
+Per ognuno scrivi la claim specifica che può falsificare.
 
-### Functional consumer test
+Poi spiega perché un contract test verde non dimostra che Payments & Risk non creerà due workflow per la stessa escalation.
 
-Che cosa deve verificare sul comportamento di Payments & Risk?
-
-Poi spiega perché un contract test verde non dimostra che il consumer non creerà due workflow economici.
-
-## Esercizio 5 — Duplicate delivery
+## Esercizio 5 — Unknown outcome e duplicate delivery
 
 Simula:
 
 ```text
-same EscalationId
-same messageId
-message delivered twice
+broker accepts message
+acknowledgement is lost
+producer retries
+same message is delivered twice
 ```
 
 Definisci:
 
-- expected technical behavior;
-- expected business behavior;
-- persistence necessaria;
-- evidence che considereresti sufficiente.
+- stable technical identity;
+- business identity;
+- retry policy;
+- dedup persistence;
+- expected technical duplicates;
+- expected business effect;
+- evidence sufficiente.
 
 ## Esercizio 6 — Authorization negativa
 
@@ -155,68 +172,65 @@ operator tenant A
 knows caseId tenant B
 ```
 
-Progetta una evidence chain a tre livelli:
+Costruisci una chain a tre livelli:
 
-1. application;
-2. authenticated HTTP integration;
-3. staging.
+```text
+application
+authenticated HTTP integration
+staging identity/network
+```
 
-Per ogni livello scrivi cosa dimostra e cosa **non** dimostra.
+Per ogni livello scrivi cosa dimostra e cosa non dimostra.
+
+Il risultato corretto non è soltanto `403`: verifica anche l'assenza di persistence, outbox e data leakage.
 
 ## Esercizio 7 — Testare il test
 
-Scegli un test esistente e rispondi:
+Scegli un test esistente e completa la frase:
 
-> quale modifica sbagliata al production code dovrebbe farlo fallire?
+> Questo test dovrebbe fallire se...
 
-Introduci quella modifica temporaneamente.
+Introduci temporaneamente proprio quel fault.
 
-Se il test non fallisce, decidi se:
+Se il test resta verde, decidi se:
 
-- rafforzare assertion;
+- rafforzare l'assertion;
 - cambiare layer;
-- eliminare test ridondante;
+- eliminare un test ridondante;
 - correggere la tua comprensione della property.
 
-## Esercizio 8 — AI-generated test adversarial review
+## Esercizio 8 — AI-generated test, review avversariale
 
 Fornisci a un agente:
 
 ```text
 requirement
+risk
 implementation
 existing tests
 ```
 
-Chiedigli di generare cinque test.
+Chiedigli cinque test candidate.
 
-A un secondo agente fornisci gli stessi dati più i test generati e chiedi:
+A un secondo agente chiedi invece di proporre, per ogni candidato, un fault realistico che dovrebbe farlo fallire e di cercare:
 
 ```text
-For each test, propose a realistic bug that should make it fail.
-Identify tautological assertions, overmocking, duplication and missing negative cases.
-Do not generate replacement tests until the critique is complete.
+tautological assertion
+overmocking
+duplication
+missing negative path
+hidden non-determinism
 ```
 
-Confronta il risultato.
+Non chiedere al secondo agente di correggere subito i test. Prima deve criticare la confidence prodotta.
 
-Obiettivo:
+## Esercizio 9 — Flakiness come defect
 
-usare agenti con ruoli differenti invece di affidarsi a una sola auto-review.
+Crea volutamente un test fragile usando almeno uno fra clock reale, random non seeded, shared mutable state, `sleep()` o ordering implicito.
 
-## Esercizio 9 — Flaky test
+Poi rendilo deterministico e documenta quale dipendenza nascosta rendeva il risultato instabile.
 
-Crea volutamente un test fragile usando almeno uno fra:
-
-- clock reale;
-- random non seeded;
-- shared mutable state;
-- `sleep()`;
-- ordering implicito.
-
-Poi rendilo deterministico.
-
-Documenta quale dependency nascosta produceva flakiness.
+Infine scrivi una policy per decidere quando quarantinare, correggere o rimuovere un flaky test.
 
 ## Esercizio 10 — Recovery evidence
 
@@ -226,13 +240,9 @@ Requirement simulato:
 RTO <= 15 min
 ```
 
-Un documento dice che PostgreSQL failover è automatico.
+La documentazione dice che il failover PostgreSQL è automatico.
 
-Domanda:
-
-è sufficiente come evidence?
-
-Progetta un drill con:
+Progetta un drill che produca:
 
 ```text
 starting condition
@@ -245,12 +255,14 @@ actual RPO
 post-recovery validation
 ```
 
-## Esercizio 11 — Pipeline budget
+Poi spiega perché la documentazione del servizio non è ancora evidence del tuo workload.
 
-Hai questi test:
+## Esercizio 11 — Evidence pipeline
+
+Hai questi costi indicativi:
 
 ```text
-unit/application: 40 sec
+application suite: 40 sec
 PostgreSQL integration: 4 min
 contract: 2 min
 Azure staging: 15 min
@@ -258,48 +270,49 @@ load: 30 min
 PITR restore: 45 min
 ```
 
-Disegna:
+Distribuiscili fra:
 
-- local feedback;
-- PR gate;
-- deployment gate;
-- nightly/scheduled;
-- readiness.
+```text
+local feedback
+pull request
+deployment/staging
+scheduled/readiness
+production continuous verification
+```
 
-Obiettivo:
+Per ogni scelta indica quale rischio accetti rimandando una evidence a un gate successivo.
 
-non mettere tutto ovunque e non lasciare nulla senza un gate appropriato.
+## Esercizio 12 — Test data e privacy
 
-## Esercizio 12 — Test data privacy
+Un team propone di copiare il database di produzione in staging per avere dati “realistici”.
 
-Un team propone di copiare il database produzione in staging perché “così i test sono realistici”.
+Valuta:
 
-Elenca:
+- beneficio reale;
+- privacy e security risk;
+- retention;
+- determinismo;
+- ownership;
+- alternative synthetic/anonymized;
+- condizioni eccezionali in cui una copia governata potrebbe essere giustificata.
 
-- vantaggi reali;
-- privacy/security risk;
-- retention risk;
-- determinism problem;
-- alternative con synthetic/anonymized data;
-- casi in cui una copia potrebbe essere giustificata con governance specifica.
+L'obiettivo è trattare il test data set come un asset, non come un dettaglio della suite.
 
 ## Esercizio 13 — Mutation testing selettivo
 
-Per `requestPaymentEscalation` scegli cinque mutation plausibili.
-
-Esempio:
+Per `requestPaymentEscalation` scegli almeno cinque fault plausibili, per esempio:
 
 ```text
 remove tenant check
 remove category check
-ignore existing escalation conflict
+ignore idempotency conflict
 skip outbox append
 accept different case for same escalationId
 ```
 
-Per ognuna identifica il test che dovrebbe intercettarla.
+Per ciascuno identifica il test che dovrebbe intercettarlo.
 
-Se non esiste, aggiungila al Risk-to-Evidence backlog.
+Se non esiste, non aggiungere subito un test a caso: aggiungi prima il gap al Risk-to-Evidence Map.
 
 ## Esercizio 14 — Observability verification
 
@@ -309,155 +322,140 @@ Failure:
 outbox publish fails repeatedly
 ```
 
-Oltre al comportamento applicativo, definisci test per verificare:
-
-- metric;
-- structured event;
-- correlation;
-- alert;
-- owner;
-- runbook.
-
-Obiettivo:
-
-ricordare che un failure invisibile è un rischio operativo anche quando il codice gestisce correttamente l'exception.
-
-## Esercizio 15 — Scrivi una Testing Strategy
-
-Scegli un tuo progetto reale.
-
-Compila almeno:
+Oltre al comportamento applicativo, definisci come verificare:
 
 ```text
-3 critical journey
-10 risk/property
-risk-to-evidence map
-pipeline layers
-flakiness policy
-AI test policy
-3 review trigger
+metric / event
+correlation
+backlog visibility
+alert condition
+owner
+runbook
+recovery signal
 ```
 
-Poi cerca due aree con molti test ma rischio basso e due aree con rischio alto ma evidence debole.
+Un failure gestito ma invisibile resta un rischio.
 
-Questa asimmetria è spesso più interessante della coverage totale.
+## Esercizio 15 — Costruisci una Testing Strategy reale
+
+Scegli un progetto che conosci e scrivi almeno:
+
+```text
+3 critical journeys
+10 risk/property
+risk-to-evidence map
+pipeline gates
+flakiness policy
+AI-generated-test policy
+3 review triggers
+```
+
+Poi cerca due asimmetrie:
+
+```text
+molti test + rischio basso
+rischio alto + evidence debole
+```
+
+Queste asimmetrie sono spesso più interessanti della coverage totale.
 
 ## Autovalutazione
 
-Dovresti saper rispondere senza consultare il capitolo.
+Dovresti riuscire a spiegare, senza consultare il capitolo, perché il numero di test non misura la confidence; che cosa misura davvero la code coverage; la differenza fra property e call sequence; quando un integration test diventa necessario; perché contract test ed E2E non rispondono alla stessa domanda; perché una fake persistence non dimostra le semantics PostgreSQL; come testare un unknown publish outcome; perché flakiness sia un defect del quality system; che cosa aggiunga mutation testing; perché il 100% mutation score non sia un obiettivo universale; come revieware un test generato dall'AI; la differenza fra Testing Strategy e test plan; quale evidence dimostri davvero un RTO; perché IaC compilation non dimostri application behavior; e chi possieda la qualità di un sistema cross-team.
 
-1. Perché il numero di test non misura confidence?
-2. Che cosa misura davvero code coverage?
-3. Qual è la differenza fra testare una property e una call sequence?
-4. Quando un integration test è necessario?
-5. Contract test e E2E test rispondono alla stessa domanda?
-6. Perché un fake database non dimostra le semantics PostgreSQL?
-7. Come testeresti unknown publish outcome?
-8. Perché flaky test è un problema architetturale/operativo?
-9. Che cosa aggiunge mutation testing alla coverage?
-10. Perché non vogliamo il 100% mutation score come obiettivo universale?
-11. Come dovrebbe essere reviewato un test generato dall'AI?
-12. Che differenza c'è fra Testing Strategy e test plan?
-13. Quale evidence dimostra davvero un RTO?
-14. Perché IaC compilation non basta come infrastructure evidence?
-15. Chi possiede la qualità di un sistema?
+Se una risposta resta vaga, prova a riscriverla nella forma:
 
-Se alcune risposte restano vaghe, quello è il punto da riprendere.
+```text
+claim
+→ fault
+→ evidence
+```
+
+Se non riesci, probabilmente non hai ancora identificato il boundary giusto.
 
 ## Cosa cambia con l'AI
 
-Prima dell'AI la scarsità era spesso:
+Prima dell'AI la scarsità era spesso il tempo necessario a scrivere test.
 
-```text
-tempo per scrivere test
-```
+Ora possiamo produrre test, fixture, mock, mutation ed eval candidate molto più velocemente.
 
-Con l'AI la scarsità si sposta verso:
+La scarsità si sposta verso:
 
 ```text
 buoni requirement
 risk identification
+fault models
 strong assertions
-meaningful fault models
-test review
+layer selection
+review
 suite architecture
 maintenance
 ```
 
-Possiamo generare più test.
+L'AI rende quindi più facile sia migliorare una suite sia riempirla di rumore.
 
-Dobbiamo diventare più bravi a cancellarne molti.
+Un test che non aggiunge evidence aumenta execution time, maintenance, cognitive load e false confidence.
 
-Un test che non aggiunge evidence aumenta:
+Per questo la capacità di **non aggiungere** diventa una competenza di qualità.
 
-- execution time;
-- maintenance;
-- cognitive load;
-- false confidence.
+## Stato ESI dopo il Capitolo 16
 
-Quindi nel testing, come nel software design:
-
-> **la capacità di non aggiungere complessità inutile diventa più preziosa quando aggiungerla costa poco.**
-
-## Stato ESI dopo il capitolo
-
-Order Operations avrà ora:
+Order Operations possiede ora la direzione per:
 
 ```text
 Testing Strategy
 Risk-to-Evidence Map
-first executable tests
+first deterministic tests
 AI-generated-test policy
 flakiness policy
-pipeline direction
+evidence pipeline
 ```
 
-Ma resteranno ancora non verificate:
+Restano però gap importanti:
 
-- PostgreSQL integration suite;
-- real consumer contract con Payments & Risk;
-- Azure identity/network test;
-- load/capacity evidence;
-- recovery drill;
-- production synthetic journey.
+```text
+real PostgreSQL integration
+consumer contract with Payments & Risk
+Azure identity/network verification
+performance/capacity evidence
+failover and PITR drills
+production private synthetic journey
+```
 
-Questi gap non sono un fallimento del capitolo.
+Questi gap non vengono nascosti dietro i test locali già verdi.
 
-Sono la fotografia onesta dello stato del progetto.
+È proprio questo il valore del modello `Designed → Codified → Verified → Monitored`: sapere quale claim è sostenuta da evidence e quale no.
 
-## Ponte al Capitolo 17
+## Ponte al Capitolo 17 — Legacy e comprensione
 
-Finora abbiamo costruito un sistema relativamente giovane.
+Finora ESI ha costruito un prodotto relativamente giovane e con decisioni progressivamente documentate.
 
-Nel mondo reale, però, raramente partiamo da zero.
+La realtà quotidiana spesso è diversa.
 
-Entriamo in repository:
+Entriamo in repository vecchi, poco documentati, pieni di workaround, test parziali, migration storiche e regole di business incorporate in posti che nessuno ricorda più.
 
-- vecchi;
-- poco documentati;
-- pieni di workaround;
-- con test parziali;
-- con ownership perduta;
-- con migration storiche;
-- con dependency obsolete;
-- con regole di business incorporate in posti inattesi.
+Il problema non è più soltanto progettare correttamente.
 
-Il prossimo capitolo sarà **Capitolo 17 — Legacy e comprensione**.
+Diventa:
 
-Lì la domanda cambia.
+> **come ricostruiamo abbastanza verità su un sistema esistente da poterlo cambiare senza distruggere comportamenti che non abbiamo ancora compreso?**
 
-Non sarà:
+L'AI può accelerare enormemente code archaeology e documentazione.
 
-> come progettiamo correttamente?
+Ma la stessa velocità può produrre spiegazioni plausibili che il repository, i dati o gli operatori non hanno mai confermato.
 
-Sarà:
+Il Capitolo 17 partirà quindi da una regola diversa:
 
-> **come ricostruiamo abbastanza verità su un sistema esistente da poterlo cambiare senza distruggere ciò che ancora non comprendiamo?**
+```text
+found
+≠
+inferred
+≠
+observed
+≠
+confirmed
+```
 
-L'AI può diventare un acceleratore enorme di code archaeology.
+## Corollario
 
-Ma il rischio sarà altrettanto grande: una spiegazione plausibile del legacy non è ancora una spiegazione vera.
-
-## Corollario del Capitolo 16
-
-> **Una suite di test non è una collezione di prove che il software funziona. È un sistema di sensori costruito per farci scoprire, il prima possibile, i modi importanti in cui potrebbe non funzionare più.**
+> **Una suite di test non è una collezione di prove che il software funziona. È un sistema di sensori costruito per rendere difficile che i modi importanti in cui può smettere di funzionare restino invisibili fino alla produzione.**
