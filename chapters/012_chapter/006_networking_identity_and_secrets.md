@@ -1,277 +1,67 @@
-## Networking, identity e secrets: il perimetro non è più soltanto la rete
+## Networking, identity e secrets: progettare chi può fare che cosa
 
-Nel cloud è facile pensare che sicurezza significhi costruire una rete privata e chiudere tutto dietro firewall.
+Nel cloud è facile ridurre la sicurezza alla rete privata: chiudiamo le porte, aggiungiamo firewall e consideriamo il perimetro risolto. Ma un workload moderno contiene utenti, runtime, worker, pipeline, operatori, managed service, automazioni e integrazioni esterne. Ognuno ha bisogno di una identità e di un permission boundary.
 
-La rete conta.
+La rete continua a contare, ma non può più essere l’unico linguaggio del perimetro.
 
-Ma non basta.
+## Network boundary e identity boundary fanno lavori diversi
 
-Un workload moderno contiene:
+Una connessione da App Service a PostgreSQL può essere ammessa da una rete privata e restare comunque eccessivamente privilegiata. Dobbiamo ancora sapere quale workload identity si autentichi, quale database role possieda, quali schema possa leggere o modificare e come vengano auditati gli accessi.
 
-- utenti;
-- applicazioni;
-- worker;
-- pipeline;
-- managed services;
-- operatori;
-- automazioni;
-- agenti;
-- secret store;
-- deployment identity.
+La distinzione è semplice:
 
-Ogni attore ha bisogno di una identità e di un permission boundary.
+> **la rete limita chi può raggiungere una capability; l’identità decide che cosa può farci.**
 
-Per questo l'identità diventa una parte centrale della Cloud Architecture.
-
-## Network boundary e identity boundary
-
-Una connessione può essere ammessa dalla rete ma non autorizzata semanticamente.
-
-Esempio:
-
-```text
-App Service
-→ PostgreSQL private network
-```
-
-La rete può impedire accesso pubblico.
-
-Ma dobbiamo ancora decidere:
-
-- quale workload identity si autentica;
-- a quale database role appartiene;
-- quali schema può leggere/scrivere;
-- come vengono ruotate le credenziali;
-- come viene auditato l'accesso.
-
-Quindi:
-
-> **la rete limita chi può arrivare alla porta. L'identità decide chi può attraversarla.**
-
-## Identity come perimetro primario
-
-Microsoft Azure Well-Architected Security descrive identity come un perimetro primario che include utenti e componenti del workload, non soltanto il bordo esterno dell'applicazione.
+Microsoft Azure Well-Architected Security tratta identity come un perimetro primario che comprende sia persone sia componenti del workload.
 
 Fonte:
 
 - [Microsoft Learn — Architecture strategies for identity and access management](https://learn.microsoft.com/azure/well-architected/security/identity-access)
 
-Per un workload questo significa distinguere almeno:
+Questo ci porta a distinguere human identity, workload identity, deployment identity, operator identity e identità delle integrazioni esterne. Una credenziale condivisa per tutti gli attori cancella proprio il confine che ci serve per contenere il blast radius.
 
-```text
-human identity
-workload identity
-operator identity
-deployment identity
-external service identity
-```
+## Workload identity: eliminare secret statici quando possiamo
 
-Usare una sola credenziale condivisa per tutto distrugge questa distinzione.
-
-## Managed identity
-
-I cloud provider offrono workload identity che evitano di distribuire secret statici alle applicazioni.
-
-In Azure le Managed Identities consentono alle risorse di ottenere token senza dover incorporare direttamente una password o client secret nell'applicazione.
+In Azure le Managed Identities consentono alle risorse di ottenere token senza incorporare client secret o password nell’applicazione.
 
 Fonte:
 
 - [Microsoft Learn — Managed identity best practice recommendations](https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/managed-identity-best-practice-recommendations)
 
-Questo non elimina il problema dell'authorization.
+Questo non risolve automaticamente l’authorization. Dobbiamo comunque scegliere ruolo e scope minimi, lifecycle, ownership e audit. Il vantaggio è eliminare una classe di credenziali che altrimenti dovrebbe essere distribuita, ruotata e protetta.
 
-Lo rende più governabile.
+Least privilege diventa quindi una proprietà architetturale. Se Order Operations può amministrare l’intero namespace di messaging, leggere ogni secret e scrivere qualsiasi database, il problema non è soltanto una configurazione IAM migliorabile: abbiamo disegnato un blast radius troppo ampio.
 
-Dobbiamo ancora assegnare:
+## Il secret migliore è quello che il workload non deve custodire
 
-- ruolo corretto;
-- scope minimo;
-- lifecycle;
-- ownership;
-- audit.
+Quando la workload identity può autenticarsi direttamente a una capability, evitiamo rotazione manuale, leak nei log, secret condivisi e configurazioni statiche difficili da governare.
 
-## Least privilege è una proprietà architetturale
+Alcuni secret rimarranno comunque inevitabili: API key di provider esterni, webhook secret, certificate o legacy credential. Questi devono vivere in un secret store dedicato con policy di accesso, rotation, expiry, audit ed emergency revoke.
 
-Se Order Operations può:
+La configurazione ordinaria non va confusa con i secret. URL, feature flag, queue name e log level possono essere importanti e governati senza avere la stessa sensibilità di una password. Mettere tutto nel secret store rende meno chiaro il lifecycle di entrambe le categorie.
 
-```text
-leggere tutto il Key Vault
-amministrare Service Bus
-modificare networking
-scrivere qualsiasi database
-```
+## Private networking è uno strumento di threat reduction
 
-abbiamo un problema architetturale, non soltanto IAM configuration debt.
+Managed service e runtime possono spesso essere esposti pubblicamente con authentication forte oppure collegati tramite private networking. Un private endpoint può ridurre exposure e soddisfare policy aziendali, ma introduce DNS, routing, deployment ordering e troubleshooting più complessi.
 
-Il permission boundary determina blast radius.
+Non possiamo quindi derivare la topologia di rete da una formula come “private è sempre più enterprise”. Serve un threat model che dimostri quale rischio stiamo riducendo e quale nuovo failure mode operativo stiamo introducendo.
 
-Per questo identity topology deve apparire nei diagrammi significativi.
+Il Capitolo 13 approfondirà questa scelta. Nel Capitolo 12 ci basta non chiuderla prematuramente.
 
-## Secrets: eliminare quando possiamo, governare quando non possiamo
+## Anche l’egress appartiene all’architettura
 
-La strategia migliore per un secret è spesso non averlo.
+Un workload non riceve soltanto traffico: chiama provider esterni, SaaS, API aziendali, identity endpoint e telemetry service. Queste dipendenze influenzano data exfiltration risk, DNS, NAT capacity, allowlist, costo e soprattutto availability.
 
-Se una workload identity può autenticarsi direttamente a una capability gestita, evitiamo:
+La Cloud Deployment Map deve quindi mostrare gli egress significativi, non soltanto l’ingress dell’utente. Una dipendenza esterna invisibile nel diagramma è comunque parte del failure domain reale.
 
-- distribuzione;
-- rotazione manuale;
-- leak nei log;
-- secret in environment non governati;
-- credential sharing.
+## ESI: baseline di identity e secret management
 
-Ma alcuni secret continueranno a esistere:
+Per Order Operations fissiamo alcuni guardrail già sufficientemente maturi. Gli operatori e gli amministratori usano Microsoft Entra ID come identity provider aziendale, mentre la semantica di authorization applicativa resta responsabilità del workload. Il runtime usa managed identity quando la capability Azure la supporta; i secret inevitabili di provider esterni vengono conservati in Azure Key Vault o nella capability equivalente della landing zone.
 
-- API key di provider esterni;
-- certificate;
-- webhook secret;
-- legacy credential;
-- token non sostituibili con federation.
+L’accesso al database è scoped secondo la Data Ownership Map e non usa una super-user credential condivisa. Il producer di Payment Escalation riceve permission soltanto per inviare al proprio channel, non diritti amministrativi sull’intero broker. La deployment identity rimane distinta da quella runtime, perché chi può modificare l’infrastruttura non deve coincidere automaticamente con chi esegue l’applicazione.
 
-In questi casi servono:
+Sono già obbligatori identity forte, least privilege, TLS, nessun production secret nel repository e separation fra deployment/runtime identity. Restano invece deliberate open decision le private endpoint policy definitive, il modello ingress/WAF, l’egress filtering avanzato, la segmentazione di rete, break-glass e privileged access workflow.
 
-- secret store dedicato;
-- access policy;
-- rotation;
-- audit;
-- expiry;
-- detection di secret leaked;
-- processo di emergency revoke.
+Queste decisioni arriveranno con il threat model del Capitolo 13 e poi evolveranno nello snapshot cumulativo del capstone. Non riempiamo il diagramma cloud con controlli non ancora motivati.
 
-## Config non è secret
-
-Un antipattern comune è mettere tutto nello stesso secret store.
-
-```text
-PAYMENT_PROVIDER_URL
-FEATURE_FLAG_X
-QUEUE_NAME
-LOG_LEVEL
-DATABASE_PASSWORD
-```
-
-Le prime quattro informazioni non hanno necessariamente la stessa sensibilità dell'ultima.
-
-Separare config e secret migliora:
-
-- comprensibilità;
-- rotation;
-- permission;
-- deployment;
-- audit.
-
-La configurazione deve essere governata.
-
-Non deve per forza essere segreta.
-
-## Private endpoint: uno strumento, non una religione
-
-Molti managed services possono essere esposti tramite endpoint pubblici protetti oppure attraverso private networking.
-
-Il private endpoint può ridurre exposure e soddisfare policy di rete.
-
-Ma introduce anche:
-
-- DNS complexity;
-- network integration;
-- troubleshooting più difficile;
-- dipendenza dalla topologia VNet;
-- costi;
-- deployment ordering.
-
-Quindi anche qui dobbiamo partire dal threat model e dalla policy ESI.
-
-Non da:
-
-> “private è sempre più enterprise.”
-
-Il Capitolo 13 approfondirà Security by Design.
-
-Qui ci basta una regola:
-
-> **una misura di sicurezza deve ridurre un rischio concreto senza creare un failure mode operativo più pericoloso e invisibile.**
-
-## Egress è parte dell'architettura
-
-Si parla molto di ingress.
-
-Ma un workload spesso comunica verso:
-
-- provider esterni;
-- SaaS;
-- API aziendali;
-- update repository;
-- identity endpoint;
-- telemetry endpoint.
-
-L'egress determina:
-
-- data exfiltration risk;
-- dependency availability;
-- DNS behavior;
-- NAT capacity;
-- allowlist;
-- cost.
-
-La Cloud Deployment Map deve quindi mostrare anche le dipendenze in uscita significative.
-
-## ESI: baseline di identity e secrets
-
-Per Order Operations fissiamo ora alcuni guardrail di Platform Engineering.
-
-### Human identity
-
-Gli operatori e gli amministratori usano Microsoft Entra ID come identity provider aziendale.
-
-La semantica di authorization applicativa resta però responsabilità del workload.
-
-### Workload identity
-
-Il runtime Order Operations usa managed identity quando la capability Azure la supporta.
-
-### Secrets
-
-I secret inevitabili di provider esterni vengono conservati in Azure Key Vault o capability enterprise equivalente fornita dalla landing zone.
-
-### Database
-
-L'accesso al database deve essere scoped al workload e agli schema che possiede/consuma secondo le decisioni di data ownership.
-
-Non useremo una super-user credential condivisa fra applicazioni.
-
-### Messaging
-
-Order Operations può inviare messaggi soltanto alle entity necessarie al proprio contratto.
-
-Non riceve automaticamente diritti amministrativi sull'intero namespace.
-
-## Non scegliamo ancora una rete “massima”
-
-Non abbiamo ancora abbastanza threat model per decidere ogni private endpoint e firewall rule.
-
-Quindi la decisione corrente distingue:
-
-### Baseline già obbligatoria
-
-- identity forte;
-- least privilege;
-- secret store;
-- TLS;
-- access audit dove disponibile;
-- nessun secret nel repository;
-- separation of deployment/runtime identity.
-
-### Decisioni che rimangono aperte al Capitolo 13
-
-- private endpoint obbligatori per ogni managed service;
-- ingress architecture definitiva;
-- WAF;
-- egress filtering avanzato;
-- workload network segmentation;
-- break-glass model;
-- privileged access workflow.
-
-Questo è importante.
-
-Non dobbiamo anticipare la security architecture soltanto per riempire il diagramma cloud.
-
-> **Il cloud ci offre molte primitive di sicurezza. L'architettura decide quali rischi devono governare.**
+> **Il cloud offre molte primitive di sicurezza. L’architettura decide quali rischi devono governare e quale blast radius deve impedire.**
