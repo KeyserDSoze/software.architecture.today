@@ -4,122 +4,139 @@ Se un confine logico funziona bene dentro un modular monolith, quando merita di 
 
 Non esiste una soglia universale.
 
-Ma possiamo cercare segnali.
+La domanda non è quanto il modulo sia “importante” né quanto sembri separato nel diagramma. Dobbiamo capire se la separazione fisica compra proprietà che il deployable condiviso non riesce più a fornire bene.
 
-### Segnale 1 — Ciclo di cambiamento indipendente
+Quasi sempre la decisione emerge dalla convergenza di più segnali.
 
-Un modulo cambia molto più spesso degli altri e i suoi rilasci sono rallentati dal deploy coordinato dell'intera applicazione.
+## Il boundary deve avere già una vita propria
 
-Se l'autonomia di rilascio produce valore reale, l'estrazione diventa interessante.
+Il primo segnale è il **ciclo di cambiamento**.
 
-### Segnale 2 — Profilo di carico differente
+Se un modulo evolve con una cadence molto diversa dal resto dell'applicazione e il deploy coordinato rallenta sistematicamente il team, l'autonomia di rilascio può diventare economicamente interessante.
 
-Un modulo ha un comportamento di capacity molto diverso.
+Ma attenzione alla causalità.
 
-Per esempio:
+Se il modulo cambia spesso perché i suoi boundary sono confusi e ogni feature attraversa molte dipendenze, estrarlo non risolve il problema. Potrebbe soltanto spostare il change coupling dietro API remote.
+
+La separazione ha più fit quando il modulo ha già un modello coerente, contratti stabili e una roadmap abbastanza distinta da beneficiare realmente di un ciclo di delivery autonomo.
+
+## L'asimmetria di carico può rendere costoso il deployable condiviso
+
+Un secondo segnale è un profilo di capacity molto diverso.
+
+Immaginiamo:
 
 ```text
-Search → traffico elevato e read-heavy
-Billing → traffico basso ma forte requisito di consistenza
+Search  → traffico elevato, read-heavy, forte elasticità
+Billing → traffico basso, consistency più importante del throughput
 ```
 
-Scalare entrambi nello stesso modo può diventare inefficiente.
+Scalare entrambe le capability come un'unica unità può diventare inefficiente. Un service boundary può permettere a Search di usare capacità, runtime o scaling policy differenti senza replicare inutilmente Billing.
 
-### Segnale 3 — Failure isolation importante
+Se invece i profili sono simili e moderati, lo scaling indipendente resta una proprietà teorica e potrebbe non pagare la distribuzione.
 
-Una capacità instabile o dipendente da sistemi esterni rischia di degradare l'intera applicazione.
+## Isolation: separare soltanto se il failure può davvero restare locale
 
-Separare una capability può comprare resource isolation, timeout e circuit breaker indipendenti, deploy e rollback separati e un migliore incident containment. Sono proprietà concrete; se non servono, il servizio rischia di essere soltanto un confine più costoso.
+Una capability dipendente da provider instabili, workload pesanti o codice ad alto rischio può meritare un failure boundary più forte.
 
-Ma dobbiamo verificare che il journey dell'utente possa davvero sopravvivere alla failure del servizio.
+Un processo separato può permettere resource isolation, deploy e rollback autonomi, rate limit specifici o protezione da memory leak e saturation locali.
 
-Altrimenti la separazione fisica non compra molto isolamento percepito.
+Ma il test decisivo è il journey.
 
-### Segnale 4 — Security boundary distinto
+Se ogni richiesta dell'utente continua a dipendere sincronicamente da quel servizio e non esiste graceful degradation, il processo separato non elimina il failure percepito. Isola alcune risorse, non necessariamente il risultato.
 
-Un modulo tratta dati, privilegi o compliance molto differenti.
+La separazione diventa più convincente quando possiamo descrivere con precisione quale blast radius riduciamo e quale comportamento sopravvive alla failure.
 
-La separazione può ridurre il blast radius e rendere più forte il least privilege.
+## Security e compliance possono rendere il confine operativo
 
-Questo è spesso un motivo più solido di “vogliamo usare un runtime diverso”.
+Alcune capability trattano dati, privilegi o requisiti normativi che meritano un perimetro più forte.
 
-### Segnale 5 — Ownership organizzativa stabile
+Un servizio separato può restringere identity, network access e secret exposure, ridurre il numero di componenti che possono accedere a dati sensibili e rendere più chiara l'ownership dei controlli.
 
-Una capability ha un team dedicato, una roadmap autonoma e responsabilità operativa end-to-end.
+Questo può essere un motivo molto più forte di “vorremmo usare un runtime diverso”.
 
-In questo caso il service boundary può rafforzare una separazione già esistente invece di inventarla.
+Anche qui il valore deve essere concreto: quale trust boundary diventa più forte? Quale blast radius viene ridotto? Quale audit o controllo diventa più semplice?
 
-### Segnale 6 — Dati realmente posseduti
+## Ownership organizzativa: il servizio deve avere qualcuno che lo possiede davvero
 
-Il modulo possiede un modello dati coerente che gli altri consumano attraverso contratti intenzionali.
+Quando una capability ha un team stabile, una roadmap autonoma e responsabilità operativa end-to-end, il service boundary può rafforzare una separazione già esistente.
 
-Questo rende più plausibile estrarre anche lo storage senza dover spezzare arbitrariamente transazioni e ownership.
+Se nessuno è pronto a possedere deploy, alert, incidenti, capacity e lifecycle del nuovo servizio, l'estrazione crea un'unità operativa senza un owner reale.
 
-### Segnale 7 — Technology fit realmente diverso
+Questo è particolarmente importante nei team piccoli.
 
-A volte una capacità ha bisogno di proprietà tecniche particolari.
+La domanda non è soltanto “chi scrive il codice?”.
 
-Per esempio:
+È “chi vive con le conseguenze della separazione?”.
 
-- un workload compute-intensive;
-- uno stack specializzato;
-- isolamento runtime;
-- una libreria o piattaforma non compatibile con il resto dell'applicazione.
+## I dati devono avere un owner prima di avere un database separato
 
-Può essere una buona ragione.
+Un modulo è molto più facile da estrarre quando possiede già dati e invarianti che gli altri consumano attraverso contratti intenzionali.
 
-Ma deve essere una ragione concreta, non una scusa per introdurre una nuova tecnologia.
+Se il codice è modulare ma le transazioni attraversano liberamente tabelle condivise, il network boundary costringerà a risolvere in fretta una domanda che prima era stata evitata: chi è autorevole su quel dato?
 
-### Un solo segnale raramente basta
+La separazione dello storage viene dopo la chiarezza dell'ownership.
 
-Il punto importante è non trasformare questa lista in checklist meccanica.
+Microsoft collega esplicitamente i microservizi alla data ownership autonoma e mette in guardia dal coupling prodotto da datastore condivisi: [Microsoft Learn — Data considerations for microservices](https://learn.microsoft.com/azure/architecture/microservices/design/data-considerations).
 
-Un modulo che scala molto può forse essere ottimizzato restando nello stesso processo.
+## Technology fit diverso: segnale valido, ma non scusa
 
-Un team dedicato può forse lavorare benissimo dentro un modular monolith.
+A volte una capability ha davvero bisogni tecnici differenti: compute intensivo, librerie non compatibili con il runtime principale, hardware specializzato, pattern di storage radicalmente diversi o un isolation requirement che il processo condiviso non può offrire bene.
 
-Un security boundary può forse essere ottenuto con process isolation senza creare un'intera architettura a microservizi.
+Questa può essere un'ottima ragione per separare.
 
-La decisione emerge dalla combinazione dei segnali.
+Ma il ragionamento deve partire dalla proprietà necessaria, non dalla tecnologia desiderata.
 
-### Extraction readiness
+“Vogliamo usare Python” non è ancora un requisito.
 
-Prima dell'estrazione possiamo fare un test.
+“Questa capability usa una libreria di inferenza disponibile soltanto in quell'ecosistema e ha bisogno di scaling GPU indipendente” è un problema più concreto.
 
-Il boundary attuale ha già:
+## Un solo segnale raramente basta
 
-- responsabilità chiara?
-- API intenzionale?
-- ownership dei dati?
-- dipendenze note?
-- test sufficienti?
-- comportamento osservabile?
-- pochi accessi trasversali illegittimi?
+Questi segnali non formano una checklist che restituisce automaticamente `extract = true`.
 
-Se no, estrarre potrebbe soltanto cementare un boundary sbagliato dietro una rete.
+Un team dedicato può lavorare bene dentro un modular monolith. Un modulo con carico elevato può essere ottimizzato senza diventare un servizio. Un security boundary può essere ottenuto con process isolation o con controlli di piattaforma differenti. Una cadence diversa può essere gestita migliorando il deployment dell'intera applicazione.
 
-Quindi:
+Il caso per l'estrazione diventa forte quando più forze puntano nella stessa direzione e quando le alternative meno costose non soddisfano abbastanza il requisito.
 
-> **prima rendi il confine credibile nel codice. Poi valuta se vale la pena renderlo fisico.**
+## Extraction readiness
 
-### L'estrazione come decisione reversibile
+Prima di mettere la rete in mezzo, il boundary dovrebbe essere credibile nel codice.
 
-Anche l'estrazione dovrebbe essere trattata come un ADR.
+Possiamo usare un piccolo test:
 
-Dovremmo documentare:
+```text
+Responsabilità chiara?
+Contratto intenzionale?
+Ownership dei dati?
+Dipendenze note?
+Transazioni cross-boundary comprese?
+Test sufficienti?
+Comportamento osservabile?
+Accessi trasversali illegittimi già ridotti?
+Operational owner identificato?
+```
 
-- problema;
-- proprietà attese;
-- alternative;
-- costi;
-- migration plan;
-- contract strategy;
-- data ownership;
-- rollback o fallback;
-- segnali che direbbero che la scelta non sta funzionando.
+Se molte risposte sono no, l'estrazione rischia di cementare un confine sbagliato dietro una rete.
 
-Questo evita di trasformare “estraiamo un servizio” in una destinazione irreversibile.
+> **Prima rendi il confine credibile nel codice. Poi valuta se vale la pena renderlo fisico.**
 
-La domanda finale resta:
+Questo criterio è coerente anche con la guida Microsoft sulla modellazione dei microservizi, che insiste sul fatto che i boundary non emergano da un processo meccanico ma da domain analysis, requisiti, architecture characteristics e obiettivi: [Microsoft Learn — Use domain analysis to model microservices](https://learn.microsoft.com/azure/architecture/microservices/model/domain-analysis).
 
-> **Quale problema attuale diventa materialmente più semplice o più sicuro dopo l'estrazione?**
+## L'estrazione è una decisione, non una promozione
+
+Un service extraction importante dovrebbe lasciare un ADR.
+
+Dovremmo conservare il problema che vogliamo risolvere, la proprietà che ci aspettiamo di comprare e le alternative considerate. Servono un migration plan, una contract strategy, la data ownership, i nuovi failure mode, l'operational owner e un modo per capire se il beneficio promesso sia stato realmente ottenuto.
+
+Dovremmo anche dichiarare cosa ci farebbe cambiare idea.
+
+Per esempio: se il costo operativo supera il beneficio, se i deploy restano comunque coordinati o se il servizio non riesce a possedere realmente i propri dati, la decisione va rivalutata.
+
+L'estrazione non è un premio dato a un modulo che è cresciuto abbastanza.
+
+È un investimento.
+
+> **Quale problema attuale diventa materialmente più semplice, più sicuro o più economico dopo l'estrazione?**
+
+Se non sappiamo rispondere, il boundary logico potrebbe essere già la soluzione giusta.
