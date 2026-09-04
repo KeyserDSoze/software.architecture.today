@@ -33,6 +33,11 @@ jobs:
             exit 0
           fi
           python scripts/apply_editorial_patches.py "${patches[@]}"
+          # Prose rewrites can legitimately introduce forms already covered by the
+          # book's canonical normalizers. Apply them before committing, then the
+          # later --check steps prove idempotence on the exact committed sources.
+          python scripts/fix_editorial.py
+          python scripts/normalize_sources.py
           rm -f "${patches[@]}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
