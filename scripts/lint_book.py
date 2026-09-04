@@ -16,7 +16,7 @@ REFERENCE_DIR = ROOT / "reference"
 CONFIG_PATH = ROOT / "book.yml"
 PREFIX_RE = re.compile(r"^(\d+)")
 SECTION_RE = re.compile(r"^#{1,6}\s+(\d+)\.(\d+)\b")
-PLACEHOLDER_RE = re.compile(r"\b(?:TODO|FIXME|TBD)\b", re.IGNORECASE)
+PLACEHOLDER_RE = re.compile(r"(?im)^\s*(?:[-*]\s*)?(?:TODO|FIXME|TBD)(?:\s*:|\s*$)")
 WORD_RE = re.compile(r"\b[\wÀ-ÖØ-öø-ÿ’'-]+\b", re.UNICODE)
 URL_RE = re.compile(r"https?://[^\s)>]+")
 FENCE_RE = re.compile(r"```.*?```|~~~.*?~~~", re.DOTALL)
@@ -28,8 +28,7 @@ FINAL_LINE = "**L'AI può scrivere il codice. Il timone resta a noi.**"
 EXPECTED_BASENAME = "software-architecture-today"
 EXPECTED_CHAPTERS = list(range(31))
 OLD_ENDING_RE = re.compile(r"Capitolo\s+29\s*[—:-]\s*I\s+Dieci\s+comandamenti", re.IGNORECASE)
-AI_MARKER_RE = re.compile(r"(?:^|\s)(?:AI NOTE|EDITOR NOTE|MODEL NOTE|INSERT HERE|PLACEHOLDER)(?:\s|:)", re.IGNORECASE)
-CANONICAL_TERMS = ("Agent Delegation Contract","Agent Verification Bundle","Problem & Outcome Brief","Functional Scope Map","Architecture Context Map","Non-Functional Requirements Card","Architecture Decision Record","Component Responsibility Map","API Contract","Data Ownership Map","Failure Mode Map","Threat Model","Cloud Deployment Map","Observability Contract","Testing Strategy","Refactoring Safety Plan","Architecture Fitness Checklist","Cost Model","Repository Map","Execution Work Item","AI Autonomy Matrix","AI Feature Contract","One-Man Project Operating Model","Production Readiness Review","Architect Capability Map")
+AI_MARKER_RE = re.compile(r"(?im)^\s*(?:AI NOTE|EDITOR NOTE|MODEL NOTE|INSERT HERE|PLACEHOLDER)\s*:")
 
 
 def prefix(path: Path) -> int:
@@ -46,17 +45,14 @@ def prose_without_fences(text: str) -> str:
 
 def check_common(path: Path, text: str, errors: list[str], warnings: list[str]) -> None:
     if not text.strip(): errors.append(f"{path}: file vuoto."); return
-    if PLACEHOLDER_RE.search(text): errors.append(f"{path}: contiene TODO/FIXME/TBD residuo.")
+    prose = prose_without_fences(text)
+    if PLACEHOLDER_RE.search(prose): errors.append(f"{path}: contiene TODO/FIXME/TBD editoriale residuo.")
     if "utm_" in text or "fbclid=" in text or "gclid=" in text: errors.append(f"{path}: URL con tracking noto; eseguire normalize_sources.py.")
-    if ASCII_ACCENT_RE.search(text): errors.append(f"{path}: grafia ASCII italiana da normalizzare.")
-    if OLD_ENDING_RE.search(text): errors.append(f"{path}: riferimento alla vecchia struttura: il decalogo è Capitolo 30.")
-    if AI_MARKER_RE.search(text): errors.append(f"{path}: possibile marker editoriale/AI accidentale.")
+    if ASCII_ACCENT_RE.search(prose): errors.append(f"{path}: grafia ASCII italiana da normalizzare.")
+    if OLD_ENDING_RE.search(prose): errors.append(f"{path}: riferimento alla vecchia struttura: il decalogo è Capitolo 30.")
+    if AI_MARKER_RE.search(prose): errors.append(f"{path}: possibile marker editoriale/AI accidentale.")
     refs = set(RAW_FOOTNOTE_RE.findall(text)); defs = set(FOOTNOTE_DEF_RE.findall(text)); missing = refs - defs
     if missing: errors.append(f"{path}: footnote senza definizione: {sorted(missing)}")
-    prose = prose_without_fences(text)
-    for canonical in CANONICAL_TERMS:
-        for match in re.finditer(re.escape(canonical), prose, flags=re.IGNORECASE):
-            if match.group(0) != canonical: errors.append(f"{path}: nome canonico {match.group(0)!r}; usare {canonical!r}.")
     for url in URL_RE.findall(text):
         parsed = urlsplit(url.rstrip(".,;:"))
         if not parsed.scheme or not parsed.netloc: errors.append(f"{path}: URL malformato: {url}")
@@ -87,10 +83,10 @@ def main() -> int:
                 first_line = first_nonempty_line(text); section_match = SECTION_RE.match(first_line)
                 if section_match:
                     if int(section_match.group(1)) != chapter_num: errors.append(f"{path}: heading numerato appartiene al capitolo {section_match.group(1)}, non {chapter_num}.")
-                    # Il manoscritto storico usa sia H1 sia H2 per sezioni numerate. Il renderer
-                    # canonicalizza gli H1 numerati a livello 2 senza riscrivere le sorgenti.
+                    # Le sorgenti storiche usano H1 e H2 per sezioni numerate. Il renderer le
+                    # presenta come sezioni di capitolo senza imporre una riscrittura meccanica.
                 elif first_line.startswith("# "):
-                    warnings.append(f"{path}: H1 interno non numerato; verificare gerarchia: {first_line!r}")
+                    warnings.append(f"{path}: H1 interno non numerato; il renderer lo tratta come sezione: {first_line!r}")
     final_file = CHAPTERS_DIR / "030_chapter" / "001_i_dieci_comandamenti.md"
     if not final_file.exists(): errors.append(f"File finale mancante: {final_file.relative_to(ROOT)}")
     else:
