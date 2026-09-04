@@ -32,7 +32,7 @@ Un esempio potrebbe essere:
 
 ```json
 {
-  "type": "https://acme.example/problems/order-not-visible",
+  "type": "urn:esi:problem:order-not-visible",
   "title": "Order is not visible to the current operator",
   "status": 403,
   "detail": "The operator is not authorized for this merchant.",
