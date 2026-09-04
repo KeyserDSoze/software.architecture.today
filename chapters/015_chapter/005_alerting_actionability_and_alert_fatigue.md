@@ -1,276 +1,124 @@
-# Alerting: interrompere una persona è una decisione architetturale
+## Alerting: interrompere una persona è una decisione architetturale
 
-Un alert non è una query salvata.
+Una metrica può essere interessante senza richiedere intervento. Una dashboard può diventare rossa e continuare a essere soltanto contesto.
 
-Non è una soglia colorata di rosso.
+Un alert fa qualcosa di più costoso:
 
-Non è una metrica importante.
+> **chiede a una persona di interrompere ciò che sta facendo perché il sistema richiede una decisione adesso.**
 
-È una decisione molto più costosa:
+Questo cambia completamente il criterio di qualità.
 
-> **qualcuno deve interrompere ciò che sta facendo perché il sistema richiede un'azione adesso.**
+Un alert non è completo perché possiede una threshold. Deve avere almeno condition, impatto, urgenza, owner, azione possibile e un modo per capire quando la condizione è rientrata.
 
-Questa distinzione cambia completamente il modo in cui progettiamo l'alerting.
+Se non sappiamo che cosa la persona possa fare dopo il page, abbiamo probabilmente creato rumore.
 
-## Alert!= dashboard
+## Dashboard, ticket e page hanno costi diversi
 
-Una dashboard può mostrare:
+Per ESI distinguiamo tre livelli operativi.
 
-```text
-CPU 82%
-outbox pending 143
-p95 latency 920 ms
-```
+Una **dashboard/investigation view** serve a comprendere il sistema. CPU, trace sample, retry classification e query latency possono essere informazioni preziose senza dover interrompere nessuno.
 
-senza richiedere automaticamente intervento.
+Un **ticket/work item** rappresenta qualcosa che richiede azione ma non immediatamente: storage trend, telemetry cost, dependency obsoleta, capacity headroom che si sta riducendo.
 
-Un alert deve invece avere almeno:
+Un **page** è riservato a condizioni urgenti e azionabili: fast burn del core journey, severe burn della Payment Escalation publication, incidenti security significativi o availability failure oltre il tolerance envelope.
 
-```text
-condition
-impact
-urgency
-owner
-action
-runbook/context
-resolution signal
-```
+La distinzione evita di trasformare ogni deviazione in emergenza.
 
-Se manca l'azione possibile, spesso stiamo creando rumore.
+## Partire dal sintomo, poi allegare la diagnosi
 
-## Page, ticket, dashboard
-
-Per ESI distinguiamo tre classi operative.
-
-### Page
-
-Serve intervento umano urgente.
-
-Esempi possibili:
-
-```text
-core journey SLO fast burn
-cross-tenant security incident
-Payment Escalation delivery target severamente violato
-regional/intra-region availability incident
-```
-
-### Ticket / work item
-
-Richiede azione, ma non immediata.
-
-Esempi:
-
-```text
-storage trend in crescita
-telemetry cost fuori budget
-obsolete dependency
-repeated near-capacity condition
-```
-
-### Dashboard / investigation signal
-
-Serve contesto, non un'interruzione.
-
-Esempi:
-
-```text
-CPU breakdown
-trace sample
-query latency distribution
-retry classification
-```
-
-Questa tassonomia evita di trasformare ogni deviazione in emergenza.
-
-## Google SRE: urgente, azionabile, user-visible
-
-Google SRE propone domande molto pratiche per evitare pager noise.
-
-Una rule dovrebbe rappresentare una condizione urgente e azionabile, idealmente collegata a un impatto utente reale o imminente.
+Google SRE insiste sul fatto che un pager dovrebbe rappresentare una condizione urgente, azionabile e il più possibile vicina a un impatto user-visible reale o imminente.
 
 Fonte:
 
 - [Google SRE — Monitoring Distributed Systems](https://sre.google/sre-book/monitoring-distributed-systems/)
 
-Questo non significa che possiamo allertare soltanto dopo che il cliente ha già subito il problema.
-
-Una saturation condition può anticipare un incidente.
-
-Ma deve avere una relazione sufficientemente forte con il rischio e una risposta concreta.
-
-## Alert sul sintomo prima della causa
-
-Esempio:
+Un alert come:
 
 ```text
 App Service CPU > 80%
 ```
 
-può essere interessante.
+può anticipare saturation, ma non ci dice automaticamente che il prodotto stia fallendo.
 
-Ma non sempre significa che il prodotto stia fallendo.
+Un fast burn del core operator journey ci dice invece che il reliability contract è in pericolo. CPU, connection pressure e dependency latency diventano allora diagnostic context.
 
-Al contrario:
-
-```text
-core operator journey error-budget burn elevato
-```
-
-ci dice che l'outcome è in pericolo.
-
-Per questo preferiamo:
+Questo produce una gerarchia utile:
 
 ```text
-symptom-based alert
-+ diagnostic context
+symptom / SLO impact
+→ page quando urgente
+
+diagnostic signal
+→ spiega perché
 ```
 
-invece di:
+Invece di page separati per ogni componente, preferiamo interrompere le persone quando l’outcome richiede attenzione e fornire subito il contesto per cercare la causa.
+
+## Il business threshold è spesso migliore della soglia inventata
+
+Consideriamo l’outbox.
 
 ```text
-page per ogni componente che mostra qualcosa di insolito
+outbox pending > 100
 ```
 
-## Multi-signal alert
+può essere completamente normale se il publisher drena migliaia di messaggi al secondo.
 
-A volte una combinazione riduce il rumore.
-
-Esempio concettuale:
-
-```text
-outbox oldest age sopra target
-AND
-publisher throughput < arrival rate
-```
-
-è più significativo di:
-
-```text
-outbox count > 100
-```
-
-perché 100 messaggi possono essere completamente normali se vengono drenati rapidamente.
-
-Ancora meglio, se il business target è cinque minuti:
+Molto più utile è osservare la relazione fra pending, oldest age, arrival rate e drain rate. E, ancora meglio, il signal più vicino al contratto:
 
 ```text
 Payment Escalation publication SLI burn
 ```
 
-rimane il segnale più vicino all'outcome.
+Quando esiste un limite reale — certificate expiration, storage headroom, DLQ item che rappresenta un deterministic contract failure — una soglia statica può essere perfetta.
 
-## Static threshold vs dynamic behavior
+Quando il comportamento è variabile, una anomaly detection può aiutare. Ma “AI-powered anomaly detection” non rende un alert automaticamente azionabile. Se l’on-call non capisce perché viene interrotto né quale azione intraprendere, abbiamo spostato la complessità dal sistema alla persona.
 
-Non esiste una regola universale.
+## Alert fatigue è reliability debt
 
-Una soglia statica è ottima quando deriva da un limite reale:
+Un sistema che pagina troppo spesso educa gli operatori a ignorarlo.
 
-```text
-storage free < recovery headroom
-certificate expiration < safety window
-DLQ message exists per deterministic contract failure
-```
+Si creano filtri informali, threshold alzati senza analisi, mute temporanei che diventano permanenti. Gli incidenti reali finiscono nello stesso rumore delle anomalie innocue.
 
-Una soglia dinamica può essere utile per anomaly detection su pattern variabili.
-
-Ma “AI anomaly detection” non rende automaticamente l'alert più utile.
-
-Se l'operatore non capisce perché è stato paged o quale azione intraprendere, abbiamo spostato la complessità dal sistema alla persona.
-
-## Alert fatigue
-
-Troppi alert producono un effetto prevedibile:
-
-- vengono ignorati;
-- si creano filtri informali;
-- si alza la soglia senza analisi;
-- l'on-call perde fiducia;
-- incidenti reali si nascondono nel rumore.
-
-Il costo non è solo psicologico.
-
-È reliability debt.
-
-Un alert ignorato abitualmente è un controllo che abbiamo smesso di possedere.
-
-## Il caso Bigtable raccontato da Google SRE
-
-Il libro SRE di Google discute esplicitamente casi di over-alerting e il problema del pager burnout.
-
-Non useremo il caso per copiare una configurazione.
-
-Lo usiamo come evidenza di un principio più generale:
-
-> un sistema di monitoring può diventare esso stesso una fonte di failure operativo quando interrompe troppo spesso le persone con signal poco azionabili.
+Google SRE discute esplicitamente il problema del pager burnout e dell’over-alerting nel monitoraggio di sistemi di produzione.
 
 Fonte:
 
 - [Google SRE — Monitoring Distributed Systems](https://sre.google/sre-book/monitoring-distributed-systems/)
 
-## Ogni alert ha un owner
+Il costo non è soltanto umano. È architetturale: un alert ignorato abitualmente è un controllo che abbiamo smesso di possedere.
 
-Per Order Operations:
+## Ownership: la telemetry non può fermarsi al confine organizzativo
 
-### Workload team
+Per Order Operations il workload team possiede il core journey SLO burn, application failure, local escalation acceptance e outbox publication lag.
 
-Owner di alert come:
+Platform Engineering possiede primariamente failure della landing-zone network, private DNS condiviso e platform capability comuni.
 
-```text
-core journey SLO burn
-API failure
-outbox publication lag
-application authorization anomalies
-```
+Payments & Risk possiede consumer e business processing downstream.
 
-### Platform Engineering
+Ma alcuni signal attraversano i confini. Se Order Operations ha `PaymentEscalation Requested` e Payments non mostra evidence downstream oltre il threshold, serve un escalation path organizzativo esplicito.
 
-Owner primario di:
+Un alert con owner “shared” ma senza first responder è un problema rimandato.
 
-```text
-landing-zone network failure
-shared private DNS failure
-platform policy/service degradation
-```
+La regola deve dire chi riceve il primo signal, quale evidence raccoglie e quando coinvolge l’altro dominio.
 
-### Payments & Risk
+## Il runbook riduce il tempo verso la prima azione informata
 
-Owner primario del consumer downstream e della propria business processing latency.
-
-### Joint signal
-
-Alcuni alert richiedono ownership condivisa.
-
-Per esempio:
-
-```text
-Payment Escalation Requested in Order Operations
-ma non observed downstream oltre threshold
-```
-
-La regola deve chiarire chi riceve il primo alert e come avviene l'escalation organizzativa.
-
-Altrimenti la telemetry descrive un problema che nessuno possiede.
-
-## Runbook linkage
-
-Un page alert dovrebbe contenere o linkare almeno:
+Un page dovrebbe portare con sé abbastanza contesto da evitare che i primi minuti siano spesi a ritrovare il sistema:
 
 ```text
 what is failing
-current impact
-first diagnostic queries
-recent deployments
-relevant dashboard/trace search
+current business/user impact
+affected SLI
+recent deployment/config change
+first diagnostic views/queries
 known degraded mode
 safe mitigation
-escalation owner
+owner/escalation path
 stop condition
 ```
 
-Non serve un runbook enciclopedico.
-
-Serve ridurre il tempo fra:
+Non serve un’enciclopedia. Serve ridurre il tempo fra:
 
 ```text
 alert received
@@ -282,78 +130,59 @@ e:
 first informed action
 ```
 
-## Alert e automation
+## Automation dopo l’alert: stessa disciplina del self-healing
 
-Alcune risposte possono essere automatizzate.
-
-Ma il Capitolo 14 ci ha già insegnato:
+Alcune risposte possono essere automatizzate. Ma il Capitolo 14 ci ha già dato il warning:
 
 > self-healing senza failure model può diventare self-harm.
 
-Quindi un'automazione di remediation deve avere:
+Una remediation automatica deve quindi avere condition sufficientemente affidabile, scope limitato, idempotenza, blast-radius control, evidence e stop/rollback path.
 
-- condizione affidabile;
-- scope limitato;
-- idempotenza;
-- blast radius;
-- evidence;
-- rollback/stop condition.
+L’alerting non deve diventare il trigger di script che reagiscono aggressivamente a un signal ambiguo.
 
-L'alerting non deve diventare un pretesto per lanciare automazioni incontrollate.
+## Security signal: un denial normale non è un incidente
 
-## Security alert vs application alert
+Un singolo `403` può essere il risultato corretto di application authorization. Un pattern anomalo di cross-tenant denial, privileged role change o token failure può invece essere security evidence significativa.
 
-Non ogni authorization denial è un incidente.
+La differenza nasce dal Threat Model e dalla Security Control Matrix, non dal codice HTTP in sé.
 
-Un operatore che tenta una capability non consentita può generare un normale `403`.
+Per questo l’Observability Contract deve collegare alert e signal anche ai control owner dei capitoli precedenti.
 
-Un pattern anomalo di cross-tenant denial, token failure o privileged configuration change può invece richiedere investigation.
+## Ogni alert deve poter essere rimosso
 
-La differenza è semantica e contestuale.
+Periodicamente dobbiamo chiedere:
 
-Per questo Security Control Matrix e Observability Contract devono collegarsi.
+```text
+ha rilevato incidenti reali?
+produce falsi positivi?
+viene ignorato?
+l’azione è chiara?
+il threshold è ancora coerente col workload?
+l’owner è ancora quello corretto?
+il runbook funziona?
+esiste un signal migliore più vicino all’outcome?
+possiamo eliminarlo?
+```
 
-## Alert quality review
-
-Per ogni alert chiediamo periodicamente:
-
-1. ha rilevato incidenti reali?
-2. produce falsi positivi?
-3. viene ignorato?
-4. l'azione è chiara?
-5. il threshold è ancora coerente col workload?
-6. l'owner è ancora corretto?
-7. il runbook funziona?
-8. esiste un signal migliore più vicino all'outcome?
-9. può essere rimosso?
-
-Google SRE suggerisce esplicitamente di mantenere il monitoring il più semplice possibile e considerare candidati alla rimozione signal che non vengono realmente usati.
+Google SRE raccomanda di mantenere il monitoring semplice e di considerare candidati alla rimozione i signal che non aiutano realmente le decisioni operative.
 
 Fonte:
 
 - [Google SRE — Monitoring Distributed Systems](https://sre.google/sre-book/monitoring-distributed-systems/)
 
-## Compromesso ESI
+## Il compromesso ESI
 
-Operations potrebbe volere alert molto sensibili per non perdere nulla.
+Operations vuole sensibilità. L’on-call vuole precisione. Product vuole ridurre incident impact. Platform vuole evitare che ogni workload duplichi page sulla stessa dependency.
 
-L'on-call vuole signal ad alta precisione.
-
-Product vuole ridurre incident impact.
-
-Platform vuole evitare duplicate alert su ogni workload.
-
-La scelta è:
+La scelta corrente è:
 
 ```text
 SLO/user-impact first paging
-+ saturation/recovery alerts con action chiara
++ saturation/recovery alerts solo quando azionabili
 + diagnostic metrics senza page automatico
 + owner esplicito
 + runbook linkage
-+ periodic alert review
++ alert quality review periodica
 ```
 
-## Regola
-
-> **Ogni alert chiede tempo umano. Se non sappiamo quale decisione quella persona deve prendere, l'alert non è ancora progettato.**
+> **Ogni alert spende attenzione umana. Se non sappiamo quale decisione quella persona deve prendere, l’alert non è ancora progettato.**
