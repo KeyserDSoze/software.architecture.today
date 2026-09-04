@@ -1,210 +1,80 @@
 ## Quando l'execution diventa abbondante
 
-Per capire che cosa cambia nel software engineering dobbiamo separare due cose che per anni sono state molto vicine:
+Per capire che cosa cambia nel software engineering dobbiamo separare due cose che per anni sono state molto vicine: la capacità di prendere una decisione e il costo di trasformarla in artefatti eseguibili.
 
-- la capacità di prendere una decisione;
-- il costo di trasformarla in artefatti eseguibili.
+In passato anche una decisione mediocre incontrava almeno una forma di attrito: implementarla richiedeva tempo. Quell’attrito non era sempre positivo e non c’è nulla di nostalgico nel lavoro ripetitivo, manuale o meccanico. Aveva però un effetto collaterale: limitava naturalmente il numero di direzioni che potevamo perseguire contemporaneamente.
 
-In passato una decisione mediocre incontrava almeno una forma di attrito: implementarla richiedeva tempo.
+Oggi un agente può aggiungere un endpoint e i relativi test, creare una migration, modificare uno schema, introdurre telemetry, aggiornare la documentazione, preparare una Dockerfile, proporre infrastruttura, rifattorizzare decine di file e arrivare fino all’apertura di una pull request. Di conseguenza, il limite non è più sempre “quanto riusciamo a produrre?”. Diventa sempre più spesso un’altra domanda:
 
-Questo attrito non era sempre positivo. Molto lavoro ripetitivo, manuale o meccanico non merita nostalgia.
-
-Ma quell'attrito aveva un effetto collaterale: limitava naturalmente il numero di direzioni che potevamo perseguire contemporaneamente.
-
-Oggi possiamo chiedere a un agente di aggiungere un endpoint e generare i test, creare una migration o modificare uno schema, aggiungere telemetry e aggiornare la documentazione. Può preparare una Dockerfile, proporre infrastruttura, rifattorizzare decine di file e arrivare fino all'apertura di una pull request.
-
-Il limite non è più sempre “quanto riusciamo a produrre?”.
-
-Diventa sempre più spesso:
-
-> **quanto riusciamo a capire, dirigere, confrontare e verificare?**
+> **Quanto riusciamo a capire, dirigere, confrontare e verificare?**
 
 ### Abbondanza non significa gratuità
 
-Dire che l'execution è diventata più economica non significa dire che sia gratuita.
+Dire che l’execution è diventata più economica non significa dire che sia gratuita. Ogni output introduce qualcosa che qualcuno dovrà comprendere e possedere nel tempo.
 
-Ogni output introduce qualcosa che qualcuno deve comprendere.
+Un nuovo componente aumenta il costo cognitivo del sistema; una dipendenza dovrà essere aggiornata; una nuova API crea un impegno di compatibilità; una coda aggiunge operabilità e failure mode; un retry introduce semantica che deve essere capita; un test ha un costo di manutenzione; un documento può diventare una fonte di drift; un’astrazione può diventare il luogo in cui depositiamo complessità senza accorgercene.
 
-Un nuovo componente ha un costo cognitivo.
-
-Una nuova dipendenza ha un costo di aggiornamento.
-
-Una nuova API ha un costo di compatibilità.
-
-Una nuova coda ha un costo operativo.
-
-Un nuovo retry ha un failure mode.
-
-Un nuovo test ha un costo di manutenzione.
-
-Un nuovo documento può diventare una fonte di drift.
-
-Una nuova astrazione può diventare il posto in cui il team deposita complessità senza accorgersene.
-
-Possiamo quindi avere un sistema in cui il costo di **creare** artefatti scende mentre il costo di **possedere** quegli artefatti resta alto.
-
-Questo rende ancora più importante distinguere tra output e valore.
+Possiamo quindi trovarci in una situazione nuova: il costo di **creare** artefatti scende mentre il costo di **possederli** resta alto. Per questo la distinzione tra output e valore diventa ancora più importante.
 
 ### Output per unità di tempo non basta più
 
-Immaginiamo due metriche.
-
-La prima:
+Una definizione ingenua di produttività potrebbe essere espressa così:
 
 ```text
 produttività = quantità di output / tempo
 ```
 
-La seconda:
+In un mondo di execution abbondante questa metrica premia quasi automaticamente l’automazione: più righe di codice, più pull request, più test, più documentazione, più issue chiuse. Ma una misura più utile deve includere anche ciò che il sistema eredita dopo la consegna:
 
 ```text
 produttività = valore affidabile prodotto / costo totale introdotto
 ```
 
-La prima metrica premia quasi automaticamente l'automazione.
+Questa seconda prospettiva ci obbliga a osservare ciò che le metriche di throughput tendono a nascondere. Quante modifiche abbiamo dovuto annullare? Quanti bug sono sfuggiti? Quanta complessità è rimasta? Quanto tempo serve a un’altra persona per capire il risultato? Quanto costa operarlo e quanto sarà difficile cambiarlo?
 
-Più righe di codice, più pull request, più test, più documentazione, più issue chiuse.
-
-La seconda obbliga a fare domande meno comode.
-
-Quante modifiche abbiamo dovuto annullare?
-
-Quanti bug sono stati introdotti?
-
-Quanta complessità è rimasta nel sistema?
-
-Quante decisioni sono state prese implicitamente?
-
-Quanto tempo serve a un'altra persona per capire il risultato?
-
-Quanto costa operarlo?
-
-Quanto sarà difficile cambiarlo?
-
-L'AI rende necessario maturare anche le metriche con cui giudichiamo il lavoro.
+L’AI ci costringe quindi a maturare non soltanto gli strumenti con cui produciamo software, ma anche le metriche con cui giudichiamo il lavoro.
 
 ### Il costo di generare alternative
 
-C'è un lato estremamente positivo dell'abbondanza.
+C’è un lato estremamente positivo dell’abbondanza: possiamo comprare più esplorazione. Prima, chiedere tre implementazioni complete della stessa idea poteva essere troppo costoso. Oggi possiamo chiedere di proporre più alternative con trade-off diversi prima ancora di implementare, confrontare una soluzione semplice con una ottimizzata per operabilità o scalabilità, oppure chiedere una critica forte della soluzione corrente e costruire l’alternativa migliore possibile.
 
-Possiamo comprare più esplorazione.
+Questo cambia il valore della comparazione. L’AI non dovrebbe servire soltanto a produrre più velocemente la prima idea; può rendere più economico **non innamorarsi della prima idea**.
 
-Prima, chiedere tre implementazioni complete della stessa idea poteva essere troppo costoso.
+### Usare l’abbondanza per comprare qualità
 
-Oggi possiamo chiedere:
+La capacità extra può essere spesa per aumentare confidenza anziché volume. Possiamo usarla per generare test avversariali, esplorare edge case, confrontare design, costruire piccoli prototipi scartabili, provare migration rehearsal o simulare failure. Può aiutarci a preparare rollback e runbook, eseguire static analysis, creare reviewer indipendenti o spiegare codice esistente da prospettive diverse.
 
-> “Proponi tre alternative con trade-off diversi. Non implementare ancora.”
+Questo è uno dei passaggi più importanti dell’AI-native software engineering: l’execution abbondante non è soltanto una fabbrica di output. Può diventare una leva di qualità, purché decidiamo deliberatamente di spenderla in quel modo.
 
-Oppure:
+### Quando l’abbondanza produce complessità
 
-> “Mostrami una soluzione semplice, una ottimizzata per operabilità e una ottimizzata per scalabilità.”
+La stessa capacità può essere usata male. Proprio perché generare è economico, si abbassa la soglia psicologica per aggiungere un microservizio, un nuovo livello di astrazione, una libreria che evita poche righe o una cache di cui non abbiamo ancora definito l’invalidazione. Diventa facile introdurre un event bus dove bastava una chiamata locale, un sistema multi-agent dove bastava un task sequenziale, centinaia di test che replicano l’implementazione o documentazione destinata a diventare obsoleta prima ancora di essere utile.
 
-Oppure ancora:
+A quel punto iniziamo a confondere due frasi molto diverse:
 
-> “Critica la soluzione corrente e costruisci l'alternativa più forte possibile.”
+> “Possiamo costruirlo.”
 
-Questo cambia il valore della comparazione.
+con
 
-L'AI non dovrebbe servire soltanto a produrre più velocemente la prima idea.
+> “Dovremmo costruirlo.”
 
-Può servire a rendere più economico **non innamorarsi della prima idea**.
-
-È una differenza sostanziale.
-
-### Execution abundance come leva di qualità
-
-L'abbondanza può essere utilizzata bene.
-
-Possiamo spendere la capacità extra per:
-
-- generare test avversariali;
-- confrontare design;
-- esplorare edge case;
-- produrre piccoli prototipi scartabili;
-- costruire migration rehearsal;
-- simulare failure;
-- eseguire static analysis;
-- creare reviewer indipendenti;
-- spiegare codice esistente da più prospettive;
-- ridurre la documentazione mancante;
-- preparare rollback e runbook.
-
-In altre parole, possiamo usare execution per aumentare **confidenza**, non soltanto volume.
-
-Questa è una delle opportunità più importanti dell'AI-native software engineering.
-
-### Execution abundance come leva di complessità
-
-La stessa capacità può essere utilizzata male.
-
-Possiamo aggiungere:
-
-- un microservizio perché è facile generarne uno;
-- un livello di astrazione perché il codice risultante sembra elegante;
-- una libreria perché evita venti righe;
-- una cache senza avere definito invalidazione;
-- un event bus per una comunicazione che poteva essere una chiamata locale;
-- un sistema multi-agent dove bastava un task sequenziale;
-- centinaia di test che replicano l'implementazione;
-- documentazione che descrive uno stato già superato.
-
-L'abbondanza abbassa la soglia psicologica per aggiungere cose.
-
-È facile confondere:
-
-> “possiamo costruirlo”
-
-con:
-
-> “dovremmo costruirlo”.
-
-Il secondo richiede giudizio.
+La seconda richiede giudizio.
 
 ### Il software che non scriviamo
 
-Una delle competenze più sottovalutate dell'architect è evitare software non necessario.
+Una delle competenze più sottovalutate dell’architect è evitare software non necessario. Una feature eliminata dal perimetro non avrà bug; una dipendenza non introdotta non dovrà essere aggiornata; un servizio che non esiste non può andare in timeout; una configurazione che non abbiamo creato non può divergere tra ambienti.
 
-Una feature eliminata dal perimetro non ha bug.
+Questo non significa idolatrare la riduzione del codice. A volte più componenti sono la scelta giusta, un sistema distribuito è necessario o una nuova astrazione riduce davvero il costo del cambiamento. Il punto è un altro: la facilità con cui possiamo generare qualcosa non è evidenza del fatto che quella cosa appartenga al sistema.
 
-Una dipendenza non introdotta non deve essere aggiornata.
-
-Un servizio non creato non può andare in timeout.
-
-Una configurazione non esistente non può divergere tra ambienti.
-
-Questo non significa idolatrare la riduzione del codice.
-
-A volte più componenti sono la scelta giusta.
-
-A volte un sistema distribuito è necessario.
-
-A volte una nuova astrazione riduce davvero il costo del cambiamento.
-
-Il punto è che la possibilità di generare facilmente una cosa non è evidenza del fatto che quella cosa appartenga al sistema.
-
-> **Nell'era dell'execution abbondante, la sottrazione diventa una capacità architetturale ancora più preziosa.**
+> **Nell’era dell’execution abbondante, la sottrazione diventa una capacità architetturale ancora più preziosa.**
 
 ### Il nuovo budget scarso
 
-Se codice, test e documentazione diventano relativamente più abbondanti, quale risorsa resta scarsa?
+Se codice, test e documentazione diventano relativamente più abbondanti, una risorsa resta invece irrimediabilmente scarsa: l’attenzione umana.
 
-L'attenzione umana.
+Ogni decisione importante compete per tempo di review, capacità di comprensione, memoria del team, concentrazione e responsabilità operativa. Un repository può crescere più velocemente della capacità delle persone di mantenerne un modello mentale coerente. Un backlog può produrre più pull request di quante il team riesca a revisionare seriamente. Un agente può aprire dieci cambiamenti mentre l’essere umano riesce a comprenderne davvero due.
 
-Ogni decisione importante compete per risorse umane che restano scarse: tempo di review, capacità di comprensione, memoria del team e concentrazione. Alla fine compete anche per responsabilità operativa, perché qualcuno dovrà vivere con le conseguenze di ciò che è stato prodotto.
-
-Un repository può crescere più velocemente della capacità delle persone di mantenere un modello mentale coerente.
-
-Un backlog può produrre più pull request di quante il team riesca a revisionare seriamente.
-
-Un agente può aprire dieci cambiamenti mentre l'essere umano riesce a comprenderne bene due.
-
-Il throughput del sistema di sviluppo non è quindi determinato soltanto dal throughput degli agenti.
-
-È determinato dal punto più lento della catena che mantiene affidabilità e responsabilità.
-
-Spesso quel punto è la capacità umana di giudicare.
-
-Per questo accelerare soltanto la generazione può produrre una coda nuova:
+Il throughput del sistema di sviluppo non è quindi determinato soltanto dal throughput degli agenti. È determinato dal punto più lento della catena che conserva affidabilità e responsabilità. Se acceleriamo soltanto la generazione, rischiamo di creare una nuova coda:
 
 ```text
 execution veloce
@@ -214,6 +84,4 @@ execution veloce
 → debito nascosto
 ```
 
-L'obiettivo non è massimizzare il numero di task contemporanei.
-
-È massimizzare il flusso di cambiamenti che il sistema socio-tecnico riesce a **comprendere e assorbire in sicurezza**.
+L’obiettivo non è massimizzare il numero di task contemporanei. È massimizzare il flusso di cambiamenti che il sistema socio-tecnico riesce a **comprendere e assorbire in sicurezza**.
