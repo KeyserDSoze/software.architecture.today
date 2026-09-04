@@ -1,320 +1,84 @@
-# 7. Tre casi, un solo metodo
+# Tre casi, un solo metodo
 
-A questo punto abbiamo tre sistemi molto diversi.
-
-Metterli uno accanto all'altro è più utile che studiarli separatamente.
-
-## Confronto sintetico
+Mettere i tre sistemi uno accanto all’altro rende visibile una proprietà che sarebbe facile perdere studiandoli separatamente: le parole del metodo restano le stesse, ma il contenuto delle decisioni cambia radicalmente.
 
 | Dimensione | Campaign Launchpad | Priority Migration | Case Explanation Assistant |
 |---|---|---|---|
-| Tipo | greenfield piccolo | brownfield enterprise | AI-native feature |
-| Business unit | Marketing Technology | Commerce & Operations | Commerce & Operations |
-| Primary risk | publish/control | semantic regression | unsupported/unsafe interpretation |
-| Primary owner | Marketing Technology | Commerce & Operations + Product/Operations | Commerce & Operations |
-| External authority | Identity / Brand | legacy behavior + domain owners | Orders/Payments/Shipping facts |
-| Architecture bias | managed/simple | coexistence/seam | bounded model boundary |
-| Key evidence | publish/rollback/deploy | characterization/shadow | eval/runtime model evidence |
-| Main rollback | publication version | legacy path | feature disable/fallback |
-| Current topology pressure | low | migration complexity | model/provider boundary |
+| Shape | piccolo greenfield | brownfield enterprise | AI-native capability |
+| Primary risk | publish/control failure | semantic regression / cutover | unsupported or unsafe interpretation |
+| Architecture bias | managed/static-first | coexistence + seam | bounded model boundary |
+| Key evidence | publish/rollback/deploy | characterization + shadow | eval + runtime model evidence |
+| Main recovery | previous publication | legacy path / delayed cutover | feature disable + deterministic fallback |
+| Current production state | NOT READY | NOT AUTHORIZED | NOT READY / DISABLED |
 
-La tabella mostra una cosa importante.
+La tabella non serve a scegliere un pattern. Serve a vedere che **scope, ownership, quality, failure, evidence e readiness** producono risposte diverse quando il problema cambia.
 
-Le parole del metodo restano:
+## La stessa parola “boundary” protegge cose diverse
 
-```text
-scope
-ownership
-quality
-failure
-trade-off
-evidence
-readiness
-```
+In Campaign Launchpad il boundary importante separa authoring interno e publication pubblica. La modularità protegge template, approval e publication state.
 
-ma il contenuto cambia completamente.
+Nel brownfield il boundary separa target semantics dal compatibility mechanism. `PriorityPolicy` impedisce al legacy di definire il linguaggio del nuovo dominio e permette la coexistence.
 
-## Modularity
+Nell’AI Assistant il boundary separa deterministic context, model port, provider adapter e output validation; soprattutto separa model interpretation da business authority.
 
-Campaign Launchpad può avere pochi moduli.
+Il principio di modularità è lo stesso. La ragione per cui esiste il modulo è diversa.
 
-La sua modularità protegge soprattutto:
+## Ownership produce architetture differenti perché la truth è diversa
 
-```text
-authoring
-approval
-publication
-```
+Campaign Launchpad possiede quasi tutto il proprio workflow state. La Priority migration deve distinguere observed legacy behavior da target policy authoritative. Il Case Explanation Assistant vive sopra facts appartenenti ad altri domini e deve evitare di diventare una nuova source of truth.
 
-Nel brownfield la modularità serve a separare:
+Questo è il motivo per cui data ownership non significa semplicemente “quale database contiene il record”.
 
-```text
-target semantics
-legacy compatibility
-migration mechanism
-```
+> **Ownership indica chi ha il diritto di definire il significato del fatto e di autorizzarne il cambiamento.**
 
-Nell'AI Assistant serve a separare:
+## Reliability segue il failure che vogliamo contenere
 
-```text
-deterministic context
-model port
-provider adapter
-output validation
-```
+Campaign Launchpad privilegia versioned publication e rollback. La migration privilegia reversibilità semantica e delayed cutover. L’AI Assistant privilegia graceful degradation: provider unavailable non deve rendere inutilizzabile il core.
 
-Stesso principio.
+Non esiste una tecnica universale chiamata “resilience”. Esistono failure diversi e recovery path appropriati a ciascuno.
 
-Boundary diversi.
+Lo stesso vale per observability. Il primo prodotto deve sapere se publish e rollback hanno prodotto l’artifact atteso. Il brownfield deve distinguere Match, ExpectedDifference e UnexpectedDifference. L’AI runtime deve identificare model/config version, latency, fallback, source support e quality drift.
 
-## Data ownership
+CPU e request count possono essere utili in tutti e tre. Non descrivono però la property che rende ciascun sistema governabile.
 
-Campaign Launchpad possiede quasi tutto il proprio business state.
+## Testing segue il claim, non una piramide fissa
 
-La Priority migration invece dipende dalla distinzione:
+Campaign Launchpad usa state/workflow test e publish/rollback journey. Il brownfield combina characterization, target-policy test e shadow comparison. L’AI Assistant richiede deterministic boundary test, versioned eval e real model execution.
 
-```text
-legacy observed behavior
-≠
-target authoritative policy
-```
+Questa differenza è la prova pratica del principio del Capitolo 16: non partiamo dalla forma del test suite; partiamo dalla property e dal boundary che può smentirla.
 
-L'AI Assistant deve vivere sopra più authoritative source senza diventare una di esse.
+## Anche il costo racconta che cosa stiamo comprando
 
-Quindi lo stesso concetto di ownership produce tre decisioni differenti.
+Campaign Launchpad paga managed hosting, public traffic e una piccola execution surface. La Priority migration paga coexistence, telemetry e verification aggiuntiva. L’AI Assistant paga inference, context, retry, evaluation e human review.
 
-> **Data ownership non significa sempre “quale database contiene il dato”. Significa chi ha il diritto di definire il significato del fatto.**
+La voce di fattura è diversa perché la proprietà comprata è diversa.
 
-## Reliability
+> **Il costo architetturale è il prezzo del comportamento che vogliamo sostenere, non soltanto della risorsa cloud che compare nel bill.**
 
-Campaign Launchpad può privilegiare static public delivery e rollback di publication.
+## L’organizzazione non viene uniformata dagli agenti
 
-La Priority migration privilegia rollback semantico verso la legacy implementation.
+Campaign Launchpad può avere un accountable lead singolo appoggiato a Marketing, Platform e Security. Il brownfield richiede knowledge distribuita fra Product, Operations, legacy context ed Engineering. L’AI Assistant aggiunge usefulness review, provider/security concern e cost governance.
 
-L'AI Assistant privilegia fallback:
+Un agente capace non elimina queste authority. Può ridurre execution handoff, non il numero di interessi legittimi che una decisione deve integrare.
 
-```text
-assistant unavailable
-→ core product remains usable
-```
+## I casi reali vanno letti allo stesso modo
 
-Non esiste una tecnica universale chiamata `resilience`.
+Azure Static Web Apps documenta capability che possono essere appropriate a un piccolo public/static workload. GitHub documenta dual boot e rollout incrementale durante una grande migration. Uber documenta golden set ed evaluation in un copilot interno.
 
-Esistono failure diversi che chiedono recovery diversi.
+Fonti:
 
-## Security
+- [Microsoft Learn — Azure Static Web Apps](https://learn.microsoft.com/en-us/azure/static-web-apps/overview)
+- [GitHub Engineering — Upgrading GitHub from Rails 3.2 to 5.2](https://github.blog/engineering/infrastructure/upgrading-github-from-rails-3-2-to-5-2/)
+- [Uber Engineering — Enhanced Agentic-RAG](https://www.uber.com/us/en/blog/enhanced-agentic-rag/)
 
-Campaign Launchpad:
+Nessuna fonte autorizza la regola `small web → Static Web Apps`, `legacy → dual boot` o `AI → RAG`.
 
-```text
-internal authoring
-public publishing
-```
+Ci insegna invece quali domande il contesto reale ha costretto qualcuno a fare.
 
-Il confine principale è fra chi può modificare e chi può leggere.
+## Fit before fashion, finalmente end-to-end
 
-Priority migration:
+Campaign Launchpad mostra che una soluzione piccola può essere matura. La Priority migration mostra che mantenere temporaneamente il legacy può essere più responsabile che eliminarlo. Il Case Explanation Assistant mostra che limitare l’AI può essere una proprietà architetturale, non una mancanza di ambizione.
 
-```text
-no new external security boundary
-```
+> **Non chiedere quale soluzione è più moderna. Chiedi quale problema la rende necessaria, quale costo accetta e quale evidence ci autorizza a mantenerla.**
 
-ma la coexistence deve evitare accessi illeciti al legacy e conservare tenant/domain rule.
-
-AI Assistant:
-
-```text
-prompt injection
-cross-tenant context
-provider data boundary
-future tool permission
-```
-
-Qui la security riguarda anche **quale informazione consegniamo al modello e quale potere gli diamo dopo**.
-
-## Observability
-
-Campaign Launchpad deve sapere:
-
-```text
-publish succeeded?
-public artifact available?
-rollback succeeded?
-```
-
-La Priority migration deve sapere:
-
-```text
-legacy vs candidate match?
-expected difference?
-unexpected difference?
-```
-
-L'AI Assistant deve sapere:
-
-```text
-which model/config?
-latency?
-source support?
-fallback?
-eval/runtime quality drift?
-```
-
-Una dashboard comune di CPU e request count non sostituirebbe nessuna delle tre observability requirement.
-
-## Testing
-
-Campaign Launchpad:
-
-```text
-workflow/state tests
-publish/rollback E2E
-identity negative test
-```
-
-Priority migration:
-
-```text
-characterization
-target policy
-shadow classification
-```
-
-AI Assistant:
-
-```text
-deterministic boundary tests
-versioned eval
-security eval
-real model comparison
-```
-
-Questo è il motivo per cui nel Capitolo 16 abbiamo evitato di trasformare una piramide in una legge universale.
-
-## Cost
-
-Anche i cost driver sono differenti.
-
-Campaign Launchpad:
-
-```text
-managed hosting
-public traffic
-storage
-small serverless execution
-```
-
-Priority migration:
-
-```text
-coexistence cost
-migration telemetry
-legacy operation
-extra verification
-```
-
-AI Assistant:
-
-```text
-model inference
-context size
-retry
-provider
-human verification
-rework
-```
-
-> **Il costo è sempre una proprietà del comportamento che stiamo comprando, non soltanto della risorsa che appare in fattura.**
-
-## Organization
-
-Il primo caso può avere:
-
-```text
-one accountable lead
-+ Marketing owner
-+ platform/security leverage
-```
-
-Il brownfield richiede inevitabilmente una conoscenza distribuita:
-
-```text
-Product
-Operations
-legacy maintainer
-Engineering
-```
-
-L'AI Assistant richiede inoltre:
-
-```text
-Product usefulness
-Security/provider review
-potential Legal/Privacy review
-FinOps
-```
-
-Quindi neppure il miglior agente rende uguale l'organizzazione necessaria per sistemi diversi.
-
-## Fit before fashion, end-to-end
-
-Se il libro avesse una sola regola tecnica, sarebbe facile.
-
-Ma la regola più importante è decisionale:
-
-> **Non chiedere quale soluzione è più moderna. Chiedi quale soluzione ha il fit migliore con il problema reale e quale evidence ci autorizza a mantenerla.**
-
-Campaign Launchpad ci mostra che una soluzione piccola può essere matura.
-
-Priority migration ci mostra che mantenere temporaneamente il legacy può essere più responsabile che eliminarlo.
-
-Case Explanation Assistant ci mostra che limitare l'AI può essere una feature architetturale, non una mancanza di ambizione.
-
-## I casi reali come evidence, non come template
-
-Anche le fonti reali del capitolo vanno lette così.
-
-### Microsoft
-
-Azure Static Web Apps documenta una capability gestita per static/full-stack web application con integrazione repository e API serverless:
-
-- https://learn.microsoft.com/en-us/azure/static-web-apps/overview
-
-Non significa:
-
-```text
-small web product
-→ always Static Web Apps
-```
-
-### GitHub
-
-GitHub documenta dual boot e rollout incrementale nel proprio upgrade Rails:
-
-- https://github.blog/engineering/infrastructure/upgrading-github-from-rails-3-2-to-5-2/
-
-Non significa:
-
-```text
-legacy migration
-→ always dual boot
-```
-
-### Uber
-
-Uber documenta golden set, RAG/agentic-RAG e evaluation nel proprio copilot interno:
-
-- https://www.uber.com/us/en/blog/enhanced-agentic-rag/
-
-Non significa:
-
-```text
-AI application
-→ always RAG
-```
-
-La fonte reale dimostra che una proprietà o un problema è stato affrontato nel mondo reale.
-
-Il nostro metodo decide se quella proprietà conta nel nostro sistema.
-
-> **Studiare una grande architettura non significa copiarla. Significa imparare quali domande il suo contesto ha costretto qualcuno a fare.**
+Se lo stesso metodo conduce a soluzioni differenti ma ciascuna decisione resta spiegabile, il metodo sta facendo il proprio lavoro.
