@@ -1,445 +1,113 @@
 # Launch boundary, blocker e risk acceptance
 
-Una Production Readiness Review senza un launch boundary chiaro produce confusione.
+Una Production Readiness Review non può rispondere a “siamo pronti?” finché non sappiamo **pronti per che cosa**.
 
-Perché la domanda:
+Il launch boundary definisce la promessa concreta: quali utenti, capability, regioni, volumi, integrazioni, support window e operational expectation stiamo per esporre al mondo reale.
 
-> siamo pronti?
+Un bounded internal pilot con private workforce access e una sola region è un sistema diverso, dal punto di vista del rischio, da un launch globale 24x7 con public ingress, AI assistant e write action.
 
-non ha senso finché non sappiamo **pronti per che cosa**.
+> **La readiness si valuta contro la promessa corrente, non contro un prodotto futuro immaginario.**
 
----
+## Progressive exposure riduce la promessa, non il quality floor
 
-## Il launch boundary
+Limitare cohort, traffic, region o feature set può ridurre il blast radius e permettere un launch più piccolo mentre capability più ambiziose restano Pending.
 
-Il launch boundary definisce:
+Ma un pilot con dieci operatori continua ad avere bisogno di authentication corretta, tenant isolation quando applicabile, data integrity, owner, incident path e capacità di capire se sta fallendo.
 
-```text
-utenti
-capability
-ambienti
-regioni
-traffic / volume
-integrations
-support window
-operational promises
-```
+La scala modifica la severità di alcuni gate; non rende negoziabili le proprietà che definiscono il quality floor.
 
-Esempio ESI:
+Questo è il motivo per cui restringere il launch boundary può essere una mitigation molto più efficace di aggiungere architettura. Se l’AI eval non è completa, possiamo lanciare il core con l’AI disabled. Se il support 24x7 non esiste, possiamo proporre un pilot business-hours. Se public ingress non è pronto, possiamo mantenere private workforce access.
 
-```text
-Internal workforce only
-Single production region
-Order Operations core read journey
-Payment Escalation enabled
-Priority candidate disabled
-Case Explanation Assistant disabled
-Business-hours pilot support
-```
+La mitigation deve però essere reale e verificabile.
 
-È un launch molto diverso da:
+## Go/No-Go non è una votazione
 
-```text
-all enterprise tenants
-global 24x7
-public/mobile access
-AI assistant enabled
-full remediation actions
-```
+Immaginiamo Product, Engineering e Sales favorevoli al launch, mentre Security segnala una boundary non verificata e Operations non ha restore evidence.
 
-La readiness deve essere valutata rispetto al primo perimetro, non rispetto a un futuro ipotetico.
+Tre voti contro due non producono un `GO`.
 
----
+Alcuni finding appartengono a authority specifiche. Security deve poter bloccare un critical security gap; Payments & Risk un rischio economico del proprio dominio; Operations deve poter dichiarare che un support/recovery model non è praticabile.
 
-# Progressive exposure è anche progressive commitment
+La stessa regola usata contro il consensus theatre nei workflow agentici vale qui:
 
-Abbiamo già incontrato feature flag e canary nei capitoli precedenti.
+> **I finding non hanno tutti lo stesso peso e l’authority non nasce dalla maggioranza.**
 
-Qui aggiungiamo una prospettiva:
+## Accepted Risk è una decisione, non un colore giallo
 
-> **ridurre l'esposizione iniziale riduce anche la quantità di promessa che dobbiamo essere pronti a sostenere immediatamente.**
+Una risk acceptance seria deve rendere leggibili condition, impact, affected boundary, mitigation, detection, fallback, owner, acceptance authority ed expiry/review trigger.
 
-Possiamo limitare:
+Per esempio, un bounded internal pilot potrebbe accettare l’assenza di active-active multi-region se esiste restore evidence e il business owner accetta un regional downtime envelope.
+
+Molto diverso è non sapere se il committed business state può essere ripristinato affatto.
+
+Nel primo caso abbiamo un rischio compreso e limitato. Nel secondo manca la property necessaria per giudicare il rischio.
+
+## Non tutto è reversibile allo stesso modo
+
+Anche “rollback disponibile” è una frase troppo generica.
+
+Possiamo rollbackare code, configuration, feature exposure o traffic. I dati possono richiedere restore, forward repair o business compensation. Un messaggio già emesso, un pagamento eseguito o una destructive migration non vengono annullati da una feature flag.
+
+Per questo una one-way door deve aumentare la readiness bar. Prima di eliminare una via di fuga dobbiamo sapere quale evidence dimostra che il target è pronto, quale fallback scompare e chi accetta la perdita di reversibilità.
+
+## ESI separa quattro launch boundary
+
+Order Operations ha almeno quattro promesse differenti:
 
 ```text
-user cohort
-traffic percentage
-region
-feature set
-tenant set
-write capability
-AI capability
-support hours
+LB-CORE
+→ core operational read journey
+
+LB-ESCALATION
+→ Payment Escalation + Outbox + messaging boundary
+
+LB-PRIORITY-CANDIDATE
+→ target Priority policy authoritative cutover
+
+LB-AI
+→ Case Explanation Assistant
 ```
 
-Ma progressive exposure non deve diventare una scusa per lanciare un sistema non operabile.
+Questa separazione è più utile di un readiness score unico.
 
-Un pilot con dieci operatori continua ad avere bisogno di:
+`LB-ESCALATION` può essere bloccato da `OO-001` mentre il core continua a progredire. `LB-AI` può restare disabled finché `OO-002` non produce real model evidence. Priority cutover può restare non autorizzato senza impedire il compatibility path corrente.
 
-- autenticazione corretta;
-- tenant isolation se applicabile;
-- data integrity;
-- owner;
-- incident path;
-- rollback/fallback;
-- capacità di capire se sta fallendo.
+La readiness non è quindi una percentuale del repository. È una decisione per promessa.
 
-La scala può ridurre il rischio.
+## La data non cambia la physics del sistema
 
-Non elimina il **quality floor**.
-
----
-
-# Il Go/No-Go non dovrebbe essere una votazione
-
-Immaginiamo la riunione ESI.
+Se un blocker richiede cinque giorni e il launch è domani, esistono tre opzioni oneste:
 
 ```text
-Product       GO
-Engineering   GO
-Sales         GO
-Operations    NO-GO: restore untested
-Security      NO-GO: private access not verified
+close the blocker
+reduce the launch boundary
+explicitly accept a bounded risk with the right authority
 ```
 
-La risposta non è:
+Rinominare `blocker` in `follow-up` perché la data si avvicina non crea nuova evidence. È risk laundering.
 
-```text
-3 voti contro 2
-→ GO
-```
+Una domanda utile durante ogni riclassificazione è:
 
-Il risk gate non è democratico.
+> **Quale nuova informazione tecnica o di business ci permette di considerare oggi accettabile ciò che ieri non lo era?**
 
-Alcuni rischi richiedono l'autorità specifica del dominio che li possiede.
+Se la risposta è soltanto “la data è domani”, non è cambiato il rischio.
 
-Esempio:
+## Il decision record deve essere leggibile
 
-```text
-Security critical blocker
-→ Security authority required
+La PRR deve terminare con una decisione esplicita: `GO`, `CONDITIONAL GO` o `NO-GO`, launch boundary, blocker, accepted risk con authority, capability disabled, evidence package, rollback/fallback, support owner e next review trigger.
 
-Payment correctness blocker
-→ Payments & Risk required
-
-Business scope limitation
-→ Product / business owner
-
-Production support capability
-→ Operations / workload owner
-```
-
-Questo è lo stesso principio usato nel Capitolo 23 contro il **consensus theatre**.
-
----
-
-# Risk acceptance non è una firma decorativa
-
-Una risk acceptance seria dovrebbe dichiarare:
-
-```text
-Risk ID
-Condition
-Impact
-Likelihood / uncertainty
-Affected launch boundary
-Mitigation
-Detection
-Fallback
-Owner
-Acceptance authority
-Expiry / review trigger
-Closure action
-```
-
-Esempio:
-
-```text
-RISK-PRR-07
-
-Condition
-regional automated failover not implemented
-
-Launch boundary
-single-region internal pilot
-
-Mitigation
-backups + documented redeploy path
-
-Residual impact
-regional outage may exceed normal availability target
-
-Acceptance authority
-Product/Operations accountable owner
-
-Expiry
-before external/24x7 launch
-```
-
-Questo può essere un rischio accettabile.
-
-Diverso sarebbe:
-
-```text
-no evidence that committed business state can be restored
-```
-
-quando il business richiede un RPO/RTO preciso.
-
----
-
-# Temporary launch constraints
-
-A volte il modo migliore di chiudere un blocker non è implementare subito una capability più complessa.
-
-Può essere **restringere il launch boundary**.
-
-Esempi:
-
-```text
-AI eval not complete
-→ launch core without AI
-
-24x7 support not staffed
-→ bounded pilot support window
-
-regional DR not mature
-→ internal pilot with explicit regional-risk acceptance
-
-public ingress not ready
-→ private workforce access only
-```
-
-Questa è architettura e product strategy insieme.
-
-> **Un launch boundary più piccolo può essere una mitigation migliore di un'architettura più grande.**
-
----
-
-# Non tutto può essere mitigato con un flag
-
-I feature flag sono potenti, ma alcuni cambiamenti hanno effetti fuori dal processo applicativo.
+`CONDITIONAL GO` deve descrivere condizioni reali, non significare “andiamo e poi sistemiamo”.
 
 Per esempio:
 
 ```text
-database migration
-schema destructive change
-message already emitted
-external customer communication
-security credential leakage
-financial side effect
+GO only if
+→ evidence X closes
+→ capability Y remains disabled
+→ cohort stays bounded
+→ support owner W is active
 ```
 
-Quindi dobbiamo distinguere:
+## La regola
 
-```text
-feature rollback
-code rollback
-traffic rollback
-configuration rollback
-data rollback / forward repair
-business compensation
-```
-
-Una review che dice genericamente:
-
-> rollback disponibile
-
-senza dire **rollback di cosa** non ha ancora risposto alla domanda.
-
----
-
-# One-way door review
-
-Prima di un one-way door la readiness bar deve salire.
-
-Esempi:
-
-```text
-delete legacy data
-retire old API
-irreversible schema contraction
-external contract cutover
-production AI granted write authority
-region migration without fallback
-```
-
-Prima di procedere dobbiamo chiedere:
-
-```text
-What evidence makes this step necessary?
-What evidence proves the target is ready?
-What fallback disappears after the step?
-Who accepts that loss of reversibility?
-What observation window was used?
-```
-
-La review non deve solo controllare il sistema che stiamo per lanciare.
-
-Deve controllare anche **quali vie di fuga stiamo per eliminare**.
-
----
-
-# Launch condition vs permanent architecture
-
-Una mitigation di lancio non dovrebbe diventare accidentalmente una policy permanente.
-
-Esempio:
-
-```text
-pilot limited to business hours
-```
-
-potrebbe essere corretto per il primo launch.
-
-Se due anni dopo il prodotto è business-critical 24x7 e nessuno ha rivisto il support model, il temporary constraint è diventato context drift.
-
-Quindi ogni launch constraint deve avere:
-
-```text
-owner
-trigger
-expiry / milestone
-```
-
----
-
-# ESI: separiamo i launch boundary
-
-Per Order Operations possiamo distinguere almeno quattro boundary.
-
-## LB-CORE
-
-```text
-core operator read journey
-private workforce access
-single-region
-```
-
-## LB-ESCALATION
-
-```text
-Payment Escalation write
-PostgreSQL atomicity
-Outbox
-Service Bus
-Payments integration
-```
-
-## LB-PRIORITY-CANDIDATE
-
-```text
-ConfirmedPriorityPolicy authoritative
-legacy fallback retirement path
-```
-
-## LB-AI
-
-```text
-Case Explanation Assistant
-real provider/model
-runtime eval/observability/cost
-```
-
-Questi boundary possono avere readiness status differenti.
-
-Per esempio:
-
-```text
-LB-CORE              Conditionally Ready / evidence gaps
-LB-ESCALATION        Not Ready until OO-001 closure
-LB-PRIORITY-CANDIDATE Not Authorized
-LB-AI                Not Ready until OO-002 eval + security/runtime gates
-```
-
-Questa visibilità è molto più utile di:
-
-```text
-Order Operations = 83% ready
-```
-
-Una percentuale unica nasconde esattamente ciò che dobbiamo capire.
-
----
-
-# Release date come decisione, non come verità naturale
-
-Una data può essere importante.
-
-Ma una data non cambia la fisica del sistema.
-
-Se un blocker richiede cinque giorni di lavoro e il launch è domani, abbiamo soltanto tre possibilità oneste:
-
-```text
-1. close the blocker
-2. reduce the launch boundary
-3. explicitly accept the risk with the right authority
-```
-
-La quarta opzione:
-
-```text
-rename blocker → follow-up
-```
-
-non è project management.
-
-È **risk laundering**.
-
----
-
-# Decision record del go-live
-
-La review dovrebbe terminare con una decisione leggibile:
-
-```text
-Decision
-GO | CONDITIONAL GO | NO-GO
-
-Launch boundary
-<explicit>
-
-Blockers
-<list>
-
-Accepted risks
-<list + authority>
-
-Disabled/deferred capability
-<list>
-
-Evidence package
-<refs>
-
-Rollback/fallback
-<refs>
-
-Support owner
-<owner>
-
-Next review trigger
-<date/event>
-```
-
-`CONDITIONAL GO` deve significare qualcosa di concreto.
-
-Non:
-
-> andiamo, poi sistemiamo.
-
-Ma:
-
-```text
-GO only if:
-- evidence X closes;
-- feature Y remains disabled;
-- cohort stays within Z;
-- owner W is on support;
-```
-
----
-
-# La regola
-
-> **Non adattare la definizione di ready alla data. Adatta il launch boundary, il rischio accettato o la data alla evidence che possiedi.**
+> **Non adattare la definizione di ready alla data. Adatta la data, la promessa o il rischio esplicitamente accettato alla evidence che possiedi.**
