@@ -1,22 +1,18 @@
 ## Order Operations: pattern scelti, pattern rinviati
 
-Order Operations è abbastanza cresciuto da permetterci di fare una cosa utile: valutare pattern concreti senza trasformare il sistema in un catalogo.
+Order Operations è arrivato a un punto interessante: il sistema è abbastanza concreto da farci valutare pattern reali, ma non abbastanza complesso da giustificare automaticamente tutte le strutture che potremmo introdurre.
 
-Ricordiamo il contesto attuale.
+Il contesto è ancora quello costruito nei capitoli precedenti. La console compone stato ordine, pagamento e spedizione; il volume è moderato; il team è piccolo; il lookup è ancora live; Orders, Payments e Shipping hanno ownership distinte ma possono convivere nello stesso deployable e nella stessa istanza PostgreSQL.
 
-Il prodotto espone una vista operativa con stato ordine, pagamento e spedizione. Il volume è ancora moderato. Il team è piccolo. Abbiamo scelto per ora lookup live sui dati operativi. Orders, Payments e Shipping hanno responsabilità distinte ma possono vivere nello stesso deployable e nella stessa istanza PostgreSQL.
+Quindi non chiediamo quali pattern “mancano”. Chiediamo quali pressioni esistano già.
 
-Questo contesto ci permette di chiedere quali pattern abbiano davvero un lavoro da svolgere.
+## Il confine esterno ha già un problema reale
 
-### Adapter per provider esterni: sì
+Payments e Shipping dipendono da provider di cui non controlliamo contratto, nomenclatura, errori o tempi di risposta. Questa forza è presente oggi, non in un futuro ipotetico.
 
-Payments e Shipping dipendono da sistemi esterni con contratti che non controlliamo.
+Qui un **Adapter** ha un lavoro chiaro: proteggere il linguaggio interno dal modello del provider.
 
-Qui un Adapter ha un buon fit.
-
-Non perché “Clean Architecture lo richiede”, ma perché vogliamo evitare che il linguaggio del provider diventi il linguaggio del dominio.
-
-Per Shipping potremmo avere:
+Per Shipping potremmo esporre una capability come:
 
 ```ts
 export interface ShipmentTrackingPort {
@@ -24,7 +20,7 @@ export interface ShipmentTrackingPort {
 }
 ```
 
-con un adapter specifico:
+mentre l'adapter conosce il client concreto:
 
 ```ts
 export class CarrierXTrackingAdapter implements ShipmentTrackingPort {
@@ -41,185 +37,102 @@ export class CarrierXTrackingAdapter implements ShipmentTrackingPort {
 }
 ```
 
-Il valore del pattern è chiaro:
+Il valore non sta nell'interfaccia in sé. Sta nel fatto che `shipment_state`, `eta_epoch`, error code e altre convenzioni del carrier rimangono locali al confine. Il dominio continua a parlare il proprio linguaggio.
 
-- translation boundary;
-- normalizzazione errori;
-- isolamento del contratto esterno;
-- possibilità di sostituire o affiancare un provider senza contaminare il dominio.
+Questa pressione giustifica il pattern già nella prima iterazione.
 
-### Retry: sì, ma soltanto in casi specifici
+## La rete richiede disciplina prima di richiedere sofisticazione
 
-Una lettura del tracking può fallire per un errore transitorio.
+Le chiamate verso provider esterni possono essere lente o fallire. Anche questa forza è reale.
 
-Un retry limitato con backoff può avere senso.
+La prima risposta non è un'intera suite di resilience pattern. È definire **timeout** coerenti con il latency budget del journey e distinguere failure permanenti da failure plausibilmente transitori.
 
-Ma non vogliamo una policy globale “retry everything”.
+Dove l'operazione è sicura da ripetere, un **retry limitato** con backoff può avere fit. Ma la policy deve appartenere a un punto preciso del sistema. Se il nostro adapter effettua tre retry mentre l'SDK del provider ne fa già altri tre, una decisione locale apparentemente prudente può moltiplicare il carico durante un incidente.
 
-Per ogni operazione dobbiamo sapere:
+Per questo il retry entra soltanto insieme a idempotency reasoning, error classification e un budget esplicito.
 
-- è idempotente?
-- quale latency budget abbiamo?
-- quali errori sono transitori?
-- chi è già responsabile del retry?
+Questi meccanismi sono piccoli rispetto a una queue o a una saga, ma non sono dettagli irrilevanti. Sono parte del contratto operativo della dipendenza.
 
-Se un SDK del provider fa già retry e il nostro client ne aggiunge altri tre, possiamo moltiplicare involontariamente le richieste.
+## Il circuit breaker non supera ancora la soglia
 
-Quindi il pattern entra insieme a una policy esplicita.
+A questo punto sarebbe facile aggiungere un **circuit breaker**. La libreria esiste, il pattern è noto e un agente potrebbe implementarlo rapidamente.
 
-### Timeout: sì
+Ma oggi non abbiamo evidenza che failure persistenti dei provider stiano causando cascading failure, saturazione delle risorse o incidenti in cui continuare a chiamare peggiora materialmente la situazione.
 
-Le dipendenze esterne devono avere timeout coerenti con il journey.
+Il breaker introdurrebbe comunque soglie, stato, fallback, metriche, alerting, test e recovery semantics. Sono costi reali.
 
-Questo non richiede un'architettura sofisticata.
+Per la prima fase preferiamo quindi timeout, retry selettivo e graceful degradation.
 
-Richiede disciplina.
+La decisione non è definitiva. Il breaker verrà rivalutato se aumenteranno failure persistenti, se la dipendenza inizierà a saturare risorse condivise o se un incidente dimostrerà che il sistema continua inutilmente a esercitare pressione su un provider degradato.
 
-### Circuit breaker: non ancora
+Questo è un esempio concreto di pattern threshold.
 
-Potremmo implementarlo.
+## L'asincronia entra soltanto dove il tempo può davvero essere disaccoppiato
 
-La libreria esiste.
+Il journey principale è sincrono: l'operatore apre la console e vuole vedere informazioni. Mettere una **queue** tra UI e lettura non risolve un problema attuale; aggiunge soltanto un passaggio asincrono a una richiesta che ha bisogno di una risposta.
 
-L'AI potrebbe aggiungerlo in pochi minuti.
+La stessa queue potrebbe invece avere molto più senso per una futura notifica. Se un cambiamento di stato deve produrre un'email o un'informazione operativa che non deve bloccare la transazione principale, producer e consumer non hanno più bisogno di essere disponibili nello stesso momento. La forza cambia, e con lei cambia il fit del pattern.
 
-Ma oggi non abbiamo evidenza che failure persistenti dei provider stiano producendo cascading failure o saturazione significativa.
+Questo ci impedisce di parlare di “queue sì” o “queue no” in assoluto. La risposta dipende dal rapporto temporale richiesto dal journey.
 
-Inoltre il breaker richiederebbe:
+## Outbox: candidato solo quando compare il problema commit-publish
 
-- metriche;
-- soglie;
-- fallback;
-- alerting;
-- test;
-- ownership operativa.
+Oggi Order Operations non possiede ancora una transazione che debba produrre in modo affidabile un evento esterno.
 
-Per ora preferiamo timeout, retry limitato e graceful degradation.
+Se in futuro una action persistita dovrà causare una notifica o un'integrazione, emergerà una domanda precisa:
 
-Trigger di revisione:
+> come evitiamo che il commit riesca ma l'intenzione di pubblicare venga persa?
 
-- aumento significativo dei failure persistenti;
-- saturazione delle risorse a causa della dipendenza;
-- incidenti in cui le chiamate ripetute peggiorano la situazione.
+A quel punto la **transactional outbox** diventa un candidato serio. Prima di quel momento non risolve nulla che il sistema abbia bisogno di risolvere.
 
-### Queue per la vista operativa: no
+Il trigger è molto più utile di una decisione preventiva.
 
-Il journey è sincrono: l'operatore apre la console e vuole vedere informazioni.
+## CQRS: separare gli intenti senza inventare infrastruttura
 
-Inserire una queue tra UI e lettura non risolve alcun problema attuale.
+Nel codice possiamo già distinguere query e command quando hanno semantiche differenti. Questa separazione logica può migliorare chiarezza senza richiedere due database, due servizi o una pipeline di eventi.
 
-Aggiungerebbe asincronia dove non serve.
+Un **read model dedicato** verrà preso in considerazione soltanto se il profilo di lettura divergerà materialmente da quello operativo: latency non raggiungibile, carico che interferisce con le scritture, availability indipendente o più consumer che richiedono la stessa proiezione.
 
-### Queue per notifiche: plausibile
+Fino ad allora, “CQRS” non è una giustificazione per distribuire il sistema.
 
-Se in futuro ESI introdurrà notifiche operative o customer-facing dopo cambiamenti di stato, una queue può avere un buon fit.
+## Event sourcing e saga non hanno ancora un problema da risolvere
 
-La notifica non deve necessariamente bloccare una transazione.
+Il fatto che Orders abbia stati e storico non rende **event sourcing** appropriato. Introdurlo cambierebbe fonte della verità, persistenza, debugging e recovery senza che esista oggi un requisito che paghi quel costo.
 
-In quel caso il disaccoppiamento temporale ha valore.
+Quindi la decisione è no.
 
-### Outbox: non ancora, ma con un trigger chiaro
+Non “non ancora perché il team non è abbastanza maturo”. No perché il fit attuale è scarso.
 
-Oggi Order Operations non ha ancora un requisito forte di pubblicazione affidabile di eventi dopo una transazione propria.
+La stessa disciplina vale per **saga**. Orders, Payments e Shipping compaiono nello stesso scenario, ma non abbiamo ancora un workflow distribuito multi-step che richieda transazioni locali e compensazioni. Usare la parola saga prima che esista quella pressione sarebbe architettura anticipata.
 
-Se introducessimo notifiche o integrazioni che devono reagire a un evento persistito, la domanda diventerebbe concreta:
+Se il business introdurrà una action che attraversa sistemi autonomi, stati intermedi e failure compensabili, allora modelleremo quel problema.
 
-> come garantiamo che il commit e l'intenzione di pubblicare non divergano?
+## Il compromesso ESI
 
-A quel punto transactional outbox diventerebbe un candidato serio.
+Platform Engineering preferisce poche primitive operative ben comprese. I team prodotto vogliono muoversi rapidamente. Security e Operations vogliono failure mode controllabili e diagnosi affidabile.
 
-Non prima.
+Il compromesso non consiste nel scegliere fra “semplice” e “robusto”. Consiste nel proteggere i failure mode che esistono già senza costruire infrastruttura per quelli che immaginiamo soltanto.
 
-### CQRS: separazione logica, non infrastruttura dedicata
+Per questa fase adottiamo Adapter, timeout e retry selettivo. Manteniamo CQRS come separazione logica dove chiarisce gli intenti. Rinviamo circuit breaker, queue nel request path, outbox, read model dedicato, saga ed event sourcing finché una pressione concreta non supera la soglia di adozione.
 
-Nel codice possiamo già distinguere command e query quando hanno responsabilità diverse.
+Il quality floor rimane: niente provider model nel dominio, niente chiamate remote senza timeout deliberati, niente retry senza ragionare su idempotenza e niente semantica di failure lasciata implicita.
 
-Questo non significa introdurre due database.
+## La decisione in una mappa
 
-Un read model dedicato verrà valutato soltanto se i requisiti di lettura divergeranno materialmente da quelli dei dati operativi.
-
-### Event sourcing: no
-
-Il fatto che il dominio abbia stati e storico non rende event sourcing automaticamente appropriato.
-
-Event sourcing trasformerebbe profondamente il modello di persistenza senza che esista ancora un requisito che ne paghi il costo.
-
-Quindi no.
-
-Non “non ancora perché non siamo abbastanza maturi”.
-
-No perché oggi non ha fit.
-
-### Saga: no
-
-Orders, Payments e Shipping convivono nello stesso scenario, quindi è facile lasciarsi sedurre dalla parola saga.
-
-Ma non abbiamo ancora un workflow distribuito multi-step con compensazioni che la richieda.
-
-Se quel problema emergerà, modelleremo quel problema.
-
-Oggi sarebbe architettura anticipata.
-
-### Il contrasto ESI
-
-Platform Engineering preferisce poche primitive operative ben comprese.
-
-I team prodotto vogliono velocità.
-
-Security e Operations vogliono controlli robusti sui failure mode.
-
-Un pattern può migliorare una di queste proprietà e peggiorarne altre.
-
-Aggiungere pattern “per sicurezza” non è gratis.
-
-### Il compromesso del capitolo
-
-**Esigenza**
-
-Aumentare robustezza e chiarezza senza rallentare l'evoluzione del prodotto.
-
-**Tensione**
-
-Protezione dai failure e flessibilità contro complexity debt.
-
-**Decisione**
-
-Adottiamo Adapter, timeout e retry selettivo; rinviamo circuit breaker, outbox, saga ed event sourcing finché non esiste una forza concreta che li giustifichi.
-
-**Costo accettato**
-
-Non disponiamo ancora di alcuni meccanismi avanzati che potrebbero diventare utili in scenari futuri.
-
-**Quality floor**
-
-Non rinunciamo a timeout, idempotency reasoning, isolation dei provider o error handling soltanto perché evitiamo pattern più complessi.
-
-**Guardrail**
-
-Pattern Justification Test, trigger di revisione, observability quando il pattern richiede stato operativo.
-
-La semplificazione non consiste nel togliere protezioni necessarie.
-
-Consiste nel non introdurre protezioni che ancora non hanno un failure mode reale da governare.
-
-### La tabella delle decisioni
-
-| Pattern | Decisione attuale | Perché |
+| Pattern | Decisione attuale | Pressione / trigger |
 | --- | --- | --- |
-| Adapter | sì | protegge il dominio da provider esterni |
-| Timeout | sì | limita failure e rispetta latency budget |
-| Retry | sì, selettivo | gestisce failure transitori |
-| Circuit breaker | non ancora | costo operativo non giustificato |
-| Queue per request/response | no | il journey è sincrono |
-| Queue per notification | candidato futuro | utile disaccoppiamento temporale |
-| Outbox | trigger futuro | serve con pubblicazione affidabile post-commit |
-| CQRS logico | sì | separa intenti con basso costo |
-| Read model CQRS dedicato | non ancora | requisiti attuali non lo richiedono |
-| Event sourcing | no | nessun requisito ne paga il costo |
-| Saga | no | workflow compensativo non ancora presente |
+| Adapter | sì | provider esterni con semantica non controllata |
+| Timeout | sì | latency budget e failure remoto |
+| Retry | sì, selettivo | failure transitori e operazioni ripetibili |
+| Circuit breaker | non ancora | rivalutare con failure persistenti o saturazione |
+| Queue nel request/response | no | il journey richiede risposta sincrona |
+| Queue per notifiche | candidato futuro | disaccoppiamento temporale reale |
+| Outbox | trigger futuro | commit locale + pubblicazione affidabile |
+| CQRS logico | sì dove utile | intenti di lettura e scrittura distinti |
+| Read model dedicato | non ancora | latency, isolation o consumer multipli |
+| Event sourcing | no | nessun requisito ne paga il costo sistemico |
+| Saga | no | nessun workflow compensativo distribuito |
 
-Questa tabella è più importante del numero di pattern adottati.
+La tabella non mostra quanta tecnologia conosce il team. Mostra che ogni pattern è collegato a una forza e, quando serve, a un trigger di revisione.
 
-Rende evidente che il team conosce le opzioni e sa anche non usarle.
-
-> **Maturità architetturale non significa avere molti pattern. Significa sapere perché quelli presenti meritano di esserci.**
+> **Maturità architetturale non significa avere molti pattern. Significa sapere perché quelli presenti meritano di esserci e perché gli altri, per ora, no.**
