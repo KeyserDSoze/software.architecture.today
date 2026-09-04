@@ -442,9 +442,7 @@ Entriamo in repository:
 - con dependency obsolete;
 - con regole di business incorporate in posti inattesi.
 
-Il prossimo capitolo sarà:
-
-# Capitolo 17 — Legacy e comprensione
+Il prossimo capitolo sarà **Capitolo 17 — Legacy e comprensione**.
 
 Lì la domanda cambia.
 
