@@ -1,29 +1,19 @@
-# Cloud reliability per Order Operations
+## Cloud reliability per Order Operations
 
-Ora traduciamo i target del capitolo in decisioni cloud.
+A questo punto possiamo tradurre il Reliability Contract in topologia cloud. La domanda non è quali feature HA Azure metta a disposizione, ma **quali failure mode ESI ha deciso di pagare e quali capability coprono davvero quei failure**.
 
-La domanda non è:
+Questo capovolge il modo di usare il catalogo cloud. Prima fissiamo il contratto. Solo dopo scegliamo la ridondanza.
 
-> **Quali feature HA offre Azure?**
+## Compute: proteggere instance e zone failure senza anticipare la seconda regione
 
-È:
-
-> **Quali feature ci servono per coprire i failure mode che ESI ha deciso di pagare?**
-
-## App Service
-
-Microsoft documenta che App Service supporta zone redundancy su piani compatibili, con almeno due istanze e region/scale unit che supportano availability zone.
-
-Quando la zone redundancy è abilitata, le istanze vengono distribuite tra zone differenti.
+Microsoft documenta che Azure App Service supporta zone redundancy sui piani compatibili, con almeno due istanze e una region/scale unit che supporta availability zone. Quando la capability è abilitata, le istanze vengono distribuite tra zone differenti.
 
 Fonti:
 
 - [Microsoft Learn — Reliability in Azure App Service](https://learn.microsoft.com/azure/reliability/reliability-app-service)
 - [Microsoft Learn — Configure App Service plans for zone redundancy](https://learn.microsoft.com/azure/app-service/configure-zone-redundancy)
 
-### Decisione ESI
-
-Per production Order Operations scegliamo:
+Per Order Operations la decisione production diventa:
 
 ```text
 App Service Premium v3
@@ -31,55 +21,39 @@ capacity >= 2
 zoneRedundant = true
 ```
 
-La ragione non è “Premium è enterprise”.
+La giustificazione non è che `Premium` suoni più enterprise. È che il failure domain che vogliamo ridurre oggi è quello di instance e availability zone, mentre il workload rimane single-region.
 
-È:
+Il costo reale è una capacity minima superiore a una singola istanza e quindi una spesa fissa maggiore anche quando il traffico è basso. ESI accetta quel costo perché il core operator journey ha un RTO intra-region di quindici minuti e perché una singola istanza sarebbe incoerente con il target.
 
-```text
-failure mode da coprire = instance / zone failure
-```
+La ridondanza nominale, però, non basta. Dovremo misurare se la capacity residua dopo la perdita di una istanza o di una zone mantiene realmente il journey entro SLO. `capacity >= 2` è un design intent; headroom e saturation sono evidence da produrre.
 
-senza introdurre oggi una seconda regione.
+## Health check: non trasformare ogni dependency in motivo di restart
 
-### Costo
+App Service offre Health Check e può rimuovere istanze unhealthy dal routing. Ma il path deve descrivere la readiness locale dell’istanza, non l’intero business health model.
 
-Zone redundancy non ha necessariamente una voce di prezzo separata, ma richiede capacità minima multipla e quindi aumenta il costo effettivo rispetto a una singola istanza.
+Se Payments & Risk è lento ma Order Operations può ancora accettare Payment Escalation localmente, non vogliamo dichiarare l’istanza web unhealthy e innescare restart o rimozioni che riducono ulteriormente capacità.
 
-Questo costo viene accettato perché protegge un failure domain coerente con il nostro RTO intra-region.
-
-## App health check
-
-App Service supporta Health Check per rimuovere istanze unhealthy dal routing.
-
-Ma il path deve essere progettato con attenzione.
-
-Non vogliamo che:
+Quindi separiamo:
 
 ```text
-Payments downstream slow
+instance readiness
+≠
+product health
 ```
 
-renda automaticamente l'istanza web non healthy se il prodotto può ancora accettare escalation localmente.
+Il primo serve al runtime/platform routing. Il secondo nasce dai critical flow e verrà osservato con segnali end-to-end.
 
-La health probe dell'istanza deve quindi misurare readiness locale appropriata, non ogni possibile dipendenza del business.
+> **Un health check di orchestrazione non deve tentare di comprimere tutto il Reliability Contract.**
 
-Il **business health model** sarà più ricco e verrà osservato separatamente.
+## PostgreSQL: spendere sulla source locale che rende durable il prodotto
 
-> **Un health check di orchestrazione non deve cercare di contenere tutto il modello di health del prodotto.**
-
-## PostgreSQL
-
-Azure Database for PostgreSQL Flexible Server offre HA con standby e, nella configurazione zone-redundant, primary e standby distribuiti in availability zone differenti.
-
-Microsoft documenta replica sincrona e failover automatico per questo scenario.
+Azure Database for PostgreSQL Flexible Server offre HA con standby e, nella configurazione zone-redundant, primary e standby in availability zone differenti, con replica sincrona e failover automatico per i failure coperti dal servizio.
 
 Fonte:
 
 - [Microsoft Learn — High Availability in Azure Database for PostgreSQL](https://learn.microsoft.com/azure/postgresql/high-availability/concepts-high-availability)
 
-### Decisione ESI
-
-Per production:
+Per production scegliamo quindi:
 
 ```text
 PostgreSQL Flexible Server
@@ -87,112 +61,48 @@ PostgreSQL Flexible Server
 + backup / PITR
 ```
 
-Questa scelta aumenta il costo rispetto a una configurazione single-server.
+Qui il costo aggiuntivo ha una ragione forte: PostgreSQL contiene `OperationalCase`, `PaymentEscalation` e outbox publication intent. Se perdiamo questo stato oltre il boundary accettato, non abbiamo soltanto un problema di performance o disponibilità; perdiamo la fonte che rende deterministica l’acceptance e recuperabile la delivery.
 
-Ma protegge il dato locale che contiene:
+La HA non rende comunque il database immortale. Restano logical corruption, bad migration, authorization error, capacity saturation, region failure e retry storm. Per questo continuiamo ad avere backup, PITR, migration discipline, monitoring e restore drill.
 
-- OperationalCase;
-- PaymentEscalation;
-- outbox publication intent.
+## Service Bus: usare la resilienza del tier già comprato senza raccontare garanzie inesistenti
 
-Questi dati sono nel quality floor.
+Order Operations usa già Azure Service Bus Premium per una decisione security del Capitolo 13: la private connectivity del production design. La reliability architecture non introduce quindi Premium una seconda volta per “avere HA”.
 
-## PostgreSQL non diventa immortale
-
-Con zone-redundant HA restano failure come:
-
-- logical corruption;
-- application bug;
-- destructive migration;
-- bad credentials/authorization;
-- region failure;
-- capacity saturation;
-- client retry storm.
-
-Per questo continuiamo ad avere:
-
-```text
-backup
-PITR
-migration discipline
-capacity monitoring
-restore drill
-```
-
-## Service Bus
-
-Azure Service Bus offre zone redundancy nella regione; la documentazione attuale indica che la capability è abilitata automaticamente nelle region supportate e replica message data/configuration attraverso zone per resilienza al zone failure.
+Microsoft documenta la resilienza zonale di Service Bus nelle regioni supportate e le capability cross-region separate.
 
 Fonte:
 
 - [Microsoft Learn — Reliability in Azure Service Bus](https://learn.microsoft.com/azure/reliability/reliability-service-bus)
 
-Order Operations usa già Premium per il requisito security Private Link emerso nel Capitolo 13.
+Il punto economico è importante: una decisione può comprare più proprietà contemporaneamente. Dobbiamo riconoscerlo per capire il TCO, ma non dobbiamo attribuire al servizio ciò che non promette.
 
-Quindi il capitolo Reliability non introduce Premium “per reliability”.
-
-Sfrutta una capability che il tier già scelto offre.
-
-Questo è un punto economico importante:
-
-> **Una decisione può comprare più proprietà contemporaneamente. Dobbiamo evitare di contarne il costo due volte ma anche di attribuire alla tecnologia garanzie che non offre.**
-
-## Service Bus e region failure
-
-Non abilitiamo ancora Geo-Replication.
-
-Perché il nostro target regionale corrente è:
+Non abilitiamo ancora Geo-Replication. I target regionali correnti sono:
 
 ```text
 RTO <= 8 h
 RPO <= 1 h
 ```
 
-con recovery orchestrata e non immediate regional continuity.
+ed ESI accetta recovery orchestrata invece di continuità immediata cross-region.
 
-Inoltre l'outbox locale è la fonte durable dell'intenzione ancora da pubblicare.
+Inoltre l’outbox locale conserva durablemente l’intenzione di pubblicazione. In alcuni failure regionali questo aumenta il valore della recovery del database rispetto alla replica immediata del singolo messaggio sul broker.
 
-Questo riduce il valore marginale di una replica cross-region del broker nella fase corrente.
+Se il business passasse a near-zero message loss e regional failover rapido, la decisione cambierebbe. Oggi non anticipiamo quel costo.
 
-Se il target diventasse:
+## Eliminare una dipendenza può essere più affidabile che renderla ridondante
 
-```text
-near-zero message loss
-+ rapid regional failover
-```
+Key Vault è una dipendenza runtime soltanto per i secret che non possiamo sostituire con workload identity. Questo ci ricorda una forma di reliability spesso ignorata: **ridurre il dependency graph**.
 
-la decisione andrebbe riaperta.
+Se App Service può autenticarsi con managed identity verso Service Bus o altre capability, eliminiamo una credenziale da recuperare, ruotare e caricare durante startup. Non sempre è possibile, ma ogni secret eliminato riduce un failure mode oltre che un rischio security.
 
-## Key Vault
+Lo stesso principio si applica ad altri componenti: prima di rendere ridondante una dipendenza chiediamoci se è davvero necessaria nel critical path.
 
-Key Vault è una dipendenza di runtime solo per i secret che non possiamo eliminare attraverso workload identity.
+## Identity: availability non autorizza bypass
 
-Questo suggerisce un principio reliability:
+Entra ID fa parte del journey dell’operatore. Un identity incident può influire in modo diverso su utenti già autenticati, nuovi login e token refresh.
 
-> **Eliminare una dipendenza è spesso più affidabile che renderla ridondante.**
-
-Se runtime può usare Managed Identity direttamente per PostgreSQL/Service Bus/altre capability, riduciamo il numero di secret che devono essere recuperati da vault durante il normal path.
-
-Non sempre sarà possibile.
-
-Ma il dependency graph migliora.
-
-## Entra ID
-
-Per gli operatori, Entra è parte del journey di accesso.
-
-Dobbiamo distinguere:
-
-- utenti già autenticati con token valido;
-- nuovo login;
-- token refresh;
-- application authorization locale.
-
-Un identity provider incident può avere impatto diverso su questi path.
-
-Non inventiamo fallback che bypassino identity per “mantenere availability”.
-
-Il quality floor security resta superiore alla convenience:
+Non dobbiamo però inventare un fallback che permetta accesso anonimo o bypassi application authorization per mantenere availability. Il quality floor di security rimane valido anche in degraded mode.
 
 ```text
 identity unavailable
@@ -200,83 +110,67 @@ identity unavailable
 allow anonymous access
 ```
 
-## Private DNS
+Questa è una delle intersezioni più importanti fra Capitolo 13 e Capitolo 14: una recovery strategy che rompe il trust boundary non è resilienza, è un nuovo incidente.
 
-Il Capitolo 13 ha scelto private endpoint.
+## Private DNS diventa parte del critical dependency graph
 
-Questo aumenta l'importanza del DNS privato.
-
-Il dependency graph diventa:
+La private connectivity scelta nel Capitolo 13 aggiunge un failure domain che prima non avevamo:
 
 ```text
 App
 → private DNS resolution
 → private endpoint
-→ service
+→ managed service
 ```
 
-Se il DNS control plane/configuration è sbagliato, i servizi possono essere healthy ma irraggiungibili dal workload.
+PostgreSQL, Key Vault o Service Bus possono essere perfettamente healthy nel resource provider e risultare comunque irraggiungibili dal workload per un errore DNS o di network configuration.
 
-Questa è una delle ragioni per cui il health model deve osservare il journey e non soltanto la health del resource provider.
+Questo spiega perché il health model deve osservare il journey, non soltanto i rettangoli Azure.
 
-## Caso reale — GitHub, luglio 2026
-
-GitHub ha documentato nel luglio 2026 un incidente in cui un problema di database connectivity colpì un internal DNS control plane. Dati incompleti furono interpretati da un'automazione di reconfiguration e, man mano che le cache DNS scadevano, alcuni servizi non riuscirono più a risolvere indirizzi interni.
-
-Come follow-up GitHub dichiarò safeguard per preservare l'ultima configurazione valida, rifiutare dati incompleti e prevenire large destructive change.
+GitHub ha documentato nel luglio 2026 un incidente in cui un problema di database connectivity colpì un internal DNS control plane; dati incompleti furono interpretati da un’automazione di reconfiguration e, mentre le cache DNS scadevano, alcuni servizi persero la capacità di risolvere indirizzi interni. Tra i follow-up dichiarati comparivano safeguard per preservare l’ultima configurazione valida, rifiutare input incompleti e impedire large destructive change.
 
 Fonte primaria:
 
 - [GitHub Availability Report — July 2026](https://github.blog/news-insights/company-news/github-availability-report-july-2026/)
 
-La lezione per ESI non è copiare l'implementazione di GitHub.
+Non copiamo l’implementazione GitHub. Conserviamo la categoria di failure: **control plane/configuration failure può rendere inutilizzabili risorse sane**.
 
-È riconoscere che:
+## Bad deployment: il failure più vicino a noi
 
-```text
-DNS/configuration plane
-```
+Ridondanza zonale, managed database e broker resilienti non proteggono da una nuova versione applicativa che interpreta male una `PaymentEscalation`, rompe authorization o introduce una migration incompatibile.
 
-può diventare un failure domain critico anche quando i workload compute e database sono nominalmente sani.
-
-## Deployment failure
-
-Un bad deployment è uno dei failure più comuni e più sotto il nostro controllo.
-
-Per Order Operations la reliability architecture deve quindi includere progressivamente:
+Per questo il deployment stesso entra nella reliability architecture:
 
 ```text
-immutable/reproducible artifact
+reproducible artifact
 staged deployment
 health validation
-rollback path
 migration compatibility
+rollback path
 ```
 
-Il cloud provider non può sapere se la nuova versione del nostro codice interpreta correttamente `PaymentEscalation`.
+Il provider gestisce la piattaforma. Non può decidere se il nostro nuovo business behavior è corretto.
 
-Questa parte resta responsabilità del workload team.
+## Una matrice impedisce di confondere la protezione acquistata
 
-## Redundancy matrix
-
-| Component | Current protection | Failure covered | Not covered |
+| Component | Protezione corrente | Failure coperto | Non coperto |
 |---|---|---|---|
 | App Service | >=2 + zone redundancy | instance/zone | bad deploy, region |
 | PostgreSQL | zone-redundant HA | node/zone | logical corruption, region |
-| PostgreSQL backup | PITR | logical/data recovery | immediate continuity |
-| Service Bus | zonal service redundancy | broker/zone | regional continuity unless configured |
-| Outbox | local durable intent | publish gap | source DB regional loss beyond RPO |
-| IaC | versioned Bicep | rebuild intent | wrong IaC deployed everywhere |
-| Entra | managed platform dependency | provider responsibility + token semantics | application bypass not allowed |
-| Private DNS | platform-managed design | normal private resolution | bad config/control-plane failure |
+| PostgreSQL backup/PITR | recovery point | logical/data recovery | immediate continuity |
+| Service Bus | regional zone resilience | broker/zone | regional continuity se non configurata |
+| Outbox | durable publication intent | commit/publish gap | source DB loss oltre RPO |
+| IaC | versioned infrastructure intent | rebuild/config review | wrong IaC propagated everywhere |
+| Entra | managed identity dependency | provider-managed platform availability | authorization bypass non consentito |
+| Private DNS | platform-managed private resolution | normal private routing | bad config/control-plane failure |
 
-La tabella rende visibile una cosa:
+La matrice rende evidente una regola:
 
 > **Ogni controllo di reliability copre un insieme finito di failure.**
 
-## Cost increase del Capitolo 14
+## Quanto costa il Capitolo 14
 
-Le decisioni nuove aumentano il costo production:
+Rispetto al Capitolo 12, production ora costa di più:
 
 ```text
 App Service capacity >= 2
@@ -284,51 +178,22 @@ App Service capacity >= 2
 + PostgreSQL zone-redundant HA
 ```
 
-Finance/FinOps deve vederlo.
-
-La giustificazione è:
+Finance deve vedere questo aumento e la motivazione deve restare collegata a:
 
 ```text
 SLO core journey
-+ RTO intra-region <= 15 min
-+ RPO 0 per committed local business state
+RTO intra-region <= 15 min
+RPO 0 per committed local business state
 ```
 
-Se i target cambiano, anche il costo deve poter cambiare.
+Se i target cambiano, la topologia e il costo devono poter cambiare con loro.
 
-## Che cosa non compriamo
+Non compriamo ancora active-active multi-region, global traffic management, write topology PostgreSQL cross-region o Service Bus Geo-Replication. Il motivo non è che siano troppo sofisticati in assoluto, ma che i target correnti non li richiedono.
 
-Ancora niente:
+## Cosa resta da verificare
 
-```text
-active-active multi-region
-geo-replicated App Service architecture
-multi-region PostgreSQL write topology
-Service Bus Geo-Replication
-global traffic manager
-```
+Dopo questa decisione restano aperti health check path, autoscale/headroom policy, backup retention finale, deployment strategy, recovery environment, SLI query, synthetic journey e alert routing.
 
-La ragione è il fit con i target attuali.
+Non sono buchi da nascondere. Sono il confine tra **Designed/Codified** e **Verified/Monitored**.
 
-## Reliability backlog
-
-Restano da chiudere:
-
-- region concreta;
-- restore retention finale;
-- health check path;
-- autoscale/headroom policy;
-- deployment slot/canary strategy;
-- concrete SLO measurement queries;
-- disaster-recovery procedure;
-- recovery environment parameters;
-- synthetic journeys;
-- alert routing.
-
-Il prossimo Capitolo 15 — Observability trasformerà molti di questi elementi in signal e alert verificabili.
-
-## Corollario
-
-Il cloud può offrire redundancy.
-
-L'architettura deve ancora decidere **quale failure quella redundancy sta pagando**.
+Il Capitolo 15 trasformerà molti di questi elementi in segnali operativi. Prima, però, dobbiamo dimostrare che la recovery che abbiamo disegnato funziona davvero sotto fault controllato.
