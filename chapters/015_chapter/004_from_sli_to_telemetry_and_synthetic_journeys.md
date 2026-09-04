@@ -1,14 +1,8 @@
-# Dagli SLI alla telemetry: misurare il journey, non il server
+## Dagli SLI alla telemetry: misurare il journey, non il server
 
-Nel Capitolo 14 abbiamo definito SLI e SLO.
+Nel Capitolo 14 abbiamo definito SLI e SLO. Ora dobbiamo scegliere **da quali eventi reali** derivino.
 
-Ora dobbiamo decidere **da quali eventi reali** derivano.
-
-Questo passaggio è più importante della dashboard che verrà dopo.
-
-Uno SLI non dovrebbe nascere perché una metrica esiste già.
-
-Dovrebbe nascere così:
+Questo passaggio è più importante della dashboard che verrà dopo. Uno SLI non dovrebbe esistere perché “abbiamo già una metrica”. Dovrebbe nascere da una catena leggibile:
 
 ```text
 business expectation
@@ -20,25 +14,22 @@ business expectation
 → SLO
 ```
 
-## Partire dal good event
+Se invertiamo questa sequenza, rischiamo di misurare perfettamente ciò che era facile instrumentare invece di ciò che il prodotto aveva promesso.
 
-Per Order Operations abbiamo definito, nello scenario ESI:
+## Il good event deve conservare il significato del journey
+
+Per Order Operations abbiamo un target simulato:
 
 ```text
 Core operator journey
 99.9% good events / rolling 28 days
 ```
 
-Ma che cos'è un `good event`?
+La parte difficile è stabilire che cosa renda un evento `good`.
 
-Una definizione possibile deve includere almeno:
+Nel primo modello vogliamo almeno che l’operatore sia autenticato e autorizzato, che la capability produca un outcome funzionalmente valido, che la risposta resti entro il latency threshold e che il prodotto non presenti come corrente un dato che sa essere stale oltre il limite accettato.
 
-- l'operatore è autenticato e autorizzato;
-- la richiesta termina con outcome funzionalmente valido;
-- la risposta non supera la latency threshold definita;
-- il risultato non è semanticamente stale oltre il limite accettato quando la freshness conta.
-
-Questo rende immediatamente evidente una cosa:
+Quindi:
 
 ```text
 HTTP 200
@@ -46,72 +37,37 @@ HTTP 200
 
 non è sufficiente.
 
-## SLI per capability
+Se la response è semanticamente inutilizzabile, il journey non è sano anche quando il server ha risposto con successo.
 
-Order Operations non ha un unico SLI.
+## Misurare capability diverse con signal diversi
 
-### Core read journey
+Order Operations non ha un unico SLI universale.
 
-Domanda:
+Per il **core read journey** la domanda è se l’operatore riesca a trovare e aprire un caso con informazioni utilizzabili. Candidate source sono good-event count, journey latency e degraded-state classification.
 
-> gli operatori riescono a trovare e aprire un ordine problematico con informazioni utilizzabili?
+Per la **Payment Escalation local acceptance** la domanda è se l’intenzione venga registrata durablemente senza rendere Payments & Risk parte del request path. Qui ci interessano acceptance outcome, local commit failure, latency e idempotent replay.
 
-Candidate measurements:
-
-```text
-successful operator journey events
-journey latency histogram
-semantic/dependency degradation flags
-```
-
-### Payment Escalation local acceptance
-
-Domanda:
-
-> il sistema riesce a registrare durablemente l'intenzione senza aspettare Payments & Risk?
-
-Candidate measurements:
-
-```text
-accepted escalation requests
-failed local commits
-local-accept latency
-idempotent duplicate requests
-```
-
-### Payment Escalation publication
-
-Requirement simulato:
+Per la **Payment Escalation publication** il target è:
 
 ```text
 99% entro 5 minuti
 ```
 
-Measurement:
+La misura deve quindi essere vicina a:
 
 ```text
 publishedAt - requestedAt
 ```
 
-non:
+non al numero di retry.
 
-```text
-numero di retry
-```
+Il retry è un meccanismo. Lo SLI misura l’outcome.
 
-I retry sono un meccanismo.
+Questa distinzione impedisce di confondere “il sistema sta lavorando molto per recuperare” con “il sistema sta rispettando il proprio contratto”.
 
-Lo SLI misura l'outcome.
+## Event accounting e metrics possono convivere
 
-## Event-based measurement
-
-Per alcuni SLI conviene ragionare in termini di eventi:
-
-```text
-good events / valid events
-```
-
-Per esempio:
+Per alcuni SLI è naturale ragionare per eventi:
 
 ```text
 payment_escalations_published_within_target
@@ -119,120 +75,59 @@ payment_escalations_published_within_target
 payment_escalations_requested
 ```
 
-Questa formulazione collega direttamente il business flow alla misura.
+Per altri può essere più naturale usare counter e histogram, per esempio sulla durata delle request con route template bounded.
 
-## Metric-based measurement
-
-Altri SLI possono derivare da histogram o counter.
-
-Esempio concettuale:
-
-```text
-http.server.request.duration
-```
-
-con route template bounded e risultato.
-
-La semantic convention concreta può evolvere con OpenTelemetry, quindi il libro privilegia il concetto rispetto a nomi che potrebbero cambiare.
+La semantic convention concreta può evolvere con OpenTelemetry; il libro privilegia quindi il significato del signal rispetto a un nome che potrebbe cambiare.
 
 Riferimenti:
 
 - [OpenTelemetry — Metrics](https://opentelemetry.io/docs/specs/otel/metrics/)
 - [OpenTelemetry — Semantic conventions](https://opentelemetry.io/docs/specs/semconv/)
 
-## Black-box e white-box
+## Black-box e white-box raccontano sintomo e diagnosi
 
-Google SRE distingue fra:
-
-### Black-box monitoring
-
-Osserviamo il sistema dall'esterno.
-
-Domanda:
-
-```text
-Il journey funziona?
-```
-
-### White-box monitoring
-
-Osserviamo internals:
-
-```text
-connection pool
-outbox depth
-CPU
-query latency
-retry count
-```
+Google SRE distingue tra **black-box monitoring**, che osserva il comportamento dall’esterno, e **white-box monitoring**, che guarda agli internals del sistema.
 
 Fonte:
 
 - [Google SRE — Monitoring Distributed Systems](https://sre.google/sre-book/monitoring-distributed-systems/)
 
-Servono entrambi.
-
-Il black-box mostra il sintomo.
-
-Il white-box ci aiuta a cercare la causa.
-
-## Synthetic journey
-
-Un synthetic check esegue periodicamente un comportamento noto per verificare se una capability è raggiungibile e funzionale.
-
-Per un'API pubblica può essere relativamente semplice.
-
-Order Operations però ha una decisione di sicurezza precisa:
+Il black-box risponde soprattutto a:
 
 ```text
-production ingress = private
+Il journey funziona?
 ```
 
-Quindi un probe pubblico esterno non è automaticamente il test corretto.
+Il white-box aiuta a spiegare perché, osservando connection pool, outbox age, CPU, retry, dependency latency e saturation.
 
-## Security architecture modifica observability architecture
+Servono entrambi perché un prodotto può fallire prima che la request raggiunga il processo applicativo, e una dependency può degradare senza avere ancora un impatto user-visible.
 
-Questo è un buon esempio di interazione fra quality attribute.
+## Synthetic journey: osservare lo stesso boundary che usano gli utenti
 
-Potremmo dire:
+Un synthetic check esegue periodicamente un comportamento noto e ci permette di vedere il workload dall’esterno del processo.
 
-> abilitiamo un endpoint pubblico solo per il monitoring.
+Per Order Operations la security architecture modifica però la soluzione: production ingress è privato.
 
-Sarebbe una soluzione tecnicamente possibile ma architetturalmente incoerente con il threat model attuale.
+Aprire un endpoint pubblico soltanto per semplificare il monitoring sarebbe un cambiamento del threat model, non una innocua scelta operativa.
 
-Preferiamo:
+La direzione coerente è invece:
 
 ```text
 private synthetic runner / approved enterprise probe
-→ private network path
+→ approved private network path
 → App Service private endpoint
-→ authenticated test identity
-→ read-only synthetic journey
+→ Entra test/workload identity
+→ dedicated synthetic data
+→ read journey
 ```
 
-La probe identity deve avere privilegi minimi e dati synthetic dedicati.
+Il synthetic runner deve possedere least privilege e dati riconoscibili. Non vogliamo usare una identity umana personale né contaminare il dominio reale con attività di test che poi compaiono nei KPI business.
 
-Non useremo una identity umana personale per un test automatico.
+Questa è un’interazione importante fra quality attribute: Security by Design decide **da dove** possiamo osservare il workload.
 
-## Synthetic data
+## Non ogni business flow deve essere testato continuamente in produzione
 
-Il test deve evitare di contaminare il dominio reale.
-
-Possibili strategie:
-
-- tenant synthetic dedicato;
-- account/case synthetic riconoscibili;
-- capability read-only quando possibile;
-- cleanup verificabile se il test crea stato;
-- esclusione esplicita da KPI business quando necessario.
-
-Un synthetic test che crea falsi incidenti business è un failure mode dell'observability stessa.
-
-## Non tutto deve essere synthetic
-
-La Payment Escalation ha side effect cross-domain.
-
-Eseguire continuamente una escalation reale verso Payments & Risk potrebbe essere inappropriato.
+La Payment Escalation produce side effect cross-domain. Eseguire ogni minuto una escalation reale verso Payments & Risk potrebbe creare rumore operativo e dati fittizi nel dominio economico.
 
 Possiamo quindi separare:
 
@@ -240,107 +135,70 @@ Possiamo quindi separare:
 synthetic read journey
 ```
 
-che verifica ingress/auth/query path,
+che verifica ingress, identity e query path,
 
 da:
 
 ```text
-integration canary / controlled end-to-end test
+controlled integration canary / end-to-end test
 ```
 
-eseguito con frequenza e dati dedicati, eventualmente in staging o production con un protocollo concordato.
+eseguito con una frequenza e dati concordati, eventualmente in staging o in produzione con un protocollo esplicito.
 
-## SLO e deployment
+L’observability non deve creare falsi incidenti business per poter dire che il sistema è osservato.
 
-Una release dovrebbe essere correlabile al comportamento degli SLI.
+## Deployment e SLI devono essere correlabili
 
-Per questo vogliamo registrare almeno:
+Una delle domande più utili durante un incidente è:
 
-```text
-deployment version
-deployment timestamp
-environment
-```
+> Il comportamento è cambiato insieme a una release?
 
-come dimensioni bounded e interrogabili.
+Per questo deployment version, timestamp ed environment sono context bounded che vale la pena preservare.
 
-Una domanda operativa importante diventa:
+Se il burn dell’error budget accelera dopo `v42`, l’informazione non dimostra causalità, ma restringe molto lo spazio di investigazione.
 
-> il burn dell'error budget è iniziato dopo una nuova versione?
+## Error-budget burn: misurare la velocità della perdita
 
-## Error budget burn
+Uno SLO su una finestra lunga non deve aspettare fine mese per dirci che siamo nei guai.
 
-Uno SLO su finestra lunga non deve aspettare fine mese per dirci che siamo nei guai.
+Il burn rate esprime quanto velocemente stiamo consumando il budget rispetto al ritmo sostenibile. Non fissiamo qui una formula universale di paging; la policy deve essere costruita sul comportamento reale del workload.
 
-Vogliamo osservare la velocità con cui stiamo consumando il budget.
+Ci interessa la struttura:
 
-Concettualmente:
-
-```text
-burn rate > 1
-```
-
-significa che stiamo consumando budget più velocemente del ritmo sostenibile per la finestra considerata.
-
-Non fisseremo qui una formula di paging universale.
-
-Il punto architetturale è:
-
-- il segnale deve derivare dall'SLI reale;
-- finestre brevi rilevano incidenti rapidi;
+- finestre brevi aiutano a vedere incidenti intensi;
 - finestre più lunghe riducono rumore;
-- la policy deve essere testata sugli incidenti reali/simulati del workload.
+- il signal deve derivare dallo stesso SLI che definisce il contratto;
+- la regola deve essere provata su failure reali o simulati.
 
-## Health model e SLI
+Un alert sul burn è molto più vicino all’outcome di un generico `CPU > 80%`.
 
-`Healthy / Degraded / Unhealthy` non deve essere deciso da un singolo dependency check.
+## Rendere misurabile anche il degraded mode
 
-Esempio:
-
-```text
-Payments & Risk unavailable
-```
-
-ma:
-
-```text
-Payment Escalation local acceptance funziona
-outbox cresce
-business delivery target non ancora violato
-```
-
-può inizialmente significare:
-
-```text
-Degraded
-```
-
-non necessariamente `Unhealthy` per l'intero prodotto.
-
-Quando invece il backlog supera il business threshold e gli operatori non possono più rispettare l'outcome, la classificazione cambia.
-
-## Observability come verifica del degraded mode
-
-Il Capitolo 14 ha scritto cosa resta valido durante il degraded mode.
-
-Il Capitolo 15 deve renderlo misurabile.
+Il Capitolo 14 ha scritto che cosa resta valido quando una dependency fallisce. Il Capitolo 15 deve dire come riconosciamo l’ingresso e l’uscita da quella modalità.
 
 Per ogni degraded mode chiediamo:
 
 ```text
 Come sappiamo di esserci entrati?
-Come lo mostriamo all'operatore?
 Quale SLI cambia?
-Quale dato può essere stale?
-Quale write viene bloccata?
+Quale dato non è più authoritative?
+Quale capability resta permessa?
+Quale write deve essere bloccata?
+Come lo comunichiamo all’operatore?
 Come sappiamo di essere usciti?
 ```
 
-## Fonti
+Se Payments & Risk è indisponibile ma l’escalation acceptance locale funziona e l’outbox resta dentro il business-delay envelope, il prodotto può essere `Degraded` invece che totalmente `Unhealthy`.
+
+Quando il backlog supera la soglia che rende l’outcome inaccettabile, la classification deve cambiare.
+
+L’observability rende questa transizione visibile e quindi operabile.
+
+Fonti:
 
 - [Google SRE — Monitoring Distributed Systems](https://sre.google/sre-book/monitoring-distributed-systems/)
 - [Google SRE Workbook — Monitoring](https://sre.google/workbook/monitoring/)
 - [OpenTelemetry — Metrics](https://opentelemetry.io/docs/specs/otel/metrics/)
 - [OpenTelemetry — Semantic conventions](https://opentelemetry.io/docs/specs/semconv/)
 
-> **Uno SLO diventa operativo soltanto quando sappiamo indicare l'evento che lo misura e il comportamento che lo fa fallire.**
+> **Uno SLO diventa operativo soltanto quando sappiamo indicare l’evento che lo misura, il comportamento che lo fa fallire e il punto da cui possiamo osservarlo.**
