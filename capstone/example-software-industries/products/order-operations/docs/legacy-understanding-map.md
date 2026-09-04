@@ -1,58 +1,53 @@
 # Order Operations — Legacy Understanding Map
 
-> **Scenario fittizio ESI.** Stato corrente dopo il Capitolo 17. Questo documento governa la comprensione della capability `legacy case priority routing` di **Operations Desk Classic** prima di qualunque refactoring o migrazione.
+> **Scenario fittizio ESI.** Stato corrente dopo il Capitolo 18. Questo documento governa la comprensione della capability `legacy case priority routing` di **Operations Desk Classic** durante la transizione verso Order Operations.
 
 ## Purpose
 
-Ridurre l'incertezza necessaria per decidere se e come Order Operations debba assorbire, sostituire o eliminare la semantica di priority routing del legacy.
+Ridurre l'incertezza necessaria per migrare la priority routing senza perdere behavior richiesti e senza fossilizzare accidental complexity.
 
 Principio:
 
-> **Comportamento osservato non significa requisito confermato.**
+> **Comportamento osservato non significa requisito confermato. La conferma richiede una decisione sul significato.**
 
 ## System / capability
 
 ```text
 System: Operations Desk Classic
 Capability: legacy case priority routing
-Current modernization state: discovery / characterization
+Current modernization state: characterized + target semantics confirmed + local shadow slice codified
 ```
 
-Il sistema legacy vive in:
+Legacy location:
 
 ```text
 capstone/example-software-industries/legacy/operations-desk-classic/
 ```
 
-## Business outcome ipotizzato
-
-La capability sembra ordinare o classificare alcuni case operativi per priorità.
-
-Stato:
+Target functional decision:
 
 ```text
-Inferred
+docs/priority-functional-analysis.md
 ```
 
-Manca ancora la conferma di Product/Operations su quale outcome business debba essere preservato nel sistema target.
-
-## Entry point
-
-### Priority routing module
+Safety plan:
 
 ```text
-legacy/operations-desk-classic/src/priority-routing.cjs
+docs/refactoring-safety-plan.md
 ```
 
-Stato:
+## Evidence vocabulary
 
 ```text
 Found
+→ Inferred
+→ Observed
+→ Confirmed
 ```
 
-Il capstone non simula ancora l'intera UI/runtime legacy; caratterizza soltanto la slice in scope.
+`Confirmed` in questo scenario significa confermato dalla decisione funzionale simulata ESI, non evidence di un'azienda reale.
 
-## Current observed behavior
+## Legacy behavior observed
 
 Characterization suite:
 
@@ -60,22 +55,72 @@ Characterization suite:
 legacy/operations-desk-classic/tests/priority-routing.characterization.test.mjs
 ```
 
-| ID | Scenario | Output corrente | Evidence state | Requirement state |
+| ID | Scenario | Legacy output | Legacy evidence | Target classification |
 |---|---|---|---|---|
-| LB-01 | `status_code=CLOSED` | `NONE` | Observed | Unknown |
-| LB-02 | `manual_hold=1` | `MANUAL_REVIEW` | Observed | Unknown |
-| LB-03 | `problem_code=PAY` + `failed_attempts>=3` | `URGENT` | Observed | Unknown |
-| LB-04 | `customer_tier=ENTERPRISE` + age >= 30 min | `URGENT` | Observed | Unknown |
-| LB-05 | Enterprise case before threshold | `STANDARD` | Observed | Unknown |
-| LB-06 | ordinary open case | `STANDARD` | Observed | Unknown |
+| LB-01 | `status_code=CLOSED` | `NONE` | Observed + locally verified | Required |
+| LB-02 | `manual_hold=1` | `MANUAL_REVIEW` | Observed + locally verified | Required behavior |
+| LB-03 | `problem_code=PAY` + `failed_attempts>=3` | `URGENT` | Observed + locally verified | Required |
+| LB-04 | Enterprise + age >=30 min | `URGENT` | Observed + locally verified | Removed by explicit ESI product decision / ED-001 |
+| LB-05 | Enterprise before threshold | `STANDARD` | Observed + locally verified | not an independent requirement |
+| LB-06 | ordinary open case | `STANDARD` | Observed + locally verified | Required default |
 
-Questi test congelano il comportamento corrente della slice.
+Verification evidence from Chapter 18:
 
-Non dichiarano che il comportamento sia corretto.
+```text
+legacy characterization
+→ 6 tests
+→ 6 pass
+→ 0 fail
+```
 
-## Implicit precedence osservata
+## Confirmed target semantics
 
-L'ordine corrente dei branch suggerisce questa precedence:
+Target vocabulary:
+
+```text
+NotActionable
+ManualReview
+Urgent
+Standard
+```
+
+Target precedence:
+
+```text
+Closed
+> ManualReview
+> RepeatedPaymentFailure
+> Standard
+```
+
+The old Enterprise 30-minute rule is intentionally absent.
+
+## Expected Difference ED-001
+
+Approved in the simulated ESI scenario before rollout:
+
+```text
+Legacy:
+Enterprise + age >= 30m
+→ URGENT
+
+Target:
+customer tier alone does not raise priority
+→ Standard unless another confirmed rule applies
+```
+
+Comparison classification:
+
+```text
+ExpectedDifference
+ID = ED-001
+```
+
+This registry entry must be removed when the legacy path and shadow comparison are retired.
+
+## Legacy precedence observed
+
+Historical implementation order:
 
 ```text
 CLOSED
@@ -85,19 +130,11 @@ CLOSED
 > standard
 ```
 
-State:
+Target precedence differs intentionally because the enterprise threshold has been retired.
 
-```text
-Observed in implementation + characterization for CLOSED precedence
-```
+## State / data ownership
 
-Open question:
-
-> questa precedence è intenzionale oppure un effetto dell'ordine storico del codice?
-
-## State and data ownership
-
-La narrativa ESI assume che Operations Desk Classic abbia storicamente usato uno shared operations database con campi equivalenti a:
+The teaching scenario still assumes Operations Desk Classic may historically have used shared operations state such as:
 
 ```text
 case_id
@@ -106,218 +143,160 @@ priority_updated_at
 manual_hold
 ```
 
-Questa parte è **scenario/discovery hypothesis**, non ancora schema codificato nel capstone.
+This is still **scenario/discovery context**, not a fully implemented legacy database in the capstone.
 
-### Questions
+Open questions:
 
-- chi è il writer corrente di `priority_code`?
-- esistono writer manuali o batch?
-- `manual_hold` è business state o operational workaround?
-- esiste audit delle modifiche?
-- Order Operations deve diventare owner della priority oppure consumare una capability esterna?
-
-## Dependencies
-
-### Found
-
-- priority routing source;
-- characterization suite.
-
-### Inferred / scenario
-
-- shared operations database;
-- nightly export consumer della priority;
-- configuration per threshold/tenant behavior.
-
-### Missing runtime evidence
-
-- execution frequency;
-- current active callers;
-- production configuration;
-- current export consumer;
-- traffic/volume;
-- owner mapping.
-
-## Scheduled / temporal coupling
-
-La narrativa del capitolo introduce un **nightly export** che potrebbe consumare la priority.
-
-Stato:
-
-```text
-Inferred / scenario — non ancora implementato nel capstone
-```
-
-Prima della migration slice dobbiamo decidere se modellarlo con codice simulato oppure mantenerlo come external legacy consumer documentato.
+- who is current writer of `priority_code` in the legacy estate?
+- does the nightly export still consume it?
+- should Order Operations derive priority on demand or persist it?
+- if persisted, who becomes authoritative and when?
+- is `manual_hold` business state or compatibility state to migrate separately?
 
 ## Consumers
 
-| Consumer | State | Evidence needed |
+| Consumer | Current state | Evidence needed before retirement |
 |---|---|---|
 | legacy operator UI | Inferred | runtime/caller evidence |
-| nightly export | Inferred | job definition + consumer owner |
-| downstream reporting | Inferred | report/source query evidence |
-| Order Operations | Not current consumer | explicit modernization decision |
+| nightly export | Inferred | job definition + owner |
+| downstream reporting | Inferred | source/query evidence |
+| Order Operations | target consumer through new seam | local code/test evidence exists |
+
+No inferred legacy consumer is treated as retired until evidence says so.
+
+## Scheduled / temporal coupling
+
+The narrative includes a possible nightly export consuming legacy priority.
+
+State:
+
+```text
+Inferred / unresolved
+```
+
+This remains a blocker for full legacy retirement, but not for the Chapter 18 pure decision-policy slice.
 
 ## Operational procedures
 
-Unknown.
+Still incomplete.
 
 Discovery questions:
 
-- esiste override manuale della priority?
-- come viene ripristinato un case classificato male?
-- esistono query SQL/manual runbook?
-- chi viene chiamato quando l'export non completa?
-- esiste un cut-off orario legato alla priority?
+- does an operator manually override priority?
+- how is a wrong classification corrected?
+- is there an operational SQL/runbook path?
+- who owns export failure?
+- is there a cut-off linked to priority?
 
 ## Security / identity
 
-Unknown per il legacy completo.
+The complete legacy security model remains unknown.
 
-Quality floor per qualsiasi coexistence futura:
+Quality floor for coexistence:
 
-- tenant isolation;
+- tenant isolation preserved;
 - authenticated privileged action;
-- audit per override sensibile;
-- nessuna nuova secret statica introdotta nel target;
-- ACL/adapter con input validation;
-- legacy permission non propagate automaticamente a Order Operations.
+- audit for future priority/manual override;
+- no new static secret introduced by the target;
+- legacy permissions are not copied automatically into Order Operations.
 
-## Evidence ledger
-
-| Claim | Evidence | State | Owner candidate | Missing evidence |
-|---|---|---|---|---|
-| priority routing module esiste | source file | Found | Operations Desk Classic team / Commerce & Operations | runtime caller |
-| closed case restituisce `NONE` | characterization test LB-01 | Observed | Operations | domain confirmation |
-| manual hold restituisce `MANUAL_REVIEW` | LB-02 | Observed | Operations | meaning + owner confirmation |
-| 3 failed payment attempts producono `URGENT` | LB-03 | Observed | Payments & Risk + Operations | business rationale |
-| enterprise case >=30 min produce `URGENT` | LB-04 | Observed | Sales/Product/Operations | contract/SLA evidence |
-| threshold 30 min è requisito corrente | only code | Inferred | Product/Sales | contract/current policy |
-| priority alimenta nightly export | narrative discovery hypothesis | Inferred | Ops Data | job/query/runtime evidence |
-| priority deve essere portata in Order Operations | modernization pressure only | Inferred | Product | explicit decision |
-
-## Behavior classification backlog
-
-Ogni behavior deve diventare uno dei seguenti prima della migration:
+## Candidate seam — now implemented locally
 
 ```text
-Required
-Compatibility
-Accidental
-Removed by explicit product decision
+PriorityPolicy
+├── LegacyPriorityAdapter
+└── ConfirmedPriorityPolicy
 ```
 
-Current state:
-
-| ID | Classification |
-|---|---|
-| LB-01 | Unknown |
-| LB-02 | Unknown |
-| LB-03 | Unknown |
-| LB-04 | Unknown |
-| LB-05 | consequence of LB-04; Unknown |
-| LB-06 | Unknown/default |
-
-## Candidate seams
-
-### Candidate A — PriorityRouting port
-
-Direzione possibile:
+Routing/comparison:
 
 ```text
-Order Operations
-→ PriorityRouting port
-   ├── LegacyPriorityAdapter
-   └── FutureOrderOperationsPriorityPolicy
-```
-
-Potential pattern:
-
-```text
-Branch by Abstraction
+BranchingPriorityPolicy
+mode = legacy | shadow | candidate
 ```
 
 State:
 
 ```text
-Candidate only
+Codified + locally verified
 ```
 
-Non implementare finché la semantica non è classificata.
+Production rollout remains unexecuted.
 
-### Candidate B — Anti-Corruption Layer
+## Anti-Corruption Layer
 
-Se Order Operations deve consumare priority legacy durante coexistence, il mapping deve isolare valori come:
+The target does not expose legacy field names or codes in its `PriorityPolicy` contract.
+
+`LegacyPriorityAdapter` owns mapping between:
 
 ```text
-NONE
-MANUAL_REVIEW
-URGENT
-STANDARD
+status_code / problem_code / manual_hold
 ```
 
-Il nuovo dominio non deve adottare automaticamente questi codici come proprio ubiquitous language.
+and:
+
+```text
+status / problemCategory / manualHold
+```
+
+as well as mapping:
+
+```text
+NONE / MANUAL_REVIEW / URGENT / STANDARD
+```
+
+to target priority vocabulary.
 
 ## Migration risks
 
-1. **Semantic fossilization** — copiare regole storiche non più richieste.
-2. **Silent regression** — eliminare un behavior ancora business-critical.
-3. **Hidden consumer breakage** — cambiare `priority_code` rompendo nightly/reporting consumer.
-4. **Dual ownership** — vecchio e nuovo sistema scrivono priority contemporaneamente.
-5. **Precedence change** — refactoring cambia l'ordine delle regole.
-6. **Time semantics** — threshold basato su clock/timezone interpretato diversamente.
-7. **Tenant/security drift** — legacy permission trasformate in nuove capability troppo ampie.
-8. **Rollback gap** — nuovo sistema produce stato che il legacy non comprende.
+1. **Semantic fossilization** — reintroducing LB-04 because shadow mismatch is misread as regression.
+2. **Silent regression** — breaking LB-01/LB-02/LB-03/LB-06.
+3. **Hidden consumer breakage** — retiring `priority_code` before inventory is complete.
+4. **Dual ownership** — future persistence written by both systems without policy.
+5. **Precedence drift** — manual hold/closed behavior changes during refactoring.
+6. **Time semantics** — legacy timer behavior interpreted incorrectly during ED-001 classification.
+7. **Tenant/security drift** — compatibility path broadens access.
+8. **Rollback gap** — future state migration makes legacy fallback unreadable.
+9. **Temporary architecture permanence** — adapter/flag/comparison never removed.
 
-## Rollback constraints
+## Current blockers before production candidate routing
 
-Da definire nel Refactoring Safety Plan del Capitolo 18.
+1. comparison telemetry adapter;
+2. runtime observation window definition;
+3. rollout owner / stop authority;
+4. consumer inventory review;
+5. performance budget for shadow execution;
+6. staging path if target integration becomes external;
+7. confirmation that no side effect is introduced by candidate evaluation.
 
-Minimum questions:
+## Current blockers before legacy retirement
 
-```text
-can traffic/caller return to legacy?
-who remains source of truth during coexistence?
-can new writes be read by legacy?
-does rollback require data compensation?
-what is the point of no return?
-```
+1. nightly/export/report consumer evidence;
+2. decision on priority persistence ownership;
+3. manual hold migration semantics;
+4. compatibility window;
+5. rollback / recovery plan for any data state change;
+6. proof old path has no active caller.
 
-## Decision blockers
+## ESI compromise — Capitolo 18
 
-Prima di implementare la new priority policy servono almeno:
+**Esigenza:** transfer priority decision into Order Operations and reduce the legacy footprint.
 
-1. owner corrente della capability;
-2. conferma semantica di LB-01…LB-06;
-3. rationale del branch enterprise `>=30 min`;
-4. consumer inventory della priority;
-5. decisione su `manual_hold`;
-6. source-of-truth durante coexistence;
-7. rollback direction;
-8. tenant/security requirements;
-9. strategy per nightly export se ancora attivo.
+**Tensione:** retirement speed vs semantic safety vs temporary coexistence cost vs deliberate simplification of old rules.
 
-## ESI compromise — Capitolo 17
+**Decisione:** confirm behaviors first, introduce `PriorityPolicy`, keep legacy behind an adapter, run candidate in shadow before authoritative cutover, register ED-001 before rollout.
 
-**Esigenza:** ridurre costo/rischio di Operations Desk Classic e consolidare capability in Order Operations.
+**Costo accettato:** duplicate implementation and temporary routing/comparison structure.
 
-**Tensione:** retirement speed vs rischio di perdere comportamento non documentato vs rischio opposto di copiare accidental complexity nel nuovo prodotto.
+**Quality floor:** required behavior preserved, intended difference explicit, no database/API change in first slice, fallback available before one-way doors.
 
-**Decisione:** discovery + characterization + ownership/consumer confirmation prima di refactor/rewrite/cutover.
-
-**Costo accettato:** il legacy rimane operativo più a lungo e sosteniamo temporaneamente effort di coexistence/discovery.
-
-**Quality floor:** nessuna semantic regression silenziosa, tenant/security invarianti preservati, ownership non ambigua, rollback richiesto prima del cutover.
-
-**Guardrail:** questa Legacy Understanding Map, characterization suite, evidence states, behavior classification backlog, candidate seam review e Refactoring Safety Plan futuro.
+**Guardrail:** characterization suite, priority functional analysis, Refactoring Safety Plan, target tests, expected-difference registry and stop conditions.
 
 ## Sources
 
-- [Microsoft Learn — Assess your application modernization needs](https://learn.microsoft.com/en-us/azure/app-modernization-guidance/assess/)
-- [Microsoft Learn — Anti-Corruption Layer](https://learn.microsoft.com/en-us/azure/architecture/patterns/anti-corruption-layer)
-- [Microsoft Learn — Strangler Fig](https://learn.microsoft.com/it-it/azure/architecture/patterns/strangler-fig)
 - [AWS Prescriptive Guidance — Branch by abstraction](https://docs.aws.amazon.com/prescriptive-guidance/latest/modernization-decomposing-monoliths/branch-by-abstraction.html)
-- [Microsoft Learn — IntelliTest characterization tests](https://learn.microsoft.com/en-us/visualstudio/test/intellitest-manual/)
+- [Microsoft Learn — Anti-Corruption Layer](https://learn.microsoft.com/azure/architecture/patterns/anti-corruption-layer)
+- [Microsoft Learn — Strangler Fig](https://learn.microsoft.com/azure/architecture/patterns/strangler-fig)
+- [Microsoft Learn — Safe deployment practices](https://learn.microsoft.com/azure/well-architected/operational-excellence/safe-deployments)
 
-> **La mappa non dice ancora come deve essere il nuovo sistema. Dice ciò che dobbiamo sapere prima di avere il diritto di deciderlo.**
+> **Ora sappiamo sia che cosa faceva il legacy, sia quali parti di quel comportamento ESI ha deciso che meritano di sopravvivere. Sono due forme di conoscenza diverse e devono restare distinguibili.**
