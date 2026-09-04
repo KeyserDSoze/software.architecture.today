@@ -1,140 +1,57 @@
 ## Architecturally Significant Requirements
 
-Non tutti i requisiti pesano allo stesso modo sull'architettura.
+Non tutti i requisiti esercitano la stessa pressione sull'architettura. Alcuni descrivono un comportamento locale; altri, se cambiano, possono costringerci a ripensare dati, deployment, integrazioni, recovery o boundary. Questi ultimi vengono spesso chiamati **Architecturally Significant Requirements**, o ASR.
 
-Alcuni descrivono comportamenti locali.
+Un ASR è quindi un requisito che influenza in modo sostanziale una o più decisioni architetturali. Non deve essere necessariamente non funzionale. Anche un comportamento di business può diventare architetturalmente significativo quando trascina con sé conseguenze sistemiche.
 
-Altri cambiano la forma stessa del sistema.
-
-Questi ultimi vengono spesso chiamati **Architecturally Significant Requirements**, o ASR.
-
-Un ASR è un requisito che influenza in modo sostanziale una o più decisioni architetturali.
-
-Non deve essere per forza un requisito non funzionale.
-
-Anche un requisito funzionale può essere architetturalmente significativo.
-
-Per esempio:
-
-- “un cliente può modificare il proprio indirizzo” potrebbe essere locale;
-- “un pagamento confermato non può mai essere elaborato due volte” influenza idempotenza, persistenza e integrazioni;
-- “il sistema deve continuare a operare anche durante la perdita di una zona di disponibilità” influenza deployment, state management e recovery;
-- “ogni modifica amministrativa deve essere auditabile per sette anni” influenza storage, identity, logging e retention;
-- “un utente deve vedere lo stato ordine aggiornato entro cinque secondi” può influenzare data flow, caching e consistency.
+“Un cliente può modificare il proprio indirizzo” può rimanere locale. “Un pagamento confermato non può essere elaborato due volte” investe invece idempotenza, persistenza e integrazioni. “Ogni modifica amministrativa deve essere ricostruibile per sette anni” attraversa identity, audit, storage e retention. “Lo stato ordine deve diventare visibile entro pochi secondi” può cambiare data flow, caching e consistency.
 
 La domanda utile è:
 
 > **Se questo requisito cambia, quali parti importanti dell'architettura potrebbero cambiare con lui?**
 
-Se la risposta è “molte”, probabilmente abbiamo davanti un ASR.
+Quando la risposta coinvolge molte decisioni costose o trasversali, siamo probabilmente davanti a un ASR.
 
-### Gli ASR non sono soltanto qualità
+### Il significato nasce dal contesto
 
-È facile associare gli ASR a parole come performance, security, availability, scalability o compliance. Ma il significato architetturale nasce dal contesto.
+È facile associare gli ASR a parole come performance, security, availability, scalability o compliance. Il problema è che queste etichette, da sole, discriminano poco tra alternative.
 
-“Availability 99,9%” da sola non basta.
+Dire “availability 99,9%” non è sufficiente finché non sappiamo quale journey stiamo misurando, in quale finestra, con quali esclusioni e con quale comportamento durante un degrado. Lo stesso numero può produrre architetture molto diverse a seconda che riguardi un catalogo pubblico, un pagamento o una funzione amministrativa con workaround manuale.
 
-Dobbiamo capire di quale journey stiamo parlando, dove misuriamo la proprietà e in quale finestra, quali esclusioni accettiamo e quali funzioni possono degradare. Solo allora possiamo discutere quale costo sia accettabile per raggiungerla.
+Anche un requisito chiaramente funzionale può avere questo effetto. “Permettere il rimborso parziale di un ordine” può sembrare una feature; in un sistema reale potrebbe modificare modello contabile, idempotency, API, audit, integrazione con il provider e workflow di fulfillment.
 
-Allo stesso modo, un requisito apparentemente funzionale può avere conseguenze profonde.
+Il requisito resta funzionale. La sua **conseguenza** diventa architetturale.
 
-“Permettere il rimborso parziale di un ordine” potrebbe richiedere cambiamenti al modello dati e all'accounting, al payment provider e all'idempotency, all'audit, alla compatibilità delle API e perfino al workflow di fulfillment.
+## Riconoscere ciò che pesa
 
-Il requisito è funzionale.
+Non serve trasformare gli ASR in un sistema di punteggio rigido. È più utile sviluppare sensibilità per alcuni segnali ricorrenti. Un requisito merita attenzione quando attraversa più domini, quando l'errore ha conseguenze elevate o quando l'inversione sarebbe costosa. Lo stesso vale quando nasce da un vincolo esterno, determina una qualità critica, cambia drasticamente al crescere di dati e traffico oppure influenza la capacità futura di evolvere il sistema.
 
-La sua conseguenza è architetturale.
+Questi segnali non sono categorie indipendenti. Spesso si sommano. Un requisito di tenant isolation, per esempio, ha impatto trasversale, costo di errore elevato e forte persistenza nel modello dati. È proprio questa combinazione a renderlo importante.
 
-### Individuare gli ASR
+### Gli ASR nascosti sono i più pericolosi
 
-Un metodo pratico è cercare requisiti associati a uno di questi segnali:
+Alcuni requisiti si presentano già nella forma giusta: “RPO massimo cinque minuti” ci costringe subito a ragionare su backup, replica e recovery.
 
-**Ampiezza.** Tocca più componenti o domini.
+Altri sono nascosti dentro frasi apparentemente innocue. “L'operatore deve vedere sempre l'ultimo stato noto dell'ordine” contiene almeno domande su availability, freshness, fallback, replica e comportamento in degradazione. “Il cliente non deve vedere ordini di altri tenant” sembra ovvio, ma impone isolation attraverso autenticazione, query, cache, logging, test e observability.
 
-**Rischio.** Un errore ha conseguenze elevate.
+Il problema degli ASR nascosti non è che siano difficili da implementare. È che possono diventare architettura **senza essere stati trattati come decisioni**.
 
-**Irreversibilità.** Cambiare idea dopo è costoso.
+## Priorità prima di ottimizzazione
 
-**Vincolo esterno.** È imposto da normativa, contratto, piattaforma o integrazione.
+Riconoscere gli ASR non basta. Dobbiamo anche capire quali siano davvero prioritari, perché molte qualità competono tra loro.
 
-**Qualità critica.** Determina performance, availability, security, operability o consistency del sistema.
+Se chiediamo simultaneamente latency minima, consistency forte, availability massima, costo minimo, zero lock-in, delivery immediata e operazioni semplicissime, non abbiamo definito una priorità: abbiamo semplicemente chiesto che tutti i trade-off scompaiano.
 
-**Scala.** Il requisito cambia comportamento al crescere di dati, utenti o traffico.
+Per Order Operations potremmo scoprire, per esempio, che tenant isolation è non negoziabile, che alcuni dati possono avere qualche secondo di ritardo, che il lookup deve degradare in modo comprensibile quando un sistema secondario rallenta e che il team vuole mantenere basso il costo operativo nella prima fase. Queste quattro condizioni restringono il design space molto più di una lunga lista di aggettivi.
 
-**Evoluzione.** Influenza quanto sarà facile modificare il sistema in futuro.
+> **“Scalabile”, “sicuro”, “resiliente” e “performante” non sono ASR finché non sappiamo che cosa significano nel contesto.**
 
-Non è necessario assegnare punteggi formali.
+Un requisito diventa utile all'architettura quando aiuta davvero a distinguere una soluzione accettabile da una che non lo è.
 
-Serve sviluppare sensibilità.
+## ASR e AI
 
-### ASR espliciti e ASR nascosti
+Un agente può essere molto efficace nell'estrarre candidati ASR da issue, brief, documentazione e conversazioni. Può evidenziare parole ambigue, collegare un requisito a possibili aree di impatto e proporre domande che il testo non risolve.
 
-Alcuni requisiti sono dichiarati chiaramente.
+Il punto in cui serve ancora judgment è la priorità reale. Un modello non può sapere autonomamente se il business preferisca time-to-market a isolation operativa, se un requisito normativo sia non negoziabile o quale incidente l'organizzazione sia disposta ad accettare quando queste informazioni non sono nel contesto.
 
-> “RPO massimo cinque minuti.”
-
-Altri sono nascosti dentro frasi innocenti.
-
-> “L'operatore deve poter vedere sempre l'ultimo stato noto dell'ordine.”
-
-Qui la parola “sempre” apre immediatamente domande su disponibilità e freshness, fallback e cache, replica e comportamento in degradazione.
-
-Oppure:
-
-> “Il cliente non deve poter vedere ordini di altri tenant.”
-
-Sembra ovvio.
-
-Ma è un requisito di isolation che deve attraversare autenticazione, query, cache, logging, testing e observability.
-
-Gli ASR nascosti sono pericolosi perché entrano nel sistema senza essere trattati come decisioni.
-
-### ASR e priorità
-
-Non possiamo ottimizzare tutto contemporaneamente.
-
-Se chiediamo contemporaneamente latency minima, consistency forte, availability massima e costi minimi, insieme a zero lock-in, sviluppo velocissimo e operazioni semplicissime, stiamo chiedendo un sistema senza trade-off.
-
-Non esiste.
-
-Gli ASR devono quindi essere non soltanto identificati, ma **ordinati e contestualizzati**.
-
-Per Order Operations, per esempio, potremmo scoprire che:
-
-1. tenant isolation è non negoziabile;
-2. dati vecchi di qualche secondo sono accettabili;
-3. il lookup deve rimanere disponibile anche se un sistema secondario è lento;
-4. il costo operativo deve restare molto basso nella fase iniziale.
-
-Questa gerarchia cambia le decisioni possibili.
-
-### Il rischio degli aggettivi
-
-Riprenderemo questo tema in modo molto più approfondito nel Capitolo 6.
-
-Per ora fissiamo una regola:
-
-> **“Scalabile”, “sicuro”, “resiliente” e “performante” non sono ASR finché non sappiamo cosa significano nel contesto.**
-
-Un requisito diventa utile all'architettura quando discrimina tra alternative.
-
-Se due soluzioni completamente diverse soddisfano allo stesso modo una frase vaga, quella frase non ci sta aiutando a decidere.
-
-### ASR e AI
-
-Un agente può estrarre candidati ASR da documentazione, ticket e conversazioni.
-
-Può essere molto utile.
-
-Ma non può stabilire autonomamente la priorità reale se questa dipende da business, rischio o conseguenze organizzative non presenti nel contesto.
-
-Quindi un buon uso dell'AI è:
-
-1. estrarre possibili requisiti significativi;
-2. classificare il tipo di impatto;
-3. identificare ambiguità;
-4. proporre domande mancanti;
-5. far decidere priorità e soglie a chi conosce il contesto.
-
-L'obiettivo non è produrre una lista più lunga.
-
-È trovare **le poche condizioni che cambiano davvero il design space**.
+Per questo l'AI è particolarmente utile come strumento di discovery: trova candidati, rende visibili impatti e ambiguità, poi lascia a chi conosce il sistema la responsabilità di stabilire **quali poche condizioni cambiano davvero il design space**.
