@@ -41,6 +41,7 @@ Order Operations non sostituisce Orders, Payments o Shipping come authoritative 
 | 19 | Architecture Fitness Checklist e architecture fitness test eseguibile |
 | 20 | Cost Model, unit economics, allocation direction e cost fitness test |
 | 21 | `AGENTS.md`, Repository Map e context fitness per repository AI-ready |
+| 22 | Issue-driven development, work-item template, OO-001 e issue-readiness fitness |
 
 ## Stato funzionale corrente
 
@@ -190,19 +191,6 @@ short AGENTS.md
 
 Non sono stati aggiunti file vendor-specific duplicati come seconda source of truth.
 
-`AGENTS.md` contiene:
-
-- product purpose;
-- context routing;
-- repository boundary principali;
-- golden verification commands;
-- change synchronization rules;
-- security constraints;
-- stop conditions;
-- definition of done.
-
-`docs/repository-map.md` descrive responsabilità delle directory e indica quali documenti canonical leggere per classi di change.
-
 Il context fitness protegge proprietà meccaniche:
 
 ```text
@@ -212,7 +200,7 @@ CTX-003 golden commands exist in package scripts
 CTX-004 AGENTS.md preserves routing + evidence discipline
 ```
 
-La struttura reale dei documenti canonical è stata verificata nel repository. La logica del nuovo test è stata esercitata localmente su una ricostruzione della current operating context:
+La logica del test è stata esercitata localmente:
 
 ```text
 CTX-001…CTX-004
@@ -220,7 +208,83 @@ CTX-001…CTX-004
 → 0 fail
 ```
 
-Questa evidence **non** dimostra che il testo delle istruzioni sia semanticamente perfetto o non possa diventare stale. Dimostra soltanto i guardrail meccanici dichiarati.
+## Issue-driven development — Capitolo 22
+
+Il repository distingue ora il contesto persistente dal task context.
+
+Entrano:
+
+```text
+work-items/TEMPLATE.md
+work-items/OO-001-postgresql-escalation-outbox-atomicity.md
+tests/issue-readiness-fitness.test.mjs
+```
+
+Regola:
+
+```text
+repository canonical context
+→ ciò che resta vero fra i task
+
+work item
+→ ciò che deve diventare vero nel task corrente
+```
+
+Il primo work item nasce da un gap già presente nella Testing Strategy:
+
+```text
+TST-005
+PaymentEscalation + Outbox atomicity
+higher-fidelity PostgreSQL evidence pending
+```
+
+`OO-001` definisce:
+
+```text
+Problem
+Outcome
+Current evidence
+Scope
+Out of scope
+Canonical context
+Acceptance criteria
+Verification
+Constraints
+Stop conditions
+Dependencies
+Closure evidence
+```
+
+Il task richiede un **real PostgreSQL engine**, ma non prescrive ancora il meccanismo del test environment. Questa scelta resta locale e reversibile purché riproducibile e CI-compatible.
+
+Il work item non autorizza a:
+
+- cambiare semantica Payment Escalation;
+- cambiare ownership;
+- riscrivere migration 001/002 per ottenere un test verde;
+- introdurre production cloud resources;
+- ampliare il task a topology/recovery.
+
+Issue-readiness gate eseguito localmente sulla versione corrente dei due work item:
+
+```text
+ISSUE-001…ISSUE-004
+→ 4 tests
+→ 4 pass
+→ 0 fail
+```
+
+Questa evidence verifica **soltanto** struttura minima, canonical references, stop-condition presence e alcuni verification-oracle boundary.
+
+`OO-001` resta:
+
+```text
+Execution-ready contract
+= Codified
+
+PostgreSQL integration execution
+= Not started / Pending
+```
 
 ## Evidence già accumulata
 
@@ -263,6 +327,14 @@ CTX-001…CTX-004
 → 0 fail
 ```
 
+### Capitolo 22 — issue readiness gate
+
+```text
+ISSUE-001…ISSUE-004
+→ 4 pass
+→ 0 fail
+```
+
 I test aggiunti nei capitoli successivi sono inclusi dal wildcard `tests/*.test.mjs`, ma non dichiariamo una nuova esecuzione end-to-end dell'intera suite dopo ogni commit finché non viene realmente eseguita come tale.
 
 ## Evidence model
@@ -297,10 +369,13 @@ Cost fitness metadata guard                     Codified + locally exercised 2/2
 AGENTS.md                                       Codified
 Repository Map                                  Codified
 Context fitness CTX-001…CTX-004                 Codified + locally exercised 4/4
+Work-item template                              Codified
+OO-001 PostgreSQL atomicity execution contract  Codified / execution Pending
+Issue readiness ISSUE-001…ISSUE-004             Codified + locally Verified 4/4
+PostgreSQL integration                          Designed / Pending via OO-001
 Production billing / unit economics              Pending
 Production priority shadow telemetry             Designed / Pending
 Candidate production cutover                     Not authorized
-PostgreSQL integration                           Designed / Pending
 Azure security/network verification              Designed / Pending
 Recovery drills                                  Pending
 Production observability evidence                Pending
@@ -318,8 +393,6 @@ order-operations/
 ├── database/
 │   ├── README.md
 │   └── migrations/
-│       ├── 001_create_operational_case.sql
-│       └── 002_add_payment_escalation_and_outbox.sql
 ├── docs/
 │   ├── repository-map.md
 │   ├── functional-analysis.md
@@ -346,18 +419,17 @@ order-operations/
 │   ├── README.md
 │   └── main.bicep
 ├── src/
-│   ├── application/
-│   ├── contracts/
-│   ├── integration/
-│   ├── observability/
-│   └── priority/
-└── tests/
-    ├── agent-context-fitness.test.mjs
-    ├── architecture-fitness.test.mjs
-    ├── cost-fitness.test.mjs
-    ├── payment-escalation.test.mjs
-    ├── outbox-publisher.test.mjs
-    └── priority-policy.test.mjs
+├── tests/
+│   ├── agent-context-fitness.test.mjs
+│   ├── architecture-fitness.test.mjs
+│   ├── cost-fitness.test.mjs
+│   ├── issue-readiness-fitness.test.mjs
+│   ├── payment-escalation.test.mjs
+│   ├── outbox-publisher.test.mjs
+│   └── priority-policy.test.mjs
+└── work-items/
+    ├── TEMPLATE.md
+    └── OO-001-postgresql-escalation-outbox-atomicity.md
 ```
 
 Legacy system separato:
@@ -373,6 +445,7 @@ example-software-industries/
 Quando il prodotto cambia verifichiamo almeno:
 
 - `AGENTS.md` e Repository Map quando cambia il navigation/execution context;
+- work item corrente quando cambia scope/outcome/evidence del task;
 - Functional Analysis e Requirements;
 - Architecture Context e ADR;
 - Architecture Fitness Checklist;
@@ -396,6 +469,8 @@ Quando il prodotto cambia verifichiamo almeno:
 > **Un costo importante deve poter essere collegato alla proprietà che compra, al suo owner e a un trigger di revisione.**
 
 > **Il repository contiene ciò che resta vero fra i task. La issue contiene ciò che deve diventare vero nel task corrente.**
+
+> **Una issue execution-ready non elimina ogni scelta. Elimina le scelte che l'executor non è autorizzato a inventare.**
 
 Una instruction non sostituisce un requirement, un security control o una execution evidence.
 
