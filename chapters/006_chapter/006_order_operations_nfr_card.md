@@ -2,54 +2,25 @@
 
 > **Caso simulato/composito.** Order Operations è un prodotto fittizio di Example Software Industries S.p.A. I numeri di questa sezione, quando presenti, sono **requisiti simulati del caso**, non benchmark industriali né misurazioni di sistemi reali.
 
-Finora abbiamo chiarito il problema, individuato i confini e registrato una prima decisione architetturale.
+Finora abbiamo chiarito il problema, reso visibili i confini e registrato una prima decisione architetturale. Ora possiamo smettere di dire genericamente che Order Operations debba essere “veloce, affidabile e scalabile” e decidere che cosa queste parole significhino per il prodotto che stiamo costruendo.
 
-Adesso possiamo smettere di dire genericamente che Order Operations deve essere “veloce, affidabile e scalabile”.
+## I journey che vogliamo proteggere
 
-Dobbiamo decidere che cosa queste parole significhino per il prodotto che stiamo costruendo.
+Nella prima iterazione ci interessano soprattutto due percorsi: l'operatore consulta la lista degli ordini problematici e apre il dettaglio operativo di un ordine. Le future action, come retry o refund, non fanno ancora parte del critical journey autorizzato; un report mensile, anche se utile, non ha necessariamente la stessa criticità.
 
-### Critical journeys
+Questa distinzione ci impedisce di applicare a tutto lo stesso livello di disponibilità, latency e recovery.
 
-Per questa iterazione consideriamo due percorsi principali:
+## Numeri simulati e misure reali non sono la stessa cosa
 
-1. l'operatore consulta la lista degli ordini problematici;
-2. l'operatore apre il dettaglio operativo di un ordine.
+Il team potrebbe sostituire “la pagina deve essere veloce” con “p95 sotto 200 ms” e sentirsi improvvisamente preciso. Ma un numero arbitrario è soltanto vaghezza con più cifre.
 
-In futuro potranno esistere action workflow, ma non sono ancora parte del critical journey autorizzato.
+Nel capstone distingueremo sempre due categorie. Un **requirement simulato** è un target deciso nello scenario ESI per esercitare il metodo. Un **measurement del capstone** arriverà quando esisteranno codice, workload e ambiente eseguibile.
 
-Un report amministrativo mensile può esistere, ma non ha necessariamente lo stesso livello di criticità.
+I due non vanno confusi. Possiamo prendere una decisione iniziale su un target simulato, ma dovremo conservare la possibilità di correggerlo quando arriverà evidence reale.
 
-Questa differenza ci impedisce di applicare gli stessi target a tutto.
+## Non-Functional Requirements Card — Order Operations v1
 
-### Prima di inventare numeri
-
-Il team vorrebbe scrivere:
-
-> “La pagina deve essere veloce.”
-
-Non basta.
-
-Ma anche sostituirlo immediatamente con:
-
-> “p95 sotto 200 ms”
-
-senza sapere perché, sarebbe falsa precisione.
-
-Per il capstone useremo due tipi di numero.
-
-**Requirement simulato**
-
-Un numero deciso nello scenario ESI per esercitare il metodo.
-
-**Measurement del capstone**
-
-Un numero che arriverà quando Order Operations avrà codice, workload e ambiente eseguibile.
-
-Non confonderemo i due.
-
-### Non-Functional Requirements Card — Order Operations v1
-
-Supponiamo che Product, Operations, Platform e Finance abbiano concordato questi target iniziali simulati:
+La card resta un artefatto strutturato, proprio perché dovrà essere aggiornata e usata come input di decisione:
 
 ```markdown
 # Non-Functional Requirements Card — Order Operations v1
@@ -135,19 +106,11 @@ Supponiamo che Product, Operations, Platform e Finance abbiano concordato questi
 - costo del downtime rivalutato dal business.
 ```
 
-La card non è “la verità”.
+La card non pretende di essere la verità finale. È una prima decisione esplicita e revisionabile sul profilo di qualità.
 
-È una prima decisione esplicita e revisionabile.
+## La precisione deve dichiarare la propria origine
 
-### Il numero perfetto non esiste
-
-I numeri di latency sopra sono requisiti simulati.
-
-Potrebbero rivelarsi troppo severi o troppo permissivi quando avremo un prototipo misurabile e feedback dagli operatori.
-
-La parte importante è non nascondere l'incertezza.
-
-Possiamo scrivere:
+I target di latency sono simulati. Potrebbero risultare troppo severi o troppo permissivi quando avremo workload rappresentativi e feedback dagli operatori. Per questo possiamo annotare anche confidence e piano di validazione:
 
 ```text
 latency target iniziale: 500 ms p95
@@ -157,139 +120,59 @@ validazione: usability + load test
 review: dopo primo workload rappresentativo
 ```
 
-Questo è più professionale di presentare un numero come legge universale.
+Questa forma è più utile di presentare un numero come se fosse una legge universale.
 
-### Cosa cambia rispetto al capitolo precedente
+## La NFR Card mette alla prova ADR-001
 
-Nel Capitolo 4 abbiamo deciso di non introdurre ancora un read model asincrono.
+Nel Capitolo 4 abbiamo scelto di non introdurre ancora un read model asincrono. Ora possiamo finalmente chiedere se quella scelta continua ad avere fit.
 
-Ora possiamo verificare se quella scelta continua ad avere fit.
+Il lookup live deve sostenere contemporaneamente latency accettabile, correctness, availability, operability e cost. Se riesce a farlo senza caricare eccessivamente i sistemi autorevoli, ADR-001 rimane sensato. Se fallisce su una proprietà importante, avremo evidence concreta per riaprirlo.
 
-Il lookup live deve sostenere i target del journey:
+La decisione non cambia perché “CQRS è più moderno” o perché una cache sembra una buona pratica. Cambia quando il profilo di qualità dimostra che la soluzione corrente non è più sufficiente.
 
-```text
-latency accettabile
-+ correctness
-+ availability richiesta
-+ operability
-+ cost
-```
+## La prima tecnologia che non introduciamo: Redis
 
-Se il percorso live riesce a farlo senza introdurre rischio eccessivo, la scelta rimane sensata.
+“Mettiamo Redis davanti al lookup” è una proposta plausibile. La card ci costringe però a chiedere quale requisito stia pagando quella complessità: latency, database load, availability o qualcos'altro?
 
-Se non ci riesce, abbiamo un motivo concreto per rivalutarla.
+Se le misure mostrassero che il lookup rispetta i target e il carico è trascurabile, una cache distribuita non comprerebbe una proprietà necessaria. In cambio introdurrebbe invalidation, stale data, infrastruttura, costi e nuovi punti in cui verificare tenant isolation e authorization.
 
-Non perché “CQRS è più moderno”.
+Per questa iterazione la decisione è quindi:
 
-Non perché “una cache è sempre utile”.
+> **Nessuna cache distribuita finché un requisito o una misura non ne giustifica il costo.**
 
-Ma perché una proprietà richiesta non viene più soddisfatta bene.
+Non è una posizione contro Redis. È una posizione contro l'infrastruttura senza requisito.
 
-### La prima tecnologia che non scegliamo
+## La seconda tecnologia che non introduciamo: active-active multi-region
 
-Consideriamo una proposta:
+“Così siamo enterprise-ready” non è un ASR. La card non contiene oggi un requisito che renda necessario pagare consistency distribuita, routing multi-region, deployment più complesso, incident response e capacity duplicata.
 
-> “Mettiamo Redis davanti al lookup.”
+Potrebbe essere una soluzione corretta in un contesto futuro. Oggi sarebbe una risposta molto costosa a una domanda che non abbiamo.
 
-Potrebbe essere una buona idea.
+## Il compromesso ESI
 
-Ma la NFR Card ci obbliga a fare domande.
+Product vuole evitare che la foundation rallenti il prodotto; Operations vuole una capability affidabile; Platform Engineering preferisce semplicità e standardizzazione; Finance non vuole infrastruttura senza ritorno; Security considera authorization e data isolation un quality floor, non una leva negoziabile.
 
-Per quale problema?
+La decisione è partire con la soluzione più semplice che **può dimostrare** di soddisfare i target. Accettiamo di non massimizzare availability geografica, isolamento del workload o latency teorica minima. Non accettiamo di sacrificare correctness, authorization, tracciabilità verso i dati autorevoli e operability.
 
-Latency?
-
-Database load?
-
-Availability?
-
-Se le misure future mostrassero che il lookup rispetta ampiamente i target e il carico è trascurabile, Redis potrebbe non risolvere alcun problema significativo.
-
-In compenso introdurrebbe invalidazione e stale data, nuova infrastruttura e nuovi failure mode, nuovi costi e la necessità di verificare authorization e isolation anche nel caching layer.
-
-Quindi, per questa iterazione:
-
-> **Nessuna cache distribuita finché un requisito misurato non ne giustifica il costo.**
-
-Questa non è una posizione contro Redis.
-
-È una posizione a favore del fit.
-
-### La seconda tecnologia che non scegliamo
-
-Qualcuno propone active-active multi-region.
-
-La motivazione è:
-
-> “Così siamo enterprise-ready.”
-
-La card non contiene però un requisito che giustifichi quel prezzo.
-
-Un'architettura active-active potrebbe migliorare alcune proprietà.
-
-Ma introduce anche complessità su consistency e data replication, routing e deployment, incident response, test e costo. Non abbiamo ancora un requisito che renda necessario pagarlo.
-
-Quindi non la scegliamo.
-
-### Il contrasto aziendale
-
-Platform Engineering propone standardizzazione e semplicità.
-
-Operations vuole ridurre downtime e dipendenze lente.
-
-Finance vuole evitare infrastruttura costosa senza ritorno misurabile.
-
-Product non vuole che il lavoro architetturale rallenti la capability.
-
-Security pretende che authorization e data isolation non vengano trattate come leve negoziabili.
-
-Non esiste una soluzione che massimizza tutto gratuitamente.
-
-### Il compromesso del capitolo
-
-**Esigenza**
-
-Costruire un prodotto sufficientemente veloce e affidabile per il lavoro operativo.
-
-**Tensione**
-
-Massimizzare performance e availability contro costo, semplicità e capacità operativa del team.
-
-**Decisione**
-
-Partiamo con la soluzione più semplice che può soddisfare i target e rimandiamo Redis, active-active e altra infrastruttura finché esiste un requisito misurabile.
-
-**Costo accettato**
-
-Non massimizziamo availability geografica, isolamento del workload o latency minima teorica.
-
-**Quality floor**
-
-Correctness, authorization, tracciabilità verso i dati autorevoli e operability non vengono sacrificate per risparmiare.
-
-**Guardrail**
-
-NFR Card, load test, metriche, review trigger e production-readiness gate.
+I guardrail sono la NFR Card, i load test, le metriche, i review trigger e, più avanti, il production-readiness gate.
 
 > **Fit before fashion non significa cheapest possible. Significa pagare per le proprietà che servono davvero e proteggere quelle che non possiamo perdere.**
 
-### Evidenze metodologiche
+## Evidenze metodologiche
 
-Il metodo di partire dai workload/business requirement e valutare trade-off è coerente con:
+Il metodo di partire dal workload e dai business requirement, dichiarare le quality priority e valutare i trade-off è coerente con le guide di Microsoft e AWS:
 
-- [Microsoft Learn — Azure Application Architecture Fundamentals](https://learn.microsoft.com/azure/architecture/guide/)
-- [Microsoft Learn — Design Principles for Azure Applications](https://learn.microsoft.com/azure/architecture/guide/design-principles/)
+- [Microsoft Learn — Azure Application Architecture Fundamentals](https://learn.microsoft.com/en-us/azure/architecture/guide/)
+- [Microsoft Learn — Design principles for Azure applications](https://learn.microsoft.com/en-us/azure/architecture/guide/design-principles/)
 - [AWS Well-Architected Framework](https://docs.aws.amazon.com/wellarchitected/latest/framework/welcome.html)
-- [AWS Well-Architected — Evaluate trade-offs](https://docs.aws.amazon.com/wellarchitected/latest/performance-efficiency-pillar/perf_architecture_evaluate_trade_offs.html)
+- [AWS Well-Architected — Evaluate how trade-offs impact customers and architecture efficiency](https://docs.aws.amazon.com/wellarchitected/latest/performance-efficiency-pillar/perf_architecture_evaluate_trade_offs.html)
 
 Queste fonti sostengono il metodo. Non sostengono i numeri simulati di ESI.
 
-### La tecnologia giusta potrebbe cambiare
+## Quando il contesto cambierà
 
-Tra due anni Order Operations potrebbe avere clienti enterprise con SLA severi e presenza globale, milioni di eventi al giorno e costi di downtime molto più elevati. Potrebbero comparire requisiti di data residency o nuovi consumer mobile e partner. La stessa scelta che oggi sarebbe overengineering potrebbe allora diventare insufficiente.
+Tra due anni Order Operations potrebbe avere utenti globali, SLA enterprise, milioni di eventi al giorno, requisiti di data residency e un costo del downtime completamente diverso. In quel contesto Redis, un read model o un deployment multi-region potrebbero passare da overengineering a necessità.
 
-Non c'è contraddizione.
+Non sarebbe una contraddizione. Sarebbe il funzionamento corretto di un'architettura guidata dal contesto.
 
-È esattamente ciò che significa progettare rispetto al contesto.
-
-> **Una buona decisione architetturale non deve essere eterna. Deve essere corretta abbastanza per il contesto in cui viene presa e abbastanza esplicita da sapere quando rivederla.**
+> **Una buona decisione non deve essere eterna. Deve avere fit oggi ed essere abbastanza esplicita da sapere quando non ce l'ha più.**
