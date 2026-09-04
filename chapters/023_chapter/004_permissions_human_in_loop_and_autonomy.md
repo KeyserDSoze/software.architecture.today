@@ -1,350 +1,167 @@
-# Permessi, human-in-the-loop e livelli di autonomia
+# 23.4 — Permessi, human-in-the-loop e livelli di autonomia
 
-Un agente non è autonomo perché può fare molte cose.
+Un agente non diventa autonomo perché dispone di molti tool.
 
-È autonomo perché può scegliere e completare una porzione di lavoro **entro confini già autorizzati** senza chiedere un nuovo intervento a ogni passo.
+Diventa autonomo quando può scegliere e completare una porzione di lavoro **dentro un boundary già autorizzato**, senza trasformare ogni passo in una nuova richiesta di permission.
 
-Questa distinzione è fondamentale.
+Questa distinzione è fondamentale:
 
 ```text
 capability
-≠
-authorization
-≠
-autonomy
+≠ authorization
+≠ autonomy
 ```
 
-Un tool può tecnicamente consentire `delete`.
+Un tool può supportare `delete`. Il workflow può vietarlo. Un agente può modificare una branch isolata e restare non autorizzato al merge. Può eseguire una migration in un test database e non avere alcun diritto di toccare produzione.
 
-Il workflow può non autorizzarlo.
+> **L'autonomia non misura quanto può fare il modello. Misura quanto lontano una capability può avanzare senza superare il rischio che il sistema sa governare.**
 
-Un agente può essere autorizzato a modificare una branch di test.
+## Il permission boundary viene prima del prompt
 
-Questo non significa che possa promuovere da solo quel change in produzione.
+Una instruction può dire “non usare production credential”. È utile, ma non è un permission boundary.
 
-## Permission boundary
+Il sistema di esecuzione deve riflettere il mandato attraverso sandbox, branch protection, tool allowlist, credential scope, environment policy e approval hook quando il rischio lo richiede.
 
-Il permission model dovrebbe partire dalle azioni, non dal ruolo narrativo.
-
-Esempio:
-
-| Capability | Implementer | Verifier | Human Owner |
-|---|---:|---:|---:|
-| read repo | sì | sì | sì |
-| modify scoped files | sì | no | sì |
-| run local tests | sì | sì | sì |
-| modify verification oracle | solo se in scope | no | approva decisione |
-| create PR/branch | sì, se workflow lo consente | no | sì |
-| merge default branch | no | no | sì / repo policy |
-| access production secrets | no | no | specific workflow only |
-| destructive production operation | no | no | explicit approval |
-
-Questa matrice non è universale.
-
-Il punto è che i permessi devono riflettere:
-
-```text
-scope
-risk
-reversibility
-data sensitivity
-blast radius
-verification strength
-```
-
-GitHub descrive per il proprio cloud coding agent un ambiente effimero, scope di repository/branch limitato e restrizioni sui secret; inoltre ribadisce che l'output dell'agente deve essere revisionato e testato prima del merge.
+GitHub descrive per il proprio cloud coding agent un ambiente effimero, repository/branch scope e restrizioni sui secret, insieme alla necessità di revieware e testare il risultato prima del merge.
 
 Fonte:
 
 - [GitHub Docs — Application card: GitHub Copilot Agents](https://docs.github.com/en/copilot/responsible-use/agents)
 
-Non stiamo dicendo che ogni piattaforma debba implementare esattamente questi controlli.
+Non prendiamo quel modello come blueprint universale. Ci interessa la proprietà:
 
-Stiamo osservando un principio utile:
+> **un limite applicato dal runtime continua a esistere anche quando l'agente interpreta male il testo.**
 
-> **l'autonomia cresce meglio dentro un permission boundary esplicito che dentro un prompt più severo.**
+Per questo il permission model deve seguire scope, reversibilità, sensibilità dei dati, blast radius e forza della verification disponibile.
 
-## Human-in-the-loop non significa approvare tutto
+## Human-in-the-loop: proteggere decisioni, non introdurre click rituali
 
-Un workflow con approval umana a ogni tool call non è realmente autonomo.
+Un human gate a ogni tool call rende il workflow nominalmente sicuro ma praticamente poco autonomo. Un workflow senza gate su una one-way door può invece trasformare una singola interpretazione errata in un incidente.
 
-È un'interfaccia più complicata per fare click.
+La domanda utile è economica e di rischio:
 
-Al contrario, un workflow senza approval su azioni irreversibili o ad alto impatto può trasformare una interpretazione errata in un incidente.
+> **dove il costo di chiedere approval è inferiore al costo atteso di una decisione sbagliata?**
 
-La domanda è:
-
-> **dove il costo di una approval è inferiore al costo atteso di una decisione sbagliata?**
-
-OpenAI Agents SDK e Microsoft Agent Framework espongono meccanismi di human-in-the-loop che possono sospendere una run quando un tool richiede approvazione.
+OpenAI Agents SDK e Microsoft Agent Framework espongono meccanismi human-in-the-loop che possono sospendere una run prima di tool call sensibili.
 
 Fonti:
 
 - [OpenAI Agents SDK — Human in the loop](https://openai.github.io/openai-agents-python/human_in_the_loop/)
 - [Microsoft Learn — Human-in-the-loop](https://learn.microsoft.com/en-us/agent-framework/workflows/human-in-the-loop)
 
-La tecnologia però non decide quali tool debbano avere approval.
+La tecnologia sospende. Il Threat Model, il business impact e la reversibilità decidono **quando** la sospensione è necessaria.
 
-Quello deriva dal threat model e dal business impact.
+Approval umana ha alto valore per nuove business semantics, security boundary, data ownership, breaking contract, production credential, destructive migration e architecture exception. Ha molto meno valore per una lettura di file o un typecheck locale protetto da permission strette.
 
-## Gate per rischio
+## Approval fatigue è un failure mode di governance
 
-Possiamo classificare le azioni in modo pragmatico.
-
-### Low impact / reversible
-
-Esempi:
+Se ogni azione richiede approvazione, il reviewer smette progressivamente di valutare il significato e inizia ad approvare il flusso.
 
 ```text
-read files
-run local typecheck
-add deterministic unit test
-edit code inside scoped branch
-produce analysis artifact
+approval
+→ approval
+→ approval
+→ click-through
 ```
 
-Possono spesso essere autonomi.
+Il risultato è verification theatre.
 
-### Medium impact
+Per evitarlo spostiamo verso policy automatica ciò che è deterministico e reversibile: narrow permission, branch isolation, architecture fitness, security scanner, bounded test environment e stop automatici. Conserviamo human attention per ciò che richiede judgment o risk acceptance.
 
-Esempi:
+> **Un approval manuale dovrebbe proteggere una decisione, non certificare che il workflow è passato davanti a una persona.**
+
+## Una scala di autonomia, non una classifica del modello
+
+ESI introduce cinque livelli come linguaggio comune. Non sono una maturity ladder da scalare obbligatoriamente.
+
+| Livello | Significato operativo | Esempio |
+|---|---|---|
+| A0 — Assist | l'agente propone; l'umano decide/esegue | candidate ADR, query, failure hypothesis |
+| A1 — Isolated execution | l'agente crea artifact candidati in sandbox/worktree | refactoring candidate, local prototype |
+| A2 — Bounded execution + verification | modifica scope autorizzato ed esegue gate approvati | OO-001 in PostgreSQL isolato |
+| A3 — Reversible workflow progression | avanza in stage repository/non-prod predefiniti finché policy ed evidence restano valide | PR/review/non-prod flow reversibile |
+| A4 — Bounded autonomous operation | esegue azioni operative predefinite dentro runtime policy, monitoring, rollback ed escalation | future operational capability, non concessa oggi a ESI |
+
+La differenza fra A2 e A3 non è “il modello è più bravo”. È che il sistema sa governare un tratto più lungo del workflow senza nuova approval.
+
+A4 richiede ancora più evidence: non basta un agente affidabile in sandbox; servono production readiness, runtime observability, rollback, permission enforcement e escalation realmente provati.
+
+Order Operations non concede oggi alcuna capability production A4.
+
+## L'autonomia appartiene alla capability in contesto
+
+Dire `Agent X = A3` è troppo grossolano.
+
+Lo stesso agente può leggere il repository quasi automaticamente, modificare una worktree a livello A2, proporre una architecture change a livello A0 e non avere alcuna permission su production secret.
+
+La forma più utile è quindi capability-based:
 
 ```text
-add dependency
-modify migration candidate
-change API implementation
-change IaC in non-production branch
-modify architecture test with documented intent
+read canonical context
+→ high autonomy
+
+edit scoped branch
+→ bounded autonomy
+
+change data ownership
+→ human/domain gate
+
+production destructive action
+→ separate dedicated authorization
 ```
 
-Richiedono più verification e talvolta review dedicata.
+Questo è il motivo per cui l'AI Autonomy Matrix del capitolo non classifica un modello. Classifica **azioni nel loro contesto di rischio**.
 
-### High impact / one-way / sensitive
+## L'autonomia può crescere soltanto con evidence osservata
 
-Esempi:
+Un nuovo model release, un benchmark più alto o un output più eloquente non sono ragioni sufficienti per aumentare blast radius.
 
-```text
-merge breaking contract
-production database mutation
-change tenant isolation policy
-open public ingress
-approve architecture exception
-change Payments economic semantics
-rotate or disclose credentials
-production deploy with irreversible migration
-```
+Il livello può essere riesaminato quando abbiamo evidence su task realmente eseguiti: accepted task rate, repair loop, finding del verifier dopo `PASS`, scope violation, review effort, cost per verified change e qualità delle stop condition.
 
-Qui il default dovrebbe essere human gate finché non esiste una evidence molto forte che giustifichi altra autonomia.
+La direzione può anche invertirsi.
 
-La guida pratica OpenAI suggerisce proprio di pianificare intervento umano per high-risk actions e quando un agente supera threshold di failure/retry.
-
-Fonte:
-
-- [OpenAI — A practical guide to building agents](https://cdn.openai.com/business-guides-and-resources/a-practical-guide-to-building-agents.pdf)
-
-## Un modello di autonomia
-
-Per ESI introduciamo cinque livelli.
-
-### A0 — Assist
-
-```text
-agent proposes
-human executes
-```
-
-Esempio:
-
-- suggerire un ADR;
-- proporre query;
-- elencare failure mode.
-
-### A1 — Execute in sandbox
-
-```text
-agent may modify isolated workspace
-human decides whether result moves forward
-```
-
-Esempio:
-
-- implementazione locale;
-- test;
-- refactoring candidate.
-
-### A2 — Execute + verify within bounded environment
-
-```text
-agent modifies
-agent runs allowed deterministic gates
-independent approval still required for merge/high-impact step
-```
-
-Esempio:
-
-- OO-001 integration harness in ephemeral/local test environment.
-
-### A3 — Progress through reversible delivery stages
-
-```text
-agent may create PR
-respond to review
-run approved non-production checks
-advance while gates remain green
-```
-
-Human gate rimane su merge o su specifiche decisioni ad alto impatto.
-
-### A4 — Bounded autonomous operation
-
-```text
-agent may execute predefined production/repository actions
-within explicit policy
-with runtime monitoring
-rollback/stop condition
-human escalation
-```
-
-Questo livello richiede evidence operativa molto più forte.
-
-Non lo adottiamo oggi per Order Operations.
-
-## L'autonomia è per capability, non per agente
-
-Dire:
-
-```text
-Agent X = level 3
-```
-
-è spesso troppo grossolano.
-
-Meglio:
-
-```text
-read repository       A4-like automatic
-edit scoped branch    A2/A3
-add dependency        A2 + review
-merge main            human gate
-production DB write   A0/A1 only unless separately authorized
-```
-
-Quindi la **AI Autonomy Matrix** deve essere capability-based.
-
-## Autonomia dinamica
-
-Il livello può cambiare con l'evidence.
-
-Per esempio:
-
-```text
-new workflow
-→ A1
-
-50 low-risk runs with stable evidence
-→ candidate A2
-
-new tool with external side effect
-→ back to A1/A0 for that capability
-```
-
-Autonomy non è una promozione permanente del modello.
-
-È una proprietà del sistema socio-tecnico:
+Se aggiungiamo un tool con side effect esterno, introduciamo customer data, aumentiamo irreversibilità o vediamo recurring false green, la capability deve tornare a un livello più basso anche se il modello non è cambiato.
 
 ```text
 agent
-+ task
++ task class
 + tool
 + environment
-+ policy
++ permission
 + verification
-+ observed reliability
++ observed behavior
+= autonomy decision
 ```
 
-Se cambia uno di questi elementi, la matrice può dover cambiare.
+> **Autonomy is versioned architecture.**
 
-## Fail closed vs fail open
+## Fail closed e fail open dipendono dalla decisione
 
-Un approval system deve decidere anche cosa accade se l'approvatore non è disponibile.
+Anche il gate umano ha un failure behavior.
 
-Per un'operazione high-risk:
+Se nessun approvatore è disponibile, un'analisi read-only può continuare. Una production data mutation non dovrebbe normalmente partire “per non bloccare il workflow”.
+
+Questa è la stessa disciplina incontrata in security e reliability: il comportamento in assenza del controllo fa parte del design.
+
+Per high-impact action la baseline è:
 
 ```text
 no approval
 → no execution
 ```
 
-Per un'analisi non mutativa:
+Non perché ogni agent workflow debba essere conservativo, ma perché il costo del failure è diverso.
 
-```text
-no approver
-→ analysis can continue
-```
+## ESI: OO-001 parte da A2
 
-Questo è lo stesso tipo di decisione che abbiamo incontrato in security e reliability.
+OO-001 è il primo caso concreto.
 
-## Approval fatigue
+L'Implementer può leggere il contesto canonical, modificare il test harness nel branch/worktree, avviare un PostgreSQL isolato, eseguire i gate e aggiungere una test-only dependency giustificata.
 
-Troppi gate umani producono un failure mode noto:
+Non può riscrivere migration `001/002`, usare production Azure, cambiare ownership, modificare l'oracle per ottenere verde o fare merge sulla default branch.
 
-```text
-approval
-approval
-approval
-→ reviewer stops reading
-→ click through
-```
+Il task è quindi circa A2: **execute + verify dentro un environment bounded**, con independent verification e human/repository merge gate.
 
-Il risultato è peggiore di un buon gate automatico.
-
-Quindi:
-
-> **un approval manuale deve proteggere una decisione, non certificare ritualisticamente che un processo è passato di lì.**
-
-Riduciamo approval con:
-
-- scope più piccolo;
-- policy automatizzate;
-- deterministic gates;
-- permission granulari;
-- rollback sicuro;
-- evidence bundle leggibile.
-
-## ESI: autonomia iniziale
-
-Per OO-001:
-
-```text
-read canonical context
-→ autonomous
-
-edit test harness / test-only adapters
-→ autonomous within branch/workspace
-
-run local PostgreSQL integration environment
-→ autonomous if isolated and credential-free
-
-add a test-only dependency
-→ allowed but must be reported/justified
-
-rewrite existing migrations
-→ STOP
-
-use shared production Azure resources
-→ STOP
-
-change data ownership
-→ STOP
-
-merge
-→ human/repository gate
-```
-
-Questa è circa un'autonomia A2 sul task.
-
-Non perché l'agente non possa tecnicamente fare di più.
-
-Ma perché **l'evidence disponibile non giustifica ancora un blast radius maggiore**.
+Non è un limite imposto perché l'agente “non sembra abbastanza intelligente”. È una conseguenza della evidence disponibile oggi sul workflow.
 
 > **L'autonomia non si concede in base a quanto sembra intelligente il modello. Si concede in base a quanto è governabile il failure.**
