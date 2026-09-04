@@ -8,7 +8,7 @@ Regola editoriale:
 
 > **Compromesso sì. Qualità inconsapevolmente degradata no.**
 
-Ogni compromesso deve rendere leggibili:
+Ogni compromesso deve rendere leggibili almeno:
 
 ```text
 Esigenza
@@ -16,8 +16,7 @@ Tensione
 Decisione
 Costo accettato
 Quality floor
-Guardrail
-Evidence
+Guardrail / Evidence
 Trigger
 ```
 
@@ -26,99 +25,78 @@ Trigger
 **Esigenza:** aumentare execution con agenti AI.  
 **Tensione:** velocità vs comprensione/accountability.  
 **Decisione:** delegare execution mantenendo human judgment, verification e stop condition.  
-**Costo:** checkpoint e review riducono autonomia massima.  
-**Quality floor:** responsabilità, security e verificabilità restano umane.  
-**Guardrail:** Agent Delegation Contract, Verification Bundle, permission boundary.
+**Quality floor:** responsabilità, security e verificabilità restano governate da persone e policy.
 
 ## Capitolo 1 — Il software è cambiato. Il problema no.
 
 **Esigenza:** ridurre lead time.  
 **Tensione:** generation speed vs problem quality.  
 **Decisione:** accelerare execution solo dopo sufficiente contesto.  
-**Costo:** più foundation iniziale.  
-**Quality floor:** outcome, vincoli e acceptance evidence comprensibili.  
-**Guardrail:** context engineering e assumption verification.
+**Quality floor:** outcome, vincoli e acceptance evidence comprensibili.
 
 ## Capitolo 2 — Prima del codice
 
 **Esigenza:** consegnare Order Operations senza analisi infinita.  
 **Tensione:** completezza vs learning speed.  
 **Decisione:** analisi sufficiente per la prossima decisione, open question esplicite.  
-**Costo:** alcune decisioni rimandate.  
-**Quality floor:** business rule critiche non inventate dall'implementazione.  
-**Guardrail:** Problem & Outcome Brief, Functional Scope Map.
+**Quality floor:** business rule critiche non inventate dall'implementazione.
 
 ## Capitolo 3 — Pensare per sistemi
 
 **Esigenza:** vista unificata per Operations.  
 **Tensione:** UI semplice vs ownership/dipendenze reali.  
-**Decisione:** aggregare senza trasferire autorità sui facts.  
-**Costo:** journey dipende da più fonti.  
-**Quality floor:** meaning, freshness e ownership distinguibili.  
-**Guardrail:** Architecture Context Map e failure-domain analysis.
+**Decisione:** aggregare senza trasferire autorità sui fact.  
+**Quality floor:** meaning, freshness e ownership distinguibili.
 
 ## Capitolo 4 — Software Architecture
 
 **Esigenza:** dati sufficientemente aggiornati.  
 **Tensione:** semplicità vs read model indipendente.  
 **Decisione:** lookup live prima di projection asincrona.  
-**Costo:** maggiore runtime dependency.  
-**Quality floor:** correctness/ownership preservate.  
-**Guardrail:** ADR con trigger.
+**Quality floor:** correctness e ownership preservate; ADR con trigger.
 
 ## Capitolo 5 — Dalle feature ai confini
 
 **Esigenza:** evolvere Orders/Payments/Shipping senza blocco unico.  
 **Tensione:** velocità locale vs responsabilità chiare.  
 **Decisione:** logical boundary e information hiding nello stesso deployable.  
-**Costo:** adapter/contratti interni.  
-**Quality floor:** business rule non duplicate senza owner.  
-**Guardrail:** Component Responsibility Map.
+**Quality floor:** business rule non duplicate senza owner.
 
 ## Capitolo 6 — Qualità prima della tecnologia
 
 **Esigenza:** reattività/affidabilità sufficienti.  
 **Tensione:** massimizzare quality vs cost/complexity.  
 **Decisione:** niente Redis o active-active senza requirement.  
-**Costo:** rinuncia a ottimizzazioni possibili.  
 **Quality floor:** correctness, access control, operability.  
-**Guardrail:** NFR Card e trigger misurabili.
+**Principio:** fit before fashion.
 
 ## Capitolo 7 — Pattern senza religione
 
 **Esigenza:** gestire variation/failure.  
 **Tensione:** robustezza vs accidental complexity.  
 **Decisione:** pattern solo quando risolvono forze presenti.  
-**Costo:** niente speculative generality.  
-**Quality floor:** verificabilità/evolvibilità.  
-**Guardrail:** Pattern Justification Test.
+**Quality floor:** verificabilità/evolvibilità senza speculative generality.
 
 ## Capitolo 8 — Il monolite non è il nemico
 
 **Esigenza:** boundary chiari e delivery speed.  
 **Tensione:** independent deploy/isolation vs distributed cost.  
 **Decisione:** modular monolith.  
-**Costo:** deploy/failure domain non indipendenti per modulo.  
-**Quality floor:** modularità, ownership, testability.  
-**Guardrail:** extraction trigger e architecture constraints.
+**Quality floor:** modularità, ownership, testability; extraction trigger espliciti.
 
 ## Capitolo 9 — API e contratti
 
 **Esigenza:** contratto stabile per Operations UI.  
 **Tensione:** nuove action rapide vs semantics/auth/audit/idempotency.  
 **Decisione:** inizialmente read-oriented; remediation economica rinviata.  
-**Costo:** meno automazione operativa.  
-**Quality floor:** side effect non inventati senza semantica.  
-**Guardrail:** API Contract e compatibility rules.
+**Quality floor:** side effect non inventati senza semantica.
 
 ## Capitolo 10 — I dati sono architettura
 
 **Esigenza:** vista unica senza trasferire data authority.  
 **Tensione:** simplicity/performance vs ownership/sync cost.  
 **Decisione:** PostgreSQL principale; persistere solo dati posseduti; niente projection/cache/search senza trigger.  
-**Costo:** maggiore coupling runtime.  
-**Quality floor:** un'autorità semantica, tenant isolation, migration governate.  
-**Guardrail:** Data Ownership Map e reconciliation.  
+**Quality floor:** una autorità semantica, tenant isolation, migration governate.  
 **Evidence:** Microsoft Learn, PostgreSQL, Redis, Stripe, GitHub.
 
 ## Capitolo 11 — Sistemi distribuiti
@@ -126,9 +104,7 @@ Trigger
 **Esigenza:** Payment Escalation indipendente dalla availability di Payments & Risk.  
 **Tensione:** request-path availability vs immediate consistency.  
 **Decisione:** PaymentEscalation + Outbox atomici, publisher async, at-least-once, consumer idempotente.  
-**Costo:** eventual consistency, retry, DLQ, reconciliation.  
 **Quality floor:** no loss after commit, no duplicate business effect.  
-**Guardrail:** stable IDs, Failure Mode Map.  
 **Evidence:** Microsoft, AWS, Uber.
 
 ## Capitolo 12 — Cloud Architecture
@@ -136,7 +112,6 @@ Trigger
 **Esigenza:** cloud enterprise senza piattaforma sproporzionata.  
 **Tensione:** Platform standard vs autonomy/security/cost.  
 **Decisione:** Azure landing zone, App Service/WebJob, PostgreSQL, Service Bus, Managed Identity, Key Vault, Monitor, Bicep, single region.  
-**Costo:** Azure coupling e no instant regional failover.  
 **Quality floor:** durable state, identity, recovery, observability, IaC.  
 **Evidence:** Microsoft/AWS/dacadoo.
 
@@ -144,10 +119,9 @@ Trigger
 
 **Esigenza:** ridurre attack surface e blast radius.  
 **Tensione:** private/least privilege vs simplicity/cost.  
-**Decisione:** private ingress/data-plane direction, Entra, server-side auth, identity separation, Bicep baseline.  
-**Costo:** networking più complesso, Service Bus Premium.  
+**Decisione:** private ingress/data-plane direction, Entra, identity separation e Bicep baseline.  
+**Costo accettato:** networking più complesso e Service Bus Premium.  
 **Quality floor:** authenticated access, tenant isolation, no broad runtime privilege.  
-**Guardrail:** Threat Model, Security Control Matrix, negative tests.  
 **Evidence:** Microsoft, NIST SSDF, OWASP ASVS, Cloudflare.
 
 ## Capitolo 14 — Reliability e resilienza
@@ -155,19 +129,15 @@ Trigger
 **Esigenza:** sopravvivere ai failure comuni e recuperare da failure ampi.  
 **Tensione:** stronger recovery vs cloud/operational cost.  
 **Decisione:** SLO/error budget, zone resilience, single-region DR target; no active-active.  
-**Costo:** capacity/HA cost, regional recovery più lento.  
 **Quality floor:** committed state protetto nei failure coperti; restore richiede evidence.  
-**Guardrail:** Reliability Contract, drills, RTO/RPO.  
 **Evidence:** Google SRE, Microsoft, GitHub, Cloudflare.
 
 ## Capitolo 15 — Observability
 
 **Esigenza:** misurare SLO e diagnosticare failure.  
 **Tensione:** detail vs telemetry cost/cardinality/privacy/alert fatigue.  
-**Decisione:** Observability Contract, OTel-compatible instrumentation, bounded metrics, governed sampling, private synthetic direction.  
-**Costo:** non conservare ogni dettaglio.  
-**Quality floor:** SLI misurabili, correlation, no secret, actionable alert.  
-**Guardrail:** cardinality budget e retention/sampling policy.  
+**Decisione:** bounded metrics, governed sampling, correlation e Observability Contract.  
+**Quality floor:** SLI misurabili, no secret, actionable alert.  
 **Evidence:** OpenTelemetry, Google SRE, Microsoft.
 
 ## Capitolo 16 — Testing Architecture
@@ -175,131 +145,85 @@ Trigger
 **Esigenza:** modificare velocemente senza perdere confidence.  
 **Tensione:** confidence vs feedback speed/environment cost.  
 **Decisione:** multi-speed Testing Strategy; `node:test` finché basta.  
-**Costo:** non ogni commit attraversa boundary reali.  
 **Quality floor:** ogni property verificata al layer capace di dimostrarla.  
-**Guardrail:** Risk-to-Evidence Map, flaky policy, selective mutation, AI-test review.  
-**Evidence:** Microsoft, Google, Meta, OWASP, Pact; local suite 11/11 PASS al tempo del capitolo.
+**Evidence:** Microsoft, Google, Meta, OWASP, Pact.
 
 ## Capitolo 17 — Legacy e comprensione
 
 **Esigenza:** ridurre Operations Desk Classic senza perdere semantica nascosta.  
-**Tensione:** retirement speed vs regression risk vs rischio di copiare accidental complexity.  
+**Tensione:** retirement speed vs regression risk vs accidental complexity.  
 **Decisione:** inventory → characterization → owner/consumer discovery → behavior classification → seam design.  
-**Costo:** legacy e knowledge effort restano più a lungo.  
-**Quality floor:** no silent semantic regression; Observed ≠ Confirmed.  
-**Guardrail:** Legacy Understanding Map e characterization suite.  
+**Quality floor:** no silent semantic regression; `Observed ≠ Confirmed`.  
 **Evidence:** Microsoft/AWS/GitHub; legacy characterization 6/6 PASS.
 
 ## Capitolo 18 — Refactoring nell'era dell'AI
 
-**Esigenza:** trasferire la priority routing da Operations Desk Classic a Order Operations e ridurre progressivamente il legacy footprint.
-
-**Tensione:** Finance/Platform vogliono retirement rapido; Operations vuole continuity; Product vuole eliminare una regola storica obsoleta; Engineering vuole small blast radius; l'AI rende possibile produrre un enorme diff quasi immediatamente.
-
-**Decisione:** ESI conferma esplicitamente la semantica target, registra `ED-001` per rimuovere la vecchia `Enterprise + 30m → URGENT`, introduce `PriorityPolicy`, `LegacyPriorityAdapter`, `ConfirmedPriorityPolicy` e `BranchingPriorityPolicy` con modalità `legacy | shadow | candidate`. Nel Capitolo 18 ci fermiamo allo shadow boundary locale: nessun production cutover inventato.
-
-**Costo accettato:** due implementazioni temporanee, adapter, routing mode, comparison logic, expected-difference registry e cleanup futuro.
-
-**Quality floor:** `Closed`, `ManualReview`, repeated Payment failure e default behavior preservati; ED-001 approvata prima del rollout; ogni altra differenza resta `UnexpectedDifference`; nessun cambio DB/API nel primo slice; rollback/fallback richiesto prima di one-way door.
-
-**Guardrail:** `docs/priority-functional-analysis.md`, `docs/refactoring-safety-plan.md`, Legacy Understanding Map aggiornata, characterization, target tests, shadow comparison, stop conditions e cleanup definition.
-
-**Evidence:** AWS Branch by Abstraction; Microsoft Strangler Fig/safe deployments/Copilot modernization; GitHub feature-flag, Redis data migration e rate-limiter migration; OpenRewrite per automated refactoring. Evidence capstone corrente: TypeScript build PASS; Order Operations `19/19` PASS; Operations Desk Classic `6/6` PASS.
-
-**Trigger:** runtime shadow telemetry disponibile; consumer inventory completato; unexpected mismatch assente nella finestra concordata; performance overhead accettabile; rollout/fallback owner definiti. Solo allora candidate routing può aumentare. Data migration/legacy retirement richiedono un nuovo gate e point-of-no-return review.
+**Esigenza:** trasferire Priority routing dal legacy.  
+**Tensione:** retirement rapido vs continuity e small blast radius.  
+**Decisione:** confermare target semantics, registrare `ED-001`, introdurre PriorityPolicy/adapter/shadow; nessun production cutover.  
+**Quality floor:** expected difference pre-autorizzata; ogni altra divergenza resta unexpected; rollback prima di one-way door.  
+**Evidence:** AWS/Microsoft/GitHub/OpenRewrite; 19/19 target + 6/6 legacy PASS alla revisione del capitolo.
 
 ## Capitolo 19 — Architecture Evolution
 
-**Esigenza:** permettere a Order Operations di evolvere rapidamente senza perdere nel tempo boundary, quality attribute e decisioni già conquistate.
-
-**Tensione:** autonomia dei team e degli agenti vs architecture drift; governance vs delivery speed; policy stabile vs context drift.
-
-**Decisione:** ESI introduce un portfolio di fitness function con `Architecture Fitness Checklist`, architecture test eseguibili, review trigger ed exception policy con owner/expiry. Le regole meccaniche vengono automatizzate; il cambio di architectural intent resta una decisione esplicita.
-
-**Costo accettato:** alcune regole, test e review devono essere mantenuti insieme al codice; la governance non è zero-cost.
-
-**Quality floor:** nessun drift silenzioso su legacy isolation, dependency direction, contract boundary e vendor leakage nel core; una exception non può diventare permanente per inerzia.
-
-**Guardrail:** `docs/architecture-fitness-checklist.md`, `tests/architecture-fitness.test.mjs`, ADR review trigger, exception expiry e portfolio review.
-
-**Evidence:** Thoughtworks evolutionary architecture/fitness functions, AWS cloud fitness functions, Microsoft Well-Architected continuous review e GitHub SERVICEOWNERS. Gate locale AF-001…AF-005: `5/5 PASS`.
-
-**Trigger:** new boundary, new vendor SDK, new exception, context/SLO/security change, recurring false-positive o fitness rule che non protegge più una proprietà utile.
+**Esigenza:** evolvere senza perdere boundary e quality attribute.  
+**Tensione:** autonomia vs architecture drift; governance vs delivery speed.  
+**Decisione:** Architecture Fitness Checklist, executable fitness, ADR trigger ed exception policy.  
+**Quality floor:** no silent drift; exception con owner/expiry.  
+**Evidence:** Thoughtworks/AWS/Microsoft/GitHub; AF-001…AF-005 5/5 PASS.
 
 ## Capitolo 20 — Costi e decisioni
 
-**Esigenza:** rendere sostenibile e prevedibile la crescita economica di Order Operations senza trasformare cost optimization in quality degradation.
-
-**Tensione:** Finance vuole contenere run rate; Security difende private boundary; Reliability difende headroom/zone resilience; Operations difende diagnostic evidence; Engineering vuole limitare complexity e migration overlap.
-
-**Decisione:** ESI introduce `docs/cost-model.md`, cost driver map, architectural premium, unit economics candidate, allocation direction e cost review trigger. Prima si riduce waste; soltanto dopo si riaprono quality premium che cambiano il comportamento del sistema.
-
-**Costo accettato:** Order Operations non è la topologia più economica possibile; continua a pagare premium intenzionali per security, reliability, observability e migrazione reversibile.
-
-**Quality floor:** correctness, tenant isolation, required authentication/authorization, required reliability/recovery e minimum operability non vengono ridotti implicitamente da un target di spesa.
-
-**Guardrail:** `Cost Model`, property-purchased per major cost, unit metric + quality metric, allocation metadata, `tests/cost-fitness.test.mjs`, artifact reopening quando un cost cut cambia security/SLO/recovery/observability.
-
-**Evidence:** Microsoft Azure Well-Architected Cost Optimization e Cost Model; FinOps Framework Unit Economics, Allocation e Architecting & Workload Placement; casi Uber su CPU right-sizing, Big Data supply/demand, partial replication e artifact storage. Cost metadata guard locale CF-001…CF-002 esercitato: `2/2 PASS`; production billing/unit economics restano Pending.
-
-**Trigger:** billing reale disponibile, cost/unit trend diverge dal business volume, Premium/new paid capability, telemetry growth, legacy coexistence oltre milestone, SLO/security requirement change, introduzione di workload AI materialmente costoso.
+**Esigenza:** costi sostenibili senza quality degradation.  
+**Tensione:** Finance vs Security/Reliability/Operations premium.  
+**Decisione:** Cost Model, architectural premium, unit economics candidate e allocation metadata.  
+**Quality floor:** cost cut non riduce implicitamente proprietà necessarie.  
+**Evidence:** Microsoft/FinOps/Uber; CF-001…CF-002 2/2 PASS.
 
 ## Capitolo 21 — AI-ready repository
 
-**Esigenza:** permettere a persone e coding agent di entrare in Order Operations senza ricostruire ogni volta struttura, boundary, comandi e criteri di evidence.
-
-**Tensione:** più persistent context vs context pollution, documentazione duplicata e instruction drift.
-
-**Decisione:** ESI introduce un `AGENTS.md` breve e tool-neutral come routing layer, `docs/repository-map.md` come navigation context e `tests/agent-context-fitness.test.mjs` per verificare proprietà meccaniche del context layer. I dettagli restano nei documenti canonical esistenti.
-
-**Costo accettato:** `AGENTS.md` e Repository Map diventano artefatti da mantenere sincronizzati con la struttura; aggiungiamo un nuovo failure mode possibile, instruction staleness.
-
-**Quality floor:** nessuna instruction diventa seconda source of truth per requisiti/architecture; verification commands devono esistere; `Designed→Codified→Verified→Monitored` resta esplicito; instruction ≠ permission.
-
-**Guardrail:** canonical context routing, golden commands, stop conditions, context fitness, no secret in instructions, human review per semantic correctness.
-
-**Evidence:** GitHub Docs su repository/custom instructions e `AGENTS.md`; OpenAI su `AGENTS.md`, environment setup e task context. Gate CTX-001…CTX-004 esercitato localmente: `4/4 PASS`.
-
-**Trigger:** top-level structure cambia, canonical doc viene rinominato/ritirato, golden command cambia, instruction cresce/duplica content, agent permission model entra in produzione.
+**Esigenza:** ridurre rediscovery per contributor e coding agent.  
+**Tensione:** persistent context vs context pollution/instruction drift.  
+**Decisione:** `AGENTS.md` breve, Repository Map, canonical context routing e context fitness.  
+**Quality floor:** instruction ≠ source of truth; instruction ≠ permission.  
+**Evidence:** GitHub/OpenAI; CTX-001…CTX-004 4/4 PASS.
 
 ## Capitolo 22 — Issue-driven development
 
-**Esigenza:** trasformare backlog e richieste di lavoro in unità delegabili a persone e agenti senza lasciare che l'executor inventi decisioni di prodotto o architettura mancanti.
-
-**Tensione:** maggiore execution parallelism vs costo di preparare issue realmente execution-ready; abbastanza struttura vs burocrazia; autonomia locale vs task amplification.
-
-**Decisione:** ESI distingue repository context da task context e introduce `work-items/TEMPLATE.md`, il primo execution work item `OO-001-postgresql-escalation-outbox-atomicity.md` e `tests/issue-readiness-fitness.test.mjs`. Il template richiede Problem, Outcome, Current evidence, Scope, Out of scope, Canonical context, Acceptance criteria, Verification, Constraints, Stop conditions e Closure evidence.
-
-**Costo accettato:** i task a rischio materiale richiedono più lavoro di preparation e review prima dell'execution; il work-item contract deve essere aggiornato quando nuova evidence modifica scope o decision boundary.
-
-**Quality floor:** acceptance property distinta dal test command; out-of-scope esplicito; stop conditions; no green-by-editing-the-oracle; claim di closure proporzionato alla verification realmente eseguita.
-
-**Guardrail:** Issue Template, work-item readiness review, canonical document links, stop/escalation behavior, closure `Not verified`, issue-readiness fitness.
-
-**Evidence:** GitHub Docs/Blog su well-scoped coding-agent issues, acceptance criteria, Issue Forms, atomic task e WRAP; OpenAI su task ben circoscritti e prompt strutturati come GitHub Issue. Gate ISSUE-001…ISSUE-004 eseguito localmente: `4/4 PASS`.
-
-**Trigger:** work item richiede una nuova semantica/owner/one-way door, scope cresce oltre il boundary dichiarato, verification oracle dovrebbe cambiare, task diventa multi-outcome, oppure emerge una dependency che richiede discovery separata.
+**Esigenza:** rendere backlog/task delegabili senza decisioni implicite.  
+**Tensione:** parallelism vs preparation cost/burocrazia.  
+**Decisione:** Execution Work Item con Problem, Outcome, Scope, Out-of-scope, Acceptance, Verification e Stop Conditions.  
+**Quality floor:** acceptance property distinta dal command; no green-by-editing-the-oracle.  
+**Evidence:** GitHub/OpenAI; ISSUE-001…ISSUE-004 4/4 PASS.
 
 ## Capitolo 23 — Manager di agenti
 
-**Esigenza:** aumentare l'execution delegata su Order Operations senza trasformare più agenti in più scope ambiguity, permission escalation o self-certification.
+**Esigenza:** aumentare execution delegata senza permission escalation o self-certification.  
+**Tensione:** throughput vs least privilege, verification independence e human authority.  
+**Decisione:** `Human Decision Owner → Implementer → deterministic evidence → Verifier → human/repository gate`; A2 per OO-001, nessuna A4 production capability.  
+**Costo accettato:** più review e artifact, meno autonomia immediata.  
+**Quality floor:** executor non aumenta autonomamente scope/permission; critical finding non si vota a maggioranza.  
+**Evidence:** OpenAI/Microsoft/GitHub; AGOV-001…AGOV-005 5/5 localmente esercitato; OO-001 execution ancora Pending.
 
-**Tensione:** Engineering vuole throughput e parallelismo; Security vuole least privilege e nessun accesso production implicito; Platform vuole evitare orchestration complexity sproporzionata; Product/Payments vogliono mantenere decision authority; Finance/FinOps vuole che agent/review cost resti collegato a verified outcome.
+## Capitolo 24 — AI dentro l'architettura
 
-**Decisione:** ESI adotta per OO-001 una topologia minima `Human Decision Owner → Implementer → deterministic evidence → independent Verifier → human/repository merge gate`. Introduce `docs/agent-delegation-contract.md`, `docs/agent-verification-bundle.md`, `docs/ai-autonomy-matrix.md` e `tests/agent-governance-fitness.test.mjs`. L'Implementer riceve autonomia A2 bounded; nessuna A4 production capability viene concessa.
+**Esigenza:** ridurre il costo cognitivo con cui Operations ricostruisce un caso problematico.  
+**Tensione:** Product vuole spiegazioni utili; Payments & Risk vuole preservare semantic authority; Security vuole minimizzare prompt-injection/data/tool blast radius; Platform vuole evitare provider coupling diffuso; Finance vuole costo per useful outcome misurabile.
 
-**Costo accettato:** secondo passaggio di verification, più artifact da mantenere, latenza di review e human merge gate; rinunciamo alla massima autonomia immediata.
+**Decisione:** ESI introduce **Case Explanation Assistant** come prima capability AI runtime: read-only, deterministic context assembly, `CaseExplanationPort` provider-neutral, output strutturato con fact/hypothesis/missing evidence/source reference, nessun write tool e nessun vector/RAG layer finché il workload non lo richiede.
 
-**Quality floor:** capability ≠ authorization; no semantic/data-ownership change fuori gate; no production credential/resource; executor non aumenta unilateralmente la propria autonomia; verification oracle non viene indebolito per ottenere green; deterministic claim richiede deterministic evidence; critical finding non viene cancellato da majority consensus.
+**Costo accettato:** meno automazione, nessuna remediation autonoma, possibilità di `InsufficientEvidence`, nessun accesso a corpus enterprise ampio nel primo slice.
 
-**Guardrail:** Agent Delegation Contract, retry/repair budget, explicit stop conditions, Agent Verification Bundle claim→evidence→limitations, AI Autonomy Matrix capability-based, independent Verifier role, human gate per high-impact action, agent-governance fitness.
+**Quality floor:** model interpretation ≠ authoritative fact; authorization prima del retrieval; tenant isolation; source provenance; core Operational Case view disponibile anche se il model provider fallisce; nessuna business action implicita.
 
-**Evidence:** OpenAI Agents SDK su handoff/guardrail/HITL/tracing e practical guide su human intervention; Microsoft Agent Framework su sequential/concurrent/handoff/manager orchestration e tool approval; GitHub Docs su constrained cloud-agent permissions e review dell'output. AGOV-001…AGOV-005 esercitato localmente su una ricostruzione degli artifact correnti: `5/5 PASS`. OO-001 PostgreSQL execution resta `Pending`.
+**Guardrail:** `docs/ai-feature-contract.md`, `src/ai/case-explanation.ts`, `evals/case-explanation-v1.jsonl`, `tests/ai-boundary-fitness.test.mjs`, bounded retry/fallback, eval prima del rollout, Threat/Observability/Cost review quando il boundary cresce.
 
-**Trigger:** observed agent task reliability/cost, recurring repair loop, permission/policy violation, verifier false-green, new sensitive tool/data, increased blast radius, one-way action, production autonomy candidate, oppure human review non riesce più a validare evidence bundle con costo sostenibile.
+**Evidence:** Microsoft Azure Architecture Center/Foundry su RAG, context engineering ed evaluation; OWASP su prompt injection; NIST AI RMF GenAI Profile; OpenAI su source/sink prompt-injection defenses; Uber Genie/Enhanced Agentic-RAG/Gen AI Gateway come casi reali. Gate locale del nuovo boundary: TypeScript compile PASS + AI-001…AI-005 `5/5 PASS`. Nessun model/provider è stato ancora eseguito, quindi groundedness, injection resistance reale, latency e cost restano Pending.
 
-## Capitolo 24 e successivi
+**Trigger:** write/action tool, corpus documentale ampio, cross-case analysis, nuove source sensibili, AI nel critical path, model/provider change, eval regression, cost/latency materialmente peggiori.
+
+## Capitolo 25 e successivi
 
 Il ledger continua insieme al manoscritto.
 
-Lo scenario ESI dà il contesto; fonti, test e runtime evidence impediscono di trasformare il compromesso in opinione non verificata.
+Lo scenario ESI dà il contesto; fonti, test, eval e runtime evidence impediscono di trasformare il compromesso in opinione non verificata.
