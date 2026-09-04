@@ -1,172 +1,46 @@
 ## Il buco tra commit e publish
 
-Arriviamo al problema che rende necessaria la prima vera infrastruttura asincrona di Order Operations.
+La prima vera esigenza asincrona di Order Operations nasce da un problema molto concreto: dobbiamo registrare localmente una Payment Escalation e notificare in modo affidabile Payments & Risk.
 
-Vogliamo fare due cose:
-
-1. salvare localmente che un caso è stato escalato;
-2. notificare in modo affidabile Payments & Risk.
-
-La prima implementazione potrebbe essere:
+La soluzione più ovvia è fare prima il commit e poi pubblicare:
 
 ```ts
 await db.transaction(async (tx) => {
-  await tx.operationalCases.markEscalated(caseId);
+  await tx.paymentEscalations.create(escalation);
 });
 
-await broker.publish({
-  type: "OperationalCaseEscalated",
-  caseId,
-});
-```
-
-Sembra ragionevole.
-
-Ma esiste una finestra:
-
-```text
-commit DB riesce
-↓
-process crasha
-↓
-publish non avviene
-```
-
-Il database dice:
-
-```text
-Escalated
-```
-
-Payments & Risk non riceve nulla.
-
-Abbiamo creato una divergenza persistente.
-
-## Invertire l'ordine non risolve
-
-Potremmo pubblicare prima:
-
-```ts
 await broker.publish(event);
-await db.operationalCases.markEscalated(caseId);
 ```
 
-Ora il failure mode diventa:
+Funziona finché il processo non crasha tra i due passi. In quel caso il database dice che l’escalation esiste, ma il downstream non riceve nulla. Abbiamo creato una divergenza persistente.
+
+Invertire l’ordine non risolve. Se pubblichiamo prima e il commit fallisce, Payments riceve un evento che descrive un fatto che il sistema autorevole non ha mai accettato. Il problema non è la sequenza scelta: è che stiamo cercando di coordinare due sistemi indipendenti con due operazioni separate.
+
+## Transactional outbox: rendere durevole l’intenzione
+
+Per il nostro scenario non vogliamo una distributed transaction fra database e broker. Vogliamo che la transazione locale resti l’unico confine atomico.
+
+Il transactional outbox cambia quindi ciò che salviamo nella transazione: non soltanto business state, ma anche **l’intenzione di pubblicare**.
 
 ```text
-publish riesce
-↓
-commit DB fallisce
-```
-
-Payments & Risk riceve un evento che descrive un fatto che, nel sistema autorevole, non è avvenuto.
-
-Abbiamo soltanto spostato il buco.
-
-## Una distributed transaction?
-
-In teoria potremmo cercare una transazione distribuita che coinvolga database e broker.
-
-In pratica dobbiamo chiederci:
-
-- entrambi i sistemi la supportano davvero?
-- quale coupling operativo introduce?
-- come si comporta durante network partition?
-- quale latency e availability paga il request path?
-- il problema giustifica questo coordinamento?
-
-Per il nostro scenario ESI, no.
-
-Vogliamo che la transazione locale rimanga il confine atomico.
-
-## Transactional Outbox
-
-Il pattern transactional outbox cambia l'unità di lavoro.
-
-Nella stessa transazione locale scriviamo:
-
-```text
-business state
+PaymentEscalation
 +
-intention to publish
+OutboxMessage
 ```
 
-Per esempio:
+Se il commit riesce, entrambi esistono. Se fallisce, non esiste nessuno dei due.
 
-```sql
-BEGIN;
-
-UPDATE operations.operational_case
-SET status = 'Escalated',
-    updated_at = now()
-WHERE case_id = :case_id;
-
-INSERT INTO operations.outbox_message (
-    message_id,
-    message_type,
-    aggregate_id,
-    payload,
-    occurred_at
-)
-VALUES (
-    :message_id,
-    'OperationalCaseEscalated',
-    :case_id,
-    :payload,
-    now()
-);
-
-COMMIT;
-```
-
-Ora abbiamo due esiti possibili:
-
-```text
-commit
-→ stato + intenzione di pubblicazione esistono entrambi
-
-rollback
-→ non esiste nessuno dei due
-```
-
-Microsoft documenta il Transactional Outbox pattern proprio per evitare la perdita di eventi quando business object e publish non possono essere coordinati atomicamente attraverso datastore e broker. La guidance propone di salvare business state e outbox entry nella stessa transazione e lasciare a un processo separato il compito di pubblicare.
+Microsoft documenta il Transactional Outbox pattern proprio per i casi in cui business state e publish non possono essere coordinati atomicamente tra datastore e broker: la transazione locale persiste anche l’outbox entry, mentre un processo separato si occupa della consegna.
 
 Fonte:
 
 - [Microsoft Learn — Transactional Outbox pattern](https://learn.microsoft.com/azure/architecture/databases/guide/transactional-outbox-cosmos)
 
-## Il publisher
+Il punto non è che la outbox “renda tutto atomico”. Rende atomici **stato locale e publication intent**.
 
-Dopo il commit, un worker legge le entry non pubblicate:
+## Il publisher sposta il failure window, non lo cancella
 
-```text
-outbox
-  ↓
-publisher
-  ↓
-broker
-```
-
-Pseudo-TypeScript:
-
-```ts
-for (const message of await outbox.nextBatch(100)) {
-  try {
-    await broker.publish(message);
-    await outbox.markPublished(message.messageId);
-  } catch (error) {
-    await outbox.recordFailure(message.messageId, error);
-  }
-}
-```
-
-Sembra semplice.
-
-Ma compare un nuovo failure window.
-
-## Publish succeeds, mark fails
-
-Timeline:
+Dopo il commit, un worker legge le entry pending e le pubblica. Compare allora una nuova finestra:
 
 ```text
 publisher legge msg_42
@@ -177,279 +51,59 @@ process crasha prima di markPublished
 ↓
 publisher riparte
 ↓
-legge ancora msg_42
-↓
-pubblica di nuovo
+msg_42 viene pubblicato di nuovo
 ```
 
-L'outbox evita la perdita.
+La outbox ha eliminato la perdita silenziosa tra commit e publish, ma ha accettato possibili duplicati tecnici. È un trade-off intenzionale: preferiamo at-least-once publication e consumer idempotente alla possibilità che un’escalation scompaia.
 
-Non elimina i duplicati.
+Per questo `messageId` e `escalationId` devono rimanere stabili durante i retry. Il publisher sta tentando di consegnare **lo stesso messaggio**, non generandone uno nuovo a ogni tentativo.
 
-Questo è un ottimo esempio di trade-off:
+## Message identity e aggregate identity non coincidono
 
-```text
-preferiamo at-least-once publication
-+
-consumer idempotente
+`caseId` identifica il caso operativo; `escalationId` identifica l’intenzione business di escalation; `messageId` identifica una specifica comunicazione. Confonderli rende più difficile deduplication, correlation e ordering.
 
-invece di
+Lo stesso case può produrre molti fatti nel tempo. Ogni messaggio deve avere una identity propria, mentre la relazione con il case serve a ricostruire causalità e, quando necessario, ordering locale.
 
-rischiare perdita silenziosa
-```
+## Polling o CDC: scegliere la complessità proporzionata
 
-## L'identità del messaggio
+La outbox deve essere estratta. Un polling publisher è facile da capire e testare, funziona bene a volumi moderati e non richiede infrastruttura aggiuntiva. Paga però polling, tuning di batch/interval e una latency minima legata alla frequenza.
 
-Ogni outbox record deve avere un'identità stabile.
+Il Change Data Capture può ridurre polling applicativo e sostenere throughput elevati, ma introduce checkpoint, recovery, coupling al transaction log e una nuova capability operativa.
 
-Per esempio:
+Per Order Operations scegliamo inizialmente **polling publisher**. Non perché CDC sia inferiore, ma perché il volume corrente non ne giustifica la complessità. Fit before fashion continua a valere anche dentro un pattern già scelto.
 
-```text
-messageId    = msg_01J...
-escalationId = esc_01J...
-caseId       = case_123
-```
+## Una outbox non è un event store
 
-Il publisher non genera un nuovo `messageId` a ogni retry.
+Il fatto che la tabella contenga messaggi nel tempo non la trasforma automaticamente in audit log o event sourcing. Il suo scopo è molto più specifico: preservare l’intenzione di pubblicare insieme al business commit.
 
-Sta tentando di consegnare **lo stesso messaggio**.
+Può avere retention limitata dopo la consegna, non contenere abbastanza semantica per ricostruire il dominio e subire cleanup aggressivo. Se abbiamo requisiti di audit o storia di business, devono essere modellati come tali e non affidati accidentalmente a una tabella tecnica.
 
-Questo permette a broker e consumer, quando appropriato, di deduplicare o riconoscere la redelivery.
+## Cleanup e retention fanno parte del pattern
 
-## Event identity vs aggregate identity
+Una outbox cresce continuamente. Dobbiamo quindi sapere quanto conservare i record pubblicati, come pulirli senza bloccare il publisher, quali index servano e quali informazioni debbano sopravvivere altrove per audit o troubleshooting.
 
-Non confondiamo:
+Una policy sensata distingue almeno pending/failed da published: i primi devono rimanere finché il problema non è risolto o escalato; i secondi possono avere una retention operativa limitata. Il business audit segue invece una policy propria.
 
-```text
-caseId
-```
+## Payload piccolo, stabile e classificato
 
-con:
+Salvare l’intero oggetto dominio serializzato nella outbox è facile e spesso costoso nel tempo. Aumenta PII exposure, coupling, dimensione del messaggio e blast radius di ogni schema change.
 
-```text
-messageId
-```
+Per `OperationalCasePaymentEscalated` ci servono soltanto le informazioni necessarie al contract: identity, versione, timestamp, `caseId`, `escalationId`, riferimento tenant scoped, reason code e correlation. Non serve copiare customer data, payment provider payload o l’intero Order DTO.
 
-Lo stesso case può produrre più eventi:
-
-```text
-OperationalCaseCreated
-OperationalCaseAssigned
-OperationalCaseEscalated
-OperationalCaseClosed
-```
-
-Ogni evento ha identità propria.
-
-La relazione con il case serve per correlation e ordering locale.
-
-## Polling publisher o CDC?
-
-Esistono più modi per estrarre l'outbox.
-
-### Polling publisher
-
-Un worker interroga la tabella periodicamente.
-
-Vantaggi:
-
-- semplice da capire;
-- facile da testare;
-- nessuna infrastruttura CDC aggiuntiva;
-- buono per volumi moderati.
-
-Costi:
-
-- polling;
-- tuning batch/interval;
-- contention se implementato male;
-- latency minima legata alla frequenza.
-
-### Change Data Capture
-
-Un meccanismo CDC osserva il transaction log e trasforma le nuove entry in messaggi.
-
-Vantaggi:
-
-- latency potenzialmente bassa;
-- meno polling applicativo;
-- throughput elevato.
-
-Costi:
-
-- infrastruttura aggiuntiva;
-- operational knowledge;
-- checkpoint e recovery;
-- schema/log coupling;
-- più componenti da osservare.
-
-Per Order Operations scegliamo inizialmente **polling publisher**.
-
-Non perché CDC sia sbagliato.
-
-Perché il volume del flusso di escalation non giustifica ancora la sua complessità.
-
-Fit before fashion continua a valere.
-
-## La tabella outbox non è un event store
-
-Altro errore frequente:
-
-```text
-abbiamo una outbox
-→ abbiamo uno storico degli eventi
-→ possiamo usarla come audit/event sourcing
-```
-
-No.
-
-L'outbox ha uno scopo operativo preciso:
-
-> garantire che l'intenzione di pubblicazione sopravviva insieme alla transazione locale.
-
-Può avere retention breve dopo pubblicazione.
-
-Può essere archiviata.
-
-Può non contenere tutta la semantica necessaria per ricostruire il dominio.
-
-Non trasformiamo un pattern di integration reliability in un modello dati universale.
-
-## Cleanup e retention
-
-Una outbox cresce continuamente.
-
-Quindi dobbiamo decidere:
-
-- quanto tenere record published;
-- come eliminare o archiviare batch;
-- come non bloccare il publisher durante cleanup;
-- quali indici servono;
-- quale informazione conservare per audit;
-- come correlare un messaggio già eliminato dall'outbox con telemetry e downstream state.
-
-Una policy plausibile potrebbe essere:
-
-```text
-pending / failed
-→ conservare finché risolto
-
-published
-→ retention operativa limitata
-
-business audit
-→ conservato altrove secondo policy del dominio
-```
-
-La durata concreta verrà definita quando avremo requisiti di audit e volume reali nel capstone.
-
-## Payload piccolo e stabile
-
-È tentante salvare nella outbox l'intero oggetto serializzato:
-
-```json
-{"order": { ... 200 campi ... }}
-```
-
-Questo aumenta:
-
-- coupling;
-- PII exposure;
-- incompatibilità;
-- dimensione dei messaggi;
-- difficoltà di evolution.
-
-Per `OperationalCaseEscalated` vogliamo soltanto ciò che serve al contratto.
-
-Esempio:
-
-```json
-{
-  "messageId": "msg_01J...",
-  "schemaVersion": 1,
-  "type": "OperationalCaseEscalated",
-  "occurredAt": "2026-09-03T13:00:00Z",
-  "caseId": "case_123",
-  "escalationId": "esc_456",
-  "tenantRef": "tenant_789",
-  "category": "Payment",
-  "correlationId": "corr_abc"
-}
-```
-
-Non includiamo il dettaglio del payment.
-
-Payments & Risk possiede quella semantica.
-
-## Security dell'outbox
-
-L'outbox è una nuova copia di dati.
-
-Quindi deve rientrare nel threat model.
-
-Dobbiamo considerare:
-
-- chi può leggere il payload;
-- encryption at rest;
-- logging dei payload;
-- data classification;
-- retention;
-- accesso del publisher;
-- rischio di replay malevolo;
-- validation del consumer.
-
-Non basta che sia “una tabella tecnica”.
-
-La semantica passa da lì.
-
-## Outbox e atomicity
-
-La frase corretta è:
-
-> **l'outbox rende atomici il business state locale e l'intenzione di pubblicare.**
-
-Non:
-
-> “rende atomico tutto il processo distribuito”.
-
-Dopo il commit abbiamo ancora:
-
-```text
-pending
-published
-redelivered
-processed
-rejected
-DLQ
-```
-
-Sono stati distribuiti da governare.
+La outbox è comunque una nuova copia di dati e deve quindi rientrare nel threat model: access control, encryption, retention, logging del payload e rischio di replay non spariscono perché la tabella è “tecnica”.
 
 ## Il nuovo compromesso ESI
 
-Order Operations accetta:
+Order Operations accetta delivery asincrona, duplicazione tecnica possibile, piccolo lag, una tabella aggiuntiva e un publisher worker. In cambio il request path non dipende dalla disponibilità runtime di Payments, l’intenzione di pubblicare sopravvive al commit e retry/recovery diventano indipendenti dalla sessione dell’operatore.
 
-- delivery asincrona;
-- possibile duplicazione tecnica;
-- un piccolo lag tra escalation locale e ricezione downstream;
-- una tabella e un worker aggiuntivi.
-
-In cambio ottiene:
-
-- request path non dipendente dalla disponibilità di Payments;
-- nessuna perdita silenziosa fra commit e publish;
-- retry indipendente dalla sessione utente;
-- observability del backlog;
-- un punto chiaro di recovery.
-
-Il quality floor resta:
+Il quality floor può essere espresso così:
 
 ```text
 commit locale riuscito
-→ intenzione di pubblicazione durable
+→ publication intent durevole
 
-redelivery
+redelivery dello stesso intento
 → nessun side effect business duplicato
 ```
 
-Questa è una proprietà architetturale molto più importante del nome del broker che useremo.
+Questa proprietà conta molto più del nome del broker che implementeremo.
