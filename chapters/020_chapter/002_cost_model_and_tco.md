@@ -1,348 +1,153 @@
 # 20.2 — Cost model, TCO e cost driver
 
-Una fattura è un risultato.
+Una fattura è un risultato. Un cost model è una spiegazione.
 
-Un cost model è una spiegazione.
+La fattura ci dice quanto abbiamo speso in un periodo. Il cost model prova a spiegare **perché** quella cifra esiste, quali decisioni la governano e come cambierebbe se cambiasse il workload.
 
-La differenza conta.
+Questa differenza è fondamentale perché l'architettura non può intervenire bene su un numero che non sa decomporre.
 
-La fattura ci dice quanto abbiamo speso.
-
-Il cost model prova a rispondere a domande più utili:
-
-- quali componenti guidano la spesa?
-- quali costi sono fissi?
-- quali sono proporzionali all'uso?
-- quali crescono a scatti?
-- quali sono condivisi?
-- quali cambiano se cambia il workload?
-- quale parte del costo è infrastruttura e quale parte è organizzazione?
-
-Microsoft Azure Well-Architected descrive il cost model come strumento per stimare initial cost, run rate e ongoing cost, includendo scenario analysis e budget. Non serve soltanto per reporting: serve per prevedere l'effetto economico di una decisione architetturale.
+Azure Well-Architected descrive il cost model come strumento per stimare initial cost, run rate e ongoing cost, confrontare scenari e rendere esplicite assunzioni e budget. Il valore non è il reporting in sé: è poter prevedere l'effetto economico di una decisione prima che diventi una voce inevitabile della fattura.
 
 Fonte:
 
 - [Microsoft Learn — Architecture strategies for creating a cost model](https://learn.microsoft.com/en-us/azure/well-architected/cost-optimization/cost-model)
 
-## TCO non è la somma delle SKU
+## TCO: il prezzo di possedere una decisione
 
-Un confronto come:
+Confrontare due alternative soltanto attraverso le SKU crea una falsa precisione. Una soluzione da 1.500 euro al mese non è necessariamente più economica di una da 2.000 se richiede patching, on-call specializzato, più incidenti, più ambienti, una migrazione fragile e un exit path costoso.
 
-```text
-soluzione A = 2.000 €/mese
-soluzione B = 1.500 €/mese
-```
+Per questo il TCO deve guardare almeno quattro superfici differenti.
 
-non è ancora un confronto architetturale.
+| Superficie | Che cosa include | Domanda architetturale |
+|---|---|---|
+| Technology run cost | compute, storage, network, managed service, licenze, supporto, telemetry, backup | quanto costa far girare la capability? |
+| Engineering change cost | lead time, test environment, review, migration, release coordination, conoscenza specialistica | quanto costa cambiarla? |
+| Operational cost | on-call, incident response, capacity, patching, upgrade, recovery drill, remediation | quanto costa tenerla affidabile e operabile? |
+| Risk cost | downtime, data loss, security incident, contract/compliance breach, missed opportunity | quale esposizione economica resta se la proprietà fallisce? |
 
-Potrebbe mancare:
+L'ultima riga non deve per forza diventare una cifra fittizia. Anche quando non sappiamo monetizzare un rischio con precisione, dobbiamo evitare di trattarlo come zero.
 
-```text
-engineering ownership
-support contract
-operational toil
-on-call
-backup
-security review
-observability
-migration effort
-licensing
-training
-incident exposure
-exit / switching cost
-```
+> **Il TCO è il costo di possedere una decisione, non soltanto il prezzo della risorsa che la implementa.**
 
-Quindi conviene distinguere almeno quattro famiglie.
+## Prima il driver, poi l'ottimizzazione
 
-### 1. Technology run cost
+Una voce costosa non è necessariamente il vero cost driver.
 
-Quello che possiamo misurare direttamente dai provider:
+Immaginiamo che compute rappresenti una parte visibile della fattura. Ridurlo del 20% può sembrare un'ottima iniziativa. Ma se la curva complessiva è dominata da telemetry retention, network egress o da una coesistenza legacy che continua da mesi, abbiamo ottimizzato ciò che era facile vedere, non ciò che muoveva il sistema economico.
+
+Un cost driver collega consumo e causa. In Order Operations possiamo già formulare relazioni come queste:
 
 ```text
-compute
-storage
-network
-managed service
-license
-support
-telemetry ingestion
-backup
+traffic / concurrency
+→ application runtime
+
+data + query load + retention
+→ PostgreSQL
+
+message volume + tier
+→ Service Bus
+
+telemetry volume × retention × cardinality
+→ observability
+
+coexistence duration
+→ legacy overlap
 ```
 
-### 2. Engineering change cost
+La formula non deve essere perfetta. Deve essere abbastanza buona da farci capire quale decisione sposta davvero la curva.
 
-Quanto costa modificare il sistema:
+## Baseline e scenario: il modello deve poter cambiare domanda
+
+Un cost model statico serve poco. Una decisione architetturale è interessante proprio perché il contesto può cambiare.
+
+Per questo il modello dovrebbe poter confrontare la baseline corrente con almeno uno scenario di crescita, un'alternativa architetturale e la fase di transizione. Per ESI potrebbe significare confrontare la topologia single-region corrente con un eventuale multi-region futuro oppure misurare quanto pesa continuare a tenere in vita Operations Desk Classic mentre il target cresce.
+
+Possiamo rappresentare il modello con variabili invece che con prezzi inventati:
 
 ```text
-lead time
-test environment
-review burden
-migration effort
-release coordination
-specialized knowledge
+MonthlyCost =
+    RuntimeBase
+  + DatabaseBase
+  + MessagingBase
+  + ObservabilityUsage
+  + BackupStorage
+  + NetworkUsage
+  + NonProd
+  + SharedAllocation
+  + MigrationOverlap
 ```
 
-### 3. Operational cost
+La formula non pretende di essere una fattura. Serve a rendere visibili le leve.
 
-Quanto costa tenerlo vivo:
+## Le assunzioni sono parte del modello
 
-```text
-on-call
-incident response
-manual procedure
-capacity management
-patching
-upgrade
-recovery drill
-security remediation
-```
+Un cost model non è una previsione certa. È un modello decisionale costruito su assunzioni.
 
-### 4. Risk cost
+Se Product prevede che gli `OperationalCase` crescano del 40% in dodici mesi, quel numero deve essere riconoscibile come forecast, non trasformato silenziosamente in una costante tecnica. Ci interessa sapere la fonte, il livello di confidenza, quali cost driver tocca e quale variazione ci obbligherebbe a ricalcolare la scelta.
 
-Non è sempre semplice trasformarlo in denaro, ma ignorarlo non lo rende zero:
-
-```text
-downtime
-security incident
-data loss
-contract breach
-compliance failure
-reputation
-missed business opportunity
-```
-
-## Cost driver prima dell'ottimizzazione
-
-Prima di ottimizzare dobbiamo sapere che cosa muove il costo.
-
-Un'applicazione potrebbe avere:
-
-```text
-traffic → compute
-
-retention → storage
-
-fan-out → message count
-
-cross-region topology → egress + duplicated resources
-
-high-cardinality telemetry → observability spend
-
-large prompts → token usage
-
-legacy coexistence → parallel runtime + parallel operations
-```
-
-Se il cost driver non è chiaro, rischiamo di ottimizzare la voce più visibile invece di quella che determina la curva.
-
-Esempio:
-
-```text
-20% meno costo compute
-```
-
-può essere irrilevante se la vera crescita viene da:
-
-```text
-telemetry retention
-```
-
-oppure da:
-
-```text
-network egress
-```
-
-oppure da:
-
-```text
-engineering toil
-```
-
-## Baseline e scenario
-
-Un cost model utile deve poter confrontare almeno:
-
-```text
-Current
-Expected growth
-Alternative A
-Alternative B
-Failure / peak scenario
-Migration overlap
-```
-
-Per esempio:
-
-```text
-Order Operations current
-single region
-
-Option A
-same topology + usage growth
-
-Option B
-multi-region active-active
-
-Option C
-separate publisher runtime
-```
-
-Non servono subito numeri perfetti.
-
-Serve rendere esplicite le variabili.
-
-```text
-monthly base cost
-+ traffic coefficient
-+ storage growth
-+ telemetry growth
-+ shared platform allocation
-+ migration overlap
-```
-
-Il valore di questo esercizio è spesso scoprire che alcune variabili che stavamo trattando come costanti non lo sono.
-
-## Cost model e uncertainty
-
-Un cost model non è una previsione certa.
-
-È un modello decisionale.
-
-Quindi deve dichiarare:
-
-```text
-assumption
-source
-range
-confidence
-review trigger
-```
-
-Esempio:
+Una forma utile è:
 
 ```text
 Assumption
-operational cases +40% nei prossimi 12 mesi
+OperationalCase +40% / 12 months
 
 Source
-Product forecast simulato ESI
+ESI simulated Product forecast
 
 Confidence
 medium
 
-Impact
-DB/storage/telemetry
+Affected drivers
+runtime, database, telemetry
 
 Review trigger
-forecast revision > 15%
+forecast revision materially changes the curve
 ```
 
-Un numero con due decimali non diventa più affidabile soltanto perché sembra preciso.
+Questo ci protegge dalla falsa accuratezza. Un foglio con due decimali non è più affidabile delle ipotesi che contiene.
 
-> **La precisione del foglio non può superare la qualità delle assunzioni.**
+> **La precisione del modello non può superare la qualità delle assunzioni.**
 
-## Build vs buy
+## Build vs buy: confrontare ownership, non soltanto prezzo
 
-Il costo architetturale emerge anche nella decisione build vs buy.
+Il confronto fra managed service e soluzione self-managed è uno dei luoghi in cui il TCO mostra più chiaramente il proprio valore.
 
-Confrontare:
+La prima opzione compra dal provider una parte di availability, patching, backup, capacity management o operabilità, ma introduce pricing e vincoli vendor. La seconda riduce eventualmente il prezzo del servizio e trasferisce più ownership al team: upgrade, security, monitoring, recovery e incident handling diventano parte del prodotto che stiamo scegliendo di possedere.
 
-```text
-managed service price
-vs
-VM price
-```
-
-è quasi sempre incompleto.
-
-Dobbiamo confrontare:
-
-```text
-managed service
-= provider price
-+ integration
-+ vendor constraints
-
-self-managed
-= infrastructure
-+ engineering ownership
-+ upgrade
-+ security
-+ monitoring
-+ recovery
-+ capacity
-+ on-call
-```
-
-Microsoft Well-Architected raccomanda esplicitamente di includere build-vs-buy, billing model, licensing, training e operational expense nelle considerazioni economiche delle decisioni architetturali.
+Microsoft Well-Architected raccomanda infatti di includere build-vs-buy, billing model, licensing, training e operational expense nelle valutazioni economiche.
 
 Fonte:
 
 - [Microsoft Learn — Cost Optimization design principles](https://learn.microsoft.com/en-us/azure/well-architected/cost-optimization/principles)
 
-Questo non significa che managed sia sempre più economico.
+La domanda quindi non è “managed o VM?”. È: **quale capability vogliamo possedere direttamente e quanto costa possederla bene per tutta la vita prevista del workload?**
 
-Significa che il confronto deve includere ciò che realmente possediamo.
+## Il costo della transizione
 
-## Cost of transition
+La modernizzazione aggiunge un costo che scompare facilmente dai confronti: il periodo in cui paghiamo sia la destinazione sia il viaggio.
 
-Le migrazioni hanno un costo transitorio che spesso sparisce dai confronti.
+Nel Capitolo 18 ESI ha scelto characterization, adapter, shadow comparison e dual path perché riducono il rischio semantico. Queste strutture comprano safety ma aumentano temporaneamente runtime, telemetry, engineering e on-call surface.
 
-```text
-old runtime
-+ new runtime
-+ shadow traffic
-+ dual write
-+ duplicated telemetry
-+ migration tooling
-+ reconciliation
-+ extra on-call
-```
-
-La FinOps Foundation, nella capability Architecting & Workload Placement, include esplicitamente transition state e parallel run tra i costi da considerare durante modernization e placement decisions.
+La FinOps Foundation include esplicitamente transition state e parallel run nelle considerazioni di architecting e workload placement.
 
 Fonte:
 
 - [FinOps — Architecting & Workload Placement](https://www.finops.org/framework/capabilities/architecting-workload-placement/)
 
-Nel nostro capstone questo vale per Operations Desk Classic.
+Finché Operations Desk Classic resta necessario, Order Operations non sostituisce completamente il costo precedente. In parte lo somma.
 
-Finché il legacy resta attivo, il costo di Order Operations non sostituisce completamente quello precedente.
+> **Una migrazione costa anche il tempo in cui dobbiamo vivere in due posti.**
 
-Lo somma in parte.
+Questo rende l'exit condition una proprietà economica oltre che tecnica. La coesistenza è un investimento soltanto finché esiste un percorso credibile verso il momento in cui il premium temporaneo può essere rimosso.
 
-Questo cambia anche il business case della modernizzazione.
+## Il Cost Model minimo di ESI
 
-> **Una migrazione non costa soltanto dove vogliamo arrivare. Costa anche il tempo in cui dobbiamo vivere in due posti.**
+Il documento che costruiamo nel capstone non sarà un business plan da cento pagine. Deve però permettere a Product, Engineering e Finance di discutere lo stesso sistema con lo stesso linguaggio.
 
-## Cost model minimo
+Per ogni superficie importante vogliamo poter riconoscere scope e business outcome, cost owner e Finance counterpart, categorie dirette e condivise, driver, forma del costo, unit metric, assunzioni, premium architetturali, optimization hypothesis, quality risk ed evidence necessaria per una review.
 
-Per un workload, una prima versione può contenere:
+Se una informazione non esiste ancora, il modello deve mostrarlo. `Azure billing data = Pending` è più utile di una cifra inventata.
 
-```text
-Scope
-Business outcome
-Cost owner
-Budget owner
-Direct cost categories
-Shared cost categories
-Engineering / operating cost
-Cost driver
-Unit metric
-Assumptions
-Current baseline
-Growth scenarios
-Major architectural premiums
-Optimization hypotheses
-Risk of optimization
-Review cadence
-```
+Il Cost Model non elimina l'incertezza. La rende negoziabile.
 
-Non deve diventare un documento finanziario da cento pagine.
-
-Deve permettere a Product, Engineering e Finance di discutere la stessa decisione con lo stesso modello.
-
-## Regola
-
-> **Il TCO è il costo di possedere una decisione, non soltanto il prezzo della risorsa che la implementa.**
+> **Prima di chiedere “dove tagliamo?”, dobbiamo sapere quale decisione stiamo pagando e quale parte della curva quella decisione controlla.**
