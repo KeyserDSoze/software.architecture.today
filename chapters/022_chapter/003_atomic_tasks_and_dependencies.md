@@ -1,176 +1,117 @@
 # 22.3 — Atomic task, dependency e parallelizzazione
 
-Una issue può essere chiara e comunque troppo grande.
+Una issue può essere perfettamente chiara e restare comunque troppo grande per essere una buona unità di execution.
 
-Questo problema diventa evidente quando iniziamo a delegare lavoro a più executor in parallelo.
+Il problema non è il numero di righe che richiederà il diff. È il numero di **claim indipendenti** che stiamo cercando di dimostrare nello stesso momento.
 
-## Atomic non significa minuscolo
+Per questo, in questo libro, *atomic task* non significa “task minuscolo”. Significa:
 
-Un atomic task non è necessariamente una modifica di cinque righe.
+> **un outcome coerente, un boundary leggibile e una evidence abbastanza autonoma da poter dire che quella parte del lavoro è davvero conclusa.**
 
-È un task che possiede un outcome coerente, un boundary leggibile e una verification relativamente autonoma.
+Una modifica da cinquecento righe può essere atomica se sostiene una sola proprietà ben definita. Una modifica da cinquanta righe può non esserlo se mescola persistence, security policy, deployment e una nuova semantica di prodotto.
 
-Esempio:
+## Spezzare per ciò che dobbiamo imparare
 
-```text
-Aggiungere real PostgreSQL integration test
-per atomicità PaymentEscalation + OutboxMessage
-```
+Prendiamo il gap che stiamo usando in Order Operations.
 
-può essere atomico.
-
-Al contrario:
+La proprietà finale che ci interessa è l'atomicità reale fra `PaymentEscalation` e `OutboxMessage` su PostgreSQL. Ma per arrivarci possono servire passi diversi:
 
 ```text
-Completare PostgreSQL, osservabilità, deployment e production readiness
+PostgreSQL harness riproducibile
+        ↓
+migration chain eseguibile
+        ↓
+atomic success / rollback evidence
+        ↓
+CI gate, se utile e sostenibile
 ```
 
-non lo è.
+Questa sequenza ci dà un criterio di decomposizione molto più utile del semplice “dividiamo il lavoro in tre ticket”.
 
-Contiene troppi failure mode e troppe decisioni indipendenti.
+Ogni passo produce evidence che rende decidibile il successivo.
 
-## Segnali che una issue deve essere spezzata
+Se il test harness non riesce nemmeno ad applicare le migration reali, non ha senso costruire sopra di lui una suite di atomicity e dichiararla pronta per CI. Se la transaction property è dimostrata localmente ma il runner CI non può eseguire il meccanismo scelto, abbiamo scoperto un problema differente: portability dell'environment, non semantica della transaction.
 
-Una issue è probabilmente troppo grande quando:
+> **Una buona decomposizione riduce l'incertezza a strati. Non distribuisce soltanto file fra executor diversi.**
 
-- ha più outcome indipendenti;
-- richiede owner differenti;
-- attraversa più one-way door;
-- ha acceptance criteria che possono essere verificati in momenti diversi;
-- contiene sia discovery sia implementation sostanziale;
-- un fallimento in una parte rende difficile capire il resto;
-- produce un diff che attraversa troppi boundary senza necessità.
+## Quando una issue sta nascondendo più lavori
 
-## Spezzare per evidence
+Ci sono alcuni segnali ricorrenti.
 
-Un criterio molto utile è dividere il lavoro in base alla evidence che abilita il passo successivo.
+Se una parte della issue può essere accettata mentre un'altra resta completamente aperta, probabilmente abbiamo più outcome. Se servono owner differenti per decidere parti diverse del task, il work item attraversa più authority boundary. Se alcune acceptance property possono essere provate con unit test mentre altre richiedono environment cloud, stiamo probabilmente mescolando evidence layer differenti.
+
+Lo stesso vale quando la issue contiene insieme discovery sostanziale e implementation. “Trova i consumer del legacy export e migra tutto sul nuovo contract” sembra una sola frase, ma contiene prima un problema di conoscenza e poi un problema di cambiamento. L'output della prima parte può cambiare completamente la seconda.
+
+Un altro segnale forte è la presenza di più one-way door. Un task che modifica schema irreversibile, contract esterno e production routing contemporaneamente non è più semplicemente grande: concentra troppi punti di non ritorno nello stesso rollback boundary.
+
+La domanda da fare non è quindi “possiamo dividerlo?”. Quasi sempre possiamo. È:
+
+> **quale pezzo può produrre evidence utile senza dover fingere che gli altri siano già risolti?**
+
+## Dependency: rendere visibile ciò che blocca il pensiero
+
+Quando il lavoro passa fra più persone o agenti, le dependency implicite diventano costose.
+
+Git merge ci mostra dependency testuali. Non ci mostra necessariamente quelle semantiche.
+
+Due issue possono toccare file completamente diversi e dipendere dalla stessa decisione non presa. Un endpoint `Refund` e un event `RefundRequested` potrebbero essere implementati in repository separati e mergiare senza conflitti. Se però nessuno ha ancora deciso eligibility, partial refund, duplicate handling, authorization e audit, i due executor stanno costruendo due interpretazioni della stessa ambiguità.
+
+In casi simili la vera dependency è:
 
 ```text
-Issue A
-prove PostgreSQL test harness is reproducible
-        ↓ evidence
-Issue B
-prove escalation + outbox atomicity
-        ↓ evidence
-Issue C
-wire gate into CI
+product / domain decision
+        ↓
+contract decision
+        ↓
+parallel execution possibile
 ```
 
-Non sempre servono tre issue.
-
-Ma questo modello aiuta a capire l'ordine corretto.
-
-> **Una buona decomposizione produce evidence incrementale, non soltanto diff più piccoli.**
-
-## Dependency esplicite
-
-Con persone e agenti paralleli diventa pericoloso nascondere dependency nella cronologia delle conversazioni.
-
-Meglio modellarle:
+Non:
 
 ```text
-blocked by
-blocks
-related to
-requires decision from
-requires evidence from
+backend branch
++
+event branch
+→ merge
 ```
 
-GitHub supporta issue, sub-issue e planning workflow proprio per organizzare lavoro strutturato; inoltre i coding agent possono essere assegnati direttamente a issue e produrre pull request da quel contesto.[^github-agents]
+Per questo relazioni come `blocked by`, `blocks`, `requires decision from` o `requires evidence from` non sono metadata amministrativi. Rendono visibile **che cosa deve diventare vero prima che il lavoro successivo sia sensato**.
 
-Il punto architetturale, però, è indipendente dal prodotto:
+GitHub supporta issue, sub-issue e workflow di planning che possono rappresentare queste relazioni, e i coding agent possono essere assegnati direttamente a issue.[^github-agents] Il metodo, però, non dipende dal tool.
 
-> **Prima sincronizzare il pensiero. Poi parallelizzare l'esecuzione.**
+> **Prima sincronizziamo la decisione. Poi parallelizziamo l'execution.**
 
-Se due issue dipendono dalla stessa decisione ancora aperta, assegnarle a due agenti non crea parallelismo utile.
+## Parallelizzare senza creare architetture concorrenti
 
-Crea due interpretazioni concorrenti.
+Un sistema con molti agenti invita a iniziare tutto ciò che sembra indipendente.
 
-## Dependency semantica vs dependency tecnica
+Ma file diversi non equivalgono a boundary indipendenti.
 
-Due task possono modificare file diversi e dipendere comunque dalla stessa semantica.
+Possiamo parallelizzare bene quando intent condiviso, ownership e constraint sono già stabili e quando ogni task può produrre evidence locale senza reinterpretare gli altri. Un audit della documentazione, la costruzione di un PostgreSQL harness e l'esplorazione di una telemetry gap possono procedere insieme se non dipendono dalla stessa decisione aperta.
 
-Esempio:
+Il rischio più interessante è che due branch non abbiano alcun merge conflict e producano comunque due architetture incompatibili. Un executor può introdurre direttamente un Azure SDK in `application/`, mentre un altro costruisce nello stesso periodo un port vendor-neutral coerente con AF-005. Git può accettare entrambi. La fitness function deve rifiutare la contraddizione.
+
+Questo ci ricorda che la parallelizzazione sicura richiede più del source control:
 
 ```text
-Issue A
-add Refund endpoint
-
-Issue B
-add Refund event
+shared intent
++ independent-enough boundaries
++ local verification
++ common architecture policy
++ known integration point
 ```
 
-Sembrano separabili.
+## Work in progress: execution abbondante non rende gratuita l'integrazione
 
-Ma se nessuno ha ancora definito:
+Con gli agenti il costo di iniziare un task diminuisce molto più rapidamente del costo di integrarlo, verificarlo e chiuderlo.
 
-- eligibility;
-- authorization;
-- partial refund;
-- duplicate request;
-- audit;
-- state transition;
+Aprire venti branch può richiedere pochi minuti. Capire quali dieci sono ancora coerenti con lo stato corrente del repository, quali tre hanno reinterpretato la stessa requirement e quali cinque attendono una decisione può diventare il vero collo di bottiglia.
 
-le due issue condividono una dependency funzionale più importante del codice.
+Per questo il work in progress resta un limite architetturale e organizzativo. Più task attivi significano più context divergence, più review simultanee, più integration risk e più verification cost.
 
-Prima serve una decisione di prodotto.
+La domanda non è quanti agenti possiamo mettere al lavoro. È quante unità di cambiamento possiamo **portare fino a evidence e closure senza perdere il controllo del sistema**.
 
-## Parallelizzazione sicura
-
-Una buona parallelizzazione richiede:
-
-```text
-shared intent synchronized
-+ boundaries independent enough
-+ verification local enough
-+ merge/integration strategy known
-```
-
-Per esempio possiamo parallelizzare:
-
-- documentation gap audit;
-- PostgreSQL integration harness;
-- telemetry adapter exploration;
-
-solo se non richiedono la stessa decisione architetturale aperta.
-
-## Merge conflict non è l'unico conflict
-
-Gli agenti possono produrre branch che mergiano perfettamente e architetture che non mergiano affatto.
-
-Uno introduce:
-
-```text
-Azure SDK direttamente in application/
-```
-
-l'altro costruisce:
-
-```text
-vendor-neutral port
-```
-
-Git può non vedere un conflitto testuale.
-
-AF-005 sì.
-
-Questa è un'altra ragione per cui le fitness function sono parte dell'orchestrazione.
-
-## Work in progress e costo
-
-Più issue attive significano:
-
-- più context switch;
-- più branch divergenti;
-- più integration risk;
-- più review simultanee;
-- più agent execution cost.
-
-L'abbondanza di agenti non elimina il limite del work in progress.
-
-Può renderlo meno visibile.
-
-> **Se possiamo iniziare cento task contemporaneamente, diventa ancora più importante sapere quali dieci meritano davvero di essere iniziati.**
+> **L'atomicità del task non serve a rendere il lavoro piccolo. Serve a rendere il progresso conoscibile.**
 
 ---
 
