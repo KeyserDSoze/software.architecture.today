@@ -1,25 +1,86 @@
 # 24.9 — Esercizi, autovalutazione e sintesi
 
-## Dieci idee da portarsi dietro
+Il Capitolo 24 ha fatto entrare una dependency probabilistica nel prodotto senza concederle automaticamente il ruolo di source of truth, authorization engine o workflow owner.
 
-1. **Un modello runtime è una dipendenza architetturale, non soltanto un'API.**
-2. **Il modello può interpretare; il sistema decide ciò che è vero e autorizzato.**
-3. **Deterministic logic resta fuori dal modello quando possiamo esprimerla in modo affidabile.**
-4. **Grounding è un requisito; RAG è una possibile soluzione.**
-5. **Authorization deve avvenire prima del retrieval, non essere affidata alla discrezione del modello.**
-6. **Prompt injection diventa più pericolosa quando un modello possiede sink potenti.**
-7. **Structured output riduce failure di formato, non garantisce semantic correctness.**
-8. **Fallback, eval, latency, cost e drift fanno parte della feature AI tanto quanto il prompt.**
-9. **Model upgrade richiede behavioral regression evidence.**
-10. **Aumentare tool e autonomia richiede aumentare contemporaneamente permission control, eval e observability.**
+La disciplina può essere ricondotta a quattro boundary.
+
+**Authority:** quali fact restano posseduti dai sistemi autorevoli e quale output è soltanto interpretazione.
+
+**Context:** quali source possono entrare nel modello, dopo quale authorization, con quale freshness e provenance.
+
+**Capability:** quali tool e sink sono realmente necessari al use case e quale blast radius introducono.
+
+**Evidence:** quali deterministic gate, behavioral eval e runtime signal ci autorizzano a dire che la configuration è abbastanza buona e continua a esserlo nel tempo.
+
+La catena completa è:
+
+```text
+product outcome
+→ authority boundary
+→ authorized context
+→ model boundary
+→ structured result
+→ deterministic validation
+→ fallback
+→ evaluation
+→ runtime evidence
+→ review trigger
+```
+
+Il model/provider viene scelto dentro questa catena, non al suo posto.
+
+> **La domanda non è quanto potere può tecnicamente usare il modello. È quanto potere serve davvero all'outcome e quale evidence rende governabile concederlo.**
+
+## Le distinzioni che devono restare
+
+**Fact, Derived Fact, Model Interpretation e Authorized Action** non sono gradazioni dello stesso dato. Hanno authority differente.
+
+**Grounding e RAG** non sono sinonimi. Grounding è la relazione desiderata fra output e source controllate; RAG è una possibile strategia di retrieval quando il corpus lo richiede.
+
+**Schema-valid e semantically correct** non sono la stessa cosa. Structured output protegge la forma; source integrity, authority rule ed eval proteggono altre proprietà.
+
+**Read-only e risk-free** non coincidono. Anche una explanation può causare disclosure, misinformation o operator over-trust, ma l'assenza di write tool riduce fortemente alcuni sink.
+
+**Model upgrade e dependency bump** non sono equivalenti. Il behavioral contract può cambiare senza che il TypeScript interface cambi.
+
+**Eval dataset Codified e model quality Verified** sono stati differenti. Il capstone possiede già `EVAL-001…EVAL-008`; non possiede ancora un model result da promuovere a baseline.
+
+Queste distinzioni impediscono a parole come `AI-ready`, `grounded`, `secure` e `verified` di diventare etichette senza evidence.
+
+## Artefatto operativo — AI Feature Contract
+
+Il nuovo artifact del capitolo è l'**AI Feature Contract**.
+
+Non deve diventare un formulario da compilare per qualunque chiamata API. Serve quando una capability AI entra stabilmente nel comportamento del prodotto e dobbiamo mantenere insieme decisioni che altrimenti finirebbero disperse fra prompt, provider configuration, security document e codice.
+
+Il contract collega almeno:
+
+```text
+Purpose / Users / Outcome / Non-goals
+Model authority boundary
+Authoritative systems
+Deterministic logic outside model
+Context sources / Authorization / Freshness
+Retrieval strategy
+Untrusted-content classification
+Tool / Permission boundary
+Input / Output contract
+Grounding rules
+Fallback / Reliability behavior
+Security controls
+Evaluation / Critical failures
+Observability / Configuration identity
+Cost drivers / Unit economics
+Owners / Review triggers
+```
+
+La struttura è utile perché rende visibile un principio: **il comportamento che non vogliamo lasciare alla discrezione del modello deve vivere nel sistema che lo circonda**.
 
 ## Esercizio 1 — Trova il model boundary
 
-Considera questa feature:
+Considera una feature in cui un assistant riceve una richiesta cliente e aiuta l'operatore a valutare un rimborso.
 
-> Un assistant riceve una richiesta cliente e suggerisce all'operatore se concedere un rimborso.
-
-Dividi l'output in:
+Separa:
 
 ```text
 Fact
@@ -28,365 +89,189 @@ Model Interpretation
 Authorized Action
 ```
 
-Individua almeno tre informazioni che devono essere determinate fuori dal modello.
+Individua almeno tre informazioni che devono essere determinate fuori dal modello. Poi chiediti se il modello debba anche poter eseguire il refund.
 
-Poi rispondi:
+Non fermarti a sì/no: descrivi quali nuovi authority, permission, idempotency, audit, recovery ed eval boundary servirebbero per cambiare la risposta.
 
-> Il modello deve poter eseguire il refund?
+## Esercizio 2 — Grounding senza default RAG
 
-Non basta dire sì o no.
-
-Definisci quali nuove evidence e control servirebbero per cambiare la risposta.
-
-## Esercizio 2 — RAG o no?
-
-Per ciascun caso scegli una prima retrieval strategy e giustificala:
+Scegli una prima retrieval strategy per:
 
 1. spiegare un singolo ordine usando quattro API note;
 2. rispondere su 50.000 runbook interni;
 3. recuperare la policy fiscale vigente per un paese;
 4. trovare casi storici semanticamente simili;
-5. mostrare il current PaymentStatus autorevole.
+5. mostrare il `PaymentStatus` autorevole corrente.
 
-Alternative possibili:
+Puoi usare direct lookup, relational query, keyword search, vector search, hybrid retrieval o nessun retrieval aggiuntivo.
 
-```text
-direct API lookup
-SQL/query
-keyword search
-vector search
-hybrid retrieval
-no retrieval needed
-```
+Per ogni caso nomina prima la forza: corpus size, addressability, freshness, authorization e tipo di relevance. Solo dopo scegli il meccanismo.
 
-L'obiettivo non è scegliere sempre la stessa tecnologia.
+## Esercizio 3 — Source e sink
 
-È mostrare il fit.
-
-## Esercizio 3 — Prompt injection threat flow
-
-Disegna:
+Per una capability AI disegna:
 
 ```text
-Source
-→ Model
-→ Sink
+untrusted / semi-trusted source
+→ model
+→ possible sink
 ```
 
-per un'applicazione AI a tua scelta.
+Identifica data source controllabili da terzi, dati sensibili, tool, side effect irreversibili, confirmation gate e kill/recovery path.
 
-Identifica:
+Poi rimuovi almeno un sink non necessario e valuta quanto blast radius hai eliminato **senza cambiare il modello**.
 
-- contenuti controllabili da terzi;
-- dati sensibili accessibili;
-- tool;
-- azioni irreversibili;
-- confirmation gate;
-- logging;
-- kill switch.
+## Esercizio 4 — Structured output che può comunque mentire
 
-Poi prova a rimuovere almeno un sink dal model toolset.
-
-Chiediti:
-
-> quanto rischio abbiamo eliminato senza migliorare di una sola percentuale la capacità del modello di riconoscere prompt injection?
-
-## Esercizio 4 — Structured output
-
-Parti da:
+Parti dalla richiesta:
 
 ```text
-"Spiega questo caso all'operatore."
+Spiega questo caso all'operatore.
 ```
 
-Definisci uno schema che separi:
+Definisci un output contract con confirmed fact, hypothesis, missing evidence, source reference e status.
 
-```text
-confirmed facts
-hypotheses
-missing evidence
-sources
-status
-```
+Costruisci poi tre result perfettamente schema-valid ma semanticamente sbagliati: per esempio una source reale che non sostiene la claim, un hypothesis promosso a fact o un refund rappresentato come autorizzato.
 
-Poi elenca almeno tre output che sarebbero schema-valid ma semanticamente invalidi.
+Per ciascuno indica quale layer dovrebbe rilevarlo: deterministic validation, authority policy o behavioral eval.
 
-## Esercizio 5 — Fallback
+## Esercizio 5 — Fallback come product behavior
 
-Per una capability AI definisci il comportamento quando:
+Definisci il comportamento della feature quando il provider va in timeout, una context source è indisponibile, l'output resta malformato dopo il repair budget, manca evidence necessaria o scatta una security rejection.
 
-- provider timeout;
-- quota exhausted;
-- context source down;
-- malformed output;
-- prompt injection detection;
-- missing evidence;
-- model version rollback.
+Per ogni failure indica che cosa succede al **core journey** e che cosa succede alla **AI capability**.
 
-Per ogni failure indica se il journey diventa:
-
-```text
-Healthy
-Degraded
-Unavailable
-Blocked for security
-```
+Se un assistant opzionale rende indisponibile l'intero prodotto, giustifica esplicitamente perché quel coupling sia necessario.
 
 ## Esercizio 6 — Eval set risk-driven
 
-Costruisci dieci eval case senza partire da dieci domande casuali.
-
-Parti invece da:
+Costruisci dieci eval case partendo da:
 
 ```text
 failure mode
-→ input scenario
-→ required property
+→ input/context condition
+→ required behavior
 → forbidden behavior
-→ evidence
 → severity
 ```
 
-Includi almeno:
+Includi nominal, missing source, conflicting source, prompt injection, unauthorized request, authority violation e ambiguity.
 
-- nominal;
-- missing source;
-- conflicting source;
-- prompt injection;
-- unauthorized request;
-- ambiguous case;
-- model-authority violation.
+Non scrivere una sola golden answer quando esistono molte risposte corrette. Proteggi invece le proprietà che contano.
 
-## Esercizio 7 — Model upgrade
+## Esercizio 7 — Model upgrade come behavioral change
 
-Immagina che un nuovo modello costi il 40% in meno e sia mediamente più veloce.
+Un nuovo modello costa meno ed è mediamente più veloce.
 
-Quali gate deve superare prima di sostituire il modello corrente?
+Definisci quale evidence deve produrre prima di sostituire la configuration corrente: workload regression eval, critical security/authority cases, structured-output behavior, latency, cost e rollback/canary strategy quando pertinente.
 
-Non puoi usare soltanto un benchmark generico del provider.
-
-Definisci:
-
-- workload eval;
-- critical security cases;
-- latency;
-- cost;
-- structured-output behavior;
-- fallback;
-- canary/rollback.
+Non usare benchmark generici del provider come prova di equivalenza sul tuo workload.
 
 ## Esercizio 8 — Cost per useful outcome
 
-Parti da:
+Parti da una metrica provider-centric come:
 
 ```text
-$ / 1M token
+cost per 1M tokens
 ```
 
-Costruisci una metrica più utile per il business.
-
-Per esempio:
+Trasformala in una metrica più vicina al valore, per esempio:
 
 ```text
 cost per accepted explanation
 ```
 
-Poi abbinala ad almeno una quality metric, in modo che il sistema non possa “ottimizzare” il costo producendo output peggiori.
+Poi aggiungi una quality pair che impedisca di migliorare il costo semplicemente producendo explanation peggiori o dichiarando `Supported` troppo spesso.
 
-## Esercizio 9 — ESI: aggiungiamo i runbook
+## Esercizio 9 — Quando entra davvero RAG
 
-Product chiede di estendere Case Explanation Assistant con migliaia di runbook e incident note.
+Product chiede di aggiungere migliaia di runbook e incident note al Case Explanation Assistant.
 
-Prepara una mini ADR che valuti:
+Prepara una mini ADR che parta da corpus, ACL, freshness, relevance requirement, poisoning/injection risk, evaluation e cost. Soltanto dopo confronta keyword, vector e hybrid retrieval.
 
-- direct retrieval;
-- keyword search;
-- vector search;
-- hybrid retrieval;
-- access control;
-- freshness;
-- chunking;
-- poisoning/injection;
-- evaluation;
-- cost.
+La decisione non deve essere “aggiungiamo un vector DB”. Deve spiegare quale proprietà il nuovo retrieval compra rispetto al deterministic context assembly attuale.
 
-Non scegliere una soluzione finché non hai definito le forze.
+## Esercizio 10 — Il primo write tool
 
-## Esercizio 10 — ESI: aggiungiamo il primo write tool
+Product chiede di permettere all'assistant di creare una Payment Escalation dopo la explanation.
 
-Product chiede:
-
-> Dopo la spiegazione, permettiamo all'assistant di creare una Payment Escalation.
-
-Aggiorna almeno:
+Riapri almeno:
 
 ```text
 AI Feature Contract
 Threat Model
 AI Autonomy Matrix
-API/authorization boundary
+API / authorization boundary
 Testing Strategy
 Observability Contract
 Failure Mode Map
+Cost Model
 ```
 
-Definisci:
+Definisci chi autorizza la write, idempotency, audit, confirmation, prompt-injection blast radius, failure/recovery e security eval.
 
-- chi autorizza;
-- se serve conferma;
-- idempotenza;
-- audit;
-- prompt injection blast radius;
-- rollback/recovery;
-- eval security.
+L'esercizio è riuscito se emerge chiaramente che **aggiungere un tool non è soltanto aggiungere una function declaration al provider SDK**.
 
-Questo esercizio prepara direttamente i capitoli di production readiness.
+## Autovalutazione
 
----
+Dopo il capitolo dovresti riuscire a guardare una feature AI e individuare subito dove vive l'autorità, quale context entra realmente nel modello, perché un retrieval è necessario, quali sink aumentano il blast radius, quale parte dell'output può essere validata deterministicamente e quale richiede eval.
 
-# Autovalutazione
+Dovresti anche saper progettare un fallback che preservi il core journey, descrivere una model upgrade come behavioral change, distinguere offline eval da runtime monitoring e rifiutare una claim di `Verified` quando esiste soltanto un dataset non ancora eseguito.
 
-Dovresti riuscire a rispondere sì a queste domande.
+Se la discussione architetturale comincia e finisce con il nome del modello, il boundary è ancora troppo implicito.
 
-1. So distinguere fact, derived fact, model interpretation e authorized action?
-2. So spiegare perché structured output non equivale a semantic correctness?
-3. So decidere quando RAG non serve?
-4. So distinguere grounding da vector search?
-5. So spiegare perché authorization dovrebbe precedere retrieval?
-6. So descrivere prompt injection come source/sink problem?
-7. So progettare un tool boundary least-privilege?
-8. So definire un fallback quando il modello è indisponibile?
-9. So costruire un eval set partendo dai failure mode?
-10. So distinguere deterministic test, behavioral eval e runtime monitoring?
-11. So spiegare perché un model upgrade richiede regression eval?
-12. So trattare prompt/context/model/tool configuration come versione del sistema?
-13. So definire metriche di cost insieme a metriche di qualità?
-14. So spiegare perché un assistant read-only può comunque essere un security risk?
-15. So elencare cosa dovrebbe far scattare una review del model/tool boundary?
+## Che cosa cambia con l'AI
 
----
+Nel software tradizionale siamo abituati a pensare che una parte importante del comportamento derivi dal codice e dalla configurazione che possediamo direttamente.
 
-# Artefatto operativo — AI Feature Contract
-
-Il nuovo artifact del capitolo è:
-
-> **AI Feature Contract**
-
-Template:
+Con una capability generativa il behavior dipende anche da:
 
 ```text
-Feature
-Purpose
-Users
-Outcome
-Non-goals
-
-Model authority boundary
-Authoritative systems
-Deterministic logic outside model
-
-Context sources
-Authorization boundary
-Retrieval strategy
-Freshness
-Untrusted-content classification
-
-Tool set
-Permission boundary
-Human approval triggers
-
-Input contract
-Output schema
-Grounding/source-reference rules
-
-Fallback
-Failure modes
-Latency/reliability behavior
-
-Security controls
-Prompt-injection model
-Data minimization
-
-Evaluation dataset
-Metrics
-Critical failure classes
-Release gate
-
-Observability
-Model/prompt/context versions
-
-Cost drivers
-Unit economics
-
-Owners
-Review triggers
-```
-
-Non tutti i campi devono essere enormi.
-
-L'obiettivo è rendere esplicito il comportamento che non vogliamo lasciare alla configurazione del modello.
-
----
-
-# Che cosa cambia con l'AI
-
-Prima potevamo assumere che una funzione:
-
-```text
-input X
-→ output Y
-```
-
-avesse comportamento principalmente determinato dal nostro codice.
-
-Con una capability generativa abbiamo un nuovo layer:
-
-```text
-code
-+ model
+model
++ prompt/instruction
 + context
-+ prompt
 + retrieval
-+ tool
++ tool set
 + safety layer
 + provider behavior
 ```
 
-La superficie di configurazione diventa parte del comportamento.
+Questo non rende il sistema ingovernabile. Sposta però più configuration dentro il behavior contract e aumenta il valore di versioning, eval e observability.
 
-Questo non rende il software impossibile da governare.
-
-Rende però insufficiente trattare il modello come una black box chiamata da un service class.
-
-## La nuova responsabilità dell'architect
-
-L'architect non deve diventare necessariamente ML researcher.
-
-Deve però saper chiedere:
-
-- dove vive l'autorità?
-- quale evidence arriva al modello?
-- chi può entrare nel context?
-- quali tool possiede?
-- quale output viene validato?
-- come fallisce?
-- che cosa succede quando manca evidence?
-- come misuriamo qualità e drift?
-- che cosa costa?
-- come torniamo indietro?
+L'architect non deve necessariamente diventare ML researcher. Deve però saper chiedere quale truth sia autorevole, come viene assemblato il context, quale permission possieda il modello, come fallisca, quale evidence sostenga il rollout e come il sistema torni indietro quando la baseline peggiora.
 
 Sono domande di Software Architecture.
 
----
+## Stato ESI dopo il Capitolo 24
 
-# Corollario
+Order Operations possiede ora:
 
-> **Non mettere l'AI dentro il sistema chiedendoti soltanto che cosa può fare. Decidi prima che cosa può sapere, che cosa può affermare, che cosa può cambiare e quale evidence deve produrre per meritare più potere.**
+```text
+AI Feature Contract                 Codified
+CaseExplanation semantic contract   Codified
+Deterministic result validation     Codified
+Eval seed EVAL-001…008              Codified
+AI boundary fitness AI-001…005      Codified + locally verifiable
+Provider/model implementation       Pending
+Eval execution                      Pending
+Production AI runtime               Not deployed
+Write tools                         Not authorized
+```
 
-Nel prossimo capitolo, **One-Man Project**, allargheremo di nuovo il campo.
+Questo stato è intenzionalmente incompleto.
 
-Abbiamo ormai un repository AI-ready, work item execution-ready, agent governance e una capability AI runtime progettata.
+Abbiamo progettato il model boundary prima di scegliere il provider e abbiamo costruito l'oracle prima di dichiarare la qualità. Il passo successivo, quando verrà eseguito, dovrà produrre evidence reale invece di riempire i campi Pending con confidence language.
 
-La domanda diventa:
+## Ponte al Capitolo 25
 
-> **quanto sistema può realisticamente governare una singola persona quando execution, ricerca, review e operazioni possono essere amplificate dagli agenti — e quali nuovi failure mode organizzativi compaiono quando una persona sembra poter fare il lavoro di un intero team?**
+Nel prossimo capitolo allargheremo di nuovo il campo.
+
+Repository context, work item, agent governance e runtime AI rendono molto più abbondante la capacità di execution di una singola persona. Questo apre una domanda organizzativa:
+
+> **quanto sistema può realisticamente governare una persona sola quando gli agenti amplificano ricerca, implementation e review, e quale failure compare quando coordination e accountability restano concentrate in un solo punto?**
+
+È il tema del **One-Man Project**.
+
+## Corollario
+
+> **Non mettere l'AI dentro il prodotto chiedendoti soltanto che cosa può fare. Decidi quale truth può vedere, quale interpretazione può formulare, quale azione può raggiungere e quale evidence deve produrre prima di meritare più potere.**
