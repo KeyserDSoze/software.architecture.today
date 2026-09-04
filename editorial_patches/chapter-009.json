@@ -1,0 +1,105 @@
+{
+  "chapter": 9,
+  "replacements": [
+    {
+      "old": "Quella relazione contiene promesse:\n\n- che cosa significa una richiesta;\n- che cosa significa una risposta;\n- quali dati possono mancare;\n- quali errori sono possibili;\n- che cosa può essere ritentato;\n- quali operazioni hanno side effect;\n- quali autorizzazioni servono;\n- quali limiti esistono;\n- come cambia il contratto nel tempo.",
+      "new": "Quella relazione contiene promesse sul significato di richieste e risposte, sui dati che possono mancare e sugli errori possibili. Definisce che cosa possa essere ritentato, quali operazioni producano side effect, quali autorizzazioni e limiti esistano e come il contratto possa cambiare nel tempo senza sorprendere i consumer."
+    },
+    {
+      "old": "Il consumer deve conoscere:\n\n- il significato della capability;\n- la forma del messaggio;\n- le regole di compatibilità;\n- le condizioni di errore.",
+      "new": "Il consumer deve conoscere il significato della capability e la forma del messaggio, le regole di compatibilità e le condizioni di errore."
+    },
+    {
+      "old": "Non dovrebbe conoscere:\n\n- il nome della tabella;\n- la struttura delle classi;\n- il framework ORM;\n- la topologia interna;\n- la strategia di caching;\n- la sequenza di chiamate interne.",
+      "new": "Non dovrebbe invece conoscere il nome della tabella o la struttura delle classi, il framework ORM, la topologia interna, la strategia di caching o la sequenza con cui il provider realizza internamente la capability."
+    },
+    {
+      "old": "Per Order Operations, prima di decidere l'URI dobbiamo sapere:\n\n- che cosa significa “ordine problematico”;\n- chi può vederlo;\n- quanto può essere stale;\n- qual è la source of truth;\n- che cosa succede quando una dipendenza non risponde.",
+      "new": "Per Order Operations, prima di decidere l'URI dobbiamo sapere che cosa significhi “ordine problematico”, chi possa vederlo e quanto il dato possa essere stale. Dobbiamo conoscere la source of truth e decidere che cosa debba accadere quando una dipendenza non risponde."
+    },
+    {
+      "old": "Può essere un fit forte quando:\n\n- client e server sono sotto governance tecnica coordinata;\n- vogliamo contratti fortemente tipizzati;\n- generazione client/server è utile;\n- streaming o comunicazione service-to-service sono centrali;\n- l'overhead di un protocollo binario e toolchain dedicata è giustificato.",
+      "new": "gRPC può avere un fit forte quando client e server sono sotto governance tecnica coordinata, i contratti fortemente tipizzati e la generazione client/server comprano valore reale, oppure quando streaming e comunicazione service-to-service sono centrali. In cambio dobbiamo giustificare l'overhead di un protocollo binario e di una toolchain dedicata."
+    },
+    {
+      "old": "Una chiamata remota continua ad avere:\n\n- latency;\n- timeout;\n- partial failure;\n- retry;\n- compatibility;\n- authorization.",
+      "new": "Una chiamata remota continua però ad avere latency e timeout, partial failure e retry, problemi di compatibility e authorization. La toolchain non cancella la fisica della rete."
+    },
+    {
+      "old": "Ma sposta complessità altrove:\n\n- authorization a livello di campo o resolver;\n- query cost analysis;\n- caching;\n- observability;\n- N+1;\n- governance dello schema.",
+      "new": "GraphQL sposta complessità altrove: authorization a livello di campo o resolver, analisi del costo delle query, caching e observability. N+1 e governance dello schema diventano problemi che devono essere affrontati esplicitamente."
+    },
+    {
+      "old": "Prima chiediamo:\n\n- quanto deve essere fresco il dato?\n- chi produce gli aggiornamenti?\n- quanti client restano connessi?\n- che cosa succede dopo una disconnessione?\n- come recuperiamo gli eventi persi?\n- polling o server-sent update sarebbero sufficienti?",
+      "new": "Prima di scegliere WebSocket chiediamo quanto debba essere fresco il dato, chi produca gli aggiornamenti e quanti client debbano restare connessi. Dobbiamo sapere che cosa succeda dopo una disconnessione, come recuperare eventuali eventi persi e se polling o server-sent update sarebbero già sufficienti."
+    },
+    {
+      "old": "Questo riduce polling, ma introduce nuovi problemi:\n\n- autenticità del sender;\n- retry;\n- duplicati;\n- ordering;\n- timeout;\n- replay;\n- endpoint pubblicamente raggiungibile.",
+      "new": "Un webhook riduce il polling, ma introduce autenticità del sender, retry e duplicati, ordering, timeout e replay. Inoltre il receiver deve spesso essere pubblicamente raggiungibile, con una superficie di sicurezza che il polling non aveva."
+    },
+    {
+      "old": "La separazione temporale può migliorare resilienza e indipendenza, ma introduce:\n\n- eventual consistency;\n- delivery semantics;\n- duplicate processing;\n- ordering;\n- replay;\n- dead letter;\n- observability distribuita.",
+      "new": "La separazione temporale può migliorare resilienza e indipendenza, ma introduce eventual consistency, delivery semantics e duplicate processing. Ordering, replay, dead letter e observability distribuita diventano parte del contratto operativo."
+    },
+    {
+      "old": "Dobbiamo considerare:\n\n- timeout;\n- budget totale di latency;\n- backoff;\n- jitter;\n- load sulla dipendenza;\n- rate limiting;\n- failure correlation.",
+      "new": "Un retry va letto insieme al timeout e al budget totale di latency, al backoff e al jitter, al carico prodotto sulla dipendenza e ai suoi rate limit. Conta anche la failure correlation: durante un outage, molti retry indipendenti possono trasformarsi in un amplificatore comune."
+    },
+    {
+      "old": "Ma un client spesso ha bisogno di informazioni applicative più precise:\n\n- quale regola è stata violata?\n- quale campo è invalido?\n- l'errore è transitorio?\n- il consumer può correggere la richiesta?\n- esiste un identifier utile per supporto o tracing?",
+      "new": "Un client spesso ha bisogno di informazioni applicative più precise: quale regola sia stata violata o quale campo sia invalido, se l'errore sia transitorio e se il consumer possa correggere la richiesta. Un identifier utile per supporto o tracing può essere altrettanto importante dello status code."
+    },
+    {
+      "old": "Una collection API deve decidere almeno:\n\n- pagination;\n- ordering;\n- filtering;\n- limiti di page size;\n- stabilità del cursore;\n- comportamento quando i dati cambiano tra due pagine.",
+      "new": "Una collection API deve decidere pagination, ordering e filtering, i limiti della page size e la stabilità del cursore. Deve soprattutto definire che cosa accada quando i dati cambiano fra due pagine, perché quella semantica è parte dell'esperienza del consumer."
+    },
+    {
+      "old": "Questo aumenta:\n\n- superficie di supporto;\n- complessità di authorization;\n- possibilità di query costose;\n- dipendenza del consumer dal modello interno.",
+      "new": "Più flessibilità aumenta la superficie di supporto e la complessità dell'authorization, rende possibili query più costose e può legare maggiormente il consumer al modello interno che volevamo nascondere."
+    },
+    {
+      "old": "Può essere:\n\n- rimuovere un campo;\n- cambiarne il tipo;\n- rendere obbligatorio un campo prima opzionale;\n- cambiare il significato di un valore;\n- modificare una regola di ordering;\n- cambiare la semantica di un errore;\n- ridurre un limite;\n- cambiare default;\n- introdurre una nuova autorizzazione necessaria;\n- modificare timing o consistency in modo osservabile.",
+      "new": "Una breaking change non è soltanto rimuovere un campo o cambiarne il tipo. Può essere rendere obbligatorio ciò che prima era opzionale, cambiare il significato di un valore o una regola di ordering, modificare la semantica di un errore, ridurre un limite o cambiare un default. Anche introdurre una nuova autorizzazione o modificare timing e consistency in modo osservabile può rompere un consumer senza cambiare apparentemente lo schema."
+    },
+    {
+      "old": "La scelta del meccanismo conta meno di alcune domande:\n\n- che cosa costituisce una versione?\n- quanto supportiamo la precedente?\n- come annunciamo deprecation?\n- come misuriamo chi la usa ancora?\n- possiamo migrare i consumer gradualmente?\n- esistono client fuori dal nostro controllo?",
+      "new": "La scelta del meccanismo conta meno delle domande che governano l'evoluzione: che cosa costituisca una versione, per quanto tempo supportiamo la precedente e come annunciamo la deprecation. Dobbiamo poter misurare chi usi ancora il contratto, migrare gradualmente i consumer e riconoscere quando esistano client fuori dal nostro controllo."
+    },
+    {
+      "old": "Questo abilita:\n\n- code generation;\n- validation;\n- compatibility check automatizzati;\n- documentazione;\n- contract testing;\n- linting.",
+      "new": "Una descrizione machine-readable abilita code generation e validation, compatibility check automatizzati, documentazione, contract testing e linting. Il valore cresce quando questi meccanismi proteggono una semantica già decisa, non quando cercano di sostituirla."
+    },
+    {
+      "old": "non ci dice:\n\n- quali transizioni sono valide;\n- chi può cambiarlo;\n- quanto è fresco;\n- cosa succede durante una failure.",
+      "new": "non ci dice quali transizioni siano valide, chi possa cambiarle, quanto il dato sia fresco né che cosa accada durante una failure."
+    },
+    {
+      "old": "Non abbiamo ancora definito abbastanza bene la semantica di:\n\n- refund;\n- retry payment;\n- retry shipment;\n- force transition;\n- assignment persistente;\n- escalation persistente.",
+      "new": "Non abbiamo ancora definito abbastanza bene la semantica di refund, retry payment e retry shipment, force transition, assignment persistente ed escalation persistente. Esporre endpoint prima di aver deciso queste regole trasformerebbe l'API in una fonte accidentale di business semantics."
+    },
+    {
+      "old": "Perché il journey attuale è:\n\n- interattivo;\n- read-oriented;\n- browser-based;\n- senza requisito di streaming continuo;\n- senza requisito di temporal decoupling per le letture.",
+      "new": "Il journey attuale è interattivo, read-oriented e browser-based; non richiede streaming continuo né temporal decoupling per le letture. Per questo una normale API request/response ha oggi un fit migliore di tecnologie più complesse."
+    },
+    {
+      "old": "Un agente può generare in pochi minuti:\n\n- controller;\n- DTO;\n- OpenAPI;\n- client SDK;\n- test;\n- mock server;\n- documentation;\n- gateway policy.",
+      "new": "Un agente può generare in pochi minuti controller e DTO, OpenAPI e client SDK, test, mock server, documentazione e gateway policy. Proprio questa abbondanza rende facile confondere la completezza dell'impalcatura con la maturità del contratto."
+    },
+    {
+      "old": "Questo verifica bene:\n\n- schema;\n- status code;\n- required field;\n- example;\n- serialization.",
+      "new": "I controlli generati verificano bene schema, status code, required field, example e serialization."
+    },
+    {
+      "old": "Non verifica automaticamente:\n\n- business invariant;\n- authorization semantics;\n- idempotency reale;\n- correctness sotto retry;\n- freshness;\n- compatibility semantica;\n- failure behavior tra dipendenze.",
+      "new": "Non verificano automaticamente business invariant e authorization semantics, idempotency reale o correctness sotto retry. Freshness, compatibility semantica e failure behavior fra dipendenze richiedono evidence diverse dalla sola conformità allo schema."
+    },
+    {
+      "old": "L'agent tool contract dovrebbe rendere espliciti:\n\n- side effect;\n- authorization;\n- idempotency;\n- confirmation requirement;\n- blast radius;\n- stop condition.",
+      "new": "Un agent tool contract dovrebbe rendere espliciti side effect e authorization, idempotency e confirmation requirement, blast radius e stop condition. Un tool non diventa sicuro perché l'endpoint sottostante è ben documentato."
+    },
+    {
+      "old": "Serve concentrare il gate sulle decisioni che diventano costose da cambiare:\n\n- semantic meaning;\n- public surface;\n- authorization boundary;\n- breaking change;\n- side effect;\n- irreversible operation;\n- cross-team contract.",
+      "new": "Serve concentrare il gate sulle decisioni costose da cambiare: semantic meaning e public surface, authorization boundary e breaking change, side effect e operazioni irreversibili, fino ai contract che attraversano team diversi."
+    }
+  ]
+}
