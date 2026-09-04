@@ -1,164 +1,50 @@
 # Ownership, on-call, runbook e support model
 
-Un sistema senza owner non è production-ready.
+Un sistema senza owner può essere deployato e può persino funzionare per mesi. Il problema emerge quando qualcosa cambia o fallisce.
 
-Può essere deployato.
+In quel momento dobbiamo sapere chi osserva, chi decide, chi interviene, chi comunica e chi può accettare il rischio residuo.
 
-Può anche funzionare per mesi.
+Production Readiness riguarda quindi anche **l’organizzazione attorno al workload**.
 
-Ma quando qualcosa cambia o fallisce, qualcuno deve sapere:
+## “Il team” non è abbastanza preciso
 
-```text
-chi osserva
-chi decide
-chi interviene
-chi comunica
-chi accetta il rischio
-```
+Dire “se succede qualcosa ci pensa il team” non descrive un support model.
 
-Production Readiness riguarda quindi anche **l'organizzazione attorno al workload**.
+Product owner, workload owner, operational owner, security escalation owner e dependency owner possono anche coincidere in una piccola organizzazione. Ma la responsabilità deve essere esplicita abbastanza da permettere a chi riceve un alert di sapere quale authority possiede e quando deve escalare.
 
----
+Order Operations dipende da Orders, Payments & Risk, Shipping, Entra, PostgreSQL, Service Bus e platform/network capability. Il workload team non possiede tutti questi sistemi. Possiede però **il modo in cui dipende da essi**.
 
-## “Il team” non è un owner
+Per ogni critical dependency deve quindi conoscere expected behavior, failure mode, fallback/degradation, owner e escalation path.
 
-Frasi come:
+> **Non controlliamo ogni dipendenza. Controlliamo il modo in cui il nostro sistema reagisce quando la dipendenza non fa ciò che speravamo.**
 
-> se succede qualcosa ci pensa il team.
+## Support window è parte della promessa
 
-sono troppo vaghe.
+Un internal pilot può avere business-hours support se questa è la promessa esplicita accettata dal business. Non diventa automaticamente 24x7 perché il cloud rimane acceso durante la notte.
 
-Serve distinguere almeno:
+Il support model deve chiarire chi riceve page e ticket, che cosa accade fuori orario, quale escalation esiste, quali access sono necessari e chi comunica il business impact.
 
-```text
-Product owner
-Technical/workload owner
-Operational owner
-Security escalation owner
-Dependency owner
-Business escalation owner
-```
+Questa dimensione è particolarmente importante nel One-Man Project: aumentare execution capacity non produce automaticamente più ore di on-call.
 
-In alcuni team più ruoli possono essere coperti dalle stesse persone.
+Se support load, maintenance o incident volume superano il control plane umano, deve cambiare l’operating model.
 
-Non importa.
+## Runbook e playbook devono trasformare knowledge in action
 
-Importa che la responsabilità sia esplicita.
+AWS distingue runbook, adatti a procedure note e relativamente deterministiche, e playbook, usati per guidare investigation e response quando la causa non è ancora chiara.
 
----
-
-# Ownership del prodotto e ownership della dipendenza
-
-Order Operations dipende da:
-
-```text
-Orders
-Payments & Risk
-Shipping
-Entra
-PostgreSQL
-Service Bus
-Azure platform/network
-```
-
-Il workload team non possiede tutti questi sistemi.
-
-Ma possiede il modo in cui **dipende** da essi.
-
-Quindi la readiness deve conoscere:
-
-```text
-Dependency
-Owner/contact
-Expected behavior
-Failure mode
-Escalation path
-Fallback/degradation
-SLO/contract when applicable
-```
-
-> **Non controlliamo la dipendenza. Controlliamo il modo in cui dipendiamo da essa.**
-
----
-
-# On-call non significa solo numero di telefono
-
-Un support model deve rispondere:
-
-```text
-When are we supported?
-Who receives alerts?
-Which alerts page?
-Which alerts create tickets?
-What is the escalation path?
-Which access is needed?
-How is access obtained?
-What happens outside support hours?
-Who communicates business impact?
-```
-
-Un internal pilot può anche avere:
-
-```text
-business-hours support
-```
-
-se il business accetta quella promessa.
-
-Ma non può dichiararsi implicitamente 24x7 soltanto perché il cloud gira 24x7.
-
----
-
-# Runbook e playbook
-
-AWS distingue nella propria operational-excellence guidance runbook per procedure note/routine e playbook per investigation/response a problemi.
+Fonte:
 
 - [AWS Well-Architected — Operational readiness](https://docs.aws.amazon.com/wellarchitected/latest/operational-excellence-pillar/operational-readiness.html)
 
-Una distinzione pragmatica:
+Per Order Operations un runbook può descrivere un rollback approvato o un PostgreSQL restore. Un playbook può guidare l’investigazione quando Payment Escalation SLO brucia e dobbiamo capire se il problema vive nell’outbox, nel broker o nel consumer.
 
-## Runbook
+Il valore non è il file. È la capacità di portare una persona da un segnale a una prima azione corretta.
 
-Procedura relativamente deterministica.
+Un runbook che dice “chiedi a Marco” è una dependency umana nascosta, non una procedura.
 
-Esempi:
+## Un runbook è readiness evidence soltanto quando viene esercitato
 
-```text
-restart/scale publisher
-perform approved rollback
-rotate an external provider secret
-execute PostgreSQL restore procedure
-redrive an approved DLQ batch
-```
-
-## Playbook
-
-Guida all'investigazione quando la causa non è ancora nota.
-
-Esempio:
-
-```text
-Payment Escalation SLO burning
-→ inspect outbox oldest age
-→ inspect Service Bus
-→ inspect downstream consumer
-→ correlate deployment
-→ classify backlog/failure
-```
-
-Un runbook non dovrebbe essere:
-
-> chiedi a Marco.
-
-Quella non è una procedura.
-
-È una dipendenza umana nascosta.
-
----
-
-# Un runbook deve essere esercitabile
-
-Come per il resto del libro:
+Come per tutte le altre proprietà:
 
 ```text
 runbook exists
@@ -166,209 +52,75 @@ runbook exists
 procedure Verified
 ```
 
-Un buon readiness gate chiede:
+Una persona diversa dall’autore deve poterlo usare, con permission realmente disponibili, command ancora validi e decision point comprensibili.
+
+Questo collega direttamente Production Readiness al Continuity Test del Capitolo 25. Il Secondary Maintainer non è un dettaglio organizzativo: è uno dei modi con cui verifichiamo che recovery knowledge appartenga al sistema e non a una sola memoria.
+
+## Access readiness: least privilege deve restare operabile
+
+Un incidente è il momento peggiore per scoprire che l’on-call non può leggere i log, che il rollback role richiede un approvatore irreperibile o che il break-glass path non funziona più.
+
+La readiness deve verificare il percorso di accesso durante il failure, mantenendo least privilege, audit e revocation.
+
+Security e operability si incontrano qui: troppa permission permanente aumenta il rischio; zero permission praticabile durante un incidente rende il sistema non recuperabile.
+
+## L’alert chain deve arrivare fino all’azione
+
+Un alert senza owner è telemetry senza operational meaning.
+
+Per una condizione importante vogliamo una catena completa:
 
 ```text
-Has someone other than the author used it?
-Did the command still work?
-Were required permissions available?
-Were decision points clear?
-Did the procedure produce the expected outcome?
-```
-
-Qui torna il **Continuity / Vacation Drill** del Capitolo 25.
-
-Un secondary maintainer che riesce a trovare e utilizzare runbook reali è evidence molto più forte di una cartella `docs/runbooks/` piena.
-
----
-
-# Access readiness
-
-Un incidente non è il momento giusto per scoprire che:
-
-```text
-on-call cannot query production logs
-rollback role requires approval from unavailable owner
-break-glass account is expired
-private endpoint is unreachable from support path
-```
-
-La readiness deve verificare:
-
-- least-privilege support access;
-- JIT/JEA o meccanismo equivalente quando previsto;
-- break-glass governance;
-- audit;
-- revocation;
-- access path durante incidenti.
-
-Security e operability devono incontrarsi qui.
-
-Troppa permission permanente aumenta rischio.
-
-Zero permission praticabile durante un incidente rende il sistema non operabile.
-
----
-
-# Alert ownership
-
-Un alert senza owner è telemetry con senso di colpa.
-
-Ogni page alert deve avere almeno:
-
-```text
-impact
-urgency
-owner
-first action
-context/runbook
-resolution signal
-```
-
-Lo abbiamo già definito nell'Observability Contract.
-
-Production Readiness deve verificare che la catena esista davvero:
-
-```text
-condition
+failure
 → signal
 → alert
-→ person/team
-→ action
+→ owner
+→ first action
+→ resolution signal
 ```
 
-Non basta:
+Application Insights configurato non dimostra questa catena. Serve almeno uno staged alert exercise o un drill equivalente.
 
-```text
-Application Insights configured
-```
+## La review deve imparare dagli incidenti
 
----
+AWS descrive le Operational Readiness Review come un processo che incorpora lesson learned e le trasforma in review question e meccanismi riutilizzabili.
 
-# Operational load è un requisito organizzativo
-
-Un sistema può essere tecnicamente corretto e organizzativamente insostenibile.
-
-Domande:
-
-```text
-How many alerts do we expect?
-How much routine maintenance exists?
-How often do specialist gates occur?
-How many manual recovery steps exist?
-How much support load can current ownership absorb?
-```
-
-Questo è particolarmente importante per il **One-Man Project**.
-
-La capacità di generare più software non crea automaticamente più ore di on-call.
-
-Se l'operational load supera il control plane umano, il modello organizzativo deve cambiare.
-
----
-
-# Operational Readiness Review come meccanismo vivo
-
-AWS descrive le ORR come un processo che dovrebbe incorporare le lesson learned dagli incidenti e trasformarle in domande/controlli riutilizzabili.
+Fonte:
 
 - [AWS — Operational Readiness Reviews](https://docs.aws.amazon.com/wellarchitected/latest/operational-readiness-reviews/wa-operational-readiness-reviews.html)
 
-Questo suggerisce un ciclo:
+Il ciclo utile è:
 
 ```text
 incident
 → learning
-→ new readiness question / fitness / runbook
-→ next workload/change safer
+→ readiness question / fitness / runbook
+→ future change safer
 ```
 
-La review quindi non è solo una porta prima della produzione.
+La readiness quindi non è soltanto una porta pre-produzione. È una memoria organizzativa dei failure che non vogliamo pagare due volte.
 
-È anche un modo per fare in modo che l'organizzazione **non paghi due volte lo stesso incidente evitabile**.
+## Baseline ESI
 
----
+Order Operations ha già una ownership direction leggibile: Commerce & Operations possiede il workload, Product/Operations il business outcome, Payments & Risk gli economic effect, Platform network/platform boundary e Security la policy/escalation pertinente.
 
-# Order Operations support model
+Il One-Man Project Operating Model definisce Accountable Project Lead e richiede un Secondary Maintainer.
 
-Per il pilot ESI possiamo definire una prima direzione:
+Ma la evidence resta incompleta:
 
 ```text
-Workload owner
-Commerce & Operations / Order Operations
-
-Accountable technical lead
-One-Man Project pilot lead
-
-Secondary maintainer
-required before production ownership
-
-Business owner
-Product / Operations
-
-Payments escalation
-Payments & Risk
-
-Platform/network escalation
-Platform Engineering
-
-Security incident escalation
-Security
+operating model        Codified
+secondary role         Designed
+continuity drill       Pending
+production support     Pending
+alert drill            Pending
+incident access        Pending
 ```
 
-Ma lo stato corrente deve essere onesto:
+Per questo la PRR non può convertire “owner documentato” in “operability Verified”.
 
-```text
-operating model documented
-secondary-maintainer role designed
-continuity drill pending
-production on-call schedule pending
-alert drill pending
-production access verification pending
-```
+La domanda finale è molto semplice: una persona diversa dall’autore principale vede che il sistema sta degradando. Sa da dove iniziare, ha accesso, trova il runbook e conosce l’escalation?
 
-Quindi l'ownership è **designed**, ma parte della operability evidence è ancora incompleta.
+Se deve aspettare che torni chi ha costruito il sistema, abbiamo trovato un blocker organizzativo reale.
 
----
-
-# Ownership transfer
-
-Una cosa deve essere chiara prima del launch:
-
-> chi possiede il sistema il giorno dopo il progetto?
-
-Molti workload vengono costruiti da un project team temporaneo e poi “passati alle operations”.
-
-Questo handoff è pericoloso se chi riceve il sistema non ha partecipato a:
-
-```text
-failure model
-SLO
-runbook
-alerting
-security model
-recovery drill
-```
-
-Meglio pensare:
-
-> **you build it, you understand how it runs — anche quando l'operational model distribuisce il supporto fra più ruoli.**
-
-Non significa che ogni developer debba essere sempre on-call.
-
-Significa che build e run non possono essere due mondi cognitivamente scollegati.
-
----
-
-# La domanda più semplice
-
-Una Production Readiness Review dovrebbe poter chiedere a una persona diversa dall'autore principale:
-
-> Il sistema sta degradando. Da dove inizi?
-
-Se la risposta è:
-
-> devo aspettare che torni chi l'ha costruito.
-
-abbiamo trovato un blocker organizzativo molto più importante di molti warning statici.
-
-> **Un sistema è più vicino alla produzione quando il sapere necessario per operarlo appartiene al sistema e all'organizzazione, non soltanto alla memoria del suo autore.**
+> **Un sistema è più vicino alla produzione quando il sapere necessario per operarlo appartiene al prodotto e all’organizzazione, non soltanto alla memoria del suo autore.**
