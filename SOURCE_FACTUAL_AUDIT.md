@@ -46,7 +46,8 @@ I casi reali rimangono separati da ESI.
 | 20 — Costi e decisioni | sì | sì — draft | sì — draft | Microsoft/FinOps Foundation/Uber; TCO, unit economics, quality premiums, allocation, Cost Model |
 | 21 — AI-ready repository | sì | sì — draft | sì — draft | GitHub/OpenAI; AGENTS.md, repository context, verification commands, context fitness |
 | 22 — Issue-driven development | sì | sì — draft | sì — draft | GitHub/OpenAI; well-scoped issues, acceptance/verification, Issue Forms, atomic tasks, work-item readiness |
-| 23+ | non ancora | source-first | required | research + ESI compromise + capstone update before closure |
+| 23 — Manager di agenti | sì | sì — draft | sì — draft | OpenAI/Microsoft/GitHub; orchestration, HITL, permissions, delegation, verification, autonomy |
+| 24+ | non ancora | source-first | required | research + ESI compromise + capstone update before closure |
 
 ## Evidence vocabulary
 
@@ -323,8 +324,8 @@ Stato corretto:
 AGENTS.md                    Codified
 Repository Map               Codified
 mechanical context fitness   Codified + locally exercised
-production agent permission  Future / Pending
-agent autonomy model         Future / Pending
+production agent permission  Pending
+agent autonomy model         introduced in Chapter 23, runtime enforcement incomplete
 ```
 
 ## Verification status — Capitolo 22
@@ -397,7 +398,71 @@ OO-001 execution             Not started / Pending
 TST-005 PostgreSQL evidence  Pending
 ```
 
-## Source pass — Capitoli 19–22
+## Verification status — Capitolo 23
+
+Nuovi artefatti:
+
+```text
+products/order-operations/docs/agent-delegation-contract.md
+products/order-operations/docs/agent-verification-bundle.md
+products/order-operations/docs/ai-autonomy-matrix.md
+products/order-operations/tests/agent-governance-fitness.test.mjs
+```
+
+Prima baseline ESI:
+
+```text
+Delegation ID              ADC-OO-001-v1
+Work item                  OO-001
+Implementer autonomy       A2 bounded execution
+Independent verification  required
+Merge                      human/repository gate
+Production permission      not granted
+A4 production capability   none
+```
+
+Verification Bundle predefinisce:
+
+```text
+C-01 migration chain
+C-02 successful atomic commit
+C-03 rollback on second-write failure
+C-04 fast-suite independence
+C-05 evidence boundary
+```
+
+La logica del nuovo governance fitness è stata esercitata localmente su una ricostruzione degli artifact correnti:
+
+```text
+AGOV-001 governance artifacts exist
+AGOV-002 delegation remains bounded to OO-001/A2
+AGOV-003 verification bundle preserves claims/evidence/limitations
+AGOV-004 high-impact actions remain behind human gates
+AGOV-005 OO-001 is not falsely described as executed
+→ 5 tests
+→ 5 pass
+→ 0 fail
+```
+
+Questa evidence verifica soltanto proprietà meccaniche del governance layer.
+
+Stato corretto:
+
+```text
+Agent Delegation Contract       Codified
+Agent Verification Bundle       Codified / primary evidence Pending
+AI Autonomy Matrix              Codified
+A2 runtime enforcement          Partially platform-dependent / Pending full enforcement
+OO-001 real agent execution     Not started / Pending
+OO-001 PostgreSQL evidence      Pending
+Independent verifier result     Pending
+Human acceptance                Pending
+Production autonomy             Not authorized
+```
+
+Non descriviamo quindi la presenza dei tre documenti come prova che ESI abbia già operato un agent workflow affidabile in produzione.
+
+## Source pass — Capitoli 19–23
 
 ### Capitolo 19
 
@@ -446,6 +511,21 @@ Uso:
 - GitHub/OpenAI → evidence che i coding-agent workflow contemporanei traggono beneficio da task strutturati e ben circoscritti;
 - ESI work-item schema → metodo del libro, non claim che esista un unico template corretto;
 - OO-001 → scenario simulato derivato da un rischio già documentato nel capstone.
+
+### Capitolo 23
+
+Principali fonti:
+
+- OpenAI Agents SDK — agenti, manager/agents-as-tools, handoff, guardrail, human-in-the-loop e tracing;
+- OpenAI — *A practical guide to building agents* — human intervention per high-risk actions e failure threshold;
+- Microsoft Agent Framework — sequential, concurrent, handoff, group-chat e manager-driven orchestration; HITL/tool approval;
+- GitHub Docs — constrained permission/ephemeral environment per cloud coding agent, review dell'output e limiti/overreliance di AI code review.
+
+Uso:
+
+- OpenAI/Microsoft/GitHub → capability e mitigazioni contemporanee realmente documentate;
+- ruoli ESI, livelli A0–A4, Delegation Contract/Verification Bundle/Autonomy Matrix → metodo del libro e scenario simulato, non standard universale;
+- AGOV gate → selected repository-mechanical evidence, non agent-runtime reliability.
 
 ## Important distinctions
 
@@ -513,6 +593,40 @@ agent can perform a change
 agent is authorized to make the decision behind the change
 ```
 
+### Agent governance
+
+```text
+capability
+≠
+authorization
+≠
+autonomy
+```
+
+```text
+AI reviewer opinion
+≠
+deterministic execution evidence
+```
+
+```text
+second agent
+≠
+independent verifier by definition
+```
+
+```text
+Delegation Contract Codified
+≠
+delegated execution Verified
+```
+
+```text
+more agents
+≠
+more maturity
+```
+
 ## Numeri simulati ESI
 
 SLO/RTO/RPO del Capitolo 14 restano business requirement simulati:
@@ -537,6 +651,8 @@ Payment failedAttempts >= 3 → Urgent
 Il Capitolo 20 **non aggiunge prezzi, percentuali di saving o benchmark ESI simulati presentati come reali**.
 
 Il Capitolo 22 non presenta `OO-001` come una issue realmente eseguita su PostgreSQL: è un execution contract codificato, mentre l'evidence PostgreSQL resta Pending.
+
+I livelli agentici A0–A4 del Capitolo 23 sono una tassonomia ESI del libro, non uno standard industriale né una scala ufficiale OpenAI/Microsoft/GitHub.
 
 ## Workflow editoriale corrente
 
@@ -586,6 +702,19 @@ persistent context
 → closure evidence
 ```
 
+Per delegated agent execution aggiungiamo:
+
+```text
+work item
+→ delegation mandate
+→ permission/autonomy boundary
+→ execution
+→ primary evidence
+→ independent verification
+→ human/policy gate
+→ autonomy review
+```
+
 ## Evidence pass rules
 
 Richiedono particolare attenzione e fonte:
@@ -599,7 +728,8 @@ Richiedono particolare attenzione e fonte:
 - pricing e caratteristiche commerciali variabili;
 - affermazioni storiche;
 - raccomandazioni che dipendono da evidence esterna;
-- capability e behavior specifici dei coding agent/tool contemporanei.
+- capability e behavior specifici dei coding agent/tool contemporanei;
+- permission, approval, handoff, tracing e orchestration behavior specifici di framework agentici correnti.
 
 Non ogni frase editoriale richiede citation, ma non usiamo un vendor workflow come prova universale.
 
@@ -630,4 +760,7 @@ Prima di una release candidata del libro:
 - legacy behavior `Observed` non deve trasformarsi silenziosamente in requirement `Confirmed`;
 - Cost Model e unit economics non devono essere descritti come misurati finché non esistono billing/usage data reali;
 - un work item strutturalmente ready non deve essere descritto come outcome Verified finché la verification del task non è realmente eseguita;
-- repository/agent instructions devono essere ricontrollate per staleness e non devono duplicare silenziosamente le source of truth canonical.
+- repository/agent instructions devono essere ricontrollate per staleness e non devono duplicare silenziosamente le source of truth canonical;
+- un Agent Delegation Contract codificato non deve essere descritto come prova che l'agente abbia eseguito o verificato il task;
+- un aumento di autonomia deve avere evidence e review trigger, non derivare soltanto da un nuovo model release;
+- reviewer AI non deve essere presentato come sostituto universale di human/deterministic evidence per i gate ad alto impatto.
