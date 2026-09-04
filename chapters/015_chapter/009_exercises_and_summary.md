@@ -1,49 +1,42 @@
-# Esercizi, autovalutazione e sintesi
+## Sintesi: observability come evidence utilizzabile
 
-Il Capitolo 15 ha trasformato l'observability da insieme di strumenti a **contratto operativo**.
+Il Capitolo 15 ha trasformato l’observability da insieme di strumenti a **contratto operativo**.
 
-L'obiettivo non è raccogliere tutto.
+Il punto di partenza non è la telemetry che possiamo raccogliere, ma le domande a cui dobbiamo rispondere. Da quelle domande scegliamo il signal primario, preserviamo correlation sufficiente, definiamo cardinality e retention, colleghiamo SLI e failure mode alla loro measurement source e decidiamo quando una deviazione merita davvero attenzione umana.
 
-È poter rispondere alle domande importanti quando il sistema è sano, degradato o in incidente.
+La sequenza può essere riassunta così:
 
-## Idee chiave
+```text
+domanda operativa
+→ signal con semantica
+→ correlation
+→ misura / investigation
+→ decisione
+→ evidence
+```
 
-1. monitoring e observability sono collegati ma non equivalenti;
-2. una dashboard non è un'architettura di observability;
-3. metrics, logs e traces rispondono a domande differenti;
-4. la correlazione moltiplica il valore dei singoli signal;
-5. business identity e trace identity non sono la stessa cosa;
-6. `HTTP 200` non dimostra che il journey sia sano;
-7. SLI e SLO devono avere una fonte di misura esplicita;
-8. black-box e white-box monitoring servono entrambi;
-9. il degraded mode deve essere osservabile;
-10. cardinality è una decisione di cost/scalability;
-11. sampling è un trade-off, non una ottimizzazione gratuita;
-12. audit evidence e trace diagnostici non hanno la stessa retention/sampling policy;
-13. ogni alert spende attenzione umana;
-14. un alert senza azione e owner è incompleto;
-15. il private security boundary modifica il modo in cui progettiamo synthetic monitoring;
-16. telemetry schema e query possono avere breaking change operative;
-17. l'AI può accelerare l'indagine ma non deve inventare causalità;
-18. l'Observability Contract collega SLO, failure, threat, signal, owner e verification.
+Metrics, logs e traces non sono tre checkbox. Le metric comprimono il comportamento e rendono misurabili trend, SLI e saturation; gli structured event conservano contesto interrogabile; i trace mostrano il percorso di una execution. Il valore cresce quando sappiamo collegarli senza confondere execution identity, technical message identity e business identity.
+
+Cardinality, sampling, retention e costo fanno parte dello stesso design. Un `caseId` può essere prezioso in una investigazione e distruttivo come dimensione di ogni time series. Un trace può essere campionato senza cambiare l’SLI; un audit event sensibile non deve ereditare automaticamente la stessa sampling policy. Conservare tutto non è osservabilità: può diventare costo, rumore e data exposure.
+
+L’alerting porta il ragionamento fino alla persona. Un page spende attenzione umana e quindi deve essere urgente, azionabile, posseduto e collegato a un response path. I signal diagnostici possono essere ricchissimi senza generare un alert automatico.
+
+Per ESI la baseline del Capitolo 15 è OpenTelemetry-compatible instrumentation sopra Azure Monitor/Application Insights/Log Analytics, metriche bounded, structured business/diagnostic event, trace sampling governato, correlation esplicita e synthetic monitoring soltanto attraverso il private access path.
 
 ## Artefatto operativo — Observability Contract
 
-Il nuovo artefatto del capitolo deve rendere visibili almeno:
+Il nuovo artefatto rende leggibili almeno:
 
 ```text
 critical journeys
-SLI measurement sources
-metrics
-traces
-structured logs
-business events
-audit/security signals
+SLI / SLO measurement sources
+signal registry
 correlation
 cardinality rules
 sampling
-retention
+retention classes
 alerts
+investigation views
 synthetic checks
 ownership
 verification
@@ -56,15 +49,15 @@ Per Order Operations vive in:
 docs/observability-contract.md
 ```
 
+Il file del capstone è un artefatto cumulativo e continuerà a evolvere nei capitoli successivi. La baseline descritta qui è quella del Capitolo 15.
+
 ## Esercizio 1 — Dal requisito alla misura
 
-Scegli una frase come:
+Parti da:
 
-```text
-Il sistema deve essere veloce.
-```
+> “Il sistema deve essere veloce.”
 
-Trasformala in:
+Trasformalo in:
 
 1. capability;
 2. good event;
@@ -75,30 +68,30 @@ Trasformala in:
 7. SLO;
 8. alert policy.
 
-Poi indica quali assunzioni hai introdotto.
+Poi elenca le assunzioni che hai introdotto. L’obiettivo è rendere evidente quanta architettura sia nascosta dentro un aggettivo.
 
 ## Esercizio 2 — Metric, log o trace?
 
-Per ciascuna domanda scegli il signal primario e spiega perché:
+Per ciascuna domanda scegli il **signal primario** e poi eventuale supporting evidence:
 
 - quante richieste stanno fallendo?
 - quale dependency ha rallentato una richiesta specifica?
 - perché un `messageId` è stato pubblicato quattro volte?
 - il backlog cresce più rapidamente del drain rate?
 - quale operatore ha creato una escalation sensibile?
-- quale release ha cambiato il p95?
+- quale release coincide con un cambiamento del p95?
 
-Non rispondere “tutti e tre” senza distinguere primary signal e supporting evidence.
+Non rispondere “tutti e tre” senza distinguere i ruoli.
 
 ## Esercizio 3 — Cardinality attack
 
-Prendi questa metric:
+Prendi:
 
 ```text
 http_requests_total
 ```
 
-Un agente propone le label:
+Un agente propone:
 
 ```text
 method
@@ -110,34 +103,25 @@ traceId
 errorMessage
 ```
 
-Classifica ogni label come:
-
-- bounded utile;
-- bounded ma discutibile;
-- unbounded;
-- sensitive;
-- da spostare su log/trace;
-- da rimuovere.
+Classifica ogni dimensione come bounded utile, bounded ma discutibile, unbounded, sensitive, da spostare su log/trace o da rimuovere.
 
 Disegna poi una versione governata della metric.
 
 ## Esercizio 4 — Sampling failure
 
-Hai sampling trace al 5%.
+Hai trace sampling al 5% e un incidente raro nello 0.1% delle richieste.
 
-Un incidente raro avviene nello 0.1% delle richieste.
+Spiega:
 
-Rispondi:
-
-1. perché il sampling può ostacolare l'indagine?
-2. quali metric complete devono comunque esistere?
-3. ha senso preservare tutti gli error trace?
-4. quando valuteresti tail sampling?
-5. quali costi introduce?
+1. perché il sampling può ostacolare l’indagine;
+2. quali metric complete devono comunque esistere;
+3. quando abbia senso preservare maggiormente error/high-latency trace;
+4. quando valuteresti tail sampling;
+5. quale complessità e costo aggiunge.
 
 ## Esercizio 5 — Alert review
 
-Analizza questi alert:
+Analizza:
 
 ```text
 CPU > 70% per 5 minuti
@@ -147,64 +131,48 @@ p95 > 1s
 Payment Escalation publication SLO fast burn
 ```
 
-Per ognuno indica:
-
-- user/business impact;
-- urgency;
-- actionability;
-- owner;
-- page/ticket/dashboard;
-- signal migliore alternativo.
+Per ogni signal indica business impact, urgency, actionability, owner e se appartenga a page, ticket o dashboard. Se esiste un signal migliore più vicino all’outcome, proponilo.
 
 ## Esercizio 6 — Synthetic monitoring e private ingress
 
 Un team propone:
 
-> abilitiamo un endpoint pubblico `/health` così Application Insights può testarlo da Internet.
+> “Abilitiamo un endpoint pubblico `/health` così il monitoring può testarlo da Internet.”
 
 Il workload è internal/private.
 
-Valuta:
+Valuta beneficio, modifica del threat model, alternative, synthetic identity, synthetic data, network path e ciò che il test dovrebbe realmente verificare.
 
-- beneficio;
-- threat-model change;
-- alternative;
-- synthetic identity;
-- synthetic data;
-- network path;
-- cosa dovrebbe verificare realmente il test.
+L’obiettivo è non migliorare observability rompendo il security boundary.
 
 ## Esercizio 7 — Failure Mode Map coverage
 
-Prendi una Failure Mode Map reale.
-
-Per ogni failure aggiungi:
+Prendi una Failure Mode Map reale. Per ogni failure aggiungi:
 
 ```text
 detection signal
 diagnostic signal
 alert sì/no
 owner
-runbook
+runbook / response path
 recovery evidence
 ```
 
-Identifica almeno un failure attualmente invisibile.
+Identifica almeno un failure che oggi sarebbe invisibile o diagnosticabile soltanto per intuizione.
 
 ## Esercizio 8 — Threat Model coverage
 
-Prendi tre threat.
-
-Per ciascuno chiedi:
+Scegli tre threat e chiedi per ciascuno:
 
 ```text
 Come sappiamo che il controllo ha fallito?
 Come distinguiamo uso legittimo da abuso?
-Quale signal non deve contenere dati sensibili?
+Quale evidence serve?
+Quale dato non deve comparire nella telemetry?
 Chi indaga?
 ```
 
-L'obiettivo è collegare Threat Model e Observability Contract.
+Collega poi i signal al Security Control Matrix.
 
 ## Esercizio 9 — AI incident investigator
 
@@ -213,48 +181,38 @@ Fornisci a un agente:
 ```text
 SLO burn
 recent deployments
-five representative traces
+representative traces
 structured error events
 Failure Mode Map
+Observability Contract
 ```
 
-Chiedigli di produrre:
+Chiedigli di produrre un Investigation Bundle con observations, hypotheses, supporting/contradicting evidence, confidence, next discriminating check, unknowns e stop condition.
 
-```text
-observations
-hypotheses
-supporting evidence
-contradicting evidence
-next discriminating query
-confidence
-```
-
-Valuta se separa correttamente evidence e inferenza.
+Valuta se separa correttamente evidence e inferenza oppure costruisce una root cause troppo presto.
 
 ## Esercizio 10 — Telemetry cost review
 
 Immagina che il costo di observability raddoppi in tre mesi.
 
-Non ridurre semplicemente la retention.
-
-Analizza:
+Non ridurre immediatamente tutto con una retention più corta. Cerca invece:
 
 - nuovi log;
-- cardinality;
-- trace sampling;
-- duplicate signal;
+- dimensioni ad alta cardinalità;
+- trace sampling cambiato;
+- signal duplicati;
 - debug logging dimenticato;
-- metric non più usate;
-- retention per classe;
-- query/dashboard obsolete.
+- metric senza consumer;
+- dashboard/query obsolete;
+- retention incoerenti con le classi di evidence.
 
-Proponi una riduzione del costo senza rendere invisibile un SLO o un failure critico.
+Proponi una riduzione del costo senza rendere invisibile uno SLO o un failure critico.
 
 ## Esercizio 11 — Order Operations signal design
 
 Progetta il signal set minimo per:
 
-```text
+```http
 POST /api/operational-cases/{caseId}/payment-escalations
 ```
 
@@ -268,7 +226,7 @@ Deve supportare:
 - audit;
 - data minimization.
 
-Spiega dove usi metric, trace, structured log e audit event.
+Spiega dove useresti metric, trace, structured event e audit event.
 
 ## Esercizio 12 — Broken correlation
 
@@ -282,76 +240,52 @@ HTTP traceId A
 → consumer traceId C
 ```
 
-Definisci quale informazione deve essere preservata per poter ricostruire la causal chain anche se A, B e C sono trace differenti.
+Definisci quale informazione deve attraversare ogni boundary per poter ricostruire la causal chain anche se A, B e C appartengono a trace differenti.
+
+Spiega anche quale identity **non** useresti come business key.
 
 ## Autovalutazione
 
-Dovresti saper rispondere senza consultare il capitolo:
+Dovresti saper spiegare senza consultare il capitolo perché monitoring e observability non coincidano perfettamente; la differenza tra symptom e cause signal; i quattro golden signals di Google SRE; quando una metric sia preferibile a un trace; perché `traceId` non sostituisca `EscalationId`; perché cardinality abbia un costo; perché una URL concreta sia una cattiva metric dimension; che cosa perdi con head sampling; perché audit e diagnostic traces abbiano policy diverse; che cosa renda un alert azionabile; perché il private ingress cambi il synthetic monitoring; che ruolo abbia l’Observability Contract; perché telemetry schema e query siano una compatibility surface; come un investigation agent debba distinguere observation e hypothesis; e quando un signal possa essere rimosso.
 
-1. Perché monitoring e observability non sono sinonimi perfetti?
-2. Qual è la differenza fra symptom e cause monitoring?
-3. Quali sono i quattro golden signals di Google SRE?
-4. Quando useresti una metric invece di un trace?
-5. Perché `traceId` non deve sostituire `EscalationId`?
-6. Che cos'è la cardinality e perché può essere costosa?
-7. Perché una URL concreta è una cattiva metric dimension?
-8. Che cosa perdi con head sampling?
-9. Perché un audit event non può seguire necessariamente la stessa sampling policy di un trace?
-10. Che cosa rende un alert azionabile?
-11. Perché un endpoint privato modifica il synthetic monitoring design?
-12. Qual è il ruolo dell'Observability Contract?
-13. In che senso un dashboard schema può essere una compatibility surface?
-14. Come deve usare l'AI evidence e hypothesis durante un incidente?
-15. Quando un signal può essere rimosso?
+## Cosa cambia con l’AI
 
-## Cosa cambia con l'AI
+L’AI abbassa enormemente il costo di generare instrumentation, query, dashboard, alert, runbook e incident summary.
 
-L'AI riduce drasticamente il costo di:
+Questo rende più facile produrre **più observability artifacts di quanti il team riesca a comprendere e governare**.
 
-- generare instrumentation;
-- scrivere query;
-- creare dashboard;
-- riassumere log;
-- correlare signal;
-- proporre ipotesi;
-- generare runbook.
-
-Questo aumenta un nuovo rischio:
-
-> **produrre più observability artifacts di quanti il team riesca a comprendere e governare.**
-
-Quindi il problema si sposta ancora una volta dall'execution al judgment.
-
-Non chiediamo soltanto:
+La domanda quindi non è soltanto:
 
 ```text
-Può l'AI generare questa telemetry?
+Può l’AI generare questa telemetry?
 ```
 
-Chiediamo:
+ma:
 
 ```text
 Quale decisione abilita?
+Quale failure rende visibile?
 Quale costo introduce?
 Quale dato espone?
-Quale failure copre?
 Chi la possiede?
 Come la verifichiamo?
 ```
 
-## Compromesso ESI del capitolo
+Per l’investigation, l’AI può comprimere evidence e proporre il prossimo test. Non deve trasformare plausibilità in causalità dimostrata.
 
-**Esigenza:** misurare SLO, diagnosticare failure e supportare on-call.
+## Il compromesso ESI del capitolo
 
-**Tensione:** visibilità profonda vs cost, cardinality, data minimization e alert fatigue.
+**Esigenza:** misurare SLO, diagnosticare failure e sostenere l’on-call.
 
-**Decisione:** OpenTelemetry-compatible instrumentation con Azure Monitor/Application Insights, metriche bounded per SLI e alert, structured logs, trace sampling governato, business/audit evidence separata e synthetic journey soltanto attraverso il private path.
+**Tensione:** visibilità profonda contro costo, cardinality, data minimization e alert fatigue.
 
-**Costo accettato:** non conserviamo ogni dettaglio di ogni execution e alcune indagini richiederanno correlazione fra più signal.
+**Decisione:** OpenTelemetry-compatible instrumentation con Azure Monitor/Application Insights; metriche bounded per SLI e alert; structured events; governed trace sampling; business/audit evidence separata; synthetic journey soltanto sul private path.
 
-**Quality floor:** SLI misurabili, failure critici investigabili, correlation, security redaction, auditability e actionable alerting.
+**Costo accettato:** non conserviamo ogni dettaglio di ogni execution e alcune investigazioni richiedono correlation fra più signal.
 
-**Guardrail:** Observability Contract, cardinality budget, retention classes, sampling policy, alert quality review, owner/runbook e verification test.
+**Quality floor:** SLI misurabili, failure critici investigabili, correlation, security redaction, auditability, actionable alerting e cost visibility.
+
+**Guardrail:** Observability Contract, cardinality budget, retention classes, sampling policy, alert-quality review, owner/response path e verification test.
 
 ## Ponte al Capitolo 16 — Testing Architecture
 
@@ -364,11 +298,11 @@ come deve recuperare
 come possiamo osservarlo
 ```
 
-Il passo successivo è inevitabile:
+Il passo successivo è chiedere:
 
-> **quale evidence dobbiamo produrre prima di lasciare che una modifica raggiunga la produzione?**
+> **Quale evidence dobbiamo produrre prima di lasciare che una modifica raggiunga la produzione?**
 
-Il Capitolo 16 affronterà testing strategy, test pyramid senza dogma, contract test, integration test, end-to-end test, property-based testing, test dei failure mode, security test e soprattutto il rischio nuovo dell'era AI:
+Il Capitolo 16 entrerà in testing strategy, contract e integration test, end-to-end test, property-based testing, failure/security testing e nel nuovo rischio dell’era AI:
 
 ```text
 molti test generati
