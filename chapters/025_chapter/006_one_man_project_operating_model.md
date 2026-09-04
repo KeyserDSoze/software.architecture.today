@@ -1,340 +1,117 @@
 # One-Man Project Operating Model
 
-Il One-Man Project ha bisogno di un artefatto operativo perché il rischio principale è proprio lasciare troppe cose implicite nella testa del lead.
+Il One-Man Project ha bisogno di un artefatto operativo per una ragione precisa: il suo failure mode naturale è lasciare troppo controllo implicito nella testa del lead.
 
-Introduciamo quindi:
+L’**One-Man Project Operating Model** rende quindi esplicito quanto lavoro una singola persona può governare, quali authority non possiede, quale parallelismo è sostenibile e quale evidence deve esistere perché il progetto non dipenda dalla sua presenza continua.
 
-> **One-Man Project Operating Model**
+Non è un organigramma. È un **control-plane contract**.
 
-Non è un organigramma.
+## Missione e accountable lead
 
-È il contratto con cui l'organizzazione decide **quanto lavoro una singola persona può governare, con quali agenti, quali gate e quali garanzie di continuità**.
+Il modello parte da product/capability, business outcome, scope, criticality e current phase. Senza questo contesto è impossibile capire se il leverage sta servendo un outcome o soltanto aumentando activity.
 
-## 1. Missione
+Per il pilot ESI la capability è il Case Explanation Assistant e l’outcome è ridurre il costo cognitivo dell’investigazione operativa senza trasferire al modello decision authority.
 
-```text
-Product / capability
-Business outcome
-Scope
-Criticality
-Operating hours
-Current phase
-```
-
-Esempio:
-
-```text
-Capability
-Case Explanation Assistant
-
-Outcome
-reduce operator investigation effort
-without granting AI decision authority
-```
-
-## 2. Accountable lead
-
-```text
-Accountable lead
-Role
-Decision scope
-Explicit non-authorities
-```
-
-La parte `Explicit non-authorities` è importante.
-
-Per esempio:
+Il documento assegna poi un **Accountable Project Lead**, ma separa due insiemi che spesso vengono confusi:
 
 ```text
 may decide
-implementation details
-local reversible design
-agent task decomposition
-local test strategy
+→ bounded implementation
+→ local reversible design
+→ work-item decomposition
+→ agent scheduling
 
 may not decide alone
-payment semantics
-security policy exception
-public ingress
-regulated retention
-irreversible customer-data migration
+→ payment semantics
+→ security exception
+→ public ingress
+→ regulated retention
+→ destructive production migration
 ```
 
-> **Accountability non deve essere confusa con sovereign authority.**
+Questa sezione è fondamentale perché accountability non equivale a sovereign authority.
 
-## 3. Secondary maintainer
+## Secondary Maintainer e continuity
+
+Il modello richiede un Secondary Maintainer capace di assumere temporaneamente il control plane. Non deve partecipare a ogni commit e non duplica il lavoro del lead; deve però saper entrare dal repository, eseguire i golden command, ricostruire current work, distinguere evidence state e trovare escalation path.
+
+Il continuity plan collega quindi entry point, work item, runbook, golden command e specialist gate. Ogni voce che rimane “solo il lead sa…” è knowledge debt.
+
+Il piano diventa evidence soltanto quando viene esercitato. Per questo l’Operating Model distingue chiaramente:
 
 ```text
-Secondary maintainer
-Expected familiarity
-Continuity responsibilities
-Last continuity exercise
+continuity plan   Designed/Codified
+continuity drill  Pending until executed
 ```
 
-Non deve approvare ogni commit.
+## Agent portfolio e WIP
 
-Deve poter assumere temporaneamente il control plane.
+L’agent portfolio non serve a creare un ruolo per ogni modello. Serve a chiarire quali responsabilità possono essere delegate e con quali permission.
 
-## 4. Agent portfolio
-
-Elencare gli agent role realmente utili.
-
-```text
-Role
-Purpose
-Allowed task class
-Permission boundary
-Verification expectation
-```
-
-Esempio:
-
-| Role | Purpose | Max task class |
+| Role | Purpose | Boundary |
 |---|---|---|
-| Explorer | repository/research discovery | T2 read-only |
-| Implementer | bounded code/test change | T2 within delegation |
-| Verifier | independent evidence review | read/test |
-| Documentation synchronizer | update routed docs | T1 |
-| Security reviewer | adversarial review | review only |
+| Explorer | discovery e source reconstruction | read-only |
+| Implementer / Eval Implementer | bounded code/test/eval | scoped workspace |
+| Independent Verifier | primary-evidence review | read/test/eval |
+| Documentation Synchronizer | update approved canonical docs | scoped docs |
+| Adversarial/Security Reviewer | challenge failure/security assumptions | review-only by default |
 
-Non serve riempire ogni riga con un agente distinto.
+Il WIP limit protegge il control plane dal successo del data plane. ESI parte con due active execution task, un solo cross-boundary task e una sola unresolved semantic decision. Non perché questi numeri siano universali, ma perché il sistema ha bisogno di una policy iniziale osservabile.
 
-Le responsabilità possono essere svolte in momenti diversi dallo stesso tool quando la separation of duties non è richiesta.
+Se review backlog o repair loop crescono, il problema non è “lanciare più agenti”. È rivalutare WIP, task preparation o verification.
 
-## 5. WIP policy
+## Decision rights e specialist trigger
 
-Dichiarare il parallelismo massimo che il lead pensa di poter governare.
+Il cuore dell’Operating Model è una mappa delle decision rights.
 
-```text
-Max concurrent execution tasks
-Max cross-boundary task
-Max unresolved semantic decision
-```
+Una local reversible implementation può essere decisa dal lead. Un model/provider candidate può essere preparato e raccomandato dentro l’AI Feature Contract. Una nuova business semantic richiede Product/Operations. Un economic side effect appartiene a Payments & Risk. Public ingress o sensitive data path richiedono Security e, quando rilevante, Platform o Legal/Compliance.
 
-Esempio ESI iniziale:
+Il gate scatta per **boundary crossing**, non per appartenenza nominale del task a una disciplina.
 
-```text
-execution tasks     <= 3
-cross-boundary      <= 1
-semantic decision   <= 1
-```
+Questo evita due estremi: nessuno specialista mai, oppure tutti gli specialisti su ogni modifica.
 
-Questi numeri non sono benchmark.
+## Verification model
 
-Sono una policy iniziale da rivalutare con evidence.
+Il documento separa anche quattro livelli di evidence.
 
-## 6. Decision rights
+Alcune proprietà sono self-verifiable dentro bounded execution: typecheck, fast test, fitness gate. Altre richiedono independent verification. Alcune esistono soltanto attraversando un environment reale, come PostgreSQL semantics o Azure identity/network behavior. Infine ci sono decisioni che richiedono human/domain acceptance anche quando l’evidence tecnica è forte.
 
-Mappa:
+Questa distinzione impedisce al lead di usare la propria centralità come scorciatoia verso self-certification.
 
-```text
-Decision class
-Lead authority
-Specialist/domain gate
-Human approval required?
-```
+## Operating cadence e metriche
 
-Esempio:
+Il modello non deve trasformare la giornata in agent polling continuo. Una cadence utile raggruppa review e decisioni, protegge il WIP e crea momenti in cui controllare risk, knowledge debt e specialist-gate frequency.
 
-| Decision | Lead | Gate |
-|---|---:|---|
-| local refactor | yes | no |
-| model adapter candidate | yes within eval | review if data/security changes |
-| new business rule | propose | Product/Operations |
-| payment effect | no | Payments & Risk |
-| public ingress | propose | Security + Platform |
-| production destructive migration | no unilateral | owner + explicit approval |
+Le metriche devono misurare l’operating model, non la spettacolarità dell’automazione. Ci interessano verified outcome throughput, lead time, rework, review backlog, unresolved decision age, human review effort, cost per verified outcome e continuity drill result.
 
-## 7. Verification model
+Finché questi dati non esistono, restano `Designed/Pending`. Non inventiamo numeri per dimostrare in anticipo che il modello funziona.
 
-Il modello deve chiarire:
+## Exit criteria: il modello deve sapersi fermare
+
+La sezione più importante non riguarda come iniziare. Riguarda come riconoscere che il One-Man Project non è più il modello giusto.
+
+Review backlog persistente, 24/7 incident burden, specialist gate diventati quotidiani, crescita dei consumer pubblici, aumento delle one-way door, Secondary Maintainer che non riesce più a restare sufficientemente familiare o operational workload che sottrae sistematicamente tempo a Product e Architecture sono tutti segnali di uscita.
+
+La risposta può essere aggiungere maintainer, creare un team stabile, dividere responsibility, estrarre una capability di piattaforma o ridurre scope.
+
+Questo non è un fallimento del pilot.
+
+> **Un operating model maturo deve sapere non soltanto come sfruttare il leverage, ma anche quando il leverage ha cambiato abbastanza il sistema da richiedere una nuova organizzazione.**
+
+## Baseline ESI
+
+Il repository conserva oggi una baseline molto chiara:
 
 ```text
-what executor can verify itself
-what needs independent verification
-what needs real environment evidence
-what needs human acceptance
+Operating Model document    Codified
+WIP / decision-right policy Codified
+Secondary Maintainer role   Designed
+Continuity drill            Pending
+Real workflow throughput    Pending
+Real agent unit economics   Pending
+Production support fit      Pending
 ```
 
-Questo collega direttamente:
+Questa è la maturità corretta del Capitolo 25. Il modello è progettato abbastanza da essere usato; non è ancora provato abbastanza da essere celebrato come successo operativo.
 
-- Testing Strategy;
-- Agent Verification Bundle;
-- AI Autonomy Matrix;
-- Production Readiness Review.
-
-## 8. Specialist triggers
-
-Lista breve e precisa.
-
-```text
-Trigger
-Required function
-Expected output
-```
-
-L'obiettivo è evitare due failure mode:
-
-```text
-no specialist ever
-```
-
-oppure:
-
-```text
-every specialist on every task
-```
-
-## 9. Continuity plan
-
-```text
-Canonical entry point
-Golden commands
-Current work location
-Incident/runbook route
-Secondary maintainer
-Continuity exercise
-Known tribal knowledge
-```
-
-Ogni voce `Known tribal knowledge` è debt.
-
-## 10. Operating cadence
-
-Il lead non deve trasformare il progetto in una giornata infinita di agent polling.
-
-Una cadence possibile:
-
-### Daily
-
-```text
-review current work
-resolve blocked decision
-review evidence bundles
-limit new task launch
-```
-
-### Weekly
-
-```text
-review WIP
-review open risk/debt
-review agent cost/rework
-synchronize Product/Operations context
-```
-
-### Milestone
-
-```text
-architecture trigger review
-security/reliability review when relevant
-continuity drill
-operational readiness
-```
-
-La cadence deve adattarsi al progetto.
-
-## 11. Metrics
-
-Non usare soltanto activity.
-
-### Outcome
-
-```text
-business outcome movement
-verified work completed
-lead time
-```
-
-### Quality
-
-```text
-rework
-escaped defect
-unexpected rollback
-verification failure
-```
-
-### Control plane
-
-```text
-review backlog
-stopped task count and reason
-unresolved decision age
-WIP
-```
-
-### Agent economics
-
-```text
-cost per verified outcome
-repair/retry count
-human review effort
-```
-
-### Continuity
-
-```text
-secondary maintainer can run golden commands
-open tribal-knowledge item
-continuity drill result
-```
-
-## 12. Exit criteria
-
-Questa è forse la sezione più importante.
-
-Il One-Man Project non deve essere permanente per principio.
-
-Dobbiamo sapere quando **smette di avere fit**.
-
-Trigger possibili:
-
-```text
-review backlog persistently grows
-24/7 incident burden exceeds lead capacity
-more business domains become co-authorities
-repeated specialist gate becomes permanent workflow
-public/external consumer surface grows materially
-one-way-door frequency increases
-secondary maintainer cannot keep up
-lead becomes unavailable bottleneck
-agent rework erodes leverage
-production/support load crowds out product thinking
-```
-
-A quel punto la risposta può essere:
-
-```text
-add maintainer
-split responsibility
-create team
-extract platform capability
-reduce scope
-```
-
-Non è un fallimento del One-Man Project.
-
-È il risultato corretto di un review trigger.
-
-> **Un operating model maturo deve sapere non soltanto come iniziare, ma anche quando non è più il modello giusto.**
-
-## Il quality floor
-
-Qualunque sia il livello di leverage, il One-Man Project di ESI non può compromettere silenziosamente:
-
-```text
-functional understanding
-security boundary
-data ownership
-external contract
-required reliability
-verification independence where required
-recovery
-continuity
-accountability
-```
-
-Se il progetto riesce a essere “one-man” soltanto eliminando uno di questi elementi, il modello non ha fit.
-
-> **Il One-Man Project non è un modo per fare con una persona il lavoro di dieci persone. È un modo per fare con una persona il lavoro che una persona può realmente governare quando l'execution non è più il limite principale.**
+> **Il One-Man Project non è un modo per fare con una persona il lavoro di dieci persone. È un modo per governare con una persona il lavoro che una persona può davvero controllare quando l’execution non è più il limite principale.**
