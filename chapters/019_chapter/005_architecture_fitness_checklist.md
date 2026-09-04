@@ -1,33 +1,37 @@
-# 19.5 — Architecture Fitness Checklist
+# 19.5 — Architecture Fitness Checklist: il portfolio delle proprietà protette
 
-Le fitness function individuali sono utili.
+Una singola fitness function può dirci che un boundary è stato violato.
 
-Ma un sistema complesso ha bisogno anche di una vista che colleghi:
+Un workload complesso ha però bisogno anche di una vista che colleghi le proprietà più importanti al modo in cui vengono governate nel tempo.
+
+Per questo introduciamo:
+
+> **Architecture Fitness Checklist**
+
+Il nome `checklist` non indica un catalogo di best practice universali.
+
+È un portfolio vivo di proprietà che **questo workload** ha deciso di proteggere.
+
+La relazione che vogliamo rendere visibile è:
 
 ```text
 architectural intent
+→ risk
 → evidence mechanism
 → current state
+→ failure action
 → owner
 → review trigger
 ```
 
-Per questo introduciamo un nuovo artefatto operativo:
+## Una riga deve raccontare una decisione
 
-> **Architecture Fitness Checklist**
-
-Il nome `checklist` può trarre in inganno.
-
-Non è una lista di best practice universali.
-
-È il registro delle proprietà che **questo** workload ha deciso di proteggere durante la propria evoluzione.
-
-## Template
+Per ogni fitness significativa bastano campi come:
 
 ```text
 Fitness ID
 Property
-Why it matters
+Why / risk
 Mechanism
 Evidence source
 Failure action
@@ -36,102 +40,115 @@ Current status
 Review trigger
 ```
 
-## Esempio
+Esempio:
 
 ```text
 AF-001
-Property:
+Property
 Target code must not depend directly on Operations Desk Classic implementation.
 
-Why:
-Prevent legacy semantic/coupling leakage into Order Operations.
+Why
+Prevent legacy semantic/coupling leakage.
 
-Mechanism:
+Mechanism
 Static architecture test.
 
-Failure action:
+Failure action
 Fail local/PR gate.
 
-Owner:
+Owner
 Commerce & Operations.
 
-Review trigger:
-Legacy retired or coexistence boundary redesigned.
+Review trigger
+Legacy retirement or coexistence redesign.
 ```
 
-Questo rende la regola molto diversa da:
+Questo è molto più governabile di:
 
-> "keep legacy isolated".
+> Keep legacy isolated.
 
-La seconda frase è utile come principio.
+Il principio resta leggibile, ma ora sappiamo anche come viene protetto e quando può smettere di avere senso.
 
-La prima è governabile.
+## La checklist attraversa più dimensioni
 
-## Le dimensioni di Order Operations
+Order Operations non possiede soltanto una struttura di package.
 
-Per ESI la checklist non guarda soltanto la struttura del codice.
+Le proprietà architetturali importanti arrivano da tutto il libro.
 
 ### Functional / domain
 
-- business rule nuove passano dalla functional analysis;
-- legacy behavior non diventa requirement senza confirmation;
-- Payments conserva ownership della semantica economica.
+```text
+new business behavior passes through functional analysis
+legacy behavior does not become requirement without confirmation
+Payments retains economic semantic ownership
+```
 
 ### Structure
 
-- application non dipende da integration;
-- contracts rimane un layer stabile e povero di dipendenze;
-- priority target non dipende dal legacy implementation;
-- nessun ciclo strutturale significativo.
+```text
+application does not depend on integration
+contracts remain independent
+priority stays isolated from legacy/vendor mechanisms
+```
 
 ### Data
 
-- ogni business fact ha un owner;
-- derived copy dichiara source/freshness/reconciliation;
-- migration preserva ownership.
+```text
+each business fact has an owner
+derived copy declares source/freshness/reconciliation
+migration does not create ambiguous authority
+```
 
 ### Security
 
-- production ingress resta private finché il requirement non cambia;
-- runtime identity e deployment identity restano separate;
-- least privilege verificabile;
-- nessun secret nel repository.
+```text
+private ingress remains intentional
+runtime and deployment identity stay separated
+least privilege remains verifiable
+no production secret enters repo
+```
 
 ### Reliability
 
-- SLO e RTO/RPO hanno evidence;
-- graceful degradation non nasconde stale/unknown data;
-- retry resta bounded;
-- recovery drill non viene sostituito da configurazione dichiarativa.
+```text
+SLO / RTO / RPO have evidence
+retry remains bounded
+recovery drill is not replaced by configuration claims
+```
 
 ### Observability
 
-- metric dimensions restano bounded;
-- critical journey ha correlation;
-- alert ha owner e action;
-- telemetry cost rimane visibile.
+```text
+metric dimensions remain bounded
+critical journey keeps correlation
+critical alert has owner/action
+telemetry cost remains visible
+```
 
 ### Testing
 
-- critical risk ha un evidence layer appropriato;
-- flaky test resta defect;
-- test locale non viene usato come evidence di boundary esterno.
-
-### Cost
-
-- una nuova managed capability dichiara il costo che introduce;
-- scaling/capacity decision viene riaperta se cambia il workload.
+```text
+critical risk maps to an adequate evidence layer
+flaky test remains a defect
+local evidence is not promoted to external-boundary verification
+```
 
 ### Evolution
 
-- ADR significativi hanno review trigger;
-- exception ha owner ed expiry;
-- feature flag temporaneo ha removal condition;
-- migration ha cleanup stage.
+```text
+significant ADR has review trigger
+exception has expiry
+migration has cleanup stage
+temporary flag has removal condition
+```
 
-## Stato: non solo pass/fail
+Non tutte queste proprietà devono avere un test automatico.
 
-Per la checklist riutilizziamo il vocabolario già introdotto:
+Devono però avere un modo comprensibile di produrre o richiedere evidence.
+
+## Lo stato non è soltanto verde o rosso
+
+Per la checklist riutilizziamo il linguaggio del capstone:
 
 ```text
 Designed
@@ -140,7 +157,7 @@ Designed
 → Monitored
 ```
 
-Con alcune proprietà che possono avere anche:
+Aggiungiamo quando utile:
 
 ```text
 At Risk
@@ -148,89 +165,103 @@ Exception Active
 Review Required
 ```
 
-Un architecture test verde non rende automaticamente la property `Verified` in produzione.
+Questo evita un errore frequente: confondere la presenza di un meccanismo con l'evidence della proprietà nel sistema reale.
 
 Esempio:
 
 ```text
-AF-SEC-02
 private ingress
 
-IaC says disabled public network
+Bicep declaration exists
 → Codified
 
-non-production connectivity test
-→ Verified
+non-production connectivity check passes
+→ Verified in that environment
 
-production drift monitor
+production drift signal exists
 → Monitored
 ```
 
-## Fitness function atomiche e olistiche
+Un architecture test locale non può promuovere una property cloud a `Verified` in Azure.
 
-Thoughtworks distingue fitness function che verificano proprietà locali e altre che richiedono una vista più olistica del sistema.
+## Fitness atomiche e olistiche
 
-È una distinzione utile.
+Thoughtworks distingue fitness function locali da proprietà che richiedono una vista più olistica del sistema.
 
-Non possiamo verificare `RTO <= 8h` leggendo gli import TypeScript.
-
-Non possiamo verificare dependency direction con un disaster recovery drill.
-
-Ogni proprietà deve usare evidence proporzionata.
-
-Riferimento:
+Fonte:
 
 - [Thoughtworks — Building Evolutionary Architectures sample chapter](https://www.thoughtworks.com/content/dam/thoughtworks/documents/books/bk_building_evolutionary_architectures_en.pdf)
 
-## La checklist non deve crescere all'infinito
+La distinzione è utile perché evita di usare il meccanismo sbagliato.
 
-Ogni nuova regola ha un costo:
+```text
+module dependency
+→ static test
+
+regional recovery
+→ drill
+
+SLO
+→ runtime telemetry
+
+cost trend
+→ cost evidence + review
+
+context drift
+→ ADR trigger + human decision
+```
+
+Il meccanismo deve essere capace di osservare la proprietà che pretende di governare.
+
+## La checklist deve restare piccola abbastanza da essere usata
+
+Ogni nuova fitness function introduce costo:
 
 - execution;
 - maintenance;
 - false positive;
-- documentation;
 - cognitive load;
-- exception management.
+- exception management;
+- documentazione.
 
-Quindi la domanda prima di aggiungere una fitness function è:
+Quindi prima di aggiungerla chiediamo:
 
-> **Quale rischio significativo diventerebbe più difficile da rilevare se non avessimo questa regola?**
+> **Quale rischio significativo diventerebbe più difficile da rilevare senza questa regola?**
 
-Se non sappiamo rispondere, forse non serve.
+Se non abbiamo una risposta forte, la fitness probabilmente non merita ancora di entrare nel portfolio.
 
-## Fitness portfolio review
+## Il portfolio deve essere riesaminato
 
 Periodicamente il team dovrebbe chiedere:
 
 ```text
-Which fitness functions caught something useful?
-Which never fire because the risk disappeared?
-Which are noisy?
-Which protect obsolete assumptions?
-Which important risks still rely only on memory?
+Which rule caught useful drift?
+Which rule is noisy?
+Which protects an assumption that expired?
+Which risk is still protected only by memory?
+Which fitness can be removed?
+Which property needs a better evidence mechanism?
 ```
 
-Questo impedisce che il sistema di governance diventi esso stesso legacy.
+Questo è importante perché anche il sistema di governance può diventare legacy.
 
-## Collegamento con gli ADR
+Una regola inutile non è neutrale: consuma attenzione e riduce la fiducia nelle altre.
 
-La checklist non sostituisce gli ADR.
-
-Gli ADR spiegano **perché**.
-
-Le fitness function verificano **se una proprietà scelta continua a essere rispettata**.
+## ADR e fitness hanno ruoli diversi
 
 ```text
 ADR
-→ intent / trade-off / trigger
+→ why this decision has fit
+→ assumptions / trade-offs / review trigger
 
 Fitness function
-→ repeated evidence
+→ repeated evidence on a protected property
 ```
 
-Se una fitness function fallisce perché il contesto è cambiato, potremmo dover cambiare l'ADR.
+Se una fitness fallisce perché l'implementazione ha driftato, correggiamo il sistema.
 
-Se fallisce perché il codice ha driftato, dobbiamo probabilmente correggere il codice.
+Se fallisce perché un assumption dell'ADR non vale più, riapriamo la decisione.
 
-> **Una buona Architecture Fitness Checklist non ci dice soltanto se qualcosa è rosso. Ci aiuta a capire se dobbiamo correggere l'implementazione o riaprire la decisione.**
+La checklist deve aiutare a distinguere queste due azioni.
+
+> **Il valore della Architecture Fitness Checklist non è mostrare una parete di verde. È rendere visibile quale decisione stiamo ancora proteggendo, con quale evidence e con quale diritto di cambiarla quando il contesto evolve.**
