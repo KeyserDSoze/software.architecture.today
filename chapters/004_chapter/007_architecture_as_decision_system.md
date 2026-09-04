@@ -1,104 +1,56 @@
 ## Architettura come sistema di decisioni
 
-A questo punto possiamo tornare alla definizione iniziale e renderla più concreta.
+A questo punto possiamo rendere più concreta la definizione iniziale. Un'architettura sana non è soltanto un insieme di scelte ragionevoli. È anche un **sistema che permette di prendere, comunicare, verificare e rivedere decisioni nel tempo**.
 
-Un'architettura sana non è soltanto un insieme di decisioni corrette.
+Questo sistema può essere molto leggero. Non richiede un Architecture Review Board per ogni modifica. Richiede però che le decisioni importanti emergano dal rumore e che rimanga visibile il legame tra ciò che abbiamo scelto e il contesto che lo rendeva sensato.
 
-È anche un **sistema che rende possibile prendere, comunicare, verificare e rivedere decisioni nel tempo**.
+## Rendere visibile ciò che conta
 
-Questo sistema può essere leggero.
+Se ogni dettaglio viene documentato allo stesso livello, le decisioni architetturali spariscono dentro la documentazione. Se non documentiamo nulla, rimangono soltanto nel codice e nella memoria delle persone.
 
-Non richiede un Architecture Review Board per ogni modifica.
-
-Richiede però alcune capacità.
-
-### 1. Rendere visibile ciò che conta
-
-Le decisioni importanti devono emergere dal rumore.
-
-Se ogni dettaglio è documentato allo stesso livello, le decisioni architetturali spariscono.
-
-Se nulla è documentato, rimangono soltanto nel codice e nella memoria delle persone.
-
-Serve una selezione.
+Serve selezione.
 
 Una domanda utile è:
 
-> “Se una persona entra nel progetto tra un anno, quali scelte deve capire per non danneggiare accidentalmente il sistema?”
+> **Se una persona entrasse nel progetto tra un anno, quali scelte dovrebbe capire per non danneggiare accidentalmente il sistema?**
 
-Quelle sono ottime candidate per ADR, architecture docs o guardrail espliciti.
+Quelle scelte sono buone candidate per ADR, architecture docs o guardrail espliciti. Non perché siano “più tecniche”, ma perché perderne il reasoning aumenta il rischio di evoluzione accidentale.
 
-### 2. Collegare decisioni e requisiti
+## Collegare decisioni e requisiti
 
-Una scelta senza il requisito che la giustifica tende a diventare dogma.
+Una scelta separata dal requisito che l'ha prodotta tende a trasformarsi in dogma. “Tutti i servizi devono essere asincroni” può sembrare una policy architetturale forte; se però la decisione originale serviva soltanto a isolare un particolare workload, generalizzarla al resto del sistema è un errore.
 
-Per esempio:
+Per questo una decisione importante dovrebbe conservare il legame con problema, ASR, vincoli e trade-off. Soltanto così possiamo capire se il reasoning sia ancora valido quando il contesto cambia.
 
-> “Tutti i servizi devono essere asincroni.”
+Il requisito non serve a giustificare la decisione per sempre. Serve a renderla **falsificabile**.
 
-Perché?
+## Autonomia locale e coerenza condivisa
 
-Se la risposta originale era isolare un workload specifico, generalizzare la decisione a tutto il sistema è un errore.
+Non tutte le scelte devono essere prese allo stesso livello. Alcune acquistano valore proprio perché sono coerenti nell'organizzazione: identity provider, gestione dei secret, baseline minime di observability, criteri di security o formati di audit possono beneficiare di una policy condivisa.
 
-Ogni decisione dovrebbe conservare il legame con il problema, gli ASR, i vincoli e i trade-off che l'hanno prodotta. Così possiamo capire se il ragionamento è ancora valido.
+Altre decisioni possono e dovrebbero rimanere locali al team. Centralizzare tutto rallenta; decentralizzare tutto produce frammentazione.
 
-### 3. Distinguere policy da decisione locale
+L'architettura deve quindi chiarire **dove l'autonomia è desiderata e dove la coerenza è parte del valore**. Questo confine decisionale è spesso più importante della singola tecnologia scelta.
 
-Alcune scelte devono essere consistenti a livello di organizzazione.
+## Dai documenti ai guardrail eseguibili
 
-Identity provider, gestione dei secret, baseline di observability, criteri minimi di security e formati standard di audit sono esempi di decisioni che spesso acquistano valore a livello organizzativo. Altre possono restare locali al team.
+Una decisione importante può essere protetta anche da controlli automatici. Architecture test, lint rule, policy as code, contract test, schema validation, CI check e dependency rule possono trasformare una parte dell'intenzione architetturale in un vincolo verificabile.
 
-Se centralizziamo tutto, rallentiamo.
+Se decidiamo che un modulo non deve dipendere direttamente da un altro dominio, possiamo scriverlo in un ADR. Se il repository lo permette, possiamo anche far fallire la build quando quella dipendenza compare.
 
-Se decentralizziamo tutto, frammentiamo.
+Il documento spiega **perché** esiste il confine. Il guardrail aiuta a evitare che venga violato inconsapevolmente.
 
-L'architettura deve quindi chiarire **dove l'autonomia è desiderata e dove serve coerenza**.
+Più avanti torneremo su questo punto parlando di testing, evolutionary architecture e fitness functions.
 
-### 4. Creare guardrail, non soltanto documenti
+## L'architettura deve incontrare la produzione
 
-Una decisione importante può essere protetta da controlli automatici.
+Una decisione rimane un'ipotesi finché non incontra il sistema reale. Possiamo introdurre una cache convinti che ridurrà il carico e scoprire che il hit rate è trascurabile. Possiamo inserire una queue per assorbire picchi e osservare una latency end-to-end incompatibile con il journey. Possiamo separare un servizio per isolare i failure e scoprire che tutti i servizi dipendono comunque dallo stesso database.
 
-Per esempio:
-
-- architecture test;
-- lint rule;
-- policy as code;
-- contract test;
-- schema validation;
-- CI check;
-- dependency rule.
-
-Se decidiamo che un modulo non può dipendere direttamente da un altro dominio, possiamo documentarlo.
-
-Ma possiamo anche verificarlo automaticamente.
-
-Questo trasforma parte dell'architettura da intenzione a **vincolo eseguibile**.
-
-Ne parleremo più avanti nei capitoli su testing ed evolutionary architecture.
-
-### 5. Osservare il sistema reale
-
-Le decisioni devono incontrare la produzione.
-
-Possiamo decidere che una cache ridurrà il carico.
-
-Poi scoprire che il hit rate è basso.
-
-Possiamo decidere che una queue assorbirà picchi.
-
-Poi scoprire che aumenta troppo la latency end-to-end.
-
-Possiamo decidere che un servizio isolerà i failure.
-
-Poi scoprire che tutti i servizi dipendono dallo stesso database.
-
-L'architettura deve quindi ricevere feedback da metriche e incidenti, costi e deployment, support ticket e tempi di sviluppo, oltre che dai failure realmente osservati.
+Per questo l'architettura deve ricevere feedback da metriche, incidenti, costi, deployment, support ticket, tempi di sviluppo e failure realmente osservati.
 
 > **Un'architettura che non riceve feedback dal sistema reale diventa rapidamente una teoria sul sistema.**
 
-### 6. Sapere quando rivalutare
-
-I trigger di revisione completano il ciclo.
+I trigger di revisione chiudono il ciclo:
 
 ```text
 requisito
@@ -109,68 +61,38 @@ requisito
 → rivalutazione
 ```
 
-Questo è molto diverso da una governance statica.
+La governance diventa così dinamica. Non scolpiamo una scelta nella pietra; la rendiamo abbastanza esplicita da poterla mettere in discussione quando cambiano le condizioni.
 
-La decisione non viene scolpita nella pietra.
+## Disegnare dopo non rende retroattivamente intenzionale una scelta
 
-Viene resa abbastanza esplicita da poter essere messa in discussione quando cambiano le condizioni.
+Un anti-pattern frequente consiste nel costruire prima e disegnare dopo. Il diagramma finale può essere utilissimo per comprendere un legacy system, ma non va confuso con il processo architetturale.
 
-### Architecture after implementation
-
-Un bad pattern frequente è costruire prima e disegnare dopo.
-
-Il diagramma finale descrive ciò che è emerso.
-
-Può essere utile per documentare un legacy system.
-
-Ma non va confuso con il processo architetturale.
-
-Se le decisioni importanti sono avvenute implicitamente durante l'implementazione, il diagramma successivo non le rende intenzionali retroattivamente.
+Se le decisioni significative sono avvenute implicitamente durante l'implementazione, una documentazione successiva non le rende intenzionali retroattivamente.
 
 > **Descrivere una struttura dopo che è emersa non equivale ad averne governato la formazione.**
 
-### Architecture by committee
+L'errore opposto è architecture by committee: supporre che una decisione diventi migliore soltanto perché passa attraverso più meeting e più firme. Una governance utile deve migliorare contesto, confronto delle alternative, comprensione del rischio e ownership. Se aggiunge soltanto attesa, sta aumentando decision latency senza aumentare decision quality.
 
-L'errore opposto è pensare che più persone approvano una scelta, più essa sia architetturalmente valida.
+## Architecture by title
 
-Un processo con cinque meeting e dodici firme può produrre una decisione mediocre.
+Le decisioni architetturali non appartengono esclusivamente a chi ha “Architect” nel job title. Un developer che modifica un contratto pubblico, introduce una dipendenza trasversale o cambia l'ownership di un dato sta prendendo una decisione con peso architetturale.
 
-La governance deve migliorare la qualità del contesto e il confronto delle alternative, la comprensione del rischio e l'ownership. Se aggiunge soltanto attesa, non sta facendo architettura.
+Allo stesso modo, un architect che produce diagrammi senza comprendere implementazione, operazioni e dominio può incidere pochissimo sulla forma reale del sistema.
 
-### Architecture by title
+Per questo il libro parla di **competenza architetturale**, non soltanto di ruolo.
 
-Non serve avere il titolo di Software Architect per prendere decisioni architetturali.
+## Anche non decidere ha un costo
 
-Un developer che modifica un contratto pubblico, introduce una nuova dipendenza trasversale o cambia ownership del dato sta prendendo una decisione architetturale, indipendentemente dal job title.
+Abbiamo insistito molto sul rischio delle decisioni premature. Esiste però anche il problema opposto: lasciare ambigua una scelta significativa mentre team e agenti continuano a implementare.
 
-Allo stesso modo, un architect che produce soltanto diagrammi senza comprendere implementazione, operazioni e business può incidere molto poco sull'architettura reale.
+Quando il vuoto persiste, ciascuno lo riempie con una decisione locale. La **decision latency** può trasformarsi in semantic divergence, contratti incompatibili e rework.
 
-Il libro parlerà quindi di **competenza architetturale**, non soltanto di ruolo.
+Governare l'architettura significa quindi anche riconoscere quando l'incertezza è ancora utile e quando, invece, è arrivato il momento di scegliere.
 
-### Decision latency
+## Il sistema decisionale nell'era degli agenti
 
-Esiste anche un costo nel non decidere.
+Con più agenti autonomi, ADR, boundary, policy, contract, test e stop condition diventano una forma di **governance leggibile dalle macchine**. Non servono a costruire una prigione di regole; servono a evitare che ogni task ricominci da zero la discussione sulle decisioni già prese.
 
-Se una scelta importante rimane ambigua mentre più agenti o team continuano a implementare, ciascuno riempirà il vuoto con un'interpretazione locale.
+Finché il contesto rimane valido, il sistema deve poter applicare quelle decisioni con coerenza. Quando il contesto cambia, dobbiamo essere capaci di riconoscerlo e aggiornare la scelta.
 
-La decision latency può trasformarsi in semantic divergence.
-
-Per questo non dobbiamo solo evitare decisioni premature.
-
-Dobbiamo anche riconoscere quando il momento di decidere è arrivato.
-
-### Il sistema decisionale nell'era degli agenti
-
-Con più agenti autonomi, il bisogno cresce.
-
-Un agente può leggere ADR e architecture boundary, policy e contract, test e stop condition. Questi elementi diventano una forma di **governance leggibile dalle macchine**.
-
-L'obiettivo non è costruire una prigione di regole.
-
-È evitare che ogni task ricominci da zero la discussione sulle decisioni già prese.
-
-Quando il contesto cambia, aggiorniamo la decisione.
-
-Finché non cambia, il sistema deve poterla applicare con coerenza.
-
-> **L'architettura migliore non è quella che prende tutte le decisioni centralmente. È quella che rende chiaro quali decisioni devono essere condivise, quali possono essere locali e come capire quando una scelta va rivista.**
+> **L'architettura migliore non centralizza tutte le decisioni. Rende chiaro quali devono essere condivise, quali possono restare locali e quali evidenze ci obbligano a riaprirle.**
