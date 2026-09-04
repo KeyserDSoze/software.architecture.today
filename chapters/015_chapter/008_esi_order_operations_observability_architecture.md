@@ -143,7 +143,7 @@ Un retry può creare un nuovo trace. Non cambia l’identità dell’intento.
 
 ## Sampling: non campionare il contratto
 
-La prima iterazione non introduce una infrastruttura dedicata di tail sampling.
+La prima iterazione non introduce un’infrastruttura dedicata di tail sampling.
 
 La direzione è:
 
