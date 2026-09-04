@@ -197,6 +197,7 @@ architecture-fitness.test.mjs
 cost-fitness.test.mjs
 agent-context-fitness.test.mjs
 issue-readiness-fitness.test.mjs
+agent-governance-fitness.test.mjs
 ```
 
 Additional legacy characterization lives outside the product directory:
@@ -212,6 +213,8 @@ docs/testing-strategy.md
 ```
 
 Do not infer that a local green suite proves PostgreSQL, Azure, runtime observability, recovery or production behavior unless that boundary was actually exercised.
+
+`agent-governance-fitness.test.mjs` checks selected mechanical properties of Delegation/Verification/Autonomy artifacts. It does not prove that an agent run or OO-001 completed successfully.
 
 ## `work-items/`
 
@@ -249,6 +252,75 @@ tests/issue-readiness-fitness.test.mjs
 ```
 
 The test checks structure and references; human/reviewer judgment still decides whether outcome, acceptance and stop conditions are semantically sufficient.
+
+## Agent governance context
+
+Current governance artifacts:
+
+```text
+docs/agent-delegation-contract.md
+docs/agent-verification-bundle.md
+docs/ai-autonomy-matrix.md
+```
+
+Responsibilities:
+
+### `agent-delegation-contract.md`
+
+Defines the mandate for delegated execution:
+
+```text
+role
+allowed/forbidden scope
+capabilities
+permission boundary
+retry budget
+stop conditions
+escalation
+required verification
+```
+
+Current binding:
+
+```text
+ADC-OO-001-v1
+→ OO-001
+→ Implementer
+→ A2 bounded execution
+```
+
+### `agent-verification-bundle.md`
+
+Defines claim-to-evidence structure and independent verification expectations.
+
+Current OO-001 claims:
+
+```text
+C-01 migration chain
+C-02 successful atomic commit
+C-03 rollback on second-write failure
+C-04 fast-suite independence
+C-05 evidence boundary
+```
+
+Status remains `Pending execution` until primary evidence exists.
+
+### `ai-autonomy-matrix.md`
+
+Defines capability-specific A0…A4 levels and human gates.
+
+Current important boundaries:
+
+```text
+OO-001 scoped implementation     A2
+local deterministic tests        A3-like bounded execution
+change business/data ownership   A0
+merge default branch             human/repository gate
+production destructive DB action A0
+production secret access         forbidden in coding workflow
+```
+
+An executor may propose an autonomy change but cannot grant itself the permission required to finish the current task.
 
 ## `docs/` — canonical context routes
 
@@ -288,6 +360,16 @@ cost-model.md
 
 Use when changing a quality attribute, failure behavior, cloud mechanism, telemetry, test evidence or architectural premium.
 
+### Agent execution / governance
+
+```text
+agent-delegation-contract.md
+agent-verification-bundle.md
+ai-autonomy-matrix.md
+```
+
+Use when delegation scope, permission, verification independence or autonomy changes.
+
 ### Legacy / migration
 
 ```text
@@ -314,7 +396,7 @@ Use when changing topology or revisiting an architecturally significant decision
 | Priority rule | Priority Functional Analysis, Legacy Understanding Map, Refactoring Safety Plan |
 | Payment Escalation semantics | API Contract, Event Contract, Data Ownership, Failure Mode Map |
 | New persisted fact | Data Ownership Map, schema/migration, NFR |
-| PostgreSQL transaction evidence | Testing Strategy, Data Ownership, migrations, relevant work item |
+| PostgreSQL transaction evidence | Testing Strategy, Data Ownership, migrations, relevant work item, active Delegation Contract |
 | Cloud resource/topology | Cloud Deployment, Threat Model, Reliability Contract, Cost Model |
 | New security boundary | Threat Model, Security Control Matrix, relevant ADR |
 | New retry/failure behavior | Failure Mode Map, Reliability Contract, Testing Strategy |
@@ -322,6 +404,8 @@ Use when changing topology or revisiting an architecturally significant decision
 | Architecture rule | Architecture Fitness Checklist + executable test where mechanical |
 | Legacy retirement | Legacy Understanding Map, Refactoring Safety Plan, characterization evidence |
 | New discovery/execution task | `work-items/TEMPLATE.md` + canonical context links |
+| Agent permission/autonomy | Delegation Contract, AI Autonomy Matrix, Threat Model/Security context |
+| Agent evidence/acceptance model | Agent Verification Bundle, Testing Strategy, Architecture Fitness Checklist |
 
 ## Golden commands
 
@@ -356,6 +440,8 @@ Found
 
 Do not collapse these dimensions.
 
+A Delegation Contract being `Codified` does not imply the delegated task is `Verified`.
+
 ## Ownership / decision boundaries
 
 - Commerce & Operations owns Order Operations product behavior.
@@ -363,12 +449,13 @@ Do not collapse these dimensions.
 - Platform Engineering owns enterprise platform/landing-zone guardrails.
 - Security owns enterprise security policy; product teams still own workload security implementation.
 - Finance/FinOps participates when architectural premiums materially affect cost/value.
+- Human/domain owners retain authority for the high-impact gates listed in the AI Autonomy Matrix.
 
 ## Stop conditions
 
 The operational stop conditions are canonical in `../AGENTS.md`.
 
-A work item may add narrower stop conditions specific to the task.
+A work item or Delegation Contract may add narrower stop conditions specific to the task.
 
 This map intentionally does not duplicate the full list.
 
@@ -381,6 +468,7 @@ Update this map when:
 - golden commands change;
 - a new capability creates a new navigation path;
 - a former temporary migration boundary becomes permanent or is removed;
-- the work-item model or task-routing rules change materially.
+- the work-item model or task-routing rules change materially;
+- the agent governance model changes materially.
 
 > **The map describes where knowledge and responsibility live. It must not become a second copy of that knowledge.**
