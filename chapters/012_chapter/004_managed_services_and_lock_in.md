@@ -1,267 +1,71 @@
-## Managed services: comprare capacità senza comprare tutto il lavoro
+## Managed services: comprare capacità senza possedere ogni meccanismo
 
-Uno dei vantaggi più forti del cloud è poter delegare una parte del lifecycle operativo a un provider.
+Uno dei vantaggi più forti del cloud è poter delegare una parte del lifecycle operativo al provider. Database, messaging, identity, secret management, object storage e load balancing possono essere consumati come capability gestite invece di diventare sistemi che il workload team deve costruire, patchare e aggiornare direttamente.
 
-Database gestito.
+Questa delega non è semplice comodità. È una decisione di **ownership operativa**.
 
-Message broker gestito.
+## Managed non significa che l’outcome sia delegato
 
-Identity gestita.
+Con PostgreSQL gestito il provider può assumersi host patching, provisioning, una parte della storage durability, primitive di backup e failover infrastructure. Il workload team continua però a possedere schema, query, index, data ownership, capacity, recovery objective, retention, access control, connection management, comportamento applicativo durante failover, restore test e costo.
 
-Secret store gestito.
-
-Object storage gestito.
-
-Load balancer gestito.
-
-Questa delega viene spesso descritta come semplice comodità.
-
-In realtà è una decisione di **ownership operativa**.
-
-## Managed non significa senza responsabilità
-
-Se usiamo PostgreSQL gestito, il provider può occuparsi di una parte di:
-
-- provisioning;
-- host patching;
-- storage durability;
-- backup primitives;
-- failover capability;
-- maintenance infrastructure.
-
-Ma il workload team resta responsabile di:
-
-- schema;
-- query;
-- index;
-- data ownership;
-- capacity;
-- recovery objective;
-- retention;
-- access control;
-- connection management;
-- application behavior durante failover;
-- test di restore;
-- cost.
-
-Questa distinzione è importante.
-
-> **Managed service significa delegare un meccanismo, non delegare l'outcome.**
-
-Lo stesso vale per messaging.
-
-Azure Service Bus può offrire queue e topic durabili.
-
-Non decide però:
-
-- message semantics;
-- idempotency;
-- retry policy;
-- poison-message handling;
-- ownership;
-- ordering requirement;
-- reconciliation.
-
-Il provider gestisce il broker.
-
-Noi gestiamo il significato del sistema.
+La stessa distinzione vale per messaging. Azure Service Bus può offrire queue e topic durabili, ma non decide message semantics, idempotency, retry ownership, poison-message handling, ordering requirement o reconciliation.
 
 Fonte:
 
 - [Microsoft Learn — Azure Service Bus queues, topics and subscriptions](https://learn.microsoft.com/azure/service-bus-messaging/service-bus-queues-topics-subscriptions)
 
-## Managed services e cognitive load
+> **Managed service significa delegare un meccanismo, non delegare l’outcome.**
 
-Un team ha una quantità finita di attenzione.
+Il provider gestisce una parte dell’infrastruttura. Noi continuiamo a gestire il significato e la promessa del workload.
 
-Se decide di gestire direttamente:
+## Cognitive load è una voce di costo reale
 
-```text
-PostgreSQL cluster
-Kubernetes cluster
-message broker cluster
-secret infrastructure
-monitoring backend
-certificate lifecycle
-```
+Un team che self-hosta database, cluster Kubernetes, broker, secret infrastructure, monitoring backend e certificate lifecycle deve costruire competenze, on-call e automation per ciascun sistema. Può essere la scelta corretta, ma il confronto economico non può fermarsi al prezzo delle VM.
 
-deve sviluppare competenza operativa su tutti questi sistemi.
+Il TCO comprende engineering time, patching, upgrade, security maintenance, incident response, capacity planning e recovery test. Un servizio gestito può avere una fattura mensile più alta e costare comunque meno al workload quando libera attenzione che il team può investire nel prodotto.
 
-Questa competenza può essere giustificata.
+Questa economia architetturale è spesso più importante della differenza nominale fra due SKU.
 
-Ma non è gratuita.
+## Il rischio opposto: service sprawl
 
-Un servizio gestito compra tempo cognitivo.
+Il cloud rende altrettanto facile eccedere nella direzione contraria. Ogni esigenza può diventare un nuovo servizio: cache, search, scheduler, workflow, configuration store, queue, event grid, function. Ciascuno può essere ragionevole isolatamente e trasformare comunque il sistema complessivo in una collezione difficile da operare.
 
-Questa è una forma di economia architetturale spesso ignorata.
-
-Il costo mensile del servizio può essere superiore al costo teorico delle VM.
-
-Ma il confronto corretto deve includere:
-
-- engineering time;
-- on-call;
-- patching;
-- upgrade;
-- incidenti;
-- security maintenance;
-- automation;
-- recovery test;
-- capacity planning.
-
-Il TCO non coincide con la fattura della risorsa.
-
-## Il rischio opposto: managed-service sprawl
-
-L'accesso facile ai servizi gestiti crea un altro problema.
-
-Ogni esigenza può diventare un nuovo prodotto cloud.
-
-```text
-serve cache        → nuovo servizio
-serve search       → nuovo servizio
-serve queue        → nuovo servizio
-serve scheduler    → nuovo servizio
-serve config       → nuovo servizio
-serve workflow     → nuovo servizio
-```
-
-Dopo due anni possiamo avere un sistema che usa quindici servizi gestiti, ciascuno ragionevole isolatamente e difficile da governare nel complesso.
-
-Il cloud abbassa la friction di provisioning.
-
-L'architettura deve reintrodurre friction decisionale dove serve.
-
-Domanda:
+Per questo dobbiamo reintrodurre friction decisionale dove il provisioning l’ha rimossa. Prima di aggiungere una capability gestita chiediamo:
 
 > **Quale proprietà concreta compra questo servizio che non possiamo ottenere in modo sufficientemente buono con ciò che abbiamo già?**
 
-Se non sappiamo rispondere, non abbiamo ancora una decisione.
+Se non sappiamo rispondere, il catalogo cloud sta guidando l’architettura al posto del workload.
 
-## Lock-in: una parola troppo generica
+## Lock-in: non esiste un solo tipo di dipendenza
 
-“Vendor lock-in” viene spesso usato come argomento finale.
+“Vendor lock-in” è troppo generico per essere una conclusione. Il codice può dipendere da API specifiche del provider; i dati possono vivere in un formato difficile da esportare; runbook, dashboard e pipeline possono diventare fortemente provider-specific; il cost model può rendere l’uscita cara; l’architettura può assumere proprietà non facilmente riproducibili altrove; l’organizzazione stessa può costruire processi e competenze attorno a un ecosistema.
 
-Ma esistono lock-in diversi.
+Sono lock-in diversi e non hanno tutti lo stesso peso.
 
-### API lock-in
+Un’applicazione Node.js ospitata su un PaaS, con PostgreSQL standard e contract applicativi indipendenti dal broker, presenta un profilo di uscita molto diverso da un dominio progettato attorno a primitive proprietarie senza equivalenti semplici.
 
-Il codice dipende direttamente da API specifiche del provider.
+## Portabilità non è gratuita
 
-### Data lock-in
+Possiamo massimizzare la portabilità evitando managed identity, secret store provider, PaaS, messaging gestito e autoscaling specifico. In cambio possiamo perdere security capability, automation, reliability e riduzione del cognitive load.
 
-I dati vivono in un formato o servizio difficile da migrare.
+La portabilità è una quality attribute, non un principio assoluto. Deve avere un valore business abbastanza concreto da giustificare il lavoro aggiuntivo.
 
-### Operational lock-in
-
-Runbook, dashboard, deployment, alerting e skill dipendono fortemente dal provider.
-
-### Economic lock-in
-
-La struttura dei costi rende la migrazione molto costosa.
-
-### Architectural lock-in
-
-Il sistema assume proprietà di un servizio che non hanno un equivalente semplice altrove.
-
-### Organizational lock-in
-
-L'azienda ha costruito team, processi e governance attorno a un ecosistema.
-
-Questi lock-in non hanno tutti lo stesso peso.
-
-Un'app Node.js ospitata su App Service è diversa da un dominio costruito interamente attorno a primitive proprietarie difficili da sostituire.
-
-## Portabilità ha un costo
-
-Possiamo cercare di evitare qualunque dipendenza cloud.
-
-Per esempio:
-
-```text
-non usare managed identity
-non usare secret store provider
-non usare managed messaging
-non usare PaaS
-non usare autoscaling provider
-```
-
-Così aumentiamo la portabilità teorica.
-
-Ma potremmo perdere:
-
-- security capability;
-- automation;
-- operability;
-- velocità;
-- reliability;
-- riduzione del cognitive load.
-
-Portabilità massima non è un requisito universale.
-
-È una proprietà che deve avere un valore business.
+Il problema quindi non è eliminare ogni lock-in, cosa spesso impossibile anche organizzativamente. È **pagare lock-in dove il valore ricevuto è superiore al costo di uscita plausibile**.
 
 ## Exit strategy proporzionata
 
-Non serve costruire oggi un multi-cloud attivo soltanto perché “un giorno potremmo migrare”.
+Non serve costruire un multi-cloud attivo per preservare optionality. Possiamo invece mantenere alcuni confini ragionevoli: PostgreSQL standard quando non servono feature proprietarie, contract applicativi che non espongono type del provider, message schema indipendenti dal broker, Infrastructure as Code, formati di export documentati e una mappa delle dipendenze cloud che rappresentano vere one-way door.
 
-Possiamo invece mantenere alcune vie di uscita a costo ragionevole.
+Questa optionality non rende la migrazione gratuita. Evita però di renderla inutilmente difficile.
 
-Per esempio:
-
-- usare PostgreSQL standard invece di modellare il dominio su una feature proprietaria non necessaria;
-- tenere il message publisher dietro un port applicativo;
-- evitare che Azure Service Bus type entrino nel domain model;
-- conservare event contract indipendenti dal broker;
-- definire infrastruttura come codice;
-- esportare dati con formati documentati;
-- conoscere dipendenze cloud realmente one-way-door.
-
-Questa è optionality utile.
-
-Non multi-cloud theater.
-
-## Il test di lock-in
-
-Per una tecnologia cloud importante chiediamo:
-
-1. quanto codice applicativo ne conosce l'API?
-2. quanto dato è intrappolato nel servizio?
-3. quanto tempo servirebbe per sostituirlo?
-4. quale valore stiamo ricevendo in cambio?
-5. la probabilità di migrazione giustifica il costo di astrazione?
-6. l'astrazione nasconde davvero il provider o crea soltanto wrapper inutili?
-
-La domanda corretta non è:
-
-> “C'è lock-in?”
-
-Quasi sempre la risposta è sì.
-
-La domanda è:
-
-> **“Il lock-in che stiamo pagando è proporzionato al valore che stiamo comprando?”**
+Per una tecnologia cloud importante possiamo quindi chiederci quanto codice ne conosca l’API, quanto dato vi sia intrappolato, quanto costerebbe sostituirla, quale valore riceviamo in cambio e se un abstraction layer riduca davvero il coupling oppure aggiunga soltanto wrapper che nessuno userà mai per cambiare provider.
 
 ## ESI: managed by default, non managed blindly
 
-Platform Engineering propone una regola semplice:
+Platform Engineering adotta una regola semplice: preferire capability gestite quando soddisfano il requisito e riducono ownership operativa senza introdurre un rischio sproporzionato. Self-hosting non è vietato, ma richiede una motivazione legata al controllo che il workload deve realmente possedere.
 
-> preferire capability gestite quando soddisfano i requisiti e riducono ownership operativa senza introdurre un rischio sproporzionato.
-
-Non significa:
-
-> ogni servizio deve essere PaaS.
-
-Significa che self-hosting richiede una motivazione.
-
-Per Order Operations questo orienta già alcune decisioni:
-
-- PostgreSQL gestito è candidato forte;
-- messaging gestito è candidato forte;
-- managed identity è preferibile a secret statici per service-to-service auth;
-- non costruiamo un nostro secret store;
-- non gestiamo un broker Kafka soltanto per una singola escalation queue.
-
-Il principio è:
+Per Order Operations questo rende PostgreSQL gestito e messaging gestito candidati naturali; favorisce managed identity rispetto a secret statici e rende privo di senso costruire un secret store o gestire un cluster Kafka per il singolo flusso di Payment Escalation.
 
 > **Non possedere infrastruttura che non differenzia il prodotto, a meno che il controllo acquistato abbia un valore reale.**
+
+Questa è la forma di lock-in che accettiamo consapevolmente: delegare lavoro non differenziante in cambio di un coupling operativo che il contesto ESI sa sostenere.
