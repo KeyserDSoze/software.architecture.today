@@ -1,91 +1,49 @@
 # Capitolo 16 — Testing Architecture
 
-> **Scenario fittizio ESI.** Order Operations continua a evolvere come capstone. I riferimenti a Microsoft, Google, Meta, OWASP e Pact descrivono pratiche, strumenti o casi reali documentati; requisiti e compromessi ESI restano simulati.
+> **Scenario fittizio ESI.** Order Operations continua a evolvere come capstone. I riferimenti a Microsoft, Google, Meta, OWASP e Pact descrivono pratiche, strumenti o casi documentati; requisiti e compromessi ESI restano simulati.
 
-Nel capitolo precedente abbiamo reso il sistema osservabile.
+Nel Capitolo 15 abbiamo deciso quale evidence il sistema debba produrre mentre opera. Adesso dobbiamo affrontare la domanda che viene prima del deployment:
 
-Adesso dobbiamo affrontare una domanda più scomoda:
+> **Quale evidence ci serve per decidere che una modifica è abbastanza sicura da avanzare?**
 
-> **Come facciamo a sapere, prima di produrre un incidente, che una modifica non ha rotto ciò che conta?**
+La risposta più facile è “più test”. Nell’era dell’AI è anche la più pericolosamente economica.
 
-La risposta più semplice sembra essere:
+Un agente può produrre unit test, fixture, mock, test parametrizzati, integration test e casi limite in pochi minuti. Una suite può passare da cento a mille test senza che la confidence cresca nella stessa misura. Potremmo avere soltanto novecento modi nuovi di verificare l’implementazione corrente, incluse le sue assunzioni sbagliate.
 
-```text
-scriviamo più test
-```
+Il problema del capitolo non sarà quindi quanta automation riusciamo a generare. Sarà capire **quale errore importante ogni evidence dovrebbe riuscire a falsificare**.
 
-Nell'era dell'AI è diventato anche più facile farlo.
+## Dal test alla claim
 
-Possiamo chiedere a un agente di:
+Un test ha valore quando mette in pericolo una claim che ci interessa mantenere vera.
 
-- generare unit test;
-- coprire branch mancanti;
-- creare mock;
-- produrre test parametrizzati;
-- aggiungere casi limite;
-- generare fixture;
-- creare integration test;
-- sintetizzare test da una issue o da un diff.
-
-In pochi minuti possiamo trasformare una suite di cento test in una suite di mille.
-
-Questo però non implica che la nostra confidenza sia aumentata di dieci volte.
-
-Potremmo avere semplicemente creato novecento modi nuovi di verificare la stessa assunzione.
-
-Oppure novecento test che confermano il comportamento dell'implementazione corrente senza riuscire a rilevare il tipo di errore che ci interessa davvero.
-
-## Il numero di test non è la misura della qualità
-
-Un test ha valore quando riduce un'incertezza significativa.
-
-Quindi la domanda architetturale non è:
-
-> quanti test abbiamo?
-
-ma:
-
-> **quali errori importanti siamo in grado di rilevare prima che diventino un problema per il sistema?**
-
-Questa distinzione diventa ancora più importante quando la generazione dei test costa poco.
-
-Se il costo marginale di produrre un test diminuisce, possiamo facilmente ottimizzare la metrica sbagliata:
+Per Order Operations alcune claim sono già esplicite:
 
 ```text
-numero di test
-coverage
-numero di assertion
-numero di suite
+solo un case Payment può essere escalato
+la stessa EscalationId non crea un secondo intent business
+PaymentEscalation e OutboxMessage sono atomici
+un operatore non attraversa il tenant boundary
+il wire contract resta compatibile con Payments & Risk
+un duplicate delivery non duplica l’effetto business
+un restore rientra nel recovery target dichiarato
 ```
 
-invece di ciò che ci interessa davvero:
+Il numero di assertion non cambia l’importanza di queste proprietà. Ci interessa sapere se una modifica che le viola abbia buone probabilità di essere fermata **prima** della produzione.
 
-```text
-confidence
-risk reduction
-regression detection
-contract compatibility
-failure recovery
-security verification
-business correctness
-```
+Meta descrive una logica analoga nel proprio lavoro su mutation-guided LLM test generation: la structural coverage può aumentare senza che una suite impari a catturare fault significativi; l’approccio diventa più interessante quando introduciamo fault mirati e chiediamo se i test riescano a rilevarli.
 
-Meta descrive un problema simile nel proprio lavoro su mutation-guided LLM test generation: aumentare la structural coverage non garantisce che una suite sappia rilevare fault significativi. Nel loro approccio, la domanda viene invertita: si introducono fault mirati e si verifica se i test riescono a intercettarli. La coverage può aumentare, ma non è il risultato principale.
-
-Fonte:
+Fonti:
 
 - [Engineering at Meta — Revolutionizing software testing: Introducing LLM-powered bug catchers](https://engineering.fb.com/2025/02/05/security/revolutionizing-software-testing-llm-powered-bug-catchers-meta-ach/)
 - [Engineering at Meta — LLMs Are the Key to Mutation Testing and Better Compliance](https://engineering.fb.com/2025/09/30/security/llms-are-the-key-to-mutation-testing-and-better-compliance/)
 
-Questo non significa che mutation testing debba diventare obbligatorio in ogni repository.
+La lezione non è “usare mutation testing ovunque”. È più generale:
 
-Significa che ci offre un principio molto utile:
+> **Un test è interessante per il fault che sa rilevare, non per la riga che sa eseguire.**
 
-> **un test è più interessante per il fault che sa rilevare che per la riga che sa eseguire.**
+## Testing e architettura si progettano insieme
 
-## Testing come parte dell'architettura
-
-Il testing viene spesso trattato come attività successiva al design:
+Il modello lineare:
 
 ```text
 requirements
@@ -94,246 +52,136 @@ requirements
 → testing
 ```
 
-Per sistemi seri il rapporto è più circolare:
+è troppo povero per un sistema che deve evolvere in sicurezza.
+
+Ogni decisione architetturale crea anche un nuovo spazio di verification. Una transaction introduce atomicity e concurrency claim. Una queue introduce redelivery, backlog e recovery. Un authorization boundary introduce negative claim. Una replica introduce failover e common-mode failure. Un retry introduce classification, boundedness e stable identity. Una nuova regione introduce recovery behavior e state coordination.
+
+La relazione reale assomiglia di più a:
 
 ```text
-requirements
+requirement / risk
 ↔ architecture
 ↔ testability
 ↔ implementation
 ↔ evidence
 ```
 
-Una decisione architetturale cambia infatti ciò che dobbiamo riuscire a verificare.
-
-Se introduciamo:
-
-- una transazione;
-- una queue;
-- una cache;
-- una replica;
-- un nuovo boundary di authorization;
-- una nuova regione;
-- un nuovo protocollo;
-- un retry;
-- una compensazione;
-
-stiamo introducendo anche nuovi failure mode e nuove esigenze di verification.
-
-Microsoft Azure Well-Architected raccomanda esplicitamente di pianificare e progettare i test insieme all'architettura, di mantenere una test strategy collegata agli obiettivi business e di scegliere copertura e layer in base al rischio del workload invece di applicare la stessa strategia a ogni sistema.
+Microsoft Azure Well-Architected raccomanda di progettare la testing strategy insieme all’architettura del workload, collegando critical flow, rischio, environment, quality goal e ownership invece di applicare la stessa test shape a ogni sistema.
 
 Fonti:
 
 - [Microsoft Learn — Architecture strategies for testing](https://learn.microsoft.com/en-us/azure/well-architected/operational-excellence/testing)
 - [Microsoft Learn — Build confidence in Azure workloads with effective testing practices](https://learn.microsoft.com/en-us/azure/well-architected/design-guides/testing)
 
-Questa impostazione è particolarmente importante per Order Operations.
+Per Order Operations questo significa che Functional Analysis, API/Event Contract, Data Ownership Map, Failure Mode Map, Threat Model, Security Control Matrix, Reliability Contract e Observability Contract diventano **sorgenti della Testing Strategy**. Il test backlog nasce dal modello del sistema, non soltanto dal diff del codice.
 
-Il progetto oggi contiene già:
+## Il rischio decide quanta evidence comprare
 
-```text
-Functional Analysis
-Requirements
-API Contract
-Data Ownership Map
-Failure Mode Map
-Threat Model
-Security Control Matrix
-Reliability Contract
-Observability Contract
-```
+Dieci righe modificate possono cambiare un’etichetta o l’associazione fra `Idempotency-Key` ed `EscalationId`. La dimensione del diff è simile; il rischio no.
 
-Questi documenti non devono restare descrizioni scollegate.
-
-Devono progressivamente diventare sorgenti di evidence.
-
-## Il rischio decide la profondità del test
-
-Immaginiamo due modifiche.
-
-### Modifica A
-
-Cambiamo il testo di un'etichetta interna.
-
-### Modifica B
-
-Cambiamo il modo in cui `Idempotency-Key` viene associata a una Payment Escalation.
-
-Entrambe possono modificare dieci righe.
-
-Il rischio però non è comparabile.
-
-Nella seconda modifica potremmo introdurre:
-
-- duplicate escalation;
-- associazione della stessa key a intent diversi;
-- cross-tenant confusion;
-- outbox duplicate;
-- side effect downstream duplicati.
-
-Una strategy basata soltanto sulla quantità di codice modificato non lo vede.
-
-Una strategy risk-driven invece parte da:
+Nel secondo caso possiamo introdurre duplicate escalation, conflict fra intenti differenti, cross-tenant confusion e side effect downstream duplicati. La profondità della verification deve quindi dipendere da proprietà come:
 
 ```text
 business impact
-+ probability
-+ reversibility
-+ blast radius
-+ detectability
-+ security/reliability consequence
+likelihood
+reversibility
+blast radius
+detectability
+security/reliability consequence
 ```
 
-per decidere quanta evidence chiedere.
+Non trasformiamo queste dimensioni in un punteggio pseudo-scientifico. Le usiamo per spiegare perché un cambio meriti application test soltanto, database integration, contract evidence, staging verification o perfino un recovery drill.
 
-## Testare una proprietà, non un'implementazione
+## Il layer è il boundary che può falsificare la claim
 
-Un test fragile spesso verifica *come* abbiamo implementato una cosa invece di *quale proprietà* vogliamo proteggere.
+Una proprietà locale dovrebbe essere verificata nel layer più piccolo che contiene tutte le cause rilevanti. Una proprietà che dipende dalle semantiche PostgreSQL non può essere dimostrata con una `Map`. Un RBAC Azure non può essere dimostrato da un mock del permission service. Un RTO non può essere dimostrato leggendo la documentazione del provider.
 
-Esempio fragile:
+La regola del capitolo sarà:
 
-```text
-il metodo Repository.save viene chiamato esattamente una volta
-```
+> **Usa l’evidence più economica che attraversa il boundary capace di rendere falsa la claim.**
 
-La property rilevante potrebbe invece essere:
+Questo rende la test pyramid una euristica economica, non una costituzione. Molti test piccoli sono utili perché sono veloci e deterministici; pochi E2E sono utili perché comprano realismo costoso che layer più piccoli non possono comprare.
 
-```text
-per la stessa EscalationId
-non può esistere una seconda escalation business
-```
-
-La prima assertion protegge una forma dell'implementazione.
-
-La seconda protegge un invariante.
-
-Questa differenza è fondamentale quando vogliamo refactoring frequenti e AI-assisted changes.
-
-Se i test sono troppo accoppiati alla struttura interna, ogni refactoring produce rumore.
-
-Se sono troppo vaghi, non rilevano regressioni reali.
-
-Il design della suite deve quindi trovare un proprio fit.
-
-## La piramide è una heuristica, non una costituzione
-
-La test pyramid resta un buon modello mentale:
-
-```text
-molti test piccoli e veloci
-meno test di integrazione
-pochi test end-to-end costosi
-```
-
-Google ha documentato a lungo il costo dei grandi end-to-end test e la maggiore probabilità di flakiness dei test più ampi. In uno studio interno pubblicato sul Google Testing Blog, i test classificati come large mostravano un'incidenza di flakiness molto superiore ai test small.
+Google ha documentato a lungo il costo e la maggiore flakiness dei test più ampi, raccomandando di mantenere selettivi gli end-to-end e di spostare più verification possibile verso test piccoli e controllabili.
 
 Fonti:
 
 - [Google Testing Blog — Just Say No to More End-to-End Tests](https://testing.googleblog.com/2015/04/just-say-no-to-more-end-to-end-tests.html)
 - [Google Testing Blog — Test Sizes](https://testing.googleblog.com/2017/04/)
 
-Ma trasformare la piramide in una quota obbligatoria sarebbe un altro dogma.
+Il principio non è “meno E2E”. È: **realismo soltanto dove cambia la claim che possiamo falsificare**.
 
-Un sistema data-intensive, un compiler, una mobile app e un integration gateway hanno profili di rischio diversi.
+## Testare proprietà, non call sequence
 
-La domanda corretta resta:
+Un test fragile può verificare:
 
-> **qual è il layer più economico che riesce a verificare questa proprietà con sufficiente realismo?**
+```text
+Repository.save called exactly once
+```
 
-## Il test deve poter fallire per la ragione giusta
+quando la property che ci interessa è:
 
-Una suite che passa sempre non è necessariamente affidabile.
+```text
+same EscalationId
+→ no second business escalation
+```
 
-Potrebbe essere incapace di vedere il difetto.
+La prima assertion protegge una forma dell’implementazione. La seconda protegge un invariante che dovrebbe sopravvivere a refactoring, cambi di repository adapter e AI-assisted rewrites.
 
-Una suite che fallisce spesso non è necessariamente severa.
+Questo non significa evitare interaction test. Significa usarli quando l’interazione è il contratto. Se la sequence interna non è una proprietà del sistema, fissarla nella suite può trasformare refactoring sicuri in rumore.
 
-Potrebbe essere flaky.
+## Anche la suite deve essere affidabile
 
-Meta descrive i flaky test come un problema di affidabilità della suite stessa: se un test passa e fallisce senza variazioni del prodotto, erode la fiducia degli engineer e riduce il valore del processo di regression testing.
+Una suite che passa sempre può essere cieca. Una suite che fallisce spesso può essere flaky. Entrambe possono produrre falsa confidence.
+
+Meta descrive la flakiness come un problema di affidabilità del sistema di test stesso: quando un test cambia esito senza una variazione pertinente del prodotto, gli engineer smettono progressivamente di fidarsi del segnale.
 
 Fonte:
 
 - [Engineering at Meta — Probabilistic flakiness: How do you test your tests?](https://engineering.fb.com/2020/12/10/developer-tools/probabilistic-flakiness/)
 
-Da qui una proprietà che useremo per tutto il capitolo:
+Quindi il test code è software operativo. Ha latency, failure mode, ownership, maintenance e debito. `Rerun until green` non è una strategia di qualità; è il modo più veloce per trasformare una evidence ambigua in una luce verde.
 
-> **Anche i test sono software operativo. Devono essere progettati, osservati e mantenuti.**
+## La tensione ESI
 
-## Il caso ESI
+Commerce & Operations vuole mantenere delivery velocity. Payments & Risk vuole evidence forte su contract e duplicate-delivery semantics. Security vuole negative test su tenant e privilege. Platform vuole pipeline veloci e environment ripetibili. Reliability vuole failure/recovery drill. Finance non vuole una seconda produzione sempre accesa soltanto per testare.
 
-Nel Capitolo 16 ESI arriva a una nuova tensione.
-
-### Commerce & Operations
-
-Vuole mantenere delivery velocity.
-
-Non vuole che ogni pull request richieda un environment enterprise completo.
-
-### Payments & Risk
-
-Vuole evidence forte sull'idempotenza e sui contract della Payment Escalation.
-
-### Security
-
-Vuole negative test per tenant isolation, authorization e secret/logging policy.
-
-### Platform Engineering
-
-Vuole pipeline veloci e ripetibili, ma anche integration evidence prima del deployment.
-
-### Reliability / on-call
-
-Vuole failure-path test, restore drill e regression test derivati dagli incidenti.
-
-### Finance
-
-Non vuole una test estate che costi come la produzione.
-
-Tutte queste esigenze sono legittime.
-
-Il compromesso non sarà scegliere fra “testiamo tanto” e “testiamo poco”.
-
-Sarà decidere:
-
-> **quale evidence deve arrivare velocemente a ogni change, quale può arrivare più tardi e quale richiede un ambiente più realistico.**
-
-## Il quality floor
-
-Per Order Operations non sono negoziabili almeno:
-
-- business invariant critici;
-- tenant isolation;
-- authorization delle capability sensibili;
-- API/event contract compatibility;
-- atomicità `PaymentEscalation + OutboxMessage`;
-- idempotenza della stessa intenzione;
-- safe duplicate delivery;
-- schema migration safety;
-- failure path dell'outbox;
-- recovery evidence per i target dichiarati;
-- nessun test che richieda production secret;
-- suite abbastanza affidabile da non essere ignorata.
-
-Il modo in cui verifichiamo queste proprietà può cambiare.
-
-Le proprietà non possono sparire perché un test è costoso.
-
-## Il contratto del capitolo
-
-Alla fine del capitolo Order Operations avrà:
+Non risolveremo questa tensione scegliendo “più test” o “meno test”. Costruiremo una **evidence pipeline a più velocità**:
 
 ```text
-Testing Strategy
-+ risk-to-test mapping
-+ pipeline test layers
-+ first executable tests
-+ explicit test debt / flakiness policy
-+ AI-generated-test verification rules
+fast deterministic evidence
+→ ogni change
+
+real-boundary integration
+→ PR / deployment gate appropriato
+
+high-fidelity operational evidence
+→ staging / readiness / scheduled drill
+
+production continuous verification
+→ SLI, synthetic journey, drift
 ```
 
-E soprattutto useremo un principio semplice:
+Il quality floor di Order Operations resta non negoziabile su business invariant critici, tenant isolation, authorization, API/event compatibility, atomicità escalation+outbox, idempotency, duplicate delivery, migration safety, outbox failure path e recovery evidence.
 
-> **Non ottimizziamo per far passare i test. Ottimizziamo per fare in modo che un cambiamento sbagliato abbia buone probabilità di non passare.**
+Il modo in cui costruiamo la prova può evolvere. La claim non può sparire soltanto perché il test più fedele è costoso.
 
-Il resto del capitolo costruisce questa capacità.
+## Cosa cambia con l’AI
+
+La scarsità si sposta. Prima il limite poteva essere il tempo per scrivere test. Ora diventano più preziosi requirement chiari, risk identification, strong assertion, realistic fault model, suite architecture e capacità di cancellare test che non aggiungono evidence.
+
+L’AI può essere molto più utile quando le chiediamo:
+
+```text
+quale bug realistico violerebbe questa property?
+il test attuale lo catturerebbe?
+qual è il layer minimo capace di falsificare la claim?
+quale negative case manca?
+quale test è tautologico o ridondante?
+```
+
+che quando le chiediamo semplicemente “scrivi più test”.
+
+> **Non ottimizziamo per far passare la suite. Ottimizziamo per fare in modo che un cambiamento importante ma sbagliato abbia buone probabilità di non passarla.**
+
+Alla fine del capitolo ESI avrà una Testing Strategy, una Risk-to-Evidence Map, pipeline gate, una policy sui flaky test e sui test AI-generated e una prima suite eseguibile. Ma conserveremo esplicitamente ciò che resta `Designed/Pending`, perché qualche test locale verde non promuove automaticamente l’intero workload a `Verified`.
