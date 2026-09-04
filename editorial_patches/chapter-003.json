@@ -1,0 +1,81 @@
+{
+  "chapter": 3,
+  "replacements": [
+    {
+      "old": "Se vogliamo capire l'impatto economico di un outage, il sistema può includere anche:\n\n- customer support;\n- processi manuali;\n- SLA;\n- revenue;\n- comunicazione verso i clienti.\n\nIl sistema rilevante cambia con la decisione.",
+      "new": "Se vogliamo capire l'impatto economico di un outage, il sistema può includere anche customer support e processi manuali, SLA e revenue, fino alla comunicazione verso i clienti. Il sistema rilevante cambia con la decisione."
+    },
+    {
+      "old": "Quando integriamo un servizio esterno stiamo introducendo nel nostro sistema caratteristiche che non controlliamo:\n\n- availability;\n- latency;\n- rate limit;\n- semantic versioning;\n- pricing;\n- error model;\n- authentication;\n- retention;\n- compliance;\n- support policy.",
+      "new": "Quando integriamo un servizio esterno stiamo introducendo nel nostro sistema caratteristiche che non controlliamo: availability e latency, rate limit e versioning, pricing ed error model. Anche authentication, retention, compliance e support policy del provider entrano nel nostro spazio di decisione, pur vivendo fuori dal nostro repository."
+    },
+    {
+      "old": "Se una modifica alla logica di pricing richiede toccare:\n\n- frontend;\n- tre servizi;\n- schema condiviso;\n- pipeline analytics;\n- script di deployment;\n\npotremmo avere un confine debole.",
+      "new": "Se una modifica alla logica di pricing richiede di toccare frontend, tre servizi, uno schema condiviso, la pipeline analytics e gli script di deployment, potremmo avere un confine debole."
+    },
+    {
+      "old": "riduciamo un certo tipo di coupling e ne introduciamo altri:\n\n- eventual consistency;\n- retry;\n- idempotency;\n- osservabilità del workflow;\n- gestione degli stati intermedi.\n\nNon esiste eliminazione gratuita del coupling.",
+      "new": "riduciamo un certo tipo di coupling e ne introduciamo altri: eventual consistency, retry e idempotency diventano parte del problema, insieme all'osservabilità del workflow e alla gestione degli stati intermedi. Non esiste eliminazione gratuita del coupling."
+    },
+    {
+      "old": "Il problema nasce quando il coupling è:\n\n- accidentale;\n- invisibile;\n- non proporzionato;\n- non governato;\n- contrario ai confini che crediamo di avere.\n\nL'obiettivo non è costruire un sistema in cui nulla dipende da nulla.",
+      "new": "Il problema nasce quando il coupling è accidentale o invisibile, non proporzionato al beneficio, non governato oppure contrario ai confini che crediamo di avere. L'obiettivo non è costruire un sistema in cui nulla dipende da nulla."
+    },
+    {
+      "old": "Può fallire per:\n\n- stale data;\n- autorizzazione errata;\n- timeout cumulativo;\n- inconsistenza tra schermate;\n- dipendenza degradata;\n- evento perso;\n- errore di mapping;\n- workflow incompleto.",
+      "new": "Può fallire per stale data o autorizzazione errata, per timeout cumulativi e inconsistenza tra schermate, per una dipendenza degradata o un evento perso. Anche un errore di mapping o un workflow rimasto incompleto può rompere il journey pur lasciando molti componenti localmente sani."
+    },
+    {
+      "old": "È una scelta che interagisce con:\n\n- timeout;\n- backoff;\n- jitter;\n- capacity;\n- idempotency;\n- rate limiting;\n- queueing;\n- recovery time.",
+      "new": "È una scelta che interagisce con timeout, backoff e jitter, ma anche con capacity, idempotency e rate limiting. Queueing e recovery time completano un sistema di feedback che non può essere compreso guardando un solo parametro."
+    },
+    {
+      "old": "Ma se condividono:\n\n- lo stesso processo di deploy;\n- la stessa configurazione;\n- la stessa image corrotta;\n- la stessa availability zone;\n- lo stesso database;\n- la stessa quota;\n\npossono fallire contemporaneamente.",
+      "new": "Ma se condividono lo stesso processo di deploy o la stessa configurazione, la stessa image corrotta, la stessa availability zone, lo stesso database o perfino la stessa quota, possono fallire contemporaneamente."
+    },
+    {
+      "old": "Finora abbiamo introdotto molti elementi:\n\n- system of interest;\n- attori esterni;\n- confini;\n- dipendenze;\n- ownership;\n- critical user journey;\n- failure domain;\n- coupling;\n- feedback loop.\n\nServe un modo leggero per metterli insieme.",
+      "new": "Finora abbiamo introdotto il system of interest e gli attori esterni, confini, dipendenze e ownership. Abbiamo aggiunto critical user journey, failure domain, coupling e feedback loop. Serve un modo leggero per mettere insieme questi concetti senza trasformarli in nove documenti separati."
+    },
+    {
+      "old": "Non ci dice, per esempio:\n\n- se `Orders DB` è authoritative;\n- quanto può essere vecchio il dato;\n- che cosa succede se Identity non risponde;\n- chi possiede il significato dello stato ordine;\n- quali vincoli di accesso esistono.\n\nPer questo la Context Map unisce rappresentazione e annotazioni decisionali.",
+      "new": "Non ci dice, per esempio, se `Orders DB` sia authoritative, quanto possa essere vecchio il dato o che cosa accada se Identity non risponde. Non chiarisce chi possieda il significato dello stato ordine né quali vincoli di accesso esistano. Per questo la Context Map unisce rappresentazione e annotazioni decisionali."
+    },
+    {
+      "old": "possiamo fornire:\n\n- Problem & Outcome Brief;\n- Architecture Context Map;\n- contract rilevanti;\n- acceptance criteria;\n- stop condition.\n\nL'agente riceve così non soltanto il compito, ma una rappresentazione del sistema in cui il compito vive.",
+      "new": "possiamo fornire il Problem & Outcome Brief e l'Architecture Context Map, insieme ai contract rilevanti, agli acceptance criteria e alle stop condition. L'agente riceve così non soltanto il compito, ma una rappresentazione del sistema in cui il compito vive."
+    },
+    {
+      "old": "Non abbiamo ancora scelto:\n\n- database;\n- cache;\n- queue;\n- microservizio;\n- serverless;\n- cloud service;\n- event broker.\n\nEppure sappiamo molto di più sull'architettura.",
+      "new": "Non abbiamo ancora scelto database o cache, queue o event broker, microservizi, serverless o uno specifico cloud service. Eppure sappiamo molto di più sull'architettura."
+    },
+    {
+      "old": "Abbiamo identificato:\n\n- il system of interest;\n- gli attori;\n- le fonti autorevoli;\n- le dipendenze;\n- il journey critico;\n- il trust boundary;\n- i failure domain;\n- gli stakeholder aziendali;\n- le domande che cambieranno la soluzione.\n\nQuesto è il punto dell'Architecture Context Map.",
+      "new": "Abbiamo identificato il system of interest e gli attori, le fonti autorevoli e le dipendenze, il journey critico e il trust boundary. Conosciamo meglio failure domain e stakeholder aziendali e, soprattutto, abbiamo reso visibili le domande che possono cambiare la soluzione. Questo è il punto dell'Architecture Context Map."
+    },
+    {
+      "old": "Possiamo chiederle di:\n\n- cercare dipendenze nel repository;\n- ricostruire call graph;\n- individuare schema condivisi;\n- mappare eventi;\n- confrontare configurazioni;\n- trovare consumer di un'API;\n- riassumere ADR;\n- identificare aree modificate insieme;\n- proporre failure mode;\n- generare una prima Architecture Context Map.\n\nQueste capacità sono molto utili.",
+      "new": "Possiamo chiederle di cercare dipendenze nel repository, ricostruire call graph e individuare schemi condivisi; può mappare eventi, confrontare configurazioni e trovare i consumer di un'API. Può inoltre riassumere ADR, identificare aree che cambiano insieme, proporre failure mode e generare una prima Architecture Context Map. Queste capacità sono molto utili."
+    },
+    {
+      "old": "Log, metriche e trace possono mostrare:\n\n- chiamate inattese;\n- dependency latency;\n- retry;\n- fan-out reale;\n- percorsi poco usati;\n- error propagation;\n- feature obsolete ma ancora attive.",
+      "new": "Log, metriche e trace possono mostrare chiamate inattese, dependency latency e retry, il fan-out reale e percorsi poco usati. Possono anche rendere visibili error propagation e feature obsolete che il diagramma considera morte ma che in produzione sono ancora attive."
+    },
+    {
+      "old": "Se forniamo invece:\n\n- journey;\n- freshness requirement;\n- source of truth;\n- consumer;\n- failure domain;\n- security constraints;\n\nla domanda cambia.",
+      "new": "Se forniamo invece il journey, il freshness requirement e la source of truth, insieme ai consumer, al failure domain e ai security constraint, la domanda cambia."
+    },
+    {
+      "old": "Ma potrebbero mancare:\n\n- ownership;\n- temporality;\n- data freshness;\n- fallback;\n- failure correlation;\n- trust boundary;\n- processi manuali.\n\nLa qualità visiva è un segnale molto debole di qualità architetturale.",
+      "new": "Ma potrebbero mancare ownership e temporality, data freshness e fallback, failure correlation, trust boundary e processi manuali. La qualità visiva è un segnale molto debole di qualità architetturale."
+    },
+    {
+      "old": "Vale anche perché riconosce:\n\n- dove la mappa è incompleta;\n- quali assunzioni sono fragili;\n- quali domande richiedono evidenza runtime;\n- quando serve parlare con un altro team;\n- quando un agente non può verificare il proprio output.\n\nIl pensiero sistemico non elimina l'incertezza.",
+      "new": "Vale anche perché riconosce dove la mappa è incompleta e quali assunzioni sono fragili, quali domande richiedono evidence runtime e quando serve parlare con un altro team. Sa infine riconoscere quando un agente non può verificare da solo il proprio output. Il pensiero sistemico non elimina l'incertezza."
+    },
+    {
+      "old": "Oggi possiamo accelerare enormemente:\n\n- repository exploration;\n- dependency discovery;\n- diagram generation;\n- call graph analysis;\n- ricerca di consumer;\n- failure brainstorming;\n- document summarization.\n\nQuesto è un vantaggio reale.",
+      "new": "Oggi possiamo accelerare enormemente repository exploration e dependency discovery, diagram generation e call graph analysis, ricerca di consumer, failure brainstorming e document summarization. Questo è un vantaggio reale."
+    }
+  ]
+}
