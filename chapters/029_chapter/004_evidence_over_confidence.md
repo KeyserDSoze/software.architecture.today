@@ -1,326 +1,108 @@
 # Evidence prima della confidence
 
-Uno dei rischi più persistenti del software engineering è confondere una sensazione di sicurezza con una prova.
+Uno dei rischi più persistenti del software engineering è confondere una sensazione di sicurezza con una prova. Una demo funziona, la suite è verde, il diagramma è convincente, il deploy è riuscito una volta, il modello ha risposto bene a tre prompt.
 
-La demo funziona.
+Tutto questo può essere utile. Non tutto sostiene lo stesso claim.
 
-La suite è verde.
-
-Il diagramma è convincente.
-
-Il deploy è riuscito una volta.
-
-Il modello ha risposto bene a tre prompt.
-
-Il team ha esperienza.
-
-Tutto questo può essere utile.
-
-Ma non tutto ha lo stesso peso.
-
-Per questo nel libro abbiamo costruito un vocabolario semplice:
+Per questo il libro ha costruito due vocabolari intenzionalmente precisi:
 
 ```text
-Designed
-→ Codified
-→ Verified
-→ Monitored
+Designed → Codified → Verified → Monitored
+
+Found → Inferred → Observed → Confirmed
 ```
 
-E per il legacy:
+Non sono scale burocratiche. Servono a impedire che il linguaggio dica più di quanto sappiamo.
 
-```text
-Found
-→ Inferred
-→ Observed
-→ Confirmed
-```
+## Non promuovere il claim oltre la prova
 
-Questi stati non sono una scala burocratica.
+Un restore process può essere progettato bene, i backup configurati e RTO/RPO documentati. Finché nessuno esegue il ripristino nel boundary rilevante non abbiamo restore evidence.
 
-Servono a impedire che il linguaggio dica più di quanto sappiamo.
+Allo stesso modo, Bicep codificato non è Azure deployment verificato; un private endpoint progettato non dimostra la connectivity; un eval dataset non dimostra model quality; un runbook non prova che la procedura possa essere eseguita da chi sarà on-call.
 
----
+Questa precisione sembra eccessiva soltanto finché il sistema non fallisce.
 
-## Designed non significa funzionante
+> **Designed descrive l'intento. Verified descrive ciò che siamo riusciti a dimostrare.**
 
-Possiamo progettare un restore process corretto sulla carta.
+## Il numero dei test è una metrica povera
 
-Possiamo documentare RTO e RPO.
+Nel testing abbiamo distinto `code executed` da `fault detected`. Una suite enorme può proteggere poco; una suite più piccola può essere eccellente se rende falsificabili gli invariant importanti.
 
-Possiamo scegliere backup e PITR.
+La domanda utile è:
 
-Finché non ripristiniamo realmente il sistema, non abbiamo restore evidence.
+> **Quale modifica sbagliata dovrebbe far fallire questo test?**
 
-Allo stesso modo:
+Con test generati dall'AI questa domanda diventa ancora più importante. Se implementation e oracle derivano dalla stessa interpretazione errata, la suite può dimostrare soprattutto che il sistema è coerente con se stesso.
 
-```text
-Bicep Codified
-≠ Azure deployment Verified
-
-private endpoint Designed
-≠ connectivity Verified
-
-AI eval dataset Codified
-≠ model quality Verified
-
-runbook exists
-≠ procedure exercised
-```
-
-Questa precisione sembra pedante finché non arriva un incidente.
-
-Durante un incidente diventa la differenza fra una capacità reale e una speranza documentata.
-
----
-
-## Molti test non significano molta confidenza
-
-Nel testing abbiamo separato:
-
-```text
-code executed
-≠
-fault detected
-```
-
-Una suite enorme può essere debole.
-
-Una suite più piccola può proteggere molto bene gli invariant che contano.
-
-La domanda importante non è soltanto:
-
-> quanti test abbiamo?
-
-Ma:
-
-> **quale modifica sbagliata dovrebbe far fallire questo test?**
-
-Questa domanda diventa ancora più importante quando i test possono essere generati rapidamente dall'AI.
-
-Se l'implementazione genera implicitamente il proprio oracolo, possiamo ottenere un sistema che dimostra soprattutto di essere coerente con se stesso.
-
-È per questo che requirement, contract, invariant, threat e failure mode devono alimentare la testing strategy.
-
----
+Requirement, contract, invariant, threat e failure mode devono quindi alimentare la testing strategy invece di essere ricostruiti a posteriori dai test che abbiamo già.
 
 ## Verification without re-execution
 
-Se aumentiamo la quantità di execution delegata, non possiamo rispondere ricontrollando manualmente ogni dettaglio.
+Più execution deleghiamo, meno è sostenibile verificare rifacendo manualmente tutto il lavoro. Il supervisore diventerebbe il nuovo collo di bottiglia.
 
-Il supervisore diventerebbe il nuovo collo di bottiglia assoluto.
+La risposta è costruire evidence che permetta di verificare senza replicare ogni passaggio: test deterministici, integration su dependency reali, contract test, architecture fitness, security policy, migration evidence, shadow comparison, canary, recovery drill e independent review quando il rischio lo richiede.
 
-Abbiamo quindi cercato meccanismi di **verification without re-execution**:
+La review umana resta preziosa dove compra judgment. Dove una property è meccanicamente verificabile, il guardrail dovrebbe rispondere automaticamente.
 
-```text
-unit/property test
-integration test
-contract test
-architecture fitness
-security policy
-static analysis
-migration evidence
-observability
-canary
-shadow comparison
-recovery drill
-independent review
-```
+Se un dependency rule può essere controllato a ogni commit, non serve che l'architect lo ricordi in ogni PR. Se cambia un RTO da otto ore a quindici minuti, invece, nessun lint può decidere da solo la nuova architettura.
 
-L'obiettivo non è eliminare la review umana.
+## Proteggere l'oracolo
 
-È usare la review umana dove il judgment umano compra realmente qualcosa.
+Con gli agenti abbiamo incontrato un failure mode centrale: **green-by-editing-the-oracle**.
 
-Se una dependency rule può essere verificata deterministicamente a ogni commit, non serve che un architect la ricordi a mano in ogni pull request.
+Se lo stesso executor può cambiare implementation, test, fixture, architecture policy e acceptance criterion, può rendere verde il sistema ridefinendo ciò che significa "corretto".
 
-Se invece il business cambia un RTO da otto ore a quindici minuti, nessun import test può decidere da solo che cosa significa per il sistema.
+Questo non significa che test e policy siano immutabili. Significa che cambiare il criterio che giudica il proprio lavoro è una decisione diversa dal cambiare il lavoro.
 
----
+A seconda del rischio può servire un reviewer, un human gate, una permission separation o semplicemente uno scope che impedisca all'executor di modificare l'oracle.
 
-## L'oracolo deve essere protetto
+## Provenance prima dell'eloquenza
 
-Con gli agenti abbiamo incontrato un failure mode particolarmente importante:
+"PostgreSQL test passed" è un summary. Un evidence package utile collega il claim all'environment, alla versione, al meccanismo di test, al risultato, all'artifact primario e alle limitation.
 
-> **green-by-editing-the-oracle**
-
-Se lo stesso executor può:
-
-```text
-modificare il comportamento
-modificare il test
-modificare la fixture
-modificare la policy architetturale
-modificare il criterio di acceptance
-```
-
-può far diventare verde il sistema senza avere soddisfatto l'intento originale.
-
-Questo non significa che i test non debbano mai cambiare.
-
-Significa che modificare il criterio che giudica il proprio lavoro è una decisione diversa dal modificare il lavoro.
-
-A volte serve un reviewer indipendente.
-
-A volte serve un human gate.
-
-A volte basta separare scope e permission.
-
-Ma la distinzione deve esistere.
-
----
-
-## L'evidence ha provenance
-
-Un summary dice:
-
-```text
-PostgreSQL test passed.
-```
-
-Un Verification Bundle dovrebbe poter dire:
-
-```text
-claim
-→ PaymentEscalation + OutboxMessage commit atomically
-
-environment
-→ PostgreSQL version / schema / isolation
-
-mechanism
-→ integration test with forced second-write failure
-
-result
-→ PASS / FAIL
-
-artifact
-→ logs / test output / commit
-
-limitations
-→ what was not verified
-```
-
-Questa provenance è fondamentale nell'era degli agenti.
-
-Un modello può produrre un summary molto convincente di un test che non è mai stato eseguito.
-
-Il valore non sta quindi nella qualità retorica del report.
-
-Sta nel collegamento fra claim ed evidence primaria.
+Questo vale ancora di più nell'era degli agenti, perché un modello può produrre un report impeccabile di un test che non è mai stato eseguito.
 
 > **La provenance dell'evidence vale più dell'eloquenza del summary.**
 
----
+Il punto non è collezionare log. È poter ricostruire quale prova sosteneva quale affermazione e dove quella prova smetteva di essere valida.
 
-## Unknown è uno stato legittimo
+## `Unknown` è una risposta professionale
 
-In Production Readiness abbiamo usato:
+La Production Readiness Review ha usato stati come `BLOCKER`, `ACCEPTED RISK`, `FOLLOW-UP` e `UNKNOWN`. Quest'ultimo è particolarmente importante.
 
-```text
-BLOCKER
-ACCEPTED RISK
-FOLLOW-UP
-UNKNOWN
-```
+Le organizzazioni hanno spesso pressione a trasformare rapidamente ogni incertezza in una risposta. L'AI aumenta la pressione perché può quasi sempre proporre una spiegazione plausibile.
 
-`UNKNOWN` è importante.
+Ma `non sappiamo ancora` può essere la risposta tecnicamente corretta. Non è una resa: identifica il punto in cui serve evidence migliore.
 
-Molte culture engineering hanno una pressione implicita a trasformare rapidamente ogni incertezza in una risposta.
+Maturity non significa avere sempre una risposta. Significa anche sapere quando la risposta non è ancora giustificata.
 
-L'AI aumenta questa pressione perché può quasi sempre proporre una spiegazione plausibile.
+## Il NO-GO di Order Operations è parte del metodo
 
-Ma:
-
-> **non sappiamo ancora**
-
-è spesso la risposta tecnicamente più corretta.
-
-Non è una resa.
-
-È un invito a produrre evidence migliore.
-
-La maturity non consiste nell'avere sempre una risposta.
-
-Consiste anche nel sapere quando la risposta non è ancora giustificata.
-
----
-
-## Il caso Order Operations
-
-La Production Readiness Review di Order Operations è volutamente rimasta:
+La Production Readiness Review del capstone resta:
 
 ```text
+PRR-OO-001
 NO-GO — evidence closure required
 ```
 
-Nonostante:
+Order Operations possiede architecture intent, threat model, reliability e observability contract, IaC, test locali, agent governance e AI Feature Contract. Mancano però prove reali su alcuni boundary launch-critical.
 
-- un'architettura estesa;
-- un threat model;
-- un reliability contract;
-- un observability contract;
-- IaC codificato;
-- test locali;
-- agent governance;
-- AI Feature Contract.
+Avremmo potuto chiudere la storia con un lancio riuscito. Sarebbe stato più cinematografico e meno coerente.
 
-Perché mancano ancora prove reali su alcuni boundary.
+La conclusione corretta è più utile:
 
-Questo è forse uno dei risultati più importanti del capstone.
+> **Sappiamo molto meglio che cosa manca per poter dichiarare production-ready il sistema.**
 
-Il libro avrebbe potuto chiudere la storia dicendo:
-
-> e finalmente il sistema andò in produzione.
-
-Sarebbe stato narrativamente soddisfacente.
-
-Ma avrebbe contraddetto il metodo.
-
-La storia corretta è:
-
-> **sappiamo molto meglio che cosa manca per poterlo dire.**
-
----
+Il `NO-GO` non invalida l'architettura. Dimostra che non stiamo promuovendo `Designed` e `Codified` a `Verified` soltanto per completare la narrazione.
 
 ## Confidence come conseguenza
 
-Confidence non dovrebbe essere un input della decisione:
+Confidence utile non dovrebbe essere l'input "mi sembra solido, lanciamo". Dovrebbe emergere dalla catena claim, expected property, verification, evidence, limitation e risk acceptance.
 
-```text
-mi sembra solido
-→ lanciamo
-```
+Non otterremo certezza assoluta. Il sistema reale contiene dipendenze, workload, operatori e contesti che cambiano.
 
-Dovrebbe emergere da un sistema di evidence:
+L'obiettivo è sapere che cosa stiamo promettendo, quali failure abbiamo preparato, quali restano possibili, come li rileveremo e chi reagirà.
 
-```text
-claim
-→ expected property
-→ verification
-→ evidence
-→ known limitation
-→ risk acceptance
-```
-
-Non otterremo mai certezza assoluta.
-
-Il software reale contiene dipendenze, operatori, workload, reti e contesti che cambiano.
-
-L'obiettivo non è provare che niente andrà storto.
-
-È sapere abbastanza bene:
-
-```text
-che cosa stiamo promettendo
-quali failure abbiamo preparato
-quali failure restano possibili
-come li rileveremo
-chi reagirà
-```
-
-Questa è confidence utile.
-
-Non ottimismo.
-
-Non perfezione.
+Non ottimismo. Non perfezione.
 
 **Evidence proporzionata alla promessa.**
