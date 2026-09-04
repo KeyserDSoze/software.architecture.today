@@ -1,40 +1,20 @@
-# 6. Caso 3 — Case Explanation Assistant
+# Caso 3 — Case Explanation Assistant
 
-Il terzo caso è diverso da entrambi i precedenti.
+Il terzo caso introduce un tipo di incertezza diverso.
 
-Campaign Launchpad è un prodotto piccolo costruito quasi da zero.
+Campaign Launchpad è un piccolo greenfield. La Priority migration è un brownfield che deve ricostruire significato storico. Il **Case Explanation Assistant** inserisce invece una dependency probabilistica nel runtime di Order Operations.
 
-La Priority migration è un brownfield dove la difficoltà principale è preservare e riclassificare conoscenza storica.
+La domanda non è soltanto se il modello riesce a produrre una risposta utile. È:
 
-Il **Case Explanation Assistant** introduce invece una dipendenza non deterministica dentro il runtime del prodotto.
+> **Che cosa significa “funziona” quando lo stesso input può produrre output diversi e una risposta può sembrare credibile anche quando supera l’evidence disponibile?**
 
-Qui la domanda non è soltanto:
+## L’outcome richiede prima di tutto un authority boundary
 
-> Funziona?
+Gli operatori spendono troppo tempo a ricostruire un caso attraversando dati e segnali di più domini.
 
-È anche:
+L’outcome è ridurre quel costo cognitivo senza creare una nuova source of truth.
 
-> **Che cosa significa “funziona” quando lo stesso input può produrre output diversi e il modello può sembrare convincente anche quando sbaglia?**
-
-## Il problema funzionale
-
-Gli operatori di Order Operations devono ricostruire un caso leggendo dati e segnali provenienti da più domini.
-
-L'outcome target non è:
-
-```text
-add chatbot
-```
-
-È:
-
-> **ridurre il costo cognitivo dell'investigazione mantenendo business authority, access control e source provenance fuori dal modello.**
-
-Quindi la capability iniziale è deliberatamente read-only.
-
-## Authority boundary
-
-Prima decisione:
+Da qui deriva la prima decisione:
 
 ```text
 model interpretation
@@ -42,336 +22,103 @@ model interpretation
 business truth
 ```
 
-Ownership:
+Orders continua a possedere Order facts, Payments & Risk la truth economica, Shipping i propri fatti e Order Operations il case context. Il modello può sintetizzare e formulare hypothesis; non acquisisce authority sul dominio perché scrive l’ultima frase mostrata all’operatore.
 
-```text
-Orders
-→ Order facts
+Questa decisione limita già una grande parte del blast radius.
 
-Payments & Risk
-→ Payment facts / economic effects
+## Il grounding nasce dalle source note, non dalla moda RAG
 
-Shipping
-→ Shipping facts
-
-Order Operations
-→ Operational Case context
-
-Case Explanation model
-→ advisory interpretation only
-```
-
-Il modello non può diventare una nuova source of truth perché produce testo utile.
-
-## Context assembly
-
-La seconda decisione importante riguarda il grounding.
-
-Per il primo slice non abbiamo scelto un vector database.
-
-Non abbiamo scelto RAG.
-
-Il contesto necessario al singolo case è già bounded e strutturato.
-
-Quindi:
+Per il singolo Operational Case le source principali sono già strutturate e conosciute. ESI può quindi costruire deterministicamente il context dopo authorization:
 
 ```text
 authorized request
-→ deterministic case context assembly
+→ Operational Case + Orders + Payments + Shipping facts
+→ normalized context
 → model
 ```
 
-Source candidate:
+Non c’è ancora un problema di ricerca su un vasto corpus. Per questo il primo slice non introduce vector database o semantic retrieval.
+
+Paghiamo un limite — niente broad enterprise knowledge — in cambio di minore retrieval uncertainty, poisoning surface, infrastructure e cost.
+
+> **Grounding è il requisito. RAG è una possibile soluzione quando il problema di retrieval la giustifica.**
+
+## Il contract separa ciò che sappiamo da ciò che ipotizziamo
+
+Il model boundary non restituisce soltanto una stringa libera. `CaseExplanationResult` separa `confirmedFacts`, `hypotheses`, `missingEvidence` e `sourceReferences`, con stati come `Supported`, `PartiallySupported`, `InsufficientEvidence` e `Unavailable`.
+
+`InsufficientEvidence` non è un errore di UX da nascondere. È il comportamento corretto quando il sistema non possiede abbastanza source autorizzate per sostenere una spiegazione.
+
+Il codice può inoltre verificare deterministicamente alcune property: una source reference deve esistere nel context, confirmed fact e hypothesis devono indicare provenance, e uno stato parziale deve rendere visibile ciò che manca.
+
+Questi controlli non dimostrano groundedness semantica. Dimostrano esattamente ciò che possono dimostrare e niente di più.
+
+## Prompt injection cambia importanza quando cambiano i sink
+
+Un customer note o un testo recuperato può contenere istruzioni malevole. Separare instruction e data è necessario, ma ESI non affida tutta la sicurezza al prompt.
+
+La mitigation più forte del primo slice è togliere potere al modello:
 
 ```text
-OperationalCase
-Order facts
-Payment facts
-Shipping facts
-known derived operational facts
-```
-
-Questa scelta riduce:
-
-```text
-retrieval uncertainty
-poisoning surface
-cost
-infrastructure
-observability complexity
-```
-
-ma accetta un limite:
-
-```text
-no broad enterprise knowledge corpus yet
-```
-
-> **Grounding è un requisito. RAG è una possibile soluzione.**
-
-## Output contract
-
-Il modello non restituisce una stringa libera come unica API semantica.
-
-Il contract separa:
-
-```text
-confirmedFacts
-hypotheses
-missingEvidence
-sourceReferences
-```
-
-Stati:
-
-```text
-Supported
-PartiallySupported
-InsufficientEvidence
-Unavailable
-```
-
-Perché `InsufficientEvidence` è un risultato utile.
-
-È migliore di una spiegazione elegante inventata.
-
-## Deterministic guardrail
-
-Alcune proprietà non richiedono un altro modello.
-
-Il codice può controllare:
-
-```text
-source reference exists
-confirmed fact references known source
-hypothesis references known source
-missing evidence declared when required
-output schema valid
-```
-
-Questo non dimostra che il contenuto sia vero.
-
-Ma impedisce alcune classi di failure in modo più affidabile e più economico.
-
-> **Usa il modello per l'interpretazione. Usa codice deterministico per i vincoli che sai già esprimere deterministicamente.**
-
-## Prompt injection
-
-Una note o un testo proveniente da un sistema esterno può contenere istruzioni malevole.
-
-Perciò distinguiamo:
-
-```text
-instruction
-≠
-retrieved/user-controlled data
-```
-
-Ma non affidiamo la sicurezza soltanto al prompt.
-
-La prima mitigation più forte è architetturale:
-
-```text
-no write tools
 no refund()
+no retryPayment()
 no sendEmail()
-no readSecret()
+no secret access
 no arbitrary URL fetch
 ```
 
-Quindi anche se il modello interpreta male una source, il suo potere resta limitato.
+OWASP raccomanda defense-in-depth, least privilege, separazione fra instruction e data, output validation e human control per azioni sensibili.
 
-OWASP raccomanda defense-in-depth, least privilege, separazione instruction/data, output validation e human control per azioni sensibili:
+Fonte:
 
-- https://cheatsheetseries.owasp.org/cheatsheets/LLM_Prompt_Injection_Prevention_Cheat_Sheet.html
+- [OWASP — LLM Prompt Injection Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/LLM_Prompt_Injection_Prevention_Cheat_Sheet.html)
 
-## Eval prima del provider
+Quindi una manipulation riuscita può ancora produrre una spiegazione sbagliata, ma non può trasformarsi direttamente in un economic side effect.
 
-ESI ha già un seed versionato:
+## Il provider viene dopo il workload contract
 
-```text
-evals/case-explanation-v1.jsonl
-```
+ESI possiede già `evals/case-explanation-v1.jsonl` con nominal, missing/conflicting evidence, prompt injection, cross-tenant, authority-boundary e ambiguity case.
 
-con scenari:
+La scelta del provider/model rimane Pending. `OO-002` richiede di confrontare candidati contro lo stesso oracle, invece di modificare dataset o scorer per favorire il candidato preferito.
 
-```text
-nominal
-missing evidence
-conflicting evidence
-prompt injection
-cross-tenant
-authority violation
-ambiguity
-```
+La quality surface non è una sola accuracy. Include groundedness, source attribution, missing-evidence honesty, authority compliance, operator usefulness, prompt-injection behavior, latency, fallback e cost.
 
-La decisione del provider/model resta:
+Il provider è quindi una two-way door da testare sul workload reale, non un’identity decision del prodotto.
 
-```text
-Pending
-```
+## Il launch boundary protegge il core dalla maturity dell’AI
 
-perché il provider deve essere confrontato **contro il workload**, non scelto da benchmark generico o reputazione.
-
-Il work item:
-
-```text
-OO-002
-```
-
-richiede di usare lo stesso eval oracle per i candidati.
-
-Niente:
-
-```text
-candidate A fails
-→ modify eval
-→ candidate A passes
-```
-
-Questo sarebbe `oracle laundering`.
-
-## Quality model
-
-La feature richiede più dimensioni contemporaneamente.
-
-Quality:
-
-```text
-groundedness
-source attribution
-missing-evidence behavior
-authority compliance
-operator usefulness
-```
-
-Security:
-
-```text
-cross-tenant isolation
-prompt injection
-provider data boundary
-no write capability
-```
-
-Operational:
-
-```text
-latency
-availability
-fallback
-telemetry
-model/provider drift
-```
-
-Cost:
-
-```text
-cost per explanation
-cost per useful/accepted explanation
-retry/rework cost
-```
-
-Un singolo accuracy score non è quindi un production contract sufficiente.
-
-## Production decision
-
-La Production Readiness Review corrente è esplicita:
+La Production Readiness Review mantiene:
 
 ```text
 LB-AI
 = NOT READY / DISABLED FOR CORE LAUNCH
 ```
 
-Questo non significa che il core Order Operations debba restare bloccato per sempre.
+Questo è possibile perché l’assistant non è authority e non vive nel critical path del core Operational Case view.
 
-È proprio il vantaggio di aver separato il launch boundary.
+Un eventuale `LB-CORE` potrà progredire lasciando l’AI disabilitata, mentre `OO-002` e i runtime gate costruiscono evidence sulla capability probabilistica.
 
-Possiamo eventualmente lanciare:
+> **Una feature disabilitabile è una forma di risk isolation quando il prodotto deterministico resta utile senza di lei.**
 
-```text
-LB-CORE
-```
+## Uber mostra perché l’evaluation è un sistema, non una demo
 
-con l'AI disabilitata.
+Uber ha documentato Genie, un copilot interno per supportare engineer attraverso knowledge source aziendali, e una successiva evoluzione in cui un golden set curato da subject matter expert veniva usato per valutare miglioramenti prima di ampliare il rollout.
 
-Quando `OO-002` e i runtime gate producono evidence sufficiente, riapriamo `LB-AI`.
+Fonti:
 
-> **Una feature disabilitabile è spesso una migliore strategia di rischio di una feature non pronta che il launch plan ci obbliga ad accendere.**
+- [Uber Engineering — Genie: Uber’s Gen AI On-Call Copilot](https://www.uber.com/gb/en/blog/genie-ubers-gen-ai-on-call-copilot/)
+- [Uber Engineering — Enhanced Agentic-RAG](https://www.uber.com/us/en/blog/enhanced-agentic-rag/)
 
-## Caso reale Uber
+I miglioramenti numerici riportati da Uber appartengono al loro workload e non diventano target ESI. La property trasferibile è che un sistema AI può richiedere una pipeline di evaluation, human-labeled baseline e iterazione prima che la qualità sia sufficiente per un rollout più ampio.
 
-Uber ha documentato **Genie**, un copilot interno per supportare on-call engineer e utenti interni attraverso knowledge source aziendali:
+## Il trade-off ESI
 
-- https://www.uber.com/gb/en/blog/genie-ubers-gen-ai-on-call-copilot/
+ESI compra un blast radius più piccolo scegliendo un assistant read-only, bounded deterministic context, provider-neutral port, structured source-backed output, explicit fallback e versioned eval.
 
-In seguito Uber ha descritto un lavoro di miglioramento basato su un golden set di oltre cento query curate da SME prima di un rollout più ampio nel dominio engineering security/privacy. Il post riporta miglioramenti relativi del 27% nelle risposte accettabili e una riduzione relativa del 60% dei consigli errati nel contesto misurato da Uber:
+Paga meno automation, nessuna autonomous remediation, nessun broad-corpus search e più risposte `InsufficientEvidence`.
 
-- https://www.uber.com/us/en/blog/enhanced-agentic-rag/
+Il quality floor rimane: nessun business-authority transfer, nessun cross-tenant leakage, nessun unsupported claim nascosto e core usable senza model provider.
 
-Questi numeri restano risultati Uber.
+> **Con l’AI la domanda architetturale più importante non è quanto sia intelligente il modello. È quale parte del sistema resta corretta quando il modello è lento, sbaglia, viene manipolato o cambia comportamento.**
 
-Non diventano target ESI.
-
-La lezione utile è un'altra:
-
-> **un sistema AI può richiedere una vera pipeline di evaluation e miglioramento prima che la sua utilità percepita sia sufficiente per un rollout più ampio.**
-
-## Il compromesso ESI
-
-Product vuole massima utilità.
-
-Operations vuole velocità.
-
-Security vuole limitare context e potere.
-
-Payments & Risk vuole preservare semantic authority.
-
-Platform vuole evitare un nuovo AI platform layer senza scala sufficiente.
-
-Finance vuole capire il costo per outcome.
-
-Decisione:
-
-```text
-read-only assistant
-+ bounded deterministic context
-+ provider-neutral port
-+ structured source-backed output
-+ versioned eval
-+ explicit fallback
-+ no RAG requirement yet
-+ no write tools
-```
-
-Costo accettato:
-
-```text
-less automation
-more InsufficientEvidence
-no autonomous remediation
-no broad corpus search
-```
-
-Quality floor:
-
-```text
-no business-authority transfer
-no cross-tenant leakage
-no silent unsupported claim
-core usable without model
-```
-
-## La lezione del terzo caso
-
-Con l'AI, la domanda architetturale più importante non è:
-
-> Quanto è intelligente il modello?
-
-È:
-
-> **Quale parte del sistema resta corretta quando il modello è lento, sbaglia, viene manipolato o cambia comportamento?**
-
-Se non sappiamo rispondere, l'AI non è ancora integrata nell'architettura.
-
-È soltanto collegata al prodotto.
+Se non sappiamo rispondere, l’AI è collegata al prodotto; non è ancora davvero integrata nell’architettura.
