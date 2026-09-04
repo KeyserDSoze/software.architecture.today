@@ -1,94 +1,77 @@
 # 18.3 — Seam, Branch by Abstraction e shadow comparison
 
-Un refactoring sicuro ha spesso bisogno di un posto in cui poter cambiare comportamento senza costringere tutto il sistema a cambiare insieme.
+Il Capitolo 17 ci ha lasciato un candidate seam.
 
-Quel posto è un **seam**.
+Ora dobbiamo trasformarlo in un boundary reale, cioè in un punto in cui vecchia e nuova semantica possano convivere senza costringere tutti i caller a cambiare insieme.
 
-Nel Capitolo 17 abbiamo identificato `PriorityRouting` come seam candidato.
+Per ESI la domanda da isolare è:
 
-Ora lo rendiamo esplicito.
+> **Qual è la priorità operativa di questo case?**
 
-## Il seam non è un'interfaccia messa a caso
+Non vogliamo che il nuovo dominio impari come è fatta la tabella legacy o quali stringhe storiche usa Operations Desk Classic.
 
-Aggiungere un'interfaccia davanti a ogni classe non crea automaticamente un boundary utile.
+## Il seam deve separare significato da rappresentazione
 
-Un seam è utile quando separa:
-
-- una responsabilità che vogliamo sostituire;
-- i caller dalla sua implementazione;
-- il nuovo modello dal vocabolario legacy;
-- la decisione di rollout dalla business logic.
-
-Per Operations Desk Classic il boundary è:
+Un'interfaccia utile non parla di:
 
 ```text
-qual è la priorità operativa di questo case?
+status_code
+problem_code
+customer_tier
+manual_hold
 ```
 
-Non:
-
-```text
-come sono strutturate le colonne del database legacy?
-```
-
-Quindi il nuovo contratto dovrebbe parlare di concetti come:
+Parla di concetti target come:
 
 ```text
 CasePriorityInput
 PriorityDecision
 ```
 
-non di:
+Il legacy adapter si occupa della traduzione.
 
-```text
-status_code
-manual_hold
-problem_code
-customer_tier
-```
+Questo crea due vantaggi contemporaneamente:
 
-Quei nomi possono rimanere dentro un adapter legacy.
+1. i caller dipendono da un contratto stabile;
+2. il nuovo modello non eredita accidentalmente il vocabolario storico.
 
-## Branch by Abstraction
+Un seam che espone direttamente tutti i dettagli legacy non sta davvero proteggendo il nuovo dominio.
 
-AWS raccomanda Branch by Abstraction quando la funzionalità da sostituire è profonda nel monolite e non è semplice intercettarla al perimetro.
+Sta soltanto spostando il coupling.
 
-Il percorso descritto da AWS è:
+## Branch by Abstraction: il sistema resta eseguibile durante il cambio
 
-1. identificare la capability;
-2. introdurre un abstraction layer;
-3. portare i caller a usare quell'astrazione;
-4. costruire una nuova implementazione;
-5. effettuare lo switch quando è pronta;
-6. rimuovere la vecchia implementazione quando non serve più.
+AWS raccomanda Branch by Abstraction quando la capability è profonda nel monolite e non può essere intercettata facilmente al perimetro.
+
+Il pattern permette di introdurre un abstraction layer, spostare progressivamente i caller dietro quel boundary, aggiungere una candidate implementation e cambiare routing solo quando l'evidence lo giustifica.
 
 Fonte:
 
 - [AWS Prescriptive Guidance — Branch by abstraction pattern](https://docs.aws.amazon.com/prescriptive-guidance/latest/modernization-decomposing-monoliths/branch-by-abstraction.html)
 
-Il vantaggio è che il sistema resta eseguibile durante la trasformazione.
+Per Order Operations il modello è:
 
-Il costo è che per un periodo esistono più implementazioni e più struttura temporanea.
+```text
+PriorityPolicy
+├── LegacyPriorityAdapter
+└── ConfirmedPriorityPolicy
+```
 
-## Una astrazione temporanea deve avere un piano di uscita
+Il valore non è avere due classi.
 
-Il codice di migrazione tende ad avere una caratteristica pericolosa:
+È poter dire:
 
-> funziona abbastanza bene da sopravvivere alla migrazione.
+```text
+legacy authoritative today
+candidate observable tomorrow
+authority transferable later
+```
 
-Per questo adapter, feature flag e comparison layer devono avere:
+senza riscrivere simultaneamente tutti i caller.
 
-- owner;
-- data di review;
-- condition di rimozione;
-- test che possono essere eliminati insieme al path temporaneo;
-- metriche che ci dicono quando non servono più.
+## L'Anti-Corruption Layer localizza la compatibilità
 
-Altrimenti la migration architecture diventa permanent architecture per inerzia.
-
-## Anti-Corruption Layer durante la coesistenza
-
-Il legacy può usare valori come:
+Operations Desk Classic usa codici come:
 
 ```text
 NONE
@@ -97,76 +80,62 @@ URGENT
 STANDARD
 ```
 
-Il nuovo sistema non deve necessariamente adottarli come proprio modello interno.
-
-Un Anti-Corruption Layer può tradurre:
+Il target usa un proprio vocabolario:
 
 ```text
-legacy row
-→ adapter
-→ target domain input
+NotActionable
+ManualReview
+Urgent
+Standard
 ```
 
-oppure:
+L'**Anti-Corruption Layer** rende esplicita la traduzione fra i due modelli.
 
-```text
-legacy priority code
-→ target priority representation
-```
-
-Microsoft descrive l'Anti-Corruption Layer proprio come boundary che impedisce al modello di un sistema esterno o legacy di contaminare il modello del nuovo sistema.
+Microsoft descrive l'ACL proprio come un boundary che impedisce al modello legacy o esterno di deformare il design del nuovo sistema.
 
 Fonte:
 
 - [Microsoft Learn — Anti-Corruption Layer pattern](https://learn.microsoft.com/azure/architecture/patterns/anti-corruption-layer)
 
-## Lo shadow comparison come evidence
+La traduzione non è soltanto DTO mapping.
 
-Supponiamo di avere:
+È il posto in cui possiamo governare incompatibilità di naming, default, validation, missing field e altre differenze semantiche durante la coexistence.
 
-```text
-LegacyPriorityPolicy
-ConfirmedPriorityPolicy
-```
+## Shadow comparison: osservare il candidate senza dargli authority
 
-In modalità shadow:
+Una volta creati legacy e candidate policy possiamo eseguirli insieme:
 
 ```text
 input
-  ↓
-legacy ─────────────→ returned result
-  ↓
-candidate
-  ↓
-compare
-  ↓
-telemetry / evidence
+  ├── legacy    → authoritative result
+  └── candidate → observed result
+                   ↓
+                comparison
 ```
 
-Il risultato autorevole rimane quello legacy.
+Il caller continua a ricevere il risultato legacy.
 
-Il candidate non cambia ancora il comportamento utente.
+Il candidate produce soltanto evidence.
 
-Questo ci consente di misurare:
-
-- match rate;
-- differenze per rule class;
-- differenze per tenant o journey;
-- casi non classificati;
-- failure del candidate;
-- latency overhead della comparison.
-
-## Il comparison layer non deve nascondere il significato
-
-Un semplice contatore:
+Questo ci permette di porre domande nuove:
 
 ```text
-mismatch = 34
+quante decisioni coincidono?
+quali rule class divergono?
+quali differenze erano attese?
+quali non hanno spiegazione?
+quanto overhead introduce il comparison?
 ```
 
-serve poco.
+La comparison diventa quindi una forma di verification runtime prima del cutover.
 
-Meglio qualcosa come:
+## Un mismatch count senza semantica serve poco
+
+Sapere che esistono 34 mismatch non ci dice se il candidate sia sbagliato.
+
+Dobbiamo conservare abbastanza contesto per classificare la differenza.
+
+Un evento concettuale può contenere:
 
 ```text
 legacyPriority
@@ -177,33 +146,23 @@ candidateReason
 correlationId
 ```
 
-con attenzione alla cardinalità e alla data minimization.
+con cardinality e data minimization coerenti con l'Observability Contract.
 
-Esempio:
+Il punto non è loggare ogni dettaglio.
 
-```text
-legacy = URGENT
-candidate = STANDARD
-comparisonClass = ExpectedDifference
-ruleId = LEGACY_ENTERPRISE_30M
-```
-
-oppure:
+È permettere a Product, Operations ed Engineering di distinguere:
 
 ```text
-legacy = MANUAL_REVIEW
-candidate = STANDARD
-comparisonClass = UnexpectedDifference
-ruleId = MANUAL_HOLD
+Match
+ExpectedDifference
+UnexpectedDifference
 ```
 
-La prima differenza potrebbe essere intenzionale.
+## Expected Difference Registry: autorizzare prima, non spiegare dopo
 
-La seconda potrebbe bloccare il rollout.
+Se il target deve correggere o rimuovere un comportamento legacy, zero mismatch non è l'obiettivo giusto.
 
-## Expected difference registry
-
-Durante una modernizzazione con cambiamenti intenzionali, abbiamo bisogno di un piccolo registro delle differenze approvate.
+Per questo introduciamo un piccolo registro:
 
 ```text
 Difference ID
@@ -212,148 +171,116 @@ Target behavior
 Reason
 Owner
 Approval
-Expiry / cleanup condition
+Cleanup condition
 ```
 
-Questo impedisce due errori opposti.
+Per ESI apparirà `ED-001`, che rimuove la vecchia enterprise timer rule.
 
-### Errore 1 — zero mismatch come obiettivo assoluto
+Questo registro impedisce due failure mode opposti.
 
-Se vogliamo correggere un comportamento obsoleto, zero mismatch significa che non abbiamo ancora introdotto il cambiamento.
+### Zero mismatch theater
 
-### Errore 2 — ogni mismatch è “atteso”
+Il team modifica il candidate finché replica ogni comportamento storico, compresi quelli che Product voleva eliminare.
 
-Se classifichiamo retroattivamente ogni differenza come accettabile, lo shadow mode perde valore.
+### Retroactive justification
 
-> **Una differenza è attesa soltanto se era stata autorizzata prima di vederla.**
+Ogni mismatch nuovo viene dichiarato “atteso” soltanto perché il rollout deve continuare.
 
-## Shadow comparison e side effect
+La regola è molto semplice:
 
-Il comparison è relativamente semplice per funzioni pure.
+> **Una differenza è attesa soltanto se è stata autorizzata prima di essere osservata come risultato del rollout.**
 
-Diventa più delicato quando la capability:
+## Shadow mode è sicuro soltanto se gli effetti sono governati
 
-- scrive dati;
-- invia messaggi;
-- chiama provider;
-- modifica cache;
-- acquisisce lock;
-- invia notifiche.
+Con una funzione pura il confronto è relativamente semplice.
 
-In questi casi possiamo usare tecniche differenti:
+Con una capability che scrive dati, invia messaggi o chiama provider, eseguire il candidate in parallelo può creare un secondo effetto reale.
 
-- compare prima del side effect;
+In questi casi possiamo:
+
+- confrontare la decisione prima del side effect;
 - rendere il candidate read-only;
-- duplicare soltanto input sanitizzati in un environment separato;
-- confrontare decisioni invece di esecuzioni;
-- usare replay controllato.
+- eseguire replay in un environment separato;
+- duplicare input sanitizzati;
+- confrontare projection o outcome differiti.
 
-Non dobbiamo fare:
+Non possiamo chiamare “shadow” una seconda execution che può modificare il mondo con la stessa authority del path principale.
 
-```text
-old write
-+ new write
-```
+AWS segnala inoltre che Branch by Abstraction richiede particolare cautela quando la transizione coinvolge consistenza dei dati.
 
-senza aver progettato ownership, idempotency e reconciliation.
+## Il cutover non deve essere per forza percentuale
 
-AWS stessa segnala che Branch by Abstraction richiede particolare cautela quando entra in gioco la consistenza dei dati.
+Quando la comparison evidence è sufficiente possiamo rendere il candidate authoritative per una cohort limitata.
 
-## Cutover per cohort
-
-Quando il candidate ha abbastanza evidence possiamo passare da:
-
-```text
-shadow
-```
-
-a:
-
-```text
-candidate authoritative
-```
-
-ma non necessariamente per tutti contemporaneamente.
-
-Possiamo usare cohort come:
+Le cohort possono essere:
 
 ```text
 internal users
-→ selected tenant
-→ 5%
-→ 25%
-→ 100%
+selected tenants
+specific operator groups
+low-risk capabilities
+read-only path
+percentage of traffic
 ```
 
-oppure segmenti business espliciti.
+Nel software enterprise il 5% casuale non è sempre il criterio migliore.
 
-La percentuale non è sempre il criterio migliore.
+Un tenant può valere più di cento altri in termini di criticità o obblighi contrattuali.
 
-Per un sistema enterprise potremmo preferire:
+Il rollout deve quindi seguire il business boundary, non soltanto la statistica del traffico.
 
-- tenant meno critici;
-- region specifica;
-- capability specifica;
-- operator group;
-- read-only flow prima dei command.
+## Il candidate può essere stabile e semanticamente sbagliato
 
-## Cosa misurare durante il cutover
+Durante il cutover non basta guardare:
 
-Almeno:
+```text
+HTTP 500
+CPU
+latency
+```
+
+Dobbiamo osservare anche:
 
 ```text
 functional mismatch
-error rate
-latency
-resource saturation
+manual correction rate
 support signal
-manual override rate
-rollback frequency
 business outcome
+unexpected comparison class
 ```
 
-Non basta osservare che:
+Una priority policy può avere zero errori tecnici e ancora indirizzare gli operatori verso il lavoro sbagliato.
 
-```text
-HTTP 500 = 0
-```
+L'observability deve quindi misurare il significato del change, non soltanto la salute del processo.
 
-Una nuova priority policy potrebbe essere tecnicamente stabile e semanticamente sbagliata.
+## Caso reale — GitHub rate limiter
 
-## Caso reale: GitHub rate limiter
+GitHub ha descritto la migrazione del backend del proprio rate limiter da Memcached a Redis isolando la persistence dietro backend distinti e usando feature flag per spostare gradualmente il traffico e mantenere fallback rapido.
 
-GitHub ha raccontato la migrazione del backend del proprio rate limiter da Memcached a Redis.
-
-Il team isolò la persistence dietro backend distinti e usò una feature flag per aumentare gradualmente il traffico verso il nuovo path e poter tornare rapidamente al precedente.
-
-Il rollout iniziale sembrò riuscire, ma successivamente emersero bug semantici visibili ad alcuni client.
+Il rollout iniziale apparve riuscito, ma successivamente emersero bug semantici visibili ad alcuni client.
 
 Fonte:
 
 - [GitHub Engineering — How we scaled the GitHub API with a sharded, replicated rate limiter in Redis](https://github.blog/engineering/how-we-scaled-github-api-sharded-replicated-rate-limiter-redis/)
 
-È un caso utile perché mostra una cosa fondamentale:
+La lezione che ci interessa è precisa:
 
-> **rollout progressivo e fallback riducono il blast radius; non sostituiscono la comprensione semantica.**
+> **rollout progressivo e fallback riducono il blast radius; non sostituiscono la comprensione semantica del comportamento.**
 
-## Il seam come investimento temporaneo
+## La migration architecture deve sapere quando morire
 
-Durante una modernizzazione, un buon seam compra:
+Seam, adapter, routing switch, comparison telemetry ed Expected Difference Registry aggiungono complessità temporanea.
 
-- parallelismo;
+Questa complessità è giustificata perché compra:
+
 - reversibilità;
 - comparison;
-- testabilità;
-- isolamento del legacy model;
-- possibilità di cambiare strategia.
+- testability;
+- coexistence;
+- isolamento del legacy model.
 
-Ma costa:
+Ma deve avere una exit condition.
 
-- più codice;
-- più configurazione;
-- più path da testare;
-- cleanup futuro.
+Una migration architecture senza cleanup plan diventa semplicemente la prossima architettura legacy.
 
-Quindi vale la stessa regola dei pattern:
-
-> **La complessità temporanea deve avere un lavoro, una scadenza e una condizione di rimozione.**
+> **La struttura temporanea è sana soltanto quando sappiamo quale evidence ci permetterà di rimuoverla.**
