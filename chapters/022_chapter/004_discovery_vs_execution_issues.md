@@ -1,132 +1,32 @@
 # 22.4 — Discovery issue ed execution issue
 
-Non tutto il lavoro è pronto per essere implementato.
+Non tutto il lavoro che merita di essere tracciato è già pronto per essere implementato.
 
-E questo non è un difetto.
+A volte il risultato più professionale di un task non è un diff. È una riduzione dell'incertezza abbastanza forte da permettere una decisione successiva.
 
-A volte la cosa più professionale che possiamo fare è aprire una issue il cui outcome non è codice.
+Questa distinzione diventa particolarmente importante quando l'execution è economica. Se possiamo produrre codice molto rapidamente, aumenta la tentazione di usare l'implementazione per scoprire quale fosse il problema. In alcuni prototipi è una strategia sensata. In una migrazione, in un security boundary o in una capability con consumer sconosciuti può diventare un modo costoso di imparare tardi.
 
-## Due classi diverse di lavoro
+Per questo distinguiamo due classi di work item.
 
-Una **discovery issue** riduce incertezza.
+Una **discovery issue** prova a cambiare ciò che sappiamo. Una **execution issue** prova a cambiare il sistema sulla base di conoscenza già sufficientemente stabile.
 
-Una **execution issue** modifica il sistema sulla base di incertezza già abbastanza ridotta.
+La differenza non è teorica. Cambia che cosa consideriamo un outcome valido.
 
-Esempio discovery:
+## Quando il prossimo output deve essere conoscenza
 
-```text
-Problem
-Non sappiamo se il nightly export di Operations Desk Classic
-ha ancora consumer attivi.
+Immaginiamo di voler rimuovere un nightly export da Operations Desk Classic.
 
-Outcome
-consumer inventory con owner, frequenza e criticità.
+La frase “sostituisci il legacy export con la nuova API” sembra execution-ready soltanto finché non iniziamo a guardare il sistema reale. Potremmo scoprire uno script Finance, un consumer non registrato, una retention con valore audit o un processo manuale che nessuno aveva incluso nella Functional Analysis.
 
-Verification
-evidence da job config, access log e conferma owner.
+A quel punto il problema non è ancora “come implementiamo il nuovo contract?”. È:
 
-Out of scope
-spegnere il job.
-```
+> **chi dipende davvero dal comportamento attuale e quale compatibilità dobbiamo preservare?**
 
-Esempio execution:
+Una discovery issue può quindi avere come outcome un consumer inventory con owner, frequenza, criticità e livello di evidence. Il suo out of scope può essere esplicito: non spegnere il job, non cambiare il contract, non migrare ancora nessuno.
 
-```text
-Problem
-Un consumer confermato dipende ancora dal nightly export.
+Questa non è analisi che rallenta la delivery. È la delivery necessaria prima che il cambiamento possa avere un boundary credibile.
 
-Outcome
-spostare quel consumer sul nuovo contract approvato.
-
-Verification
-consumer contract test + staging evidence.
-```
-
-Confondere i due tipi di lavoro porta spesso a big-bang prematuri.
-
-## Il failure mode: implementation as discovery
-
-Un agente riceve:
-
-```text
-Replace legacy export with new API.
-```
-
-Durante il lavoro scopre che:
-
-- ci sono consumer sconosciuti;
-- il file contiene campi non documentati;
-- un team Finance lo usa manualmente;
-- la retention ha valore audit.
-
-Se continua comunque a implementare, stiamo usando il codice per scoprire il problema.
-
-Questo può essere utile in un prototipo controllato.
-
-Non dovrebbe essere il default per una migration con blast radius reale.
-
-> **Quando l'incertezza riguarda chi dipende dal comportamento, il primo output dovrebbe essere conoscenza, non una sostituzione.**
-
-## Spike e prototype
-
-Discovery non significa soltanto leggere documenti.
-
-Può includere:
-
-- spike tecnico;
-- benchmark;
-- proof of concept;
-- schema exploration;
-- synthetic test;
-- dependency graph;
-- data sampling non sensibile;
-- cost estimate;
-- threat exploration.
-
-La differenza sta nell'outcome.
-
-Un prototype può produrre codice, ma quel codice non è automaticamente production implementation.
-
-La issue deve dirlo.
-
-```text
-Deliverable
-throw-away prototype allowed
-
-Not acceptance
-production-ready implementation
-```
-
-## Exit criteria della discovery
-
-Una discovery issue dovrebbe definire quando sappiamo abbastanza per decidere.
-
-Per esempio:
-
-```text
-Exit when:
-- all current consumers are identified or explicitly classified unknown;
-- data owner is confirmed;
-- required compatibility window is known;
-- migration blockers are documented;
-- next decision can be framed as ADR or execution issue.
-```
-
-Senza exit criteria, la discovery può diventare ricerca infinita.
-
-## L'AI nella discovery
-
-Gli agenti sono molto utili per:
-
-- cercare call site;
-- confrontare schema;
-- mappare file;
-- estrarre candidate consumer;
-- trovare configurazioni;
-- sintetizzare log o documentazione;
-- proporre hypothesis.
-
-Ma torna la scala del Capitolo 17:
+Nel linguaggio del Capitolo 17 continuiamo a usare:
 
 ```text
 Found
@@ -135,24 +35,114 @@ Found
 → Confirmed
 ```
 
-Un agente può trovare tre script che leggono un file.
+Un agente può trovare tre script che leggono un file e formulare l'ipotesi che siano consumer. Non può promuovere automaticamente l'assenza di altri call site a prova che in produzione non esistano altri consumer.
 
-Non può concludere automaticamente che siano gli unici consumer in produzione.
+> **Discovery significa rendere più costoso confondere ciò che abbiamo trovato con ciò che abbiamo confermato.**
 
-## Promuovere discovery a execution
+## Il failure mode: implementation as discovery
 
-Una discovery termina bene quando riduce il task successivo.
+Il problema più insidioso nasce quando un task ambiguo viene trattato come implementazione e l'evidence emerge mentre il patch cresce.
+
+L'executor parte con un'interpretazione. Poi trova dati che la indeboliscono, ma invece di fermarsi incorpora workaround, nuove assunzioni e altre modifiche. Alla fine abbiamo imparato molto, ma lo abbiamo imparato dentro un diff che presupponeva già la risposta.
+
+La sequenza diventa:
+
+```text
+unknowns
+→ implementation
+→ discoveries
+→ patch expansion
+→ late semantic review
+```
+
+La sequenza più sicura, quando l'incertezza riguarda ownership, consumer, contract o rischio, è spesso:
+
+```text
+unknowns
+→ discovery
+→ explicit evidence
+→ decision
+→ bounded execution
+```
+
+Questo non impone sempre due issue. Impone però di riconoscere quando **l'output desiderato è conoscenza prima che codice**.
+
+## Spike e prototype non sono automaticamente production work
+
+Discovery può richiedere codice.
+
+Uno spike può misurare latency. Un prototype può verificare se una libreria supporta una capability. Un piccolo importer può permetterci di esplorare uno schema. Un benchmark può confrontare due alternative. Tutto questo è execution tecnica, ma non significa che il risultato debba diventare production implementation.
+
+Il work item deve rendere chiaro il contratto.
+
+```text
+Deliverable
+throw-away prototype + findings
+
+Acceptance
+question answered with evidence
+
+Not acceptance
+production-ready component
+```
+
+Questa distinzione protegge da un altro shortcut frequente: “funziona nel prototype, quindi lo promuoviamo”.
+
+Il prototype prova una domanda. La production implementation deve soddisfare un insieme più ampio di requirement, security, operability, ownership e lifecycle.
+
+## Anche la discovery ha bisogno di una fine
+
+Se l'execution issue ha acceptance criteria, la discovery ha bisogno di **exit criteria**.
+
+Non servono criteri finti del tipo “analisi completata”. Serve descrivere quale incertezza deve risultare abbastanza ridotta.
+
+Per l'export legacy potremmo decidere che la discovery termina quando i consumer conosciuti sono identificati o marcati esplicitamente come unknown, gli owner sono contattati, la compatibility window è stimata e i blocker possono essere trasformati in decisioni o execution issue.
+
+La discovery non deve eliminare ogni dubbio. Deve arrivare al punto in cui il dubbio residuo è compatibile con la prossima scelta.
+
+> **L'exit criterion della discovery è la decidibilità del passo successivo.**
+
+## L'AI è molto forte proprio nella discovery, ma non cambia la scala dell'evidence
+
+Gli agenti possono accelerare enormemente search, call-site mapping, schema comparison, configuration analysis e sintesi di documentazione. Possono proporre hypothesis e mettere in relazione segnali che un essere umano troverebbe in ore.
+
+Questa velocità non cambia il significato delle fonti.
+
+Se un agente non trova un consumer, abbiamo evidence di ricerca, non prova di assenza. Se deduce un owner da un namespace, abbiamo un'inferenza, non ownership confermata. Se un commento descrive una rule, abbiamo trovato testo, non necessariamente semantica corrente.
+
+Quindi il valore dell'AI nella discovery cresce insieme alla disciplina epistemica:
+
+```text
+fast search
++ explicit evidence state
+→ faster useful understanding
+```
+
+non:
+
+```text
+fast search
+→ automatic truth
+```
+
+## Promuovere una discovery a execution
+
+Una discovery è riuscita quando rende il lavoro successivo più piccolo e più autorizzabile.
+
+Dopo l'inventory dei consumer, per esempio, potremmo ottenere tre execution issue indipendenti, ciascuna con owner, contract e verification differenti. Oppure potremmo scoprire che uno dei consumer non può ancora migrare e che il legacy export deve restare per un periodo definito.
+
+In entrambi i casi abbiamo prodotto progresso, anche se non abbiamo rimosso una riga di legacy.
+
+La sequenza che ci interessa è:
 
 ```text
 broad uncertainty
         ↓
-discovery
+discovery evidence
         ↓
-explicit decision
+decision / confirmed boundary
         ↓
-small execution issue
+smaller execution issue
 ```
-
-La qualità della discovery si misura quindi anche dalla capacità di rendere la prossima issue più decidibile.
 
 > **Discovery non è il contrario della delivery. È delivery di conoscenza quando la conoscenza è il prerequisito del cambiamento.**
