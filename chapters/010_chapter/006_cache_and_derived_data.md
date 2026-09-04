@@ -1,28 +1,18 @@
 ## Cache: una copia con una data di scadenza
 
-La cache viene spesso presentata come una ottimizzazione semplice:
+La cache viene spesso introdotta con una frase semplice: “mettiamo Redis davanti al database”. Ma una cache non è un acceleratore neutrale. Introduce una seconda rappresentazione del dato e, con essa, una nuova domanda architetturale: **quanto tempo siamo disposti a mostrare una copia che potrebbe non essere aggiornata?**
 
-> “Metti Redis davanti al database.”
-
-In realtà una cache modifica il modello dei dati.
-
-Introduce almeno una nuova domanda:
-
-> **quanto tempo siamo disposti a mostrare una copia che potrebbe non essere aggiornata?**
-
-Redis documenta esplicitamente il pattern cache-aside come una strategia in cui l'applicazione legge prima dalla cache, ricade sul primary in caso di miss e invalida la cache sulle write. La documentazione collega direttamente TTL e tolleranza alla staleness.
+Redis documenta il pattern cache-aside come una strategia in cui l’applicazione legge prima dalla cache, ricade sul primary in caso di miss e aggiorna o invalida la cache quando cambia il dato. La stessa documentazione collega TTL e policy di caching alla tolleranza verso la staleness.
 
 Fonte:
 
 - [Redis Docs — Cache-aside](https://redis.io/docs/latest/develop/use-cases/cache-aside/)
 
-Quindi la cache non elimina il problema della consistency.
+Quindi la cache non elimina il problema della consistency. Lo rende un compromesso esplicito.
 
-Lo rende un compromesso esplicito.
+## Cache-aside e failure behavior
 
-## Cache-aside
-
-La forma tipica è:
+La forma di base è intuitiva:
 
 ```text
 read
@@ -36,120 +26,33 @@ cache fill
 return
 ```
 
-Sulla write:
+Ma il comportamento reale include anche invalidation fallita, entry vecchie riscritte da richieste concorrenti, expiration simultanee, hot key, cache indisponibile e key design che può perfino mescolare tenant differenti se il boundary non è espresso correttamente.
 
-```text
-update primary
-↓
-invalidate cache
-```
+Il punto è che la cache diventa parte del sistema. Se esiste, deve avere failure behavior, metriche e ownership. Non è una annotazione di performance.
 
-È un pattern relativamente semplice.
+## La freshness appartiene al requisito
 
-Ma anche qui esistono failure mode:
+“La lista deve essere veloce” non è un requisito sufficiente per introdurre caching. Prima dobbiamo sapere qual è la latency attuale, qual è il target, quale parte della query costa, quanto traffico ripetitivo esiste e soprattutto quale staleness sia accettabile.
 
-- l'invalidation fallisce;
-- una richiesta concorrente riempie la cache con il valore vecchio;
-- molte entry scadono insieme;
-- una key calda genera stampede;
-- il cache layer è indisponibile;
-- un bug nella key mescola tenant diversi;
-- TTL troppo lungo mostra dati stale;
-- TTL troppo corto elimina gran parte del beneficio.
+La stessa pagina può contenere dati con esigenze diverse. Il summary di un problema potrebbe tollerare qualche secondo di ritardo, mentre l’assignment effettuato dall’operatore può richiedere read-your-writes immediato. Cacheare tutto con la stessa policy perché “sta nella stessa response” sarebbe una scelta di implementazione che appiattisce semantiche differenti.
 
-La cache è un sistema.
+## La cache non è autorevole soltanto perché è veloce
 
-Non una annotazione.
+Se Redis scompare e il sistema non sa ricostruire il dato, probabilmente non stavamo usando una cache: stavamo usando un datastore primario non dichiarato.
 
-## La freshness deve appartenere al requisito
+Questo non significa che un in-memory store non possa mai essere autorevole. Significa che la responsabilità deve essere intenzionale. Quando lo chiamiamo cache, eviction, expiration, rebuild e cold start devono essere comportamenti compatibili con il sistema.
 
-Supponiamo che Operations chieda:
+## Cache stampede: una ottimizzazione può cambiare il failure domain
 
-> “La lista deve essere veloce.”
+Una hot key che scade può trasformare centinaia di cache miss simultanei in centinaia di query verso il primary. Se il database rallenta, le request rimangono aperte più a lungo, cresce la concurrency e il sistema può entrare in un feedback loop.
 
-Non basta per introdurre caching.
+Redis documenta questo rischio e le relative strategie di mitigazione. La lezione architetturale è più ampia: un componente introdotto per migliorare la performance può modificare il modo in cui un incidente si propaga.
 
-Dobbiamo sapere:
+## Derived data: copie costruite per un lavoro specifico
 
-- qual è la latency attuale?
-- qual è il target?
-- quale parte della query costa?
-- quante letture sono ripetitive?
-- quale staleness è accettabile?
-- cosa succede dopo una presa in carico?
+La cache è soltanto una delle forme di dato derivato. Materialized view, search index, read model, reporting aggregate, warehouse, feature vector, embedding e fraud score condividono una proprietà: non sono necessariamente la fonte autorevole del significato che rappresentano.
 
-Per esempio potremmo accettare:
-
-```text
-problem summary → fino a 30 secondi di staleness
-assignment state → read-your-writes immediato
-```
-
-Sono due proprietà diverse dentro la stessa pagina.
-
-Questo potrebbe portarci a non cacheare tutto nello stesso modo.
-
-## Cache non autorevole
-
-Una regola forte per il libro sarà:
-
-> **la cache non deve diventare la source of truth soltanto perché è più veloce da leggere.**
-
-Se perdiamo Redis e non sappiamo ricostruire il dato, non avevamo una cache.
-
-Avevamo un datastore primario non dichiarato.
-
-Questo non significa che un in-memory store non possa mai essere autorevole.
-
-Significa che la responsabilità deve essere intenzionale.
-
-Se lo usiamo come cache, dobbiamo poter tollerare:
-
-- eviction;
-- expiration;
-- rebuild;
-- cold start.
-
-## Cache stampede e feedback loop
-
-Una cache può proteggere il primary in condizioni normali e amplificare un incidente in condizioni anomale.
-
-Immaginiamo:
-
-```text
-hot key expires
-→ 500 request vedono miss
-→ 500 query arrivano al database
-→ database rallenta
-→ request restano aperte più a lungo
-→ aumenta la concurrency
-→ database rallenta ancora
-```
-
-Questo è un feedback loop.
-
-Redis documenta esplicitamente il rischio di cache stampede e tecniche di mitigazione.
-
-Il punto architetturale è che un componente introdotto per performance può modificare il failure domain.
-
-## Derived data: molto più della cache
-
-La cache è soltanto una forma di dato derivato.
-
-Altre forme sono:
-
-- materialized view;
-- search index;
-- read model;
-- reporting aggregate;
-- data warehouse;
-- data lake transformation;
-- feature vector;
-- embedding;
-- recommendation feature;
-- fraud score.
-
-Per ogni dato derivato dobbiamo poter rispondere:
+Per questo ogni dato derivato importante deve poter rispondere a poche domande essenziali:
 
 ```text
 source
@@ -171,115 +74,30 @@ failure
 Come sappiamo che è stale o incompleto?
 ```
 
-Queste domande diventeranno ancora più importanti nei capitoli Data & AI.
+Queste domande diventano ancora più importanti quando il dato derivato alimenta modelli AI o decisioni automatizzate, perché la distanza tra source e consumer può crescere rapidamente.
 
-## La duplicazione può ridurre coupling runtime
+## Duplicare dati può ridurre coupling runtime
 
-Duplicare dati viene spesso trattato come un male assoluto.
+Order Operations potrebbe leggere live da Orders, Payments e Shipping per costruire ogni vista. Questa soluzione preserva freshness ma lega il journey alla latency e alla availability di tre capability.
 
-Non lo è.
+Una projection locale potrebbe invece mantenere `order_status`, `payment_status`, `shipment_status`, `problem_category` e timestamp di source/projection. La query diventerebbe semplice e il runtime coupling diminuirebbe, ma il costo si sposterebbe su propagation, staleness, reconciliation, rebuild e pipeline observability.
 
-Supponiamo che Order Operations debba chiamare live:
+È un trade-off, non un miglioramento gratuito:
 
-```text
-Orders
-Payments
-Shipping
-```
-
-per ogni riga della lista.
-
-Potremmo avere un journey molto fresco ma fortemente accoppiato alla latency e availability di tre componenti.
-
-Una proiezione locale potrebbe invece contenere:
-
-```text
-order_id
-order_status
-payment_status
-shipment_status
-problem_category
-source_updated_at
-projection_updated_at
-```
-
-Ora la query operativa è semplice.
-
-Il costo si sposta su:
-
-- propagation;
-- staleness;
-- rebuild;
-- reconciliation;
-- pipeline observability.
-
-È un trade-off reale.
-
-> **Il decoupling runtime spesso si paga con data synchronization.**
+> **il decoupling runtime spesso si paga con data synchronization.**
 
 ## Quando una copia diventa pericolosa
 
-Una copia è pericolosa quando nessuno sa più che è una copia.
+Il rischio cresce quando una copia smette di essere riconosciuta come tale. Consumer che la modificano direttamente, business rule duplicate, campi senza source, assenza di freshness evidence o mismatch risolti con un generico “last write wins” sono segnali che due rappresentazioni stanno diventando due sistemi concorrenti.
 
-Segnali tipici:
+La Data Ownership Map serve anche a prevenire questa deriva.
 
-- consumer che la modificano direttamente;
-- business rule duplicate nella projection;
-- campi senza source dichiarata;
-- assenza di timestamp di aggiornamento;
-- impossibilità di ricostruire la derivazione;
-- mismatch trattati con “last write wins” senza semantica;
-- il team usa la copia per correggere l'originale manualmente.
+## ESI: Redis resta fuori, la projection resta un’opzione
 
-A quel punto abbiamo creato due sistemi concorrenti.
+Il Capitolo 6 aveva già rinviato Redis per mancanza di evidenza e il Capitolo 10 non crea magicamente un nuovo requisito. Order Operations continuerà quindi, per ora, a usare query e index ragionevoli sul datastore relazionale.
 
-## ESI: non introduciamo Redis nel Capitolo 10
+Se misure reali mostreranno lookup ripetitivi costosi, pressione sul primary o latency incompatibile con il target, la cache tornerà tra le alternative. Entrerà però insieme a uno staleness budget, una invalidation policy, key design tenant-safe, fallback behavior e metriche utili; non insieme alla frase “Redis è veloce”.
 
-Il Capitolo 6 aveva già rinviato Redis per mancanza di evidenza.
+La possibilità più interessante rimane una futura projection operativa. Non la implementiamo ancora, ma la Data Ownership Map distingue già authoritative data, derived operational data e dati posseduti localmente. Questo ci consente di aggiungere una projection in futuro senza ridiscutere nel mezzo di un incidente chi possieda la verità.
 
-Questa decisione resta valida.
-
-Il fatto che ora stiamo parlando di data architecture non crea un nuovo requisito.
-
-Order Operations userà inizialmente query e index ragionevoli sul datastore relazionale.
-
-Se misure reali mostreranno:
-
-- lookup ripetitivi molto costosi;
-- primary sotto pressione;
-- latency incompatibile con il target;
-
-allora la cache tornerà tra le alternative.
-
-Ma entrerà insieme a:
-
-- staleness budget;
-- invalidation policy;
-- tenant-safe key design;
-- fallback behavior;
-- metriche di hit/miss;
-- stampede protection quando necessaria.
-
-Non insieme alla frase:
-
-> “Redis è veloce.”
-
-## Prepariamo invece il concetto di projection
-
-La decisione più interessante per Order Operations non è oggi la cache.
-
-È capire se in futuro la vista operativa meriterà una projection locale.
-
-Non la implementiamo ancora.
-
-La Data Ownership Map però distinguerà già:
-
-```text
-Authoritative data
-Derived operational data
-Local-owned operational data
-```
-
-Questo ci permetterà di introdurre una projection in futuro senza ridefinire l'ownership nel mezzo di un incidente di performance.
-
-> **Duplicare il dato può essere una ottimizzazione. Duplicare l'autorità è quasi sempre un problema.**
+> **Duplicare la rappresentazione può essere utile. Duplicare l’autorità è quasi sempre un problema.**
