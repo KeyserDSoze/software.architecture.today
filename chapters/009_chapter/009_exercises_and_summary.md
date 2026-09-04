@@ -1,23 +1,24 @@
 ## Idee chiave
 
-1. **un'API è una promessa, non un controller.** Il contratto comprende semantica, errori, side effect, authorization, compatibility e failure behavior.
-2. **Il protocollo viene dopo l'interazione.** REST, gRPC, GraphQL, WebSocket, webhook e messaging risolvono problemi differenti e spostano complessità in punti differenti.
-3. **L'API deve modellare il dominio, non lo storage.** Un refactoring del database non dovrebbe diventare automaticamente una breaking change.
-4. **HTTP possiede già semantica.** Safe method, idempotenza, status code e header sono parte di un ecosistema condiviso; reinventarli senza motivo aumenta ambiguità.
-5. **Idempotency riguarda l'effetto intenzionale.** Non richiede che ogni risposta sia identica.
-6. **Gli errori sono parte della capability.** Un consumer deve sapere che cosa può fare quando l'happy path non si verifica.
-7. **Pagination e filtering sono contratti.** Non semplici ottimizzazioni da aggiungere quando il dataset cresce.
-8. **Backward compatibility va letta dal punto di vista del consumer.** Anche modifiche additive possono avere conseguenze semantiche.
-9. **Versionare non elimina il costo del cambiamento.** Permette di distribuirlo nel tempo, pagando supporto parallelo e migrazione.
-10. **Uno schema non contiene tutta la semantica.** OpenAPI, `.proto` e GraphQL schema sono preziosi, ma non sostituiscono invarianti, ownership, freshness e failure behavior.
-11. **L'AI può generare contratti velocemente.** Per questo deve aumentare anche la qualità della review su semantica, compatibility e blast radius.
-12. **Non pubblicare un endpoint prematuro è una decisione di design.** Order Operations non espone ancora command di remediation perché l'analisi funzionale non li ha definiti abbastanza bene.
+Un'API è una promessa, non un controller.
 
-## Artefatto operativo
+La promessa comprende ciò che il consumer può osservare: significato di request e response, authorization, side effect, errori, idempotency, freshness, limiti e regole di evoluzione. L'implementazione interna dovrebbe restare fuori dal contratto finché non produce una conseguenza che il consumer deve davvero conoscere.
 
-L'artefatto del capitolo è:
+Per questo il protocollo viene dopo l'interazione. REST, gRPC, GraphQL, WebSocket, webhook e messaging non sono alternative su una scala di modernità. Rispondono a forze differenti: immediatezza della risposta, shape dei dati, direzione del push, temporal coupling, governance dei client e semantica di delivery.
 
-> **API Contract**
+Quando scegliamo HTTP conviene usare la semantica che il protocollo possiede già. Safe method, idempotenza, status code e header fanno parte di un ecosistema condiviso. L'idempotenza non significa ottenere la stessa response, ma proteggere l'effetto intenzionale da duplicazioni indesiderate. Per operazioni business non naturalmente idempotenti dobbiamo definire esplicitamente l'unità di intento e il comportamento dei retry.
+
+Gli errori, la pagination, il filtering, i rate limit e i timeout fanno parte della capability perché determinano che cosa il consumer possa fare quando il sistema reale devia dall'happy path.
+
+La compatibility aggiunge la dimensione temporale. Un contratto evolvibile riduce il bisogno di coordinare tutti i consumer nello stesso momento. Breaking change e incompatibilità possono essere semantiche anche quando lo schema resta formalmente valido. Versioning e deprecation sono strumenti per gestire questa convivenza, non sostituti di una strategia di compatibilità.
+
+OpenAPI, Protocol Buffers, JSON Schema e GraphQL schema rendono una parte della promessa machine-readable e quindi verificabile. Non contengono automaticamente ownership, domain invariant, freshness o failure behavior. Per questo il nostro **API Contract** affianca schema e significato senza duplicare la spec.
+
+Con l'AI il costo di generare e adottare una public surface è molto più basso. Questo amplifica sia i contratti buoni sia quelli sbagliati. Il gate deve quindi spostarsi sulle decisioni semantiche con alto blast radius, mentre scaffolding, schema diff e molta parte dei contract test possono essere automatizzati.
+
+Order Operations applica questa disciplina in modo esplicito: al Capitolo 9 la baseline contract-ready è read-oriented. Le remediation economiche non vengono pubblicate soltanto perché tecnicamente facili da implementare. Verranno aggiunte quando analisi funzionale, ownership, authorization, idempotency e failure semantics saranno abbastanza definite.
+
+## Artefatto operativo — API Contract
 
 ```text
 API / Capability
@@ -42,35 +43,38 @@ Examples
 Open decisions
 ```
 
-Lo snapshot corrente di Order Operations è in:
+Il file cumulativo vivo di Order Operations è:
 
 ```text
-capstone/acme-orders/docs/api-contract.md
+capstone/example-software-industries/products/order-operations/docs/api-contract.md
 ```
+
+Il capstone continua a evolvere nei capitoli successivi. Per questo il documento corrente del repository può contenere capability che, a questo punto della narrazione, non sono ancora state introdotte. Il Capitolo 9 descrive la baseline e il reasoning che precedono quelle evoluzioni; il file vivo conserva lo stato cumulativo più recente del prodotto.
 
 ## Cosa cambia con l'AI
 
-L'AI abbassa fortemente il costo di produrre:
+L'AI rende economico produrre insieme:
 
 ```text
 API implementation
-+ OpenAPI
++ machine-readable spec
 + client SDK
 + mock
 + test
 + documentation
 ```
 
-Questo è un vantaggio enorme quando il contratto è buono.
+Questo è un acceleratore quando la promessa è già chiara.
 
-È un acceleratore di coupling quando il contratto è cattivo.
+Diventa un acceleratore di coupling quando il contratto nasce direttamente dal database, da un framework CRUD o da un prompt troppo generico.
 
-Per questo il workflow consigliato è:
+Il workflow che vogliamo favorire è:
 
 ```text
 functional understanding
+→ consumer need
 → contract intent
-→ human/agent design alternatives
+→ design alternatives
 → machine-readable schema
 → compatibility review
 → implementation
@@ -109,15 +113,15 @@ Analizza:
 
 Per ciascun caso scegli almeno due candidati e confronta i trade-off:
 
-1. backend interno deve chiedere a un pricing service il prezzo di 50 prodotti;
-2. dashboard deve ricevere aggiornamenti di mercato più volte al secondo;
-3. provider pagamento deve notificare l'esito di un pagamento dopo alcuni minuti;
-4. mobile app vuole scegliere campi diversi per schermate molto variabili;
-5. ordine completato deve essere consumato indipendentemente da analytics, email e loyalty.
+1. un backend interno deve chiedere a un pricing service il prezzo di 50 prodotti;
+2. una dashboard deve ricevere aggiornamenti di mercato più volte al secondo;
+3. un provider pagamento deve notificare l'esito di un pagamento dopo alcuni minuti;
+4. una mobile app vuole scegliere campi diversi per schermate molto variabili;
+5. un ordine completato deve essere consumato indipendentemente da analytics, email e loyalty.
 
 Non basta scrivere “REST”, “gRPC” o “Kafka”.
 
-Spiega il fit.
+Spiega quali forze rendono il candidato adatto e quale complessità sposta altrove.
 
 ## 3. Idempotency failure
 
@@ -139,7 +143,9 @@ Definisci:
 - duplicate behavior;
 - retention minima necessaria;
 - response al retry;
-- comportamento se stessa key viene riutilizzata con payload differente.
+- comportamento se la stessa key viene riutilizzata con payload differente.
+
+Poi indica quale componente possiede la deduplication e che cosa accade se anche il provider esterno implementa una propria idempotency key.
 
 ## 4. Problem Details
 
@@ -153,7 +159,7 @@ Prendi questi errori:
 
 Progetta un error model HTTP coerente usando status code e, quando utile, Problem Details.
 
-Per ogni errore indica che cosa può fare il consumer dopo averlo ricevuto.
+Per ogni errore indica che cosa può fare il consumer dopo averlo ricevuto e quali dettagli interni non devono attraversare il boundary.
 
 ## 5. Breaking change detector umano
 
@@ -162,13 +168,13 @@ Classifica come `compatible`, `breaking`, `depends`:
 - aggiunta di un campo opzionale in response;
 - nuovo valore di enum;
 - rename di un campo;
-- riduzione di page size massima;
+- riduzione della page size massima;
 - nuovo requisito di authorization;
 - cambio da dati live a proiezione con 30 secondi di lag;
 - nuovo campo required in request;
-- modifica di ordering di default.
+- modifica dell'ordering di default.
 
-Spiega la prospettiva del consumer.
+Spiega sempre la prospettiva del consumer e indica quali casi uno schema diff automatico potrebbe non riconoscere.
 
 ## 6. Versioning strategy
 
@@ -187,7 +193,7 @@ Disegna:
 
 Poi ripeti l'esercizio assumendo che l'API abbia soltanto tre consumer nello stesso monorepo.
 
-Confronta il costo di governance.
+Confronta il costo di governance e il bisogno di compatibilità temporale.
 
 ## 7. Pagination sotto modifica concorrente
 
@@ -208,7 +214,8 @@ Analizza:
 - stabilità;
 - costi;
 - UX;
-- semplicità.
+- semplicità;
+- significato dell'ordering mentre il dataset cambia.
 
 Non scegliere automaticamente il cursor.
 
@@ -226,7 +233,7 @@ Respinta
 Da verificare
 ```
 
-Poi aggiungi almeno un rischio che l'agente non ha trovato.
+Poi aggiungi almeno un rischio che l'agente non ha trovato e identifica quale evidence servirebbe per decidere sui punti `Da verificare`.
 
 ## 9. Order Operations — aggiungiamo una remediation
 
@@ -243,9 +250,12 @@ Prima di creare l'endpoint, aggiorna l'analisi funzionale con:
 - idempotency unit;
 - audit;
 - failure del provider;
-- stato mostrato durante l'attesa.
+- stato mostrato durante l'attesa;
+- ownership della decisione economica.
 
 Solo dopo disegna il contratto API.
+
+Se un punto rimane non deciso, indica se impedisce di considerare la capability contract-ready.
 
 ## 10. Contract test strategy
 
@@ -260,7 +270,28 @@ Per l'API dell'esercizio precedente definisci test che verifichino:
 - provider timeout;
 - retry duplicato.
 
-Indica quali proprietà non possono essere verificate da un semplice test generato dallo schema.
+Indica quali proprietà non possono essere verificate da un semplice test generato dallo schema e quale altra evidence serva.
+
+## 11. Il contratto che l'AI ha diffuso troppo velocemente
+
+Un agente ha generato un endpoint interno, OpenAPI e client SDK. In due settimane sei team hanno iniziato a usarlo.
+
+Scopriamo poi che un campo chiamato `status` espone direttamente una classificazione interna che dobbiamo cambiare.
+
+Progetta un piano che distingua:
+
+```text
+compatibility immediata
+telemetria sui consumer
+nuova semantica
+migration path
+deprecation
+rimozione
+```
+
+Poi rispondi:
+
+> quale gate prima della pubblicazione avrebbe ridotto il blast radius senza rallentare inutilmente lo scaffolding?
 
 ---
 
@@ -271,13 +302,16 @@ Indica quali proprietà non possono essere verificate da un semplice test genera
 3. Riesco a spiegare quando GraphQL, WebSocket o messaging spostano complessità invece di eliminarla?
 4. So distinguere safe e idempotent?
 5. So progettare un'operazione business in modo sicuro rispetto ai retry?
-6. So definire un error model che guidi il comportamento del consumer?
-7. So riconoscere un'API che espone lo schema interno?
-8. Riesco a identificare breaking change semantiche oltre a quelle sintattiche?
-9. So scegliere una strategia di versioning proporzionata al numero e al controllo dei consumer?
-10. Riesco a progettare pagination e filtering come parte del contratto?
-11. So distinguere ciò che uno schema machine-readable verifica da ciò che richiede una regola di dominio?
-12. Saprei impedire a un coding agent di pubblicare un'API semanticamente prematura anche se il codice è corretto?
+6. So definire l'unità di intento di una idempotency key?
+7. So creare un error model che guidi il comportamento del consumer?
+8. So riconoscere un'API che espone lo schema interno?
+9. Riesco a identificare breaking change semantiche oltre a quelle sintattiche?
+10. So scegliere una strategia di versioning proporzionata al numero e al controllo dei consumer?
+11. Riesco a progettare pagination e filtering come parte del contratto?
+12. So distinguere ciò che uno schema machine-readable verifica da ciò che richiede una regola di dominio?
+13. So descrivere freshness e failure behavior come parte della promessa?
+14. Saprei impedire a un coding agent di pubblicare un'API semanticamente prematura anche se il codice è corretto?
+15. So decidere quali parti della compatibility review delegare al tooling e quali richiedono judgment?
 
 ## Fonti principali del capitolo
 
@@ -295,6 +329,6 @@ Indica quali proprietà non possono essere verificate da un semplice test genera
 
 Un endpoint è facile da generare.
 
-Una promessa che può essere mantenuta, evoluta e compresa da chi dipende da noi richiede molto più giudizio.
+Una promessa che può essere mantenuta, compresa ed evoluta da chi dipende da noi richiede più giudizio.
 
-> **Progetta il contratto per il consumer. Nascondi l'implementazione che il consumer non deve conoscere.**
+> **Progetta il contratto per il consumer. Nascondi l'implementazione che il consumer non deve conoscere. E non pubblicare una promessa prima di sapere che cosa significa.**
