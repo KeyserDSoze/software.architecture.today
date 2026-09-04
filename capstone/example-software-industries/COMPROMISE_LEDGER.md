@@ -208,7 +208,43 @@ Trigger
 
 **Trigger:** runtime shadow telemetry disponibile; consumer inventory completato; unexpected mismatch assente nella finestra concordata; performance overhead accettabile; rollout/fallback owner definiti. Solo allora candidate routing può aumentare. Data migration/legacy retirement richiedono un nuovo gate e point-of-no-return review.
 
-## Capitolo 19 e successivi
+## Capitolo 19 — Architecture Evolution
+
+**Esigenza:** permettere a Order Operations di evolvere rapidamente senza perdere nel tempo boundary, quality attribute e decisioni già conquistate.
+
+**Tensione:** autonomia dei team e degli agenti vs architecture drift; governance vs delivery speed; policy stabile vs context drift.
+
+**Decisione:** ESI introduce un portfolio di fitness function con `Architecture Fitness Checklist`, architecture test eseguibili, review trigger ed exception policy con owner/expiry. Le regole meccaniche vengono automatizzate; il cambio di architectural intent resta una decisione esplicita.
+
+**Costo accettato:** alcune regole, test e review devono essere mantenuti insieme al codice; la governance non è zero-cost.
+
+**Quality floor:** nessun drift silenzioso su legacy isolation, dependency direction, contract boundary e vendor leakage nel core; una exception non può diventare permanente per inerzia.
+
+**Guardrail:** `docs/architecture-fitness-checklist.md`, `tests/architecture-fitness.test.mjs`, ADR review trigger, exception expiry e portfolio review.
+
+**Evidence:** Thoughtworks evolutionary architecture/fitness functions, AWS cloud fitness functions, Microsoft Well-Architected continuous review e GitHub SERVICEOWNERS. Gate locale AF-001…AF-005: `5/5 PASS`.
+
+**Trigger:** new boundary, new vendor SDK, new exception, context/SLO/security change, recurring false-positive o fitness rule che non protegge più una proprietà utile.
+
+## Capitolo 20 — Costi e decisioni
+
+**Esigenza:** rendere sostenibile e prevedibile la crescita economica di Order Operations senza trasformare cost optimization in quality degradation.
+
+**Tensione:** Finance vuole contenere run rate; Security difende private boundary; Reliability difende headroom/zone resilience; Operations difende diagnostic evidence; Engineering vuole limitare complexity e migration overlap.
+
+**Decisione:** ESI introduce `docs/cost-model.md`, cost driver map, architectural premium, unit economics candidate, allocation direction e cost review trigger. Prima si riduce waste; soltanto dopo si riaprono quality premium che cambiano il comportamento del sistema.
+
+**Costo accettato:** Order Operations non è la topologia più economica possibile; continua a pagare premium intenzionali per security, reliability, observability e migrazione reversibile.
+
+**Quality floor:** correctness, tenant isolation, required authentication/authorization, required reliability/recovery e minimum operability non vengono ridotti implicitamente da un target di spesa.
+
+**Guardrail:** `Cost Model`, property-purchased per major cost, unit metric + quality metric, allocation metadata, `tests/cost-fitness.test.mjs`, artifact reopening quando un cost cut cambia security/SLO/recovery/observability.
+
+**Evidence:** Microsoft Azure Well-Architected Cost Optimization e Cost Model; FinOps Framework Unit Economics, Allocation e Architecting & Workload Placement; casi Uber su CPU right-sizing, Big Data supply/demand, partial replication e artifact storage. Cost metadata guard locale CF-001…CF-002 esercitato: `2/2 PASS`; production billing/unit economics restano Pending.
+
+**Trigger:** billing reale disponibile, cost/unit trend diverge dal business volume, Premium/new paid capability, telemetry growth, legacy coexistence oltre milestone, SLO/security requirement change, introduzione di workload AI materialmente costoso.
+
+## Capitolo 21 e successivi
 
 Il ledger continua insieme al manoscritto.
 
