@@ -1,279 +1,57 @@
 # Compromessi, non scorciatoie
 
-Nel corso di questo libro Example Software Industries S.p.A. ci metterà spesso davanti a richieste incompatibili fra loro.
+Nel corso di questo libro Example Software Industries S.p.A. ci metterà spesso davanti a richieste incompatibili fra loro. Product vorrà uscire prima, Security vorrà ridurre il rischio, Operations pretenderà sistemi semplici da diagnosticare e recuperare, Platform Engineering cercherà standardizzazione mentre i team prodotto chiederanno autonomia. Finance guarderà il costo totale, Legal e Compliance introdurranno vincoli non negoziabili, e i clienti enterprise porteranno SLA, data residency, audit e integrazioni che il team non aveva previsto.
 
-Product vorrà uscire prima.
-
-Security vorrà ridurre il rischio.
-
-Operations vorrà sistemi semplici da diagnosticare e recuperare.
-
-Platform Engineering vorrà standardizzare.
-
-I team prodotto vorranno autonomia.
-
-Finance guarderà il costo totale.
-
-Legal e Compliance introdurranno vincoli che non possono essere ignorati.
-
-I clienti enterprise porteranno SLA, data residency, audit e integrazioni che il team non aveva previsto.
-
-Se il libro facesse finta che tutte queste esigenze possano essere massimizzate contemporaneamente, racconterebbe un'architettura che esiste soltanto nei diagrammi.
-
-Per questo useremo un compromesso esplicito in ogni capitolo.
+Se il libro facesse finta che tutte queste esigenze possano essere massimizzate contemporaneamente, racconterebbe un'architettura che esiste soltanto nei diagrammi. Per questo ogni capitolo deve rendere visibile almeno un compromesso reale per il contesto ESI, non come scenetta artificiale ma come conseguenza naturale del problema affrontato.
 
 ## Un compromesso per capitolo
 
-Ogni capitolo deve contenere almeno una decisione ESI in cui due o più esigenze legittime entrano in tensione.
+Le tensioni cambiano a seconda del tema. A volte dovremo bilanciare velocità e comprensione, altre volte semplicità e scalabilità indipendente. In un sistema distribuito potremo sacrificare parte della consistenza per aumentare availability; in una piattaforma dovremo scegliere quanta standardizzazione imporre senza annullare l'autonomia dei team. Security può aumentare frizione operativa, reliability può costare di più, backward compatibility può rallentare l'evoluzione e una maggiore autonomia degli agenti può aumentare il blast radius.
 
-Non deve essere una scenetta artificiale inserita per rispettare una formula.
-
-Deve nascere dal problema del capitolo.
-
-Per esempio:
-
-```text
-velocità
-vs
-comprensione
-
-semplicità
-vs
-scalabilità indipendente
-
-consistenza
-vs
-availability
-
-standardizzazione
-vs
-autonomia
-
-security
-vs
-frizione operativa
-
-reliability
-vs
-costo
-
-backward compatibility
-vs
-velocità di evoluzione
-
-autonomia degli agenti
-vs
-blast radius
-```
-
-La domanda non sarà mai soltanto:
-
-> Qual è la soluzione migliore?
-
-La domanda sarà:
+La domanda quindi non sarà quasi mai “qual è la soluzione migliore?” in senso assoluto. Sarà piuttosto:
 
 > **Quale soluzione ha il fit migliore con le priorità e i vincoli reali di questo momento?**
 
 ## Trade-off non significa abbassare la qualità
 
-La parola *compromesso* può essere fraintesa.
-
-Potrebbe sembrare il modo elegante per dire:
-
-> Non abbiamo avuto tempo di farlo bene.
-
-Non è ciò che intendiamo.
+La parola *compromesso* può essere fraintesa come un modo elegante per dire che non abbiamo avuto tempo di fare bene il lavoro. Non è ciò che intendiamo.
 
 > **Un trade-off accetta un costo consapevole per ottenere un beneficio prioritario. Una scorciatoia nasconde un costo e spera che non presenti il conto.**
 
-Una deadline può farci scegliere una soluzione più semplice.
-
-Non ci autorizza automaticamente a eliminare i test che ci servono per sapere se quella soluzione funziona.
-
-Un budget limitato può farci rinunciare a un'architettura active-active multi-region.
-
-Non ci autorizza a non avere backup o recovery coerenti con il rischio reale.
-
-Un piccolo team può scegliere un modular monolith invece di molti servizi.
-
-Non ci autorizza a creare un monolite senza confini, ownership e modularità.
-
-Una maggiore autonomia degli agenti può aumentare l'execution.
-
-Non ci autorizza a rinunciare a permission boundary, verification e stop condition.
+Una deadline può spingerci verso una soluzione più semplice, ma non ci autorizza automaticamente a eliminare i test che servono per sapere se quella soluzione funziona. Un budget limitato può rendere sproporzionata un'architettura active-active multi-region senza giustificare l'assenza di backup o recovery coerenti con il rischio. Un piccolo team può scegliere un modular monolith invece di molti servizi, ma non per questo deve accettare un monolite senza confini o ownership. Allo stesso modo, una maggiore autonomia degli agenti può aumentare l'execution senza rendere superflui permission boundary, verification e stop condition.
 
 ## Il quality floor
 
-Per ogni compromesso distingueremo tre categorie.
+Per ragionare sui compromessi distingueremo tre cose. La prima è ciò che vogliamo **ottimizzare**, per esempio time-to-market, latency, costo, availability, developer experience, deployability o autonomia di team. La seconda è ciò che accettiamo consapevolmente di rendere meno ottimale: scegliere un modular monolith, per esempio, può significare rinunciare a deploy e failure isolation completamente indipendenti per ogni modulo.
 
-### Qualità che vogliamo ottimizzare
+La terza categoria è il **quality floor**, cioè l'insieme delle proprietà che, in quel contesto, non possiamo degradare soltanto per rendere più comoda una scelta. Correctness, data integrity, requisiti normativi, isolamento fra tenant, sicurezza minima, recovery, audit, compatibilità contrattuale, verificabilità e accountability possono appartenere a questa categoria. La soglia concreta cambia da prodotto a prodotto, ma una volta dichiarata deve restare visibile durante la decisione.
 
-Sono le proprietà che motivano la decisione.
+## Guardrail: come rendiamo governabile il compromesso
 
-Per esempio:
+Un compromesso serio non finisce con la scelta. Deve anche spiegare come impedire che il costo accettato superi il limite. Test e contract test, permission boundary, static analysis e architecture test possono trasformare un rischio in qualcosa di osservabile. SLO, budget alert, feature flag, canary, rate limit, backup, rollback e observability fanno la stessa cosa a livelli diversi. In altri casi il guardrail può essere un ADR, un manual gate o una stop condition imposta a un agente.
 
-- time-to-market;
-- latency;
-- costo;
-- availability;
-- developer experience;
-- deployability;
-- autonomia di team.
-
-### Qualità che accettiamo di rendere meno ottimali
-
-Sono costi reali della decisione.
-
-Devono essere dichiarati.
-
-Per esempio scegliere un modular monolith può significare accettare che non tutti i moduli abbiano deploy e failure isolation indipendenti.
-
-### Qualità non negoziabili
-
-Sono il **quality floor**.
-
-Il loro livello dipende dal contesto, ma una volta definito non può essere abbassato accidentalmente per rendere più comoda la soluzione.
-
-Possono includere:
-
-- correctness;
-- data integrity;
-- requisiti normativi;
-- isolamento fra tenant;
-- sicurezza minima;
-- possibilità di recovery;
-- audit richiesto;
-- compatibilità contrattuale;
-- verificabilità;
-- accountability.
-
-Non tutte queste proprietà avranno la stessa soglia in tutti i prodotti.
-
-Ma se una proprietà è realmente non negoziabile, il trade-off deve rispettarla.
-
-## Guardrail: come rendiamo sicuro il compromesso
-
-Un compromesso serio non finisce con la decisione.
-
-Chiede anche:
-
-> Come impediamo che il costo accettato superi il limite?
-
-I guardrail possono essere:
-
-- test;
-- contract test;
-- permission boundary;
-- static analysis;
-- architecture test;
-- budget alert;
-- SLO;
-- feature flag;
-- canary;
-- rate limit;
-- backup;
-- rollback;
-- observability;
-- ADR;
-- manual gate;
-- stop condition per un agente.
-
-Il guardrail non elimina il trade-off.
-
-Lo rende governabile.
+Il guardrail non elimina il trade-off. Lo rende governabile.
 
 ## Trigger di revisione
 
-Una decisione può essere corretta oggi e sbagliata fra un anno.
+Una decisione corretta oggi può diventare sbagliata fra un anno. Per questo i compromessi importanti devono avere trigger osservabili: un p95 che supera una soglia può riaprire la discussione sul caching; due team che devono rilasciare indipendentemente ogni settimana possono costringerci a rivalutare un service boundary; un nuovo requisito RPO può rendere insufficiente la strategia di recovery. Se il carico di una console inizia a impattare il workload transazionale, o se un agente ottiene permessi più ampi di quelli inizialmente previsti, la decisione va riesaminata.
 
-Per questo i compromessi importanti devono avere trigger osservabili.
-
-Per esempio:
-
-```text
-se il p95 supera X
-→ rivalutare il caching
-
-se due team devono rilasciare indipendentemente ogni settimana
-→ rivalutare il service boundary
-
-se il carico della console impatta il workload transazionale
-→ rivalutare il read model
-
-se compare un requisito RPO più severo
-→ rivalutare la strategia di recovery
-
-se un agente ottiene permessi più ampi
-→ rivalutare autonomy level e verification
-```
-
-L'architettura non è la promessa di non cambiare idea.
-
-È la capacità di sapere **quando** cambiare idea e **perché**.
+L'architettura non è la promessa di non cambiare idea. È la capacità di sapere **quando** cambiare idea e **perché**.
 
 ## Evidence, non teatro decisionale
 
-Nel caso ESI i bisogni aziendali sono simulati.
+Nel caso ESI i bisogni aziendali sono simulati, ma le caratteristiche delle tecnologie no. Se una scelta dipende da semantica HTTP, proprietà di PostgreSQL, capability di Kubernetes, modelli di consistency, pattern di resilienza o controlli di security, cercheremo evidenze in RFC e standard, documentazione ufficiale, Microsoft Learn, AWS Well-Architected e Builders' Library, Google Cloud Architecture Framework e Google SRE, NIST, OWASP, CNCF, OpenTelemetry, paper ed engineering blog o postmortem reali.
 
-Le caratteristiche delle tecnologie no.
-
-Se diciamo che una scelta dipende da semantica HTTP, proprietà di PostgreSQL, capability di Kubernetes, modelli di consistency, pattern di resilienza o controlli di security, cercheremo evidenze in:
-
-- RFC e standard;
-- documentazione ufficiale;
-- Microsoft Learn / Azure Architecture Center;
-- AWS Well-Architected e Builders' Library;
-- Google Cloud Architecture Framework e Google SRE;
-- NIST;
-- OWASP;
-- CNCF e OpenTelemetry;
-- paper;
-- engineering blog e postmortem reali.
-
-Inoltre il libro introdurrà **casi reali documentati** separati da ESI.
-
-ESI serve per vedere il processo end-to-end.
-
-I casi reali servono per confrontare quel processo con ciò che organizzazioni reali hanno pubblicamente documentato.
+Il libro userà inoltre casi reali documentati separati da ESI. ESI serve a seguire il processo end-to-end; i casi reali servono a confrontare quel processo con ciò che organizzazioni reali hanno pubblicamente documentato.
 
 ## La struttura che useremo
 
-Quando un compromesso ESI è abbastanza importante, il capitolo deve rendere leggibili almeno questi elementi:
+Quando un compromesso ESI è abbastanza importante, il ragionamento deve rendere riconoscibili alcuni elementi: l'esigenza che ci costringe a decidere, la tensione fra obiettivi legittimi, la scelta fatta adesso e il costo che accettiamo di pagare. Deve inoltre chiarire il quality floor, i guardrail, l'evidence su cui si basa la decisione e il trigger che ci farà rivalutarla.
 
-```text
-Esigenza
-→ perché dobbiamo decidere
-
-Tensione
-→ quali obiettivi sono in conflitto
-
-Scelta
-→ che cosa facciamo adesso
-
-Costo accettato
-→ che cosa non stiamo massimizzando
-
-Quality floor
-→ che cosa non possiamo compromettere
-
-Guardrail
-→ come limitiamo il rischio
-
-Evidence
-→ su cosa basiamo la scelta
-
-Trigger
-→ quando la rivaluteremo
-```
-
-Questo schema non deve diventare una gabbia grafica ripetuta meccanicamente in ogni capitolo.
-
-Deve però rimanere riconoscibile nel ragionamento.
+Questa struttura non deve diventare una gabbia grafica ripetuta meccanicamente in ogni capitolo. Deve però rimanere leggibile nel ragionamento, perché un trade-off nascosto non è davvero governato.
 
 ## Il principio che ci accompagnerà
 
 > **Compromesso sì. Qualità inconsapevolmente degradata no.**
 
-La buona architettura non trova una soluzione senza costi.
-
-Trova costi che siamo disposti a pagare, protegge ciò che non può essere sacrificato e rende evidente quando il conto sta diventando troppo alto.
+La buona architettura non trova una soluzione senza costi. Trova costi che siamo disposti a pagare, protegge ciò che non può essere sacrificato e rende evidente quando il conto sta diventando troppo alto.
