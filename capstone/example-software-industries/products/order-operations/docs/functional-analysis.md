@@ -2,17 +2,15 @@
 
 > Documento vivo del capstone simulato/composito di **Example Software Industries S.p.A. (ESI)**.
 
-Questo documento descrive **che cosa fa il prodotto** e il linguaggio funzionale condiviso.
-
-Non descrive ancora la soluzione tecnica completa.
+Questo documento descrive **che cosa fa il prodotto**, il linguaggio condiviso e le decisioni funzionali correnti. Non descrive la soluzione tecnica completa.
 
 ## Contesto aziendale
 
 Order Operations appartiene alla business unit **Commerce & Operations**.
 
-Interagisce con capability che possono appartenere ad altre aree di ESI o a provider esterni. In particolare Payments & Risk può imporre vincoli su semantica economica, audit e integrazioni che la sola Operations non può decidere autonomamente.
+Interagisce con capability possedute da altri domini ESI. In particolare Payments & Risk mantiene ownership sulle decisioni economiche e sui vincoli relativi ai pagamenti.
 
-> Una business unit può possedere un prodotto senza possedere unilateralmente tutte le decisioni che attraversano altri domini.
+> **Una business unit può possedere un prodotto senza possedere unilateralmente tutte le decisioni che attraversano altri domini.**
 
 ## Product goal
 
@@ -22,60 +20,70 @@ Ridurre il tempo necessario agli operatori per individuare, comprendere e gestir
 
 ### Operations Operator
 
-Monitora ordini problematici, ne comprende lo stato e decide l'azione operativa appropriata.
-
-Può richiedere una Payment Escalation quando il caso soddisfa le regole funzionali e l'operatore possiede l'autorizzazione necessaria.
+Monitora ordini problematici, comprende lo stato, lavora sugli `OperationalCase` e può richiedere una Payment Escalation quando autorizzato.
 
 ### Operations Supervisor
 
-Ha visibilità più ampia sul workload operativo e può intervenire su casi che richiedono escalation o su failure di delivery che superano il business timeout.
+Ha visibilità più ampia sul workload e interviene su casi/escalation che superano le normali policy operative.
 
 ### Customer
 
-Non usa direttamente la console operativa, ma subisce le conseguenze delle decisioni prese sul proprio ordine.
+Non usa direttamente la console ma subisce le conseguenze delle decisioni operative sull'ordine.
 
 ### Payments & Risk
 
-Dominio interno ESI responsabile delle regole e dei vincoli relativi alle capability di pagamento e rischio quando queste sono condivise a livello aziendale.
+Riceve Payment Escalation ma mantiene ownership su decisioni, workflow e side effect economici.
 
-Riceve Payment Escalation da Order Operations ma mantiene ownership su decisioni, workflow e side effect economici.
+### External Payment Provider / Shipping Provider
 
-### External Payment Provider
-
-Partecipa ai flussi di pagamento e rimborso. È esterno al system of interest.
-
-### Shipping Provider
-
-Partecipa ai flussi di spedizione. È esterno al system of interest.
+Dipendenze esterne coinvolte nei rispettivi lifecycle.
 
 ### Platform Engineering
 
-Fornisce capability condivise come identity integration, observability, runtime platform e messaging capability. Non possiede la semantica funzionale di Order Operations.
+Fornisce identity integration, observability, runtime e messaging capability senza possedere la semantica funzionale di Order Operations.
 
 ## Capability correnti
 
 ### Visualizzare ordini che richiedono attenzione
 
-L'operatore può ottenere un insieme di ordini classificati come problematici secondo regole note.
+L'operatore può ottenere ordini classificati come problematici secondo condizioni funzionali note.
 
 ### Comprendere lo stato di un ordine
 
-L'operatore può vedere informazioni sufficienti a distinguere almeno:
+La vista distingue almeno:
 
-- problema di pagamento;
-- problema di spedizione;
-- stato dell'ordine;
-- ultimo aggiornamento rilevante.
-
-### Aprire il dettaglio operativo
-
-L'operatore può accedere alle informazioni necessarie per capire perché l'ordine è nella lista e quale sistema possiede l'informazione autorevole.
+- stato ordine;
+- problema pagamento;
+- problema spedizione;
+- ultimo aggiornamento rilevante;
+- provenance/fonte autorevole quando necessario.
 
 ### Gestire un Operational Case
 
-Order Operations persiste un `OperationalCase` locale per rappresentare il lavoro operativo distinto dal lifecycle commerciale dell'ordine.
+Order Operations persiste un `OperationalCase` locale distinto dal lifecycle commerciale dell'ordine.
 
-Il caso può essere assegnato a un operatore senza modificare lo stato commerciale dell'ordine.
+Il case può essere assegnato a un operatore senza modificare lo stato commerciale.
+
+### Determinare la priorità operativa
+
+Dal Capitolo 18 Order Operations possiede una semantica target esplicita per la **priorità operativa** del case.
+
+La priority aiuta a ordinare il lavoro. Non cambia `OrderStatus`, `PaymentStatus` o `ShipmentStatus` e non sostituisce authorization o business ownership.
+
+Target vocabulary:
+
+```text
+NotActionable
+ManualReview
+Urgent
+Standard
+```
+
+Dettaglio:
+
+```text
+docs/priority-functional-analysis.md
+```
 
 ### Richiedere una Payment Escalation
 
@@ -95,27 +103,24 @@ La Payment Escalation:
 ```text
 operatore apre la console
 → richiede gli ordini problematici
-→ il sistema identifica gli ordini rilevanti
-→ mostra stato e causa principale
-→ operatore apre un Operational Case
-→ consulta il dettaglio
+→ identifica/apre OperationalCase
+→ il sistema determina la priorità operativa
+→ operatore consulta dettaglio e provenance
 → decide se intervenire, attendere o escalare
 ```
 
 ### Payment Escalation journey
 
 ```text
-operatore apre un Operational Case di categoria Payment
-→ verifica che serva intervento Payments & Risk
+operatore apre OperationalCase Payment
+→ verifica necessità di intervento Payments & Risk
 → richiede Payment Escalation
 → Order Operations valida permission e precondizioni
-→ registra escalation localmente
-→ UI mostra escalation Requested / delivery Pending
-→ consegna asincrona a Payments & Risk
-→ delivery diventa Delivered oppure Delayed/DeadLettered
+→ registra escalation + outbox localmente
+→ UI mostra Requested / delivery Pending
+→ delivery asincrona
+→ Delivered oppure Delayed/DeadLettered
 ```
-
-Il journey separa intenzionalmente:
 
 ```text
 escalation accettata localmente
@@ -125,25 +130,45 @@ escalation elaborata da Payments & Risk
 
 ## Business rule correnti
 
-1. Un ordine non deve essere classificato come problematico soltanto perché è vecchio: serve una condizione funzionale esplicita.
-2. Lo stato dell'ordine deve essere distinto dallo stato del pagamento e dallo stato della spedizione.
-3. La console operativa non diventa automaticamente authoritative source per dati posseduti da Orders, Payments o Shipping.
-4. Un dato derivato deve poter essere ricondotto al proprio dato autorevole.
-5. Le operazioni con conseguenze sul cliente devono avere una semantica esplicita prima di essere automatizzate.
-6. Le operazioni con conseguenze economiche devono rispettare i vincoli definiti insieme a Payments & Risk, non soltanto quelli del team Commerce & Operations.
-7. Una Payment Escalation può essere richiesta soltanto per un `OperationalCase` accessibile all'operatore e classificato come `Payment`.
-8. Un retry tecnico della stessa Payment Escalation deve conservare la stessa identità dell'intenzione (`EscalationId`).
-9. La redelivery della stessa escalation non deve creare due workflow business in Payments & Risk.
-10. Il failure della consegna asincrona non annulla automaticamente il fatto che l'operatore abbia richiesto l'escalation.
-11. Il delivery state deve essere distinguibile dal business state dell'escalation.
-12. Una escalation che non viene consegnata entro il business delay accettabile deve diventare visibile a Operations/Supervisor e seguire una recovery policy.
-13. Order Operations non può usare la Payment Escalation come scorciatoia per introdurre refund o altri side effect economici non ancora analizzati.
+### Regole generali
+
+1. Un ordine non diventa problematico soltanto perché è vecchio: serve una condizione funzionale esplicita.
+2. Stato ordine, pagamento, spedizione, OperationalCase, PaymentEscalation e IntegrationDelivery restano concettualmente distinti.
+3. Order Operations non diventa authoritative source per facts posseduti da Orders, Payments o Shipping.
+4. Un dato derivato deve poter essere ricondotto alla fonte autorevole.
+5. Operazioni con conseguenze sul cliente richiedono semantica esplicita prima di essere automatizzate.
+6. Operazioni economiche rispettano i vincoli definiti con Payments & Risk.
+
+### Priority — regole confermate nello scenario ESI
+
+7. Un `OperationalCase` `Closed` è `NotActionable`.
+8. `manualHold = true` produce `ManualReview` e ha precedenza sulle regole automatiche di urgenza.
+9. Un case `Payment` con `failedAttempts >= 3` è `Urgent` nella policy corrente simulata ESI.
+10. Un case aperto senza condizioni più prioritarie è `Standard`.
+11. Il solo `customerTier = Enterprise` **non** aumenta più la priorità nel target.
+12. La vecchia regola legacy `Enterprise + age >= 30m → URGENT` è stata rimossa tramite decisione funzionale esplicita `ED-001`.
+13. La precedence target è:
+
+```text
+Closed
+> ManualReview
+> RepeatedPaymentFailure
+> Standard
+```
+
+### Payment Escalation
+
+14. Una Payment Escalation può essere richiesta soltanto per un `OperationalCase` accessibile all'operatore e classificato `Payment`.
+15. Retry tecnico della stessa intenzione conserva `EscalationId`.
+16. Redelivery della stessa escalation non deve creare due workflow business in Payments & Risk.
+17. Il failure di delivery non annulla automaticamente il fatto che l'operatore abbia richiesto l'escalation.
+18. Delivery state e business state restano distinti.
+19. Delivery oltre il delay accettabile deve diventare visibile e seguire recovery policy.
+20. Payment Escalation non è una scorciatoia per refund o altri side effect economici non analizzati.
 
 ## Stati e transizioni
 
-Il modello complessivo degli stati non è ancora completo.
-
-Manteniamo state machine concettualmente distinte:
+Manteniamo state machine distinte:
 
 ```text
 Order
@@ -154,11 +179,7 @@ PaymentEscalation
 IntegrationDelivery
 ```
 
-Queste state machine non devono essere fuse in un singolo campo `status` soltanto per comodità della UI.
-
-### Order — stato minimo
-
-Esempio iniziale, ancora soggetto a revisione:
+### Order — esempio simulato
 
 ```text
 Created
@@ -168,7 +189,7 @@ Completed
 Cancelled
 ```
 
-### Payment — stato minimo
+### Payment — esempio simulato
 
 ```text
 Pending
@@ -179,7 +200,7 @@ RefundPending
 Refunded
 ```
 
-### Shipment — stato minimo
+### Shipment — esempio simulato
 
 ```text
 NotReady
@@ -189,27 +210,15 @@ Delivered
 Failed
 ```
 
-Questi valori sono parte del modello simulato e non rappresentano uno standard industriale.
-
-### PaymentEscalation — stato v1
+### PaymentEscalation v1
 
 ```text
 Requested
 ```
 
-La v1 rappresenta soltanto il fatto che Order Operations ha richiesto l'escalation.
+`Accepted`, `Rejected` e `Closed` non vengono inventati finché Commerce & Operations e Payments & Risk non ne definiscono semantica e ownership.
 
-Eventuali stati come:
-
-```text
-Accepted
-Rejected
-Closed
-```
-
-non vengono inventati finché Commerce & Operations e Payments & Risk non ne definiscono semantica e ownership.
-
-### IntegrationDelivery — stato v1
+### IntegrationDelivery v1
 
 ```text
 Pending
@@ -218,170 +227,141 @@ Delayed
 DeadLettered
 ```
 
-Questi stati descrivono la consegna dell'integrazione, non il workflow economico downstream.
+### Operational priority
+
+La priority è per ora una **decisione derivata**, non uno stato persistito dichiarato authoritative.
+
+La decisione su eventuale persistence/storico è ancora aperta.
 
 ## Payment Escalation — precondizioni v1
 
 1. `OperationalCase` esistente;
 2. tenant visibility valida;
 3. `ProblemClassification = Payment`;
-4. operatore autorizzato alla escalation;
-5. assenza di escalation attiva incompatibile secondo il modello corrente;
+4. operatore autorizzato;
+5. assenza di escalation attiva incompatibile;
 6. `reasonCode` supportato;
 7. `EscalationId` stabile per retry della stessa intenzione.
 
-## Payment Escalation — reason code v1
+Reason code v1:
 
 ```text
 PaymentInvestigationRequired
 ```
 
-Il reason code descrive una richiesta di investigazione.
+## Priority — decisione legacy/target
 
-Non implica una decisione economica.
+Operations Desk Classic continua a essere caratterizzato come:
 
-## Eccezioni funzionali già note
+```text
+CLOSED → NONE
+manual_hold → MANUAL_REVIEW
+PAY + failed_attempts>=3 → URGENT
+ENTERPRISE + age>=30m → URGENT
+otherwise → STANDARD
+```
+
+Il target Order Operations mantiene soltanto la semantica confermata:
+
+```text
+Closed → NotActionable
+manualHold → ManualReview
+Payment + failedAttempts>=3 → Urgent
+otherwise → Standard
+```
+
+La differenza Enterprise è intenzionale e registrata come `ED-001`.
+
+> **Characterization evidence e target requirement non sono la stessa cosa.**
+
+## Eccezioni funzionali note
 
 - pagamento riuscito ma spedizione non avviabile;
 - provider pagamento temporaneamente indisponibile;
-- spedizione marcata fallita dopo che l'ordine era stato considerato regolare;
-- ordine cancellato mentre esiste un'operazione esterna ancora in corso;
-- dati esterni temporaneamente non aggiornati;
-- stato formalmente valido ma combinazione di stati semanticamente sospetta;
-- Payment Escalation registrata localmente ma delivery downstream in ritardo;
-- redelivery tecnica della stessa escalation;
-- escalation finita in dead-letter path;
-- Payments & Risk temporaneamente indisponibile;
-- schema event non supportato dal consumer;
-- divergenza rilevata dalla reconciliation.
+- spedizione fallita dopo precedente stato regolare;
+- ordine cancellato con operazione esterna ancora in corso;
+- dati esterni temporaneamente stale;
+- combinazione di stati formalmente valida ma semanticamente sospetta;
+- Payment Escalation committed ma delivery in ritardo;
+- redelivery tecnica;
+- dead-letter path;
+- Payments & Risk indisponibile;
+- schema event non supportato;
+- reconciliation mismatch;
+- manual hold su case altrimenti urgent;
+- legacy/candidate priority mismatch durante shadow migration.
 
 ## Functional questions aperte
 
-1. Che cosa rende esattamente un ordine “problematico”?
-2. La classificazione deve essere in tempo reale o può essere leggermente stale?
+1. Che cosa rende esattamente un ordine “problematico” in tutti i domini?
+2. La classificazione problematica deve essere live o può essere stale entro soglia?
 3. Quali azioni correttive oltre alla escalation verranno introdotte?
-4. Quali azioni richiedono permessi diversi?
+4. Quali azioni richiedono permission diverse?
 5. Qual è il lifecycle completo dell'OperationalCase?
 6. Quale audit completo serve per le azioni operative?
-7. Esiste una nozione di priorità o severity?
-8. Qual è la semantica del rimborso e chi la possiede?
-9. Quali casi richiedono escalation a un supervisor?
-10. Quali informazioni possono essere mostrate senza interrogare live sistemi esterni?
-11. Quali decisioni devono essere approvate o condivise con Payments & Risk, Security o Legal/Compliance?
-12. Payments & Risk deve inviare acknowledgement applicativo esplicito dell'escalation?
-13. Quali stati downstream (`Accepted`, `Rejected`, `Closed`) devono essere visibili a Order Operations?
-14. Qual è il business delivery target per una Payment Escalation?
-15. Quando una delivery ritardata richiede intervento umano?
-16. Quale retention serve per escalation e relative evidenze di delivery?
+7. La priority target deve essere derivata on demand o persistita?
+8. Serve uno storico/audit delle decisioni di priority?
+9. Chi può applicare/rimuovere un manual hold nel target?
+10. Il nightly export legacy usa ancora `priority_code`?
+11. Qual è la semantica del rimborso e chi la possiede?
+12. Quali informazioni possono essere mostrate senza interrogare live sistemi esterni?
+13. Payments & Risk deve inviare acknowledgement applicativo dell'escalation?
+14. Quali stati downstream devono essere visibili a Order Operations?
+15. Qual è il business delivery target per Payment Escalation?
+16. Quale retention serve per escalation e delivery evidence?
 
-Le domande aperte non devono essere risolte per comodità dall'implementazione.
+Le domande aperte non vengono risolte per comodità dall'implementazione o dall'AI.
 
-## Glossario corrente
-
-### Order
-
-Entità commerciale che rappresenta l'acquisto del cliente.
-
-### Problematic Order
-
-Ordine che soddisfa almeno una condizione funzionale che richiede attenzione operativa.
-
-Non equivale a “ordine con qualsiasi errore tecnico”.
+## Glossario
 
 ### Operational Case
 
-Entità locale di Order Operations che rappresenta un problema gestibile dagli operatori.
+Entità locale che rappresenta lavoro operativo distinto dall'ordine commerciale.
 
-È distinto dall'ordine e dal lifecycle commerciale.
+### Operational Priority
+
+Decisione che aiuta a ordinare il lavoro sugli Operational Case. Non equivale a severity tecnica, stato ordine o authorization.
+
+### Manual Review
+
+Priorità/decisione operativa che indica che il routing automatico non deve prevalere su un hold umano esplicito.
 
 ### Payment Escalation
 
-Richiesta esplicita di attenzione inviata da Order Operations a Payments & Risk per un Operational Case di categoria Payment.
-
-Non equivale a refund o altra operazione economica.
+Richiesta esplicita di attenzione inviata a Payments & Risk per un Operational Case Payment. Non equivale a refund.
 
 ### EscalationId
 
 Identità stabile della stessa intenzione di escalation.
 
-Viene mantenuta nei retry e usata per idempotency/deduplication downstream.
-
 ### Delivery State
 
-Stato tecnico-funzionale che descrive se l'integrazione di una escalation è ancora pending, è stata consegnata, è in ritardo o è finita nel dead-letter path.
-
-Non descrive lo stato del pagamento.
-
-### Payment
-
-Stato e processo economico relativo all'ordine. È concettualmente distinto dall'ordine.
-
-### Shipment
-
-Stato e processo di fulfillment/spedizione relativo all'ordine.
+Stato della consegna dell'integrazione, distinto dallo stato economico downstream.
 
 ### Authoritative source
 
-Componente o dominio responsabile della verità primaria per un dato.
+Componente/dominio responsabile della verità primaria di un fact.
 
-## Mappa funzionale sintetica
+## Artefatti funzionali collegati
 
 ```text
-Customer
-  ↓
-Order lifecycle
-  ├── Payment lifecycle
-  └── Shipment lifecycle
-
-Operations
-  ↓
-Problem detection
-  ↓
-OperationalCase
-  ↓
-Investigation
-  ├── Wait / local handling
-  └── Payment Escalation
-         ↓ asynchronous delivery
-       Payments & Risk
+docs/priority-functional-analysis.md
+docs/legacy-understanding-map.md
+docs/refactoring-safety-plan.md
+docs/api-contract.md
+docs/data-ownership.md
 ```
 
 ## Regola di evoluzione
 
-Quando aggiungiamo una feature a Order Operations, prima di modificare il codice dobbiamo verificare se cambia almeno uno di questi elementi:
-
-- attore;
-- capability;
-- business rule;
-- stato;
-- transizione;
-- permission;
-- journey;
-- glossario;
-- eccezione;
-- stakeholder aziendale;
-- domanda funzionale aperta.
-
-Se cambia, questo documento deve evolvere insieme al progetto.
+Quando una feature cambia attori, capability, business rule, stati, permission, journey, glossario, eccezioni o stakeholder, questo documento deve evolvere **prima o insieme al codice**.
 
 ## Fonti metodologiche
 
-L'approccio è coerente con la domain analysis descritta da Microsoft Azure Architecture Center, che raccomanda di costruire una comprensione condivisa delle business function e delle loro connessioni prima di scegliere le tecnologie:
-
 - [Microsoft Learn — Use Domain Analysis to Model Microservices](https://learn.microsoft.com/azure/architecture/microservices/model/domain-analysis)
-
-Per il concetto di linguaggio condiviso:
-
-- [Microsoft Learn — Use Domain Analysis to Model Microservices](https://learn.microsoft.com/azure/architecture/microservices/model/domain-analysis)
+- [Microsoft Learn — Manage requirements for Agile teams](https://learn.microsoft.com/azure/devops/cross-service/manage-requirements)
 - [Martin Fowler — Ubiquitous Language](https://martinfowler.com/bliki/UbiquitousLanguage.html)
+- [Microsoft Learn — Idempotent Consumer](https://learn.microsoft.com/azure/architecture/patterns/idempotent-consumer)
+- [AWS Prescriptive Guidance — Branch by abstraction](https://docs.aws.amazon.com/prescriptive-guidance/latest/modernization-decomposing-monoliths/branch-by-abstraction.html)
 
-Per la natura continua e collaborativa della gestione dei requisiti:
-
-- [Microsoft Learn — Manage requirements for Agile teams in Azure DevOps](https://learn.microsoft.com/azure/devops/cross-service/manage-requirements)
-
-Per le proprietà di delivery e idempotency che condizionano la semantica osservabile della Payment Escalation:
-
-- [Microsoft Learn — Idempotent Consumer pattern](https://learn.microsoft.com/azure/architecture/patterns/idempotent-consumer)
-- [Amazon Builders' Library — Making retries safe with idempotent APIs](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/)
-
-Le fonti sostengono il metodo e le proprietà tecniche. La semantica di ESI resta simulata e viene definita esplicitamente nel capstone.
+Le fonti sostengono metodo e proprietà tecniche. Le regole specifiche di ESI restano simulate e sono esplicitamente marcate come tali.
