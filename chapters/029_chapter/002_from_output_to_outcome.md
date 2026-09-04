@@ -1,122 +1,41 @@
 # Dall'output all'outcome
 
-Una delle trasformazioni più facili da osservare con l'AI è l'aumento dell'output.
+L'AI rende immediatamente visibile una cosa: possiamo produrre più output. Più codice, più test, più documentazione, più alternative, più pull request e più prototipi.
 
-Più codice.
+È utile, ma l'output non è il motivo per cui esiste il software.
 
-Più test.
+Il software esiste per modificare una parte della realtà in modo intenzionale. Un ordine deve essere processato, un operatore deve capire un'anomalia, una campagna deve essere pubblicata, un pagamento non deve essere duplicato e l'azienda deve poter sostenere economicamente ciò che ha costruito.
 
-Più documentazione.
-
-Più alternative.
-
-Più pull request.
-
-Più prototipi.
-
-È utile.
-
-Ma l'output non è il motivo per cui esiste il software.
-
-Il software esiste per modificare qualche parte della realtà in modo intenzionale.
-
-Un ordine deve essere processato.
-
-Un operatore deve capire un'anomalia.
-
-Una campagna deve essere pubblicata.
-
-Un pagamento non deve essere duplicato.
-
-Un cliente deve poter completare un journey.
-
-Un'azienda deve poter sostenere economicamente ciò che ha costruito.
-
-Per questo il primo movimento del libro è stato allontanarsi dalla feature e tornare al **problema**.
-
----
+Per questo il primo movimento del libro è stato tornare dal feature request al **problema**.
 
 ## Prima del codice c'è una promessa
 
-Quando diciamo:
+Quando iniziamo da "costruiamo una API", "introduciamo una queue", "usiamo Kubernetes" o "integriamo un LLM", stiamo già assumendo una parte della soluzione.
 
-```text
-costruiamo una API
-introduciamo una queue
-aggiungiamo una cache
-usiamo Kubernetes
-integriamo un LLM
-```
-
-abbiamo già saltato una domanda.
+La domanda che viene prima è:
 
 > **Per ottenere quale outcome?**
 
-Quella domanda non è burocrazia.
+Un outcome non congela il prodotto per sempre. Rende però la soluzione valutabile. Senza outcome possiamo dire soltanto che un design è elegante o moderno; con un outcome possiamo chiedere se compra davvero qualcosa.
 
-È ciò che rende una soluzione valutabile.
+È per questo che il **Problem & Outcome Brief** viene prima dell'architettura. Evita che la tecnologia inizi a ridefinire il problema pur di giustificare se stessa.
 
-Senza outcome possiamo discutere soltanto se una soluzione è elegante.
+## L'analisi funzionale continua dentro l'architettura
 
-Con un outcome possiamo discutere se è utile.
+Una delle posizioni più importanti del libro è che l'analisi può avere specialisti, ma la comprensione del prodotto non può avere un solo proprietario.
 
-È per questo che il **Problem & Outcome Brief** viene prima dell'architettura.
+Developer, tech lead e architect devono conoscere abbastanza attori, journey, stati, invariant, permission, eccezioni, side effect e ownership da capire quando una decisione tecnica cambia il significato del sistema.
 
-Non serve a congelare il problema per sempre.
-
-Serve a evitare che la soluzione inizi a definire da sola ciò che il problema dovrebbe essere.
-
----
-
-## L'analisi funzionale è architecture input
-
-Nel corso del libro abbiamo insistito su una posizione che vale la pena ripetere alla fine.
-
-> **L'analisi può avere uno specialista. La comprensione del prodotto non può avere un unico proprietario.**
-
-Developer, tech lead e architect non devono conoscere soltanto:
-
-```text
-endpoint
-classe
-servizio
-database
-cluster
-```
-
-Devono sapere almeno abbastanza del prodotto da comprendere:
-
-```text
-attori
-journey
-stati
-transizioni
-business rule
-invariant
-permission
-eccezioni
-side effect
-ownership
-```
-
-Perché è lì che spesso vive la semantica che rende una decisione architetturale corretta o sbagliata.
-
-Un esempio attraversa tutta la storia di ESI.
-
-Operations Desk Classic conteneva una regola:
+La storia di Operations Desk Classic lo ha mostrato con chiarezza. Il codice conteneva la regola:
 
 ```text
 Enterprise + age >= 30m
 → URGENT
 ```
 
-Il codice la eseguiva.
+I characterization test potevano dimostrare che quel comportamento esisteva. Non potevano dirci se dovesse sopravvivere.
 
-I characterization test potevano dimostrare che esisteva.
-
-Nessuno dei due poteva dirci se quella regola **dovesse sopravvivere**.
-
-Per questo abbiamo distinto:
+Da qui la distinzione:
 
 ```text
 Observed
@@ -124,170 +43,52 @@ Observed
 Confirmed
 ```
 
-La nuova architettura non poteva essere decisa leggendo soltanto il codice.
+Una nuova architettura non poteva essere autorizzata dalla sola lettura del codice. Serviva capire quale semantica Product e Operations volevano mantenere.
 
-Serviva capire il significato del prodotto.
+## Una issue non è automaticamente una specifica
 
----
+"Aggiungere retry sul pagamento" può sembrare execution-ready e nascondere invece decisioni su idempotency, finestra temporale, stato economico, authorization, user communication e uncertainty del provider.
 
-## Il requisito non è il ticket
+Se il ticket viene trattato come specifica, qualcuno dovrà inventare ciò che manca. Con un agente questo può avvenire molto velocemente e con un risultato tecnicamente plausibile.
 
-Una issue può dire:
+Per questo una issue execution-ready non deve eliminare ogni unknown. Deve eliminare le decisioni che l'executor non è autorizzato a prendere senza rendere visibile un nuovo gate.
 
-> aggiungere retry sul pagamento.
-
-Ma questa frase può nascondere problemi molto diversi:
-
-- il payment provider è temporaneamente indisponibile;
-- il pagamento può essere ritentato senza duplicare l'addebito;
-- il retry deve essere automatico o richiesto da un operatore;
-- esiste una finestra temporale;
-- l'utente deve essere informato;
-- il retry cambia uno stato economico;
-- il retry richiede authorization particolare;
-- la richiesta è già stata accettata e il risultato è semplicemente incerto.
-
-Se il team tratta il ticket come specifica, il codice è costretto a inventare ciò che manca.
-
-L'AI rende questa situazione ancora più pericolosa perché è molto brava a **riempire i vuoti con una soluzione plausibile**.
-
-Per questo una issue execution-ready deve eliminare le decisioni che l'executor non è autorizzato a inventare.
-
-Non tutte le ambiguità.
-
-Soltanto quelle che possono cambiare il significato del sistema.
-
----
+> **L'AI è molto brava a riempire i vuoti. Il team deve sapere quali vuoti non sono autorizzati a diventare codice.**
 
 ## Il prodotto deve essere conoscibile
 
-Una delle lezioni trasversali del capstone è che la conoscenza utile deve uscire dalle conversazioni private.
+Nel capstone la conoscenza utile è uscita progressivamente dalle conversazioni private. Functional Analysis, Requirements, ADR, Data Ownership Map, Threat Model, Reliability Contract, Observability Contract, Testing Strategy, Cost Model e altri artifact sono comparsi quando una decisione importante aveva bisogno di diventare persistente e verificabile.
 
-Order Operations ha accumulato:
+Non significa che ogni progetto debba produrre gli stessi documenti. Significa che un sistema modificabile soltanto da chi ricorda tutta la storia è fragile anche quando il codice è ordinato.
 
-```text
-Functional Analysis
-Requirements
-Architecture Context
-API Contract
-Data Ownership Map
-Failure Mode Map
-Threat Model
-Reliability Contract
-Observability Contract
-Testing Strategy
-Cost Model
-ADR
-Decision Trace
-```
+La documentazione utile riduce dipendenza dalla memoria e rende più sicuro l'ingresso di persone e agenti nuovi.
 
-Non perché ogni progetto debba produrre gli stessi documenti.
+## L'outcome deve arrivare fino all'evidence
 
-Ma perché ogni volta che una decisione importante rischiava di vivere soltanto nella testa di qualcuno abbiamo cercato una forma più persistente.
+Un outcome ha pieno valore quando guida anche la verifica.
 
-Questa è una proprietà architetturale.
+Se la promessa è che Payment Escalation non dipenda sincronicamente dalla disponibilità di Payments, una soluzione con local durable intent, outbox e delivery asincrona ha senso soltanto se possiamo produrre evidence su atomic commit, idempotent behavior, backlog visibility e recovery.
 
-Un sistema che può essere modificato soltanto da chi ricorda la storia completa è fragile anche se il codice è ben strutturato.
+Il requisito non termina quando comincia l'implementazione. Attraversa l'architettura e arriva alla verifica.
 
----
+Questa continuità impedisce di avere test tecnicamente corretti che non proteggono più la promessa originale.
 
-## Dal requisito all'evidence
+## Solution gravity
 
-Un outcome diventa realmente utile quando possiamo collegarlo a ciò che dovrebbe dimostrarne il raggiungimento.
+Tecnologie potenti e familiari attirano problemi verso il proprio modello. Se l'azienda possiede Kubernetes, ogni workload sembra candidato a un cluster. Se esiste una event platform, ogni integrazione sembra un evento. Se esiste una vector platform, ogni feature AI sembra RAG. Se abbiamo agenti, ogni backlog sembra parallelizzabile.
 
-Per esempio:
+La risposta non è vietare questi strumenti. È rendere il problema abbastanza chiaro da poter chiedere:
 
-```text
-Outcome
-Payment Escalation non deve dipendere
-sincronamente dalla disponibilità di Payments
-```
+> **Questa capability compra davvero qualcosa per questo outcome?**
 
-porta a decisioni come:
+Campaign Launchpad è il controesempio più semplice. ESI possiede queue, microservices, AI e infrastrutture più complesse, ma il prodotto non le eredita perché il suo scope non le richiede.
 
-```text
-local durable intent
-+ outbox
-+ asynchronous delivery
-```
-
-ma anche a evidence richieste:
-
-```text
-atomic local commit
-idempotent delivery behavior
-backlog visibility
-failure recovery
-```
-
-In questo modo il requisito non finisce quando l'implementazione inizia.
-
-Continua attraverso l'architettura fino alla verifica.
-
----
-
-## Il rischio della solution gravity
-
-Quando una tecnologia è potente o familiare, tende ad attirare problemi verso il proprio modello.
-
-Abbiamo un cluster Kubernetes?
-
-Ogni nuovo workload sembra un container da orchestrare.
-
-Abbiamo una piattaforma event-driven?
-
-Ogni integrazione sembra un evento.
-
-Abbiamo una vector platform?
-
-Ogni feature AI sembra un problema RAG.
-
-Abbiamo agenti?
-
-Ogni backlog sembra parallelizzabile.
-
-Questa è **solution gravity**.
-
-Il modo migliore per contrastarla non è vietare le tecnologie.
-
-È rendere il problema abbastanza chiaro da poter chiedere:
-
-> **questa capability compra davvero qualcosa per questo outcome?**
-
-Campaign Launchpad ci ha dato il controesempio più semplice.
-
-ESI conosce queue, microservices, AI e infrastrutture complesse.
-
-Campaign Launchpad non ne ha ereditata nessuna.
-
-Non perché fosse un progetto meno serio.
-
-Perché il suo problema non le richiedeva.
-
----
+Questa non è mancanza di maturità. È `fit before fashion`.
 
 ## Prima capire, poi costruire
 
-Questa frase ha accompagnato buona parte del libro:
+"Prima capire, poi costruire" non significa aspettare la certezza. Significa distinguere ciò che è deciso, ciò che è assunto, ciò che resta unknown, ciò che l'executor può scegliere e ciò che richiede un nuovo gate.
 
-> **Prima capire, poi costruire.**
+Quando questa distinzione esiste, l'execution può diventare molto veloce senza diventare arbitraria.
 
-Non significa aspettare di sapere tutto.
-
-Non sapremo mai tutto.
-
-Significa sapere abbastanza da distinguere:
-
-```text
-ciò che è deciso
-ciò che è assunto
-ciò che è ancora ignoto
-ciò che l'executor può scegliere
-ciò che richiede un nuovo gate
-```
-
-Questa distinzione è ciò che rende possibile accelerare in modo sano.
-
-Quando il problema è chiaro, l'execution può diventare molto veloce.
-
-Quando il problema è ambiguo, accelerare significa spesso soltanto arrivare prima al posto sbagliato.
+Quando non esiste, accelerare significa spesso arrivare prima al posto sbagliato.
