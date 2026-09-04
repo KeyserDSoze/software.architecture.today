@@ -22,7 +22,7 @@ Una topology con molti deployable indipendenti, database separati, streaming, me
 
 Ogni runtime, pipeline, dashboard e failure mode consuma budget di attenzione. Quel budget non viene speso su nuove capability, customer issue o miglioramenti del prodotto.
 
-Per questo team size e ownership devono entrare nel TCO. Una architettura non è economica se richiede un'organizzazione che l'azienda non intende finanziare.
+Per questo team size e ownership devono entrare nel TCO. Un'architettura non è economica se richiede un'organizzazione che l'azienda non intende finanziare.
 
 ## Coordination cost nasce dai boundary sbagliati o poco chiari
 
