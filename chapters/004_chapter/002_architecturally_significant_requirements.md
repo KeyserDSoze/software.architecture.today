@@ -30,38 +30,15 @@ Se la risposta è “molte”, probabilmente abbiamo davanti un ASR.
 
 ### Gli ASR non sono soltanto qualità
 
-È facile associare gli ASR a parole come:
-
-- performance;
-- security;
-- availability;
-- scalability;
-- compliance.
-
-Ma il significato architetturale nasce dal contesto.
+È facile associare gli ASR a parole come performance, security, availability, scalability o compliance. Ma il significato architetturale nasce dal contesto.
 
 “Availability 99,9%” da sola non basta.
 
-Dobbiamo capire:
-
-- di quale journey?
-- misurata dove?
-- in quale finestra?
-- con quali esclusioni?
-- quali funzioni possono degradare?
-- quale costo è accettabile per raggiungerla?
+Dobbiamo capire di quale journey stiamo parlando, dove misuriamo la proprietà e in quale finestra, quali esclusioni accettiamo e quali funzioni possono degradare. Solo allora possiamo discutere quale costo sia accettabile per raggiungerla.
 
 Allo stesso modo, un requisito apparentemente funzionale può avere conseguenze profonde.
 
-“Permettere il rimborso parziale di un ordine” potrebbe richiedere cambiamenti a:
-
-- modello dati;
-- accounting;
-- payment provider;
-- idempotency;
-- audit;
-- API compatibility;
-- workflow di fulfillment.
+“Permettere il rimborso parziale di un ordine” potrebbe richiedere cambiamenti al modello dati e all'accounting, al payment provider e all'idempotency, all'audit, alla compatibilità delle API e perfino al workflow di fulfillment.
 
 Il requisito è funzionale.
 
@@ -99,14 +76,7 @@ Altri sono nascosti dentro frasi innocenti.
 
 > “L'operatore deve poter vedere sempre l'ultimo stato noto dell'ordine.”
 
-Qui la parola “sempre” apre domande su:
-
-- disponibilità;
-- freshness;
-- fallback;
-- cache;
-- replica;
-- degradazione.
+Qui la parola “sempre” apre immediatamente domande su disponibilità e freshness, fallback e cache, replica e comportamento in degradazione.
 
 Oppure:
 
@@ -122,17 +92,7 @@ Gli ASR nascosti sono pericolosi perché entrano nel sistema senza essere tratta
 
 Non possiamo ottimizzare tutto contemporaneamente.
 
-Se chiediamo:
-
-- latency minima;
-- consistency forte;
-- availability massima;
-- costi minimi;
-- zero lock-in;
-- sviluppo velocissimo;
-- operazioni semplicissime;
-
-stiamo chiedendo un sistema senza trade-off.
+Se chiediamo contemporaneamente latency minima, consistency forte, availability massima e costi minimi, insieme a zero lock-in, sviluppo velocissimo e operazioni semplicissime, stiamo chiedendo un sistema senza trade-off.
 
 Non esiste.
 

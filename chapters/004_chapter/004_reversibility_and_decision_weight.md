@@ -72,17 +72,7 @@ Preservare possibilità future ha un valore.
 
 Ma, come visto nel Capitolo 2, non significa implementare tutto in anticipo.
 
-Possiamo comprare option value con interventi piccoli:
-
-- confini puliti;
-- contratti espliciti;
-- migration path;
-- feature flag;
-- adapter;
-- dati esportabili;
-- API compatibili;
-- automazione di test;
-- rollback verificato.
+Possiamo comprare option value con interventi relativamente piccoli: confini puliti e contratti espliciti, migration path, feature flag e adapter. Dati esportabili, API compatibili, automazione dei test e rollback verificato aumentano la possibilità di cambiare senza obbligarci a implementare oggi ogni alternativa futura.
 
 Questi elementi non implementano necessariamente la futura alternativa.
 
@@ -114,18 +104,7 @@ La differenza è che nel primo caso sappiamo cosa dovrebbe farci cambiare idea.
 
 Ogni decisione importante dovrebbe poter avere uno o più trigger.
 
-Esempi:
-
-- volume dati oltre una soglia;
-- aumento significativo del traffico;
-- crescita del numero di team;
-- nuovo requisito normativo;
-- aumento della latency;
-- costi cloud oltre budget;
-- incidenti ricorrenti;
-- nuovo pattern di accesso;
-- perdita di supporto da parte di un vendor;
-- capability di piattaforma diventata disponibile.
+Un trigger può essere il volume dati che supera una soglia, un aumento significativo del traffico o la crescita del numero di team. Può arrivare da un nuovo requisito normativo, da latency o costi cloud oltre budget, da incidenti ricorrenti o da un nuovo pattern di accesso. Anche la perdita di supporto di un vendor o, al contrario, una nuova capability di piattaforma possono riaprire la decisione.
 
 Il trigger non obbliga a cambiare decisione.
 
@@ -161,17 +140,6 @@ Gli agenti possono far sembrare reversibili decisioni che non lo sono.
 
 Ma il costo di inversione non è soltanto il numero di righe.
 
-Può includere:
-
-- migrazione dati;
-- downtime;
-- compatibilità con client esterni;
-- procedure operative;
-- re-training del team;
-- audit;
-- rollback;
-- rischi non coperti dai test.
-
-La facilità di generare una patch non equivale alla facilità di cambiare un sistema in produzione.
+Può includere migrazione dati e downtime, compatibilità con client esterni e procedure operative, re-training del team, audit e rollback. Può soprattutto includere rischi che i test non coprono. La facilità di generare una patch non equivale alla facilità di cambiare un sistema in produzione.
 
 > **L'AI riduce il costo di modificare il codice. Non elimina il costo di modificare la realtà attorno al codice.**

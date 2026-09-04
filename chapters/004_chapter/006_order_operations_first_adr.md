@@ -184,15 +184,7 @@ Rivalutare se:
 
 Non perché abbiamo scelto di fare una query.
 
-La decisione significativa riguarda:
-
-- shared failure domain;
-- separazione dei workload;
-- consistency;
-- complessità operativa;
-- strategia di evoluzione.
-
-La query concreta è implementazione.
+La decisione significativa riguarda lo shared failure domain e la separazione dei workload, la consistency richiesta, la complessità operativa che accettiamo e la strategia di evoluzione. La query concreta è implementazione.
 
 Il compromesso tra **semplicità oggi** e **isolamento domani** è architettura.
 
@@ -200,16 +192,7 @@ Il compromesso tra **semplicità oggi** e **isolamento domani** è architettura.
 
 Possiamo comunque evitare di renderci la vita difficile in futuro.
 
-Per esempio:
-
-- non esporre lo schema del database direttamente nell'API;
-- mantenere il lookup dietro boundary applicativi;
-- isolare authorization;
-- misurare latency e volume;
-- evitare query cross-domain diffuse;
-- mantenere il contratto esterno indipendente dalla fonte dati.
-
-Queste scelte preservano reversibilità.
+Possiamo evitare di esporre direttamente lo schema del database nell'API, mantenere il lookup dietro boundary applicativi e isolare l'authorization. Misurare latency e volume, evitare query cross-domain diffuse e mantenere il contratto esterno indipendente dalla fonte dati sono altre scelte che preservano reversibilità.
 
 Non costruiscono ancora il read model.
 

@@ -4,16 +4,7 @@ Una decisione importante dimenticata diventa presto un mistero.
 
 Dopo qualche mese il codice rimane, ma il contesto che lo ha prodotto scompare.
 
-Qualcuno apre il repository e trova:
-
-- una queue che sembra inutile;
-- un adapter apparentemente ridondante;
-- un database separato;
-- una limitazione strana nell'API;
-- un retry disabilitato;
-- una scelta di deployment che oggi appare eccessiva.
-
-La tentazione è correggere ciò che sembra strano.
+Qualcuno apre il repository e trova una queue che sembra inutile, un adapter apparentemente ridondante o un database separato. Nota una limitazione strana nell'API, un retry disabilitato o una scelta di deployment che oggi appare eccessiva. La tentazione è correggere ciò che sembra strano.
 
 Ma forse quella forma è la conseguenza di un vincolo che non vediamo più.
 
@@ -133,15 +124,7 @@ Se in futuro il costo operativo supera il beneficio, sappiamo che quel rischio e
 
 Un ADR può evolvere.
 
-Stati utili possono essere:
-
-- proposed;
-- accepted;
-- superseded;
-- deprecated;
-- rejected.
-
-Quando una decisione cambia, spesso è meglio **non riscrivere la storia**.
+Stati come `proposed`, `accepted`, `superseded`, `deprecated` e `rejected` permettono di conservare l'evoluzione della decisione. Quando una decisione cambia, spesso è meglio **non riscrivere la storia**.
 
 Creiamo un nuovo ADR che sostituisce il precedente.
 
@@ -158,14 +141,7 @@ Questo produce due effetti:
 
 Serve proporzionalità.
 
-Un buon criterio è documentare decisioni che hanno almeno uno di questi attributi:
-
-- impatto trasversale;
-- alto costo di inversione;
-- rischio significativo;
-- alternativa non ovvia;
-- conseguenze operative rilevanti;
-- probabile domanda futura sul perché.
+Un buon criterio è documentare decisioni con impatto trasversale o alto costo di inversione, con rischio significativo o alternative non ovvie. Vale la pena farlo anche quando le conseguenze operative sono rilevanti o quando è molto probabile che, in futuro, qualcuno debba chiedere perché quella scelta sia stata fatta.
 
 ### Il repository come memoria decisionale
 
@@ -181,13 +157,7 @@ adr/
   0003-tenant-isolation-strategy.md
 ```
 
-Il vantaggio è che possono essere:
-
-- versionati;
-- revisionati in pull request;
-- collegati a issue e codice;
-- letti dagli agenti;
-- cercati insieme alla storia del repository.
+Il vantaggio è che possono essere versionati e revisionati in pull request, collegati a issue e codice, letti dagli agenti e cercati insieme alla storia del repository.
 
 ### ADR e agenti AI
 

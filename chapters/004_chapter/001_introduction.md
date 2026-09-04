@@ -24,15 +24,7 @@ Non chiediamo più soltanto:
 
 > “Quali componenti ci sono?”
 
-Chiediamo:
-
-- quali decisioni stanno modellando il sistema?
-- quali vincoli le influenzano?
-- quali qualità vogliamo proteggere?
-- quali alternative abbiamo escluso?
-- che cosa stiamo pagando per questa scelta?
-- quanto sarebbe costoso cambiare direzione?
-- che cosa potrebbe invalidare la decisione in futuro?
+Chiediamo quali decisioni stiano modellando il sistema e quali vincoli le influenzino, quali qualità vogliamo proteggere e quali alternative abbiamo escluso. Poi chiediamo che cosa stiamo pagando per la scelta, quanto sarebbe costoso cambiare direzione e quali cambiamenti futuri potrebbero invalidare il ragionamento di oggi.
 
 L'architettura diventa così meno simile a una fotografia e più simile a una **storia di decisioni**.
 
@@ -60,15 +52,7 @@ La forma può essere simile.
 
 L'architettura no.
 
-Perché cambiano:
-
-- il significato dei dati;
-- il rischio;
-- le qualità richieste;
-- i failure mode accettabili;
-- le scelte di deployment;
-- i controlli;
-- il costo di una modifica.
+Perché cambiano il significato dei dati e il rischio, le qualità richieste e i failure mode accettabili. Cambiano inoltre le scelte di deployment e i controlli necessari, fino al costo con cui potremo modificare il sistema in futuro.
 
 Per questo in questo libro useremo i diagrammi, ma non li confonderemo mai con la sostanza.
 
@@ -122,17 +106,7 @@ Poi l'architettura resta nel diagramma mentre il sistema reale cambia.
 
 In questo libro useremo un modello diverso.
 
-L'architettura è continua perché continuano a cambiare:
-
-- requisiti;
-- carico;
-- team;
-- vincoli;
-- normative;
-- costi;
-- piattaforme;
-- failure mode osservati;
-- conoscenza del dominio.
+L'architettura è continua perché continuano a cambiare requisiti e carico, team e vincoli, normative e costi. Cambiano le piattaforme, emergono failure mode che prima non avevamo osservato e cresce — o viene corretta — la nostra conoscenza del dominio.
 
 Quindi una buona architettura non è soltanto una serie di decisioni iniziali.
 
@@ -176,16 +150,7 @@ Ora possiamo finalmente chiederci:
 
 > **Quali decisioni meritano attenzione architetturale, come le confrontiamo e come ne conserviamo il ragionamento?**
 
-Le sezioni che seguono costruiranno una risposta attraverso:
-
-- Architecturally Significant Requirements;
-- vincoli;
-- trade-off;
-- reversibilità;
-- one-way door e two-way door;
-- Architecture Decision Record;
-- trigger di revisione;
-- applicazione ad Order Operations.
+Le sezioni che seguono costruiranno una risposta passando dagli Architecturally Significant Requirements ai vincoli e ai trade-off, poi alla reversibilità, alle one-way e two-way door e agli Architecture Decision Record. Chiuderemo con i trigger di revisione e con l'applicazione concreta a Order Operations.
 
 Il punto non sarà imparare a “fare l'architetto”.
 

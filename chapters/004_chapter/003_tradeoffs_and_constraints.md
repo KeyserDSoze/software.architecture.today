@@ -84,14 +84,7 @@ Nel Capitolo 2 abbiamo distinto vincoli hard e soft.
 
 Ora vediamo il loro effetto architetturale.
 
-Supponiamo che un'organizzazione abbia:
-
-- un team di quattro persone;
-- nessun on-call 24/7;
-- budget cloud limitato;
-- una piattaforma.NET già standardizzata;
-- obbligo di deployment in una regione specifica;
-- deadline di otto settimane.
+Supponiamo che un'organizzazione abbia un team di quattro persone, nessun on-call 24/7 e un budget cloud limitato. Immaginiamo inoltre una piattaforma .NET già standardizzata, l'obbligo di deployment in una regione specifica e una deadline di otto settimane.
 
 Un'architettura che richiede venti microservizi, Kubernetes multi-cluster e una piattaforma event streaming operata internamente può essere tecnicamente valida.
 
@@ -107,16 +100,7 @@ Un'architettura non viene eseguita da diagrammi.
 
 Viene costruita, operata e modificata da persone.
 
-Quindi contano:
-
-- competenze disponibili;
-- numero di team;
-- maturità operativa;
-- ownership;
-- capacità di incident response;
-- velocità di onboarding;
-- turnover;
-- autonomia decisionale.
+Quindi contano le competenze disponibili e il numero di team, la maturità operativa e l'ownership, la capacità di incident response e la velocità di onboarding. Anche turnover e autonomia decisionale fanno parte dell'architettura reale, perché determinano quali soluzioni l'organizzazione è in grado di sostenere.
 
 Ignorare questi elementi produce architetture eleganti in teoria e fragili nella pratica.
 

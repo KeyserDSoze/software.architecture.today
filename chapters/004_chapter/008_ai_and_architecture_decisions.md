@@ -12,13 +12,7 @@ Se chiediamo:
 
 stiamo comprimendo troppo il problema.
 
-La risposta potrebbe essere tecnicamente plausibile, ma non sappiamo:
-
-- quali assunzioni abbia fatto;
-- quali requisiti stia privilegiando;
-- quali vincoli non abbia visto;
-- quali alternative abbia escluso;
-- quale costo stia sottovalutando.
+La risposta potrebbe essere tecnicamente plausibile, ma non sappiamo quali assunzioni abbia fatto o quali requisiti stia privilegiando, quali vincoli non abbia visto, quali alternative abbia escluso e quale costo stia sottovalutando.
 
 L'uso più interessante dell'AI non è ottenere una soluzione finale.
 
@@ -78,34 +72,13 @@ Per esempio:
 Prima di proporre un'architettura, elenca le informazioni mancanti che potrebbero cambiare materialmente la scelta.
 ```
 
-Un buon output potrebbe chiedere:
-
-- traffico previsto;
-- criticità del journey;
-- RTO/RPO;
-- modello di tenancy;
-- dimensione del team;
-- dati regolamentati;
-- pattern di scrittura/lettura;
-- integrazioni esterne;
-- budget;
-- competenze operative.
-
-Questa è spesso una funzione più preziosa della generazione diretta di diagrammi.
+Un buon output potrebbe chiedere quale traffico prevediamo e quanto sia critico il journey, quali RTO/RPO servano e quale modello di tenancy abbiamo. Potrebbe chiedere dimensione e competenze operative del team, presenza di dati regolamentati, pattern di lettura e scrittura, integrazioni esterne e budget. Questa è spesso una funzione più preziosa della generazione diretta di diagrammi.
 
 ### AI come reviewer degli ADR
 
 Un ADR può essere sottoposto a review automatica.
 
-Un agente può cercare:
-
-- alternative troppo deboli;
-- conseguenze negative mancanti;
-- trigger di revisione assenti;
-- contraddizioni con ADR esistenti;
-- claim non supportati dal contesto;
-- termini vaghi;
-- costi non considerati.
+Un agente può cercare alternative troppo deboli e conseguenze negative mancanti, trigger di revisione assenti e contraddizioni con ADR esistenti. Può evidenziare claim non supportati dal contesto, termini vaghi e costi che il ragionamento iniziale non aveva considerato.
 
 Possiamo perfino definire un reviewer specializzato:
 
@@ -141,16 +114,7 @@ Quindi:
 
 ### Architecture synthesis vs architecture judgment
 
-L'AI può sintetizzare molto bene:
-
-- documentazione;
-- requisiti;
-- diagrammi;
-- dipendenze;
-- opzioni;
-- pattern.
-
-Il judgment richiede invece priorità reali.
+L'AI può sintetizzare molto bene documentazione e requisiti, diagrammi e dipendenze, opzioni e pattern. Il judgment richiede invece priorità reali.
 
 Per esempio:
 
@@ -196,14 +160,7 @@ Ma su una one-way door o una decisione ad alto blast radius, la capacità di gen
 
 Cinque agenti che concordano non rendono una decisione corretta.
 
-Potrebbero condividere:
-
-- lo stesso contesto incompleto;
-- gli stessi bias di training;
-- la stessa assunzione sbagliata;
-- la stessa fonte non aggiornata.
-
-La diversità di ruolo aiuta, ma non crea automaticamente indipendenza epistemica.
+Potrebbero condividere lo stesso contesto incompleto o la stessa fonte non aggiornata, gli stessi bias di training o la stessa assunzione sbagliata. La diversità di ruolo aiuta, ma non crea automaticamente indipendenza epistemica.
 
 Serve sempre chiedere:
 
@@ -213,15 +170,7 @@ Serve sempre chiedere:
 
 Quando tutti possono generare rapidamente diagrammi, ADR e alternative, il valore non sta nel produrne di più.
 
-Sta nel riconoscere:
-
-- quale decisione conta davvero;
-- quale informazione manca;
-- quale trade-off è reale;
-- quale scelta è prematura;
-- quale rischio è sottovalutato;
-- quando serve fermarsi;
-- quando il contesto è cambiato abbastanza da riaprire la decisione.
+Sta nel riconoscere quale decisione conta davvero e quale informazione manca, quale trade-off è reale e quale scelta è prematura. Sta nel vedere il rischio sottovalutato, sapere quando fermarsi e capire quando il contesto è cambiato abbastanza da riaprire una decisione che ieri era ragionevole.
 
 In altre parole:
 

@@ -40,28 +40,13 @@ Perché?
 
 Se la risposta originale era isolare un workload specifico, generalizzare la decisione a tutto il sistema è un errore.
 
-Ogni decisione dovrebbe conservare il legame con:
-
-- problema;
-- ASR;
-- vincoli;
-- trade-off.
-
-Così possiamo capire se il ragionamento è ancora valido.
+Ogni decisione dovrebbe conservare il legame con il problema, gli ASR, i vincoli e i trade-off che l'hanno prodotta. Così possiamo capire se il ragionamento è ancora valido.
 
 ### 3. Distinguere policy da decisione locale
 
 Alcune scelte devono essere consistenti a livello di organizzazione.
 
-Per esempio:
-
-- identity provider;
-- gestione secrets;
-- baseline di observability;
-- criteri minimi di security;
-- formati standard di audit.
-
-Altre possono essere locali al team.
+Identity provider, gestione dei secret, baseline di observability, criteri minimi di security e formati standard di audit sono esempi di decisioni che spesso acquistano valore a livello organizzativo. Altre possono restare locali al team.
 
 Se centralizziamo tutto, rallentiamo.
 
@@ -107,15 +92,7 @@ Possiamo decidere che un servizio isolerà i failure.
 
 Poi scoprire che tutti i servizi dipendono dallo stesso database.
 
-L'architettura deve quindi ricevere feedback da:
-
-- metriche;
-- incidenti;
-- costi;
-- deployment;
-- support tickets;
-- tempi di sviluppo;
-- failure reali.
+L'architettura deve quindi ricevere feedback da metriche e incidenti, costi e deployment, support ticket e tempi di sviluppo, oltre che dai failure realmente osservati.
 
 > **Un'architettura che non riceve feedback dal sistema reale diventa rapidamente una teoria sul sistema.**
 
@@ -158,14 +135,7 @@ L'errore opposto è pensare che più persone approvano una scelta, più essa sia
 
 Un processo con cinque meeting e dodici firme può produrre una decisione mediocre.
 
-La governance deve migliorare:
-
-- qualità del contesto;
-- confronto delle alternative;
-- comprensione del rischio;
-- ownership.
-
-Se aggiunge soltanto attesa, non sta facendo architettura.
+La governance deve migliorare la qualità del contesto e il confronto delle alternative, la comprensione del rischio e l'ownership. Se aggiunge soltanto attesa, non sta facendo architettura.
 
 ### Architecture by title
 
@@ -193,16 +163,7 @@ Dobbiamo anche riconoscere quando il momento di decidere è arrivato.
 
 Con più agenti autonomi, il bisogno cresce.
 
-Un agente può leggere:
-
-- ADR;
-- architecture boundaries;
-- policy;
-- contract;
-- test;
-- stop condition.
-
-Questi elementi diventano una forma di **governance leggibile dalle macchine**.
+Un agente può leggere ADR e architecture boundary, policy e contract, test e stop condition. Questi elementi diventano una forma di **governance leggibile dalle macchine**.
 
 L'obiettivo non è costruire una prigione di regole.
 
