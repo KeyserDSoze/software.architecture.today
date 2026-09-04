@@ -1,90 +1,30 @@
 ## Order Operations: dalla feature alla mappa del sistema
 
-Nel Capitolo 1 abbiamo introdotto Order Operations dentro Example Software Industries S.p.A.
+Nel Capitolo 1 abbiamo introdotto Order Operations dentro Example Software Industries S.p.A. Nel Capitolo 2 abbiamo fermato l'execution abbastanza a lungo da scrivere un Problem & Outcome Brief. Ora facciamo il passo successivo: prima di scegliere la soluzione, rendiamo visibile il sistema dentro cui quella soluzione dovrà funzionare.
 
-Nel Capitolo 2 abbiamo fermato l'execution e costruito un Problem & Outcome Brief.
+## Il system of interest
 
-Ora possiamo fare il passo successivo.
+Per questa iterazione non stiamo progettando l'intera piattaforma ESI, il dominio Commerce completo o il payment provider. Il nostro **system of interest** è più ristretto: la capacità che permette a un operatore autorizzato di trovare un ordine problematico, comprenderne lo stato e decidere se intervenire, attendere o escalare.
 
-Non scegliere ancora la soluzione.
-
-Prima rendiamo visibile il sistema.
-
-## System of interest
-
-Per questa iterazione il nostro system of interest è:
+Possiamo chiamarla:
 
 ```text
 Operational Order Investigation
 ```
 
-Non l'intera piattaforma ESI.
+Il nome conta meno del confine. Stiamo scegliendo deliberatamente che cosa osservare e, di conseguenza, quali relazioni devono diventare visibili.
 
-Non l'intero dominio Commerce.
+## Chi partecipa al comportamento
 
-Non il payment provider.
+L'Operations Operator è l'utente diretto. L'Operations Supervisor condivide gran parte del journey, ma osserva anche distribuzione e anzianità dei casi. Il cliente non usa questa capability nella prima iterazione, eppure riceve il valore finale quando il problema viene individuato e gestito correttamente. Durante un degrado entra in scena anche il Platform Operator, perché il journey deve essere diagnosticabile. Payments & Risk diventa invece stakeholder quando il significato di un dato o una futura azione tocca il dominio economico.
 
-Non il sistema di shipping.
+Questa distinzione è già utile: il sistema non coincide con chi clicca l'interfaccia. Include anche gli attori che possiedono decisioni necessarie al comportamento.
 
-Stiamo progettando la capacità che consente a un operatore autorizzato di trovare un ordine problematico e comprenderne lo stato abbastanza bene da decidere se intervenire, attendere o escalare.
+## Le fonti che Order Operations non possiede
 
-Questo confine è intenzionale.
+La vista operativa attraversa più ownership. L'identità dell'operatore appartiene alla capability di Identity; il lifecycle commerciale dell'ordine appartiene a Orders; lo stato economico appartiene a Payments; lo stato della spedizione appartiene a Shipping. Order Operations può derivare una **problem category**, ma quella derivazione non deve trasformarsi accidentalmente nella nuova verità commerciale dell'ordine.
 
-## Actors
-
-Gli attori principali sono:
-
-```text
-Operations Operator
-Operations Supervisor
-Customer indirettamente
-Platform Operator durante incidenti
-Payments & Risk come stakeholder di dominio
-```
-
-L'Operations Operator è l'utente diretto.
-
-Il Customer riceve il valore finale quando il problema viene risolto correttamente e in tempo.
-
-Il Platform Operator diventa importante quando il journey degrada e dobbiamo capire perché.
-
-Payments & Risk entra quando il significato di un dato o una futura azione tocca il dominio economico.
-
-## External systems e domini adiacenti
-
-La capacità dipende almeno da:
-
-```text
-Identity Provider
-Orders source of truth
-Payments source of truth
-Shipping source of truth
-```
-
-A seconda di come evolverà ESI, alcune di queste capability potrebbero essere moduli interni, servizi separati o integrazioni verso provider esterni.
-
-Per il system thinking di questo capitolo la topologia concreta non è ancora il punto principale.
-
-Il punto è che la nostra vista attraversa più ownership.
-
-Se Order Operations mostra un unico `status`, chi lo calcola?
-
-Se invece mostra separatamente:
-
-```text
-Order status
-Payment status
-Shipment status
-Problem category
-```
-
-stiamo rappresentando il dominio in modo diverso.
-
-Il requisito “mostra lo stato dell'ordine” nascondeva questa scelta.
-
-## Data ownership
-
-Rendiamo esplicita l'ownership.
+La mappa dell'ownership può essere rappresentata così:
 
 ```text
 Order identity       → Orders
@@ -95,23 +35,13 @@ Operator identity    → Identity
 Problem category     → Order Operations, come derivazione operativa
 ```
 
-La UI non possiede nessuna di queste verità soltanto perché le mostra.
+La UI non possiede nessuna di queste verità soltanto perché le mostra. Anche se in futuro introducessimo una proiezione o un read model, dovremmo continuare a distinguere tra **authoritative source** e **query-optimized representation**.
 
-Order Operations non dovrebbe diventare autorevole accidentalmente soltanto perché aggrega i dati.
+Questa separazione evita una scorciatoia molto comune: confondere il luogo più comodo da leggere con il luogo che possiede il significato.
 
-Se useremo una proiezione o un read model, dovremo distinguere:
+## Il critical journey
 
-```text
-authoritative source
-vs
-query-optimized representation
-```
-
-Questa distinzione diventerà fondamentale quando parleremo di dati e consistency.
-
-## Critical user journey
-
-Il journey principale è:
+Il journey principale parte da un'intenzione semplice: un operatore vuole capire che cosa sta succedendo a un ordine problematico. Per riuscirci deve autenticarsi, aprire la vista, superare l'autorizzazione, ottenere i dati necessari e riceverli in una forma che distingua ordine, pagamento, spedizione, categoria operativa e freshness.
 
 ```text
 Operations operator authenticates
@@ -129,23 +59,13 @@ Shows known problem category and timestamps
 Operator judges Action / Wait / Escalation
 ```
 
-Gli acceptance criteria del capitolo precedente ci obbligano a considerare anche:
+Questa sequenza rende subito più povera la richiesta iniziale “costruiamo una dashboard”. La dashboard è soltanto una superficie. Il comportamento reale include autorizzazione, ownership dei dati, qualità dell'informazione e stati di degrado.
 
-- ordine inesistente;
-- ordine non accessibile;
-- pagamento temporaneamente non disponibile;
-- shipping temporaneamente non disponibile;
-- dato potenzialmente stale;
-- dipendenza in timeout;
-- combinazione di stati formalmente valida ma semanticamente sospetta.
+Gli acceptance criteria del capitolo precedente ci obbligano infatti a distinguere casi molto diversi: ordine inesistente, ordine esistente ma non accessibile, Payment temporaneamente non disponibile, Shipping degradato, dato potenzialmente stale, timeout o combinazioni di stati formalmente valide ma semanticamente sospette. Questi non sono dettagli di interfaccia. Sono stati possibili del journey.
 
-Questi non sono dettagli di UI.
+## La prima mappa
 
-Sono stati del journey.
-
-## Prima mappa
-
-Una rappresentazione iniziale potrebbe essere:
+Una vista iniziale può rimanere intenzionalmente semplice:
 
 ```mermaid
 flowchart LR
@@ -157,15 +77,11 @@ flowchart LR
     App --> Shipping[Shipping]
 ```
 
-La mappa non ci dice ancora se Payments e Shipping vengono interrogati live, letti tramite proiezione o raggiunti attraverso contratti interni.
+La mappa non decide ancora come recuperiamo i dati. Payments e Shipping potrebbero essere interrogati live, rappresentati tramite proiezioni o raggiunti attraverso contratti interni differenti. Questa incertezza non è un difetto del diagramma: è una decisione ancora aperta che il diagramma rende visibile.
 
-Quella è ancora una decisione.
+## Due direzioni architetturali, due costi diversi
 
-La mappa espone l'incertezza invece di nasconderla.
-
-## Dipendenze sincrone: una scelta, non un destino
-
-Potremmo implementare la vista chiamando live tutte le fonti.
+Una prima possibilità sarebbe comporre la vista interrogando live le fonti necessarie:
 
 ```text
 Order Operations
@@ -174,15 +90,9 @@ Order Operations
 → Shipping
 ```
 
-Vantaggio:
+Il vantaggio è intuitivo: potremmo ottenere dati molto freschi senza introdurre una copia operativa persistente. Il costo è altrettanto reale: availability e latency del journey diventano dipendenti dalla salute delle fonti obbligatorie e dal modo in cui reagiamo a timeout e degradi parziali.
 
-potremmo ottenere dati molto freschi.
-
-Costo:
-
-availability e latency del journey dipenderebbero dalle dipendenze obbligatorie.
-
-Oppure potremmo costruire un read model.
+Un'altra possibilità sarebbe costruire un read model aggiornato asincronamente:
 
 ```text
 Orders ─┐
@@ -190,156 +100,52 @@ Payments ├→ events → Operational Read Model
 Shipping ─┘
 ```
 
-Vantaggio:
+In questo caso la query operativa può diventare più semplice e il request path può essere più isolato dalle dipendenze live. In cambio introduciamo replication, lag, consumer, rebuild, gestione degli eventi e nuovi problemi di consistency.
 
-query semplice e maggiore isolamento dalle dipendenze live.
+Non stiamo ancora scegliendo. La Context Map ci permette però di formulare correttamente il tradeoff: non “live è semplice” contro “event-driven è moderno”, ma **freshness e dipendenze sincrone** contro **replica, lag e complessità operativa**.
 
-Costo:
+## Il contrasto aziendale entra nella mappa
 
-introduciamo replication, lag, rebuild, event processing e nuovi problemi di consistency.
+Commerce & Operations vorrebbe una vista sempre completa. Platform Engineering osserva che rendere obbligatorie molte dipendenze nel request path aumenta failure surface e costo operativo. Payments & Risk non vuole che una cache o una proiezione presenti dati economici vecchi come se fossero certamente attuali.
 
-Non stiamo ancora scegliendo.
+Le tre esigenze sono legittime e non possono essere massimizzate contemporaneamente senza costo. Il compromesso del capitolo consiste quindi nel **non scegliere ancora** live lookup o read model, perché ci manca una parte dell'informazione necessaria per farlo responsabilmente.
 
-Ma ora sappiamo **che cosa stiamo pagando in ciascuna direzione**.
+Accettiamo il costo di rinviare una decisione tecnica reversibile. Non accettiamo invece che un dato stale venga mostrato come certamente attuale, né che una rappresentazione derivata diventi source of truth per inerzia. I guardrail sono già visibili: ownership documentata, timestamp/freshness esplicita e Architecture Context Map come contesto della decisione.
 
-Questo è pensiero architetturale.
+Anche rinviare una scelta può essere una buona decisione quando è chiaro che cosa manca per prenderla meglio.
 
-## Il contrasto aziendale del capitolo
+## La topologia del failure cambia con la soluzione
 
-Commerce & Operations vorrebbe una vista sempre completa.
+Con una strategia live, Identity, Orders, Payments, Shipping e il percorso di rete possono entrare direttamente nel failure domain del journey. I timeout possono accumularsi e una singola dipendenza degradata può rendere incompleta la vista.
 
-Platform Engineering osserva che rendere obbligatorie tutte le dipendenze nel request path può aumentare failure surface e costo operativo.
+Con un read model, una parte di quei failure si sposta altrove: consumer fermo, evento in ritardo, proiezione stale, incompatibilità di schema, storage indisponibile o rebuild fallito. Il sistema può risultare disponibile dal punto di vista della query e comunque mostrare dati non abbastanza freschi per la decisione operativa.
 
-Payments & Risk non vuole che una cache o proiezione trasformi dati economici stale in una decisione apparentemente certa.
+Non esiste la variante “senza failure”. Esistono **failure topology differenti** e dobbiamo capire quale sia più compatibile con l'outcome.
 
-Le tre richieste sono legittime.
+## Freshness come requisito architetturale
 
-Non possiamo massimizzarle tutte contemporaneamente senza costo.
+Il brief ci ha lasciato una domanda decisiva: quanto può essere vecchio il dato prima di diventare inutile o pericoloso per Operations?
 
-## Il compromesso
+Se il business ci dicesse che un ritardo breve è accettabile per alcune informazioni, ma che payment e cancellation devono mostrare chiaramente l'ultimo aggiornamento noto, avremmo già ristretto in modo significativo lo spazio delle soluzioni. Potremmo ammettere dati derivati, purché la loro età sia osservabile; potremmo trattare diversamente campi con criticità differenti.
 
-**Esigenza**
-
-Dare all'operatore una vista utile e comprensibile.
-
-**Tensione**
-
-Freshness e completezza contro availability, latency e semplicità operativa.
-
-**Decisione attuale**
-
-Non scegliamo ancora live lookup o read model. Rendiamo prima esplicite dipendenze, ownership e qualità necessarie per decidere nel capitolo successivo.
-
-**Costo accettato**
-
-Rinviamo una decisione tecnica che potremmo implementare subito.
-
-**Quality floor**
-
-Non accettiamo che un dato stale venga presentato come certamente attuale e non accettiamo che una proiezione diventi source of truth accidentalmente.
-
-**Guardrail**
-
-Architecture Context Map, timestamp/freshness esplicita e ownership documentata.
-
-Anche **rinviare una decisione** può essere un compromesso ben progettato quando la decisione è reversibile e manca ancora informazione significativa.
-
-## Failure domain
-
-Con una strategia live, alcuni failure mode sono:
-
-```text
-Identity unavailable
-Orders unavailable
-Payments unavailable
-Shipping unavailable
-Network degradation
-Timeout accumulation
-```
-
-Con un read model:
-
-```text
-Projection storage unavailable
-Consumer stopped
-Event lost or delayed
-Projection lag
-Schema incompatibility
-Rebuild failure
-```
-
-Non esiste la soluzione senza failure.
-
-Esiste una scelta tra failure topology differenti.
-
-## Freshness
-
-Il brief ci ha dato una domanda cruciale:
-
-> quanto può essere vecchio il dato prima di diventare inutilizzabile per Operations?
-
-Supponiamo che il business dica:
-
-> “Per alcune informazioni un breve ritardo è accettabile; per payment e cancellation dobbiamo mostrare chiaramente l'ultimo aggiornamento noto.”
-
-Questa informazione cambia enormemente lo spazio delle soluzioni.
-
-Un requisito di freshness non è un dettaglio tecnico.
-
-È un input architetturale.
+Il target di freshness non è quindi una finezza tecnica. È un input architetturale perché decide quali forme di replica, caching e degradazione sono compatibili con il comportamento atteso.
 
 ## Trust boundary
 
-Operations vede dati dei clienti.
+Order Operations espone dati relativi ai clienti a operatori interni. L'autenticazione da sola non basta. Dobbiamo sapere quali ordini può vedere un operatore, quali dati personali sono davvero necessari, se le consultazioni devono essere auditabili e quali azioni future richiederanno privilegi più forti.
 
-Quindi dobbiamo almeno rappresentare:
+La Context Map non risolve ancora queste domande, che approfondiremo nel capitolo sulla security. Le rende però impossibili da dimenticare mentre discutiamo la soluzione tecnica.
 
-```text
-Operations operator
-→ authenticated internal application
-→ authorization boundary
-→ customer/order data
-```
+## Le domande che la mappa ha fatto emergere
 
-Non basta che l'utente sia autenticato.
+A questo punto sappiamo che la definizione di `problematic order` deve essere condivisa, che la freshness può variare per tipo di dato, che non abbiamo ancora deciso quali dipendenze debbano vivere nel request path e che il comportamento durante un degrado parziale deve essere esplicito. Dobbiamo inoltre capire se serve audit degli accessi, quale volume attendiamo, quali informazioni sono sensibili e quali decisioni richiederanno il coinvolgimento di Payments & Risk o Security.
 
-Dobbiamo chiedere:
-
-- quali ordini può vedere?
-- quali dati personali sono necessari?
-- dobbiamo auditare le consultazioni?
-- esistono ruoli differenti?
-- quali azioni future richiederanno privilegi più forti?
-
-Queste domande verranno approfondite nel capitolo security.
-
-Ma la Context Map deve renderle visibili già adesso.
-
-## Open questions
-
-La nostra prima mappa produce un backlog di decisioni:
-
-1. Che cosa significa esattamente `problematic order`?
-2. Qual è la freshness accettabile per ciascun tipo di dato?
-3. L'operatore necessita dato live o “ultimo stato noto + timestamp”?
-4. Quali dipendenze devono essere obbligatorie nel request path?
-5. Che cosa mostriamo durante un degrado parziale?
-6. Serve audit degli accessi?
-7. Qual è il volume atteso delle ricerche?
-8. Quali informazioni sono considerate sensibili?
-9. Quali policy sono locali a Commerce & Operations e quali sono aziendali?
-10. Quali decisioni future richiederanno Payments & Risk o Security al tavolo?
-
-Queste domande sono un risultato utile.
-
-Non rappresentano incompletezza del lavoro.
-
-Rappresentano complessità che prima era nascosta.
+Queste domande non rappresentano un'analisi fallita. Sono complessità che prima erano nascoste dentro la parola “dashboard”.
 
 ## Che cosa abbiamo ottenuto
 
-Non abbiamo ancora scelto database o cache, queue o event broker, microservizi, serverless o uno specifico cloud service. Eppure sappiamo molto di più sull'architettura.
+Non abbiamo ancora scelto database, cache, queue, broker, microservizi, serverless o cloud service. Eppure l'architettura è già più comprensibile. Abbiamo delimitato il system of interest, identificato attori e ownership, reso visibile il journey critico, riconosciuto trust boundary e failure topology e soprattutto separato ciò che sappiamo dalle decisioni ancora aperte.
 
-Abbiamo identificato il system of interest e gli attori, le fonti autorevoli e le dipendenze, il journey critico e il trust boundary. Conosciamo meglio failure domain e stakeholder aziendali e, soprattutto, abbiamo reso visibili le domande che possono cambiare la soluzione. Questo è il punto dell'Architecture Context Map.
+Questo è il valore della Context Map:
 
 > **Prima di scegliere i componenti, rendiamo visibili le forze che dovranno governarli.**
