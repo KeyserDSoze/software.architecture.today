@@ -1,89 +1,77 @@
-# 17.6 — I contratti nascosti: dati, job, workaround e conoscenza operativa
+# 17.6 — I contratti nascosti: dati, job e conoscenza operativa
 
-Il codice legacy è spesso soltanto la parte visibile del sistema.
+Il codice legacy è spesso soltanto la parte più visibile del sistema.
 
 I contratti più pericolosi possono vivere altrove.
 
-## Un contratto può non sembrare un contratto
+Una modernization fallisce quando cambia un comportamento che nessuno aveva riconosciuto come contratto.
 
-Abbiamo già visto API ed event contract.
+## Un contratto non deve avere una specifica per essere reale
 
-Nel legacy esistono spesso contratti come:
+Nel legacy possiamo trovare promesse come:
 
 ```text
-questa colonna non deve mai essere null
+questa colonna non deve mai essere NULL
 questo job deve finire prima delle 02:15
 questo CSV deve mantenere l'ordine delle colonne
-questo consumer interpreta stringa vuota come "non modificare"
+stringa vuota significa "non modificare"
 questo report legge direttamente una view
-questo campo viene aggiornato manualmente durante incidenti
-questo valore viene copiato perché il downstream non può leggere la fonte autorevole
+questo flag viene cambiato manualmente durante un incidente
+questo valore è duplicato perché il downstream non può leggere la fonte autorevole
 ```
 
-Nessuno di questi richiede un file OpenAPI per essere reale.
+Nessuna di queste regole richiede OpenAPI o AsyncAPI per avere conseguenze reali.
 
-## Shared database come integration surface
+Se un consumer, un operatore o un processo dipende dal comportamento, abbiamo una compatibility surface che la modernization deve almeno comprendere.
 
-Nel brownfield il database può essere l'API principale fra sistemi.
+## Nel brownfield il database può essere l'API principale
 
-Esempio:
+Immaginiamo:
 
 ```text
 Legacy App A
-  writes customer_case.status
+→ writes customer_case.status
 
 Batch B
-  reads status at 01:00
+→ reads it at 01:00
 
 Report C
-  joins customer_case directly
+→ joins the table directly
 
-Manual Ops Tool D
-  updates status during escalation
+Ops Tool D
+→ changes it during escalation
 ```
 
 Estrarre `App A` non significa aver migrato la capability.
 
-Dobbiamo capire:
+Il vero boundary comprende writer, reader, transaction assumption, query dirette, schema ownership e procedure manuali.
 
-- chi scrive;
-- chi legge;
-- quali transaction assumption esistono;
-- quali consumer fanno query dirette;
-- quali indici sono implicitamente parte del workload;
-- chi cambia schema;
-- quale sistema è realmente authoritative.
+Prima di cambiare ownership dobbiamo quindi sapere:
 
-## Schema archaeology
+```text
+chi scrive?
+chi legge?
+chi cambia schema?
+chi dipende da timing/index/trigger?
+chi considera quel dato autorevole?
+```
 
-Il database conserva spesso anni di compatibilità.
+## Schema archaeology: i dettagli strani possono essere semantica
 
-Segnali interessanti:
+Colonne `_old`, `_legacy`, `_v2`, booleani usati come state machine, timestamp nullable, codici stringa e tabelle di staging mai eliminate sembrano facilmente “sporcizia”.
 
-- colonne con suffix `_old`, `_legacy`, `_v2`;
-- flag booleani che sostituiscono state machine;
-- stringhe con codici non documentati;
-- timestamp nullable con semantica di stato;
-- JSON libero dentro schema relazionale;
-- duplicate key apparentemente equivalenti;
-- trigger con logica business;
-- stored procedure con branching;
-- tabelle di staging mai eliminate.
+A volte lo sono.
 
-Non dobbiamo giudicarli immediatamente.
+A volte rappresentano anni di compatibilità.
 
-Dobbiamo capire quali sono ancora parte del comportamento.
-
-## Il valore sentinella
-
-Il legacy ama i valori sentinella.
+Lo stesso vale per i valori sentinella:
 
 ```text
 -1
 0
 9999
-"UNKNOWN"
-"N/A"
+UNKNOWN
+N/A
 ""
 NULL
 1970-01-01
@@ -91,22 +79,25 @@ NULL
 
 Il problema non è estetico.
 
-È semantico.
-
-Un nuovo sistema che normalizza ingenuamente questi valori può cambiare il comportamento.
+È distinguere significati che il nuovo modello potrebbe accidentalmente collassare.
 
 Per esempio:
 
 ```text
-NULL = mai processato
-""   = processato ma nessun risultato
+NULL
+→ mai processato
+
+""
+→ processato ma senza risultato
 ```
 
-Se li trasformiamo entrambi in `undefined`, abbiamo perso una distinzione.
+Normalizzarli entrambi a `undefined` può cambiare il workflow.
 
-## Scheduled job come workflow engine
+Prima della pulizia serve requirement recovery.
 
-Molti sistemi legacy implementano workflow attraverso il tempo.
+## Il tempo può essere il workflow engine
+
+Molti sistemi legacy coordinano processi tramite scheduler:
 
 ```text
 00:30 import
@@ -116,224 +107,206 @@ Molti sistemi legacy implementano workflow attraverso il tempo.
 03:00 reconcile
 ```
 
-Il dependency graph non è nel codice.
+Il dependency graph non è nel source code.
 
 È nel calendario.
 
-Modernizzare uno di questi job richiede capire:
+Per ciascun job dobbiamo capire:
 
-- input completeness;
-- retry;
-- rerun safety;
-- idempotency;
-- ordering;
-- cutoff business;
-- partial-file behavior;
-- manual recovery.
+```text
+input completeness
+ordering
+rerun safety
+idempotency
+retry
+cutoff business
+partial result behavior
+manual recovery
+```
 
-Una nuova queue non elimina automaticamente queste semantiche.
+Sostituire un job con una queue non elimina automaticamente queste semantiche.
 
-## File contract
+Può soltanto cambiare il meccanismo con cui devono essere garantite.
 
-CSV, XML e fixed-width file sono ancora API.
+## File, naming convention e mailbox sono API
 
-Un file può avere:
+CSV, XML, fixed-width file, directory e filename convention possono essere contratti inter-system.
 
-- filename convention;
-- directory convention;
+Un consumer può dipendere da:
+
 - encoding;
 - delimiter;
-- column ordering;
-- header presence;
+- column order;
 - timezone;
 - decimal separator;
 - checksum;
 - ack file;
-- retry convention;
-- duplicate handling.
+- duplicate handling;
+- naming pattern.
 
-Cambiare uno di questi dettagli può rompere un consumer che non abbiamo nel repository.
+Il consumer potrebbe non essere nel repository e potrebbe non avere un owner evidente.
 
-## Il contratto umano
+Per questo la discovery dei consumer deve combinare repository search, access/query log, broker inventory, permission, network evidence e interviste.
 
-Alcuni sistemi funzionano perché le persone compensano le loro lacune.
+Nessuna tecnica singola offre una garanzia completa.
 
-Esempio:
+## Le persone possono essere parte del recovery path
+
+Un sistema può “funzionare” perché Operations compensa manualmente le sue lacune.
+
+Per esempio:
 
 ```text
-sistema genera errore 47
-→ operatore apre query SQL salvata
-→ controlla tabella X
-→ modifica flag Y
-→ rilancia job
+error 47
+→ operator runs saved query
+→ checks table X
+→ changes flag Y
+→ reruns job
 ```
 
-Dal punto di vista del codice questo recovery path non esiste.
+Dal punto di vista del codice questo comportamento non esiste.
 
-Dal punto di vista dell'azienda è parte dell'operabilità corrente.
+Dal punto di vista operativo è un runbook reale.
 
-Modernizzare senza intervistare Operations può eliminare il workaround prima di avere eliminato il failure che lo rende necessario.
+Se la modernization elimina il workaround prima di eliminare il failure che lo rende necessario, ha ridotto la recoverability.
 
-## Runbook archaeology
+Per questo cerchiamo anche:
 
-Cerchiamo quindi anche:
+```text
+wiki
+incident timeline
+ticket
+saved query
+personal/team script
+spreadsheet
+manual approval
+on-call notes
+dashboard used during incidents
+```
 
-- wiki;
-- ticket;
-- incident timeline;
-- Slack/Teams knowledge formalizzata successivamente;
-- script personali poi adottati dal team;
-- query salvate;
-- spreadsheet operativi;
-- manual approval;
-- on-call note;
-- dashboard usate durante incidenti.
+Queste fonti non sono automaticamente requisiti da preservare.
 
-Non tutto deve essere preservato.
+Sono evidence di come il sistema viene realmente mantenuto in vita.
 
-Ma deve essere compreso prima di essere rimosso.
+## Data migration significa trasferire authority
 
-## Shadow consumer
+Quando cambia il data model, il problema non è soltanto copiare record.
 
-Uno dei failure mode più comuni della modernization è scoprire un consumer solo dopo il cutover.
-
-Possibili tecniche di discovery:
-
-- DB query log;
-- access log;
-- API gateway log;
-- broker subscription inventory;
-- network flow;
-- repository search cross-org;
-- schema access permission;
-- owner interview;
-- temporary instrumentation.
-
-Nessuna tecnica singola è completa.
-
-## Data migration è una fase operativa
-
-Una modernization che cambia data model deve gestire almeno:
+Dobbiamo governare:
 
 ```text
 historical migration
 new writes
 backfill
 validation
+coexistence
 cutover
 rollback
 reconciliation
 old writer retirement
 ```
 
-Il rischio più pericoloso è avere contemporaneamente due sistemi che possono dichiararsi owner dello stesso business fact.
+Il failure mode più pericoloso è avere due sistemi che possono entrambi dichiararsi authoritative per lo stesso business fact.
 
-### Dual write ambiguity
+### Dual-write ambiguity
 
 ```text
 legacy write succeeds
 new write fails
 ```
 
-chi ha ragione?
+Quale stato è vero?
 
 ### Backfill race
 
 ```text
 backfill reads old value
-new transaction updates value
+new transaction updates source
 backfill writes stale transformed value
 ```
 
 ### Cutover ambiguity
 
 ```text
-new system live
-legacy batch still writes overnight
+new path is live
+legacy batch writes again overnight
 ```
 
-La data migration deve quindi avere un ownership transition plan.
+Questi non sono “edge case di migrazione”.
 
-## Compatibility window
+Sono problemi di ownership.
 
-Durante la coexistence può essere necessario mantenere una finestra di compatibilità.
+La data migration deve quindi possedere un **ownership transition plan**.
 
-Esempio:
+## La compatibility window deve avere una fine
+
+Durante coexistence possiamo dover tradurre temporaneamente:
 
 ```text
 new enum
 Paid | Failed | Pending
 
-legacy consumer expects
+legacy expectation
 1 | 2 | 9
 ```
 
-Possiamo mantenere mapping temporaneo.
+Il mapping può essere giusto.
 
 Ma deve avere:
 
-- owner;
-- consumer;
-- removal condition;
-- test;
-- monitoring.
+```text
+consumer
+owner
+test
+monitoring
+removal condition
+```
 
-Altrimenti l'adapter temporaneo diventa permanente.
+Altrimenti l'adapter temporaneo diventa il nuovo contratto permanente senza una decisione esplicita.
 
-## L'Anti-Corruption Layer deve avere una data policy
+Lo stesso vale per un Anti-Corruption Layer che replica dati: deve dichiarare source autorevole, freshness, retention, reconciliation, privacy, delete propagation e schema evolution.
 
-Un ACL può tradurre API e DTO.
+Tradurre DTO senza una data policy può creare un nuovo shadow database.
 
-Ma se copia dati deve anche dichiarare:
+## Quando la regola non ha provenance facciamo requirement recovery
 
-- authoritative source;
-- freshness;
-- retention;
-- reconciliation;
-- privacy;
-- schema evolution;
-- delete propagation.
-
-La traduzione semantica senza data governance produce un nuovo shadow database.
-
-## Business rule fuori dal codice
-
-Una regola può essere definita da:
+Una business rule può provenire da:
 
 - contratto cliente;
 - tariffario;
 - SLA;
 - normativa;
-- processo Finance;
-- policy Security;
-- manuale operativo.
+- policy Finance;
+- processo Operations;
+- decisione Security;
+- workaround storico.
 
-Se il codice implementa una regola ma nessuno sa da dove provenga, il lavoro non è soltanto reverse engineering.
+Se il codice applica una regola ma nessuno sa più perché, non stiamo semplicemente facendo reverse engineering.
 
-È **requirement recovery**.
+Stiamo facendo **requirement recovery**.
 
-Domande:
+Le domande diventano:
 
 ```text
 Perché esiste?
 Chi la richiede?
+Per quali utenti/tenant/prodotti?
 Da quando?
-Per quali tenant/prodotti?
 È ancora valida?
 Quale evidence la conferma?
 ```
 
-## ESI: il comportamento che nessuno vuole promettere troppo presto
+## ESI: la priority rule che non vogliamo promuovere troppo presto
 
-In Operations Desk Classic troveremo una regola di priority routing che sembra differenziare alcuni casi enterprise.
+In Operations Desk Classic troviamo una regola che alza la priority di alcuni case Enterprise dopo un threshold temporale.
 
-Il codice la applica.
+Il codice esiste.
 
-La characterization suite la osserva.
+La characterization suite osserva il comportamento.
 
-Ma Order Operations non la inserirà subito nella propria Functional Analysis come requisito.
+Questo non basta per inserirlo nella Functional Analysis di Order Operations.
 
-Prima dobbiamo sapere se è:
+Prima dobbiamo capire se siamo davanti a:
 
 ```text
 contract requirement
@@ -343,9 +316,10 @@ historical workaround
 bug
 ```
 
-Questa distinzione protegge il nuovo sistema da due errori opposti:
+Promuovere immediatamente il behavior a requisito rischierebbe di fossilizzare accidental complexity.
 
-1. perdere un comportamento business necessario;
-2. fossilizzare un accidente storico.
+Ignorarlo perché “sembra strano” rischierebbe invece di eliminare un comportamento ancora necessario.
 
-> **Nel legacy, ciò che esiste merita indagine. Non automaticamente rispetto.**
+Questo è il punto in cui `Found / Inferred / Observed / Confirmed` smette di essere una tassonomia editoriale e diventa una regola di decisione.
+
+> **Nel legacy, ciò che esiste merita investigation. Non merita automaticamente di sopravvivere, ma non può essere cancellato con leggerezza finché non ne comprendiamo le conseguenze.**
