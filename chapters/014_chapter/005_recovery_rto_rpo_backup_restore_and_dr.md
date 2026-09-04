@@ -1,421 +1,225 @@
-# Recovery, RTO, RPO, backup, restore e disaster recovery
+## Recovery, RTO, RPO, backup e disaster recovery
 
-High availability e recovery non sono la stessa cosa.
+High availability e recovery non sono sinonimi. Un sistema può avere failover automatico e restare impreparato davanti a corruption logica, cancellazione accidentale, bad deployment, credential compromise o perdita di un’intera regione.
 
-Un sistema può avere failover automatico e non saper recuperare da:
+La prima distinzione da fare è quindi tra **continuare** e **tornare indietro da un failure**.
 
-- corruption logica;
-- bad deployment;
-- credential compromise;
-- cancellazione accidentale;
-- configurazione distruttiva;
-- region-wide disaster.
+La HA cerca di mantenere il servizio attraverso alcune classi di guasto. La recovery parte invece dal presupposto che il sistema abbia già perso una proprietà importante e debba ricostruirla da una fonte affidabile.
 
-## RTO
+## RTO e RPO sono proprietà del business failure scenario
 
-**Recovery Time Objective** risponde alla domanda:
+Il **Recovery Time Objective** risponde a una domanda molto concreta:
 
 > **Quanto tempo possiamo restare sotto il livello di servizio accettabile prima che il danno diventi troppo alto?**
 
-Non è necessariamente il tempo tecnico di restart.
+Non coincide necessariamente con il tempo di restart di un processo. Include detection, diagnosi, decisione, esecuzione della recovery, validazione e riapertura del servizio.
 
-Include ciò che serve per:
+Il **Recovery Point Objective** risponde invece a:
 
-```text
-detect
-→ diagnose
-→ decide
-→ execute recovery
-→ validate
-→ restore service
-```
+> **Quanta perdita di stato possiamo accettare nello scenario di recovery considerato?**
 
-## RPO
-
-**Recovery Point Objective** risponde invece:
-
-> **Quanta perdita di dati, espressa come intervallo temporale, può essere accettabile nello scenario di recovery considerato?**
-
-RTO e RPO devono essere definiti rispetto al failure scenario.
-
-Esempio:
+RTO e RPO devono quindi essere associati al failure domain. Per lo stesso prodotto possiamo avere:
 
 ```text
-process crash
-RTO = secondi/minuti
+process/instance failure
+RTO = minuti
 RPO = 0
 ```
 
-può essere diverso da:
+ed essere disposti ad accettare, per un region-wide disaster:
 
 ```text
-region loss
 RTO = ore
-RPO = minuti
+RPO = fino a un intervallo definito
 ```
 
-per lo stesso prodotto.
-
-Microsoft definisce RTO e RPO come metriche di reliability e recovery del workload, collegate al business impact.
+Microsoft tratta RTO e RPO come reliability metric collegate al business impact del workload.
 
 Fonte:
 
 - [Microsoft Learn — Monitoring workload reliability](https://learn.microsoft.com/azure/well-architected/reliability/monitoring)
 
-## Backup ≠ restore
+## “Abbiamo il backup” non è ancora una recovery strategy
 
-Avere file di backup significa che possediamo un artefatto.
+Un backup dimostra che possediamo una copia. Non dimostra che il team sappia ripristinare un sistema utilizzabile.
 
-Non significa che sappiamo recuperare.
-
-Una recovery strategy deve rispondere anche a:
-
-```text
-chi avvia il restore?
-con quali permission?
-in quale environment?
-come scegliamo il restore point?
-quanto tempo impiega?
-come validiamo i dati?
-come reindirizziamo il traffico?
-che cosa succede ai messaggi prodotti nel frattempo?
-come riconciliamo gli stati?
-```
+La recovery deve sapere chi può avviare il restore, quale restore point scegliere, dove ripristinare, quali permission servono, come verificare i dati, come reindirizzare il traffico e come riconciliare messaggi o operazioni avvenuti nel frattempo.
 
 > **Un backup non testato è una speranza compressa in storage.**
 
-## Failure diversi, meccanismi diversi
-
-### Node failure
-
-Possibile risposta:
+Questa distinzione diventa più chiara guardando failure differenti:
 
 ```text
-standby / automatic failover
+node failure
+→ replica / automatic failover
+
+zone failure
+→ zone redundancy
+
+logical corruption
+→ point-in-time restore
+
+bad deployment
+→ rollback / known-good artifact
+
+region loss
+→ regional recovery strategy
 ```
 
-### Availability-zone failure
+La parola `DR` non risolve questi casi con un solo meccanismo.
 
-Possibile risposta:
+## PostgreSQL: la replica protegge da ciò per cui è stata costruita
 
-```text
-zone redundancy
-```
+Azure Database for PostgreSQL Flexible Server supporta configurazioni HA con primary e standby. Nella modalità zone-redundant, Microsoft documenta replica sincrona verso una standby in un’altra availability zone e failover automatico per i failure coperti dal meccanismo.
 
-### Logical corruption
-
-Possibile risposta:
-
-```text
-point-in-time restore
-```
-
-### Bad application deployment
-
-Possibile risposta:
-
-```text
-rollback / deployment slot / previous artifact
-```
-
-### Region loss
-
-Possibile risposta:
-
-```text
-cross-region recovery / secondary deployment
-```
-
-La parola “DR” non può sostituire questa classificazione.
-
-## PostgreSQL in Azure
-
-Azure Database for PostgreSQL Flexible Server supporta configurazioni HA con primary e standby. Microsoft documenta che la modalità zone-redundant replica sincronicamente verso una standby in un'altra availability zone nella stessa regione e può eseguire failover automatico in caso di failure del primary.
-
-La documentazione corrente indica per la zone-redundant HA un recovery da zone failure tipicamente nell'ordine di 60–120 secondi con zero data loss per il meccanismo HA; questo non sostituisce il restore da errori logici.
+La documentazione corrente descrive recovery da zone failure tipicamente nell’ordine di 60–120 secondi e zero data loss per la replica sincrona; questa è una proprietà del meccanismo HA, non una promessa del nostro intero workload.
 
 Fonti:
 
 - [Microsoft Learn — PostgreSQL High Availability](https://learn.microsoft.com/azure/postgresql/high-availability/concepts-high-availability)
 - [Microsoft Learn — Azure Database for PostgreSQL overview](https://learn.microsoft.com/azure/postgresql/overview)
 
-Il punto architetturale è importante:
+Se però un’applicazione esegue una `DELETE` distruttiva o una migration corrompe logicamente i dati, la standby può replicare perfettamente l’errore. In quel caso il failover è inutile: serve un recovery point precedente.
 
-```text
-standby replica
-```
-
-può proteggere da un node/zone failure.
-
-Se eseguiamo:
-
-```sql
-DELETE FROM important_table;
-```
-
-la replica può replicare correttamente la cancellazione.
-
-Per quel failure serve una recovery strategy diversa.
-
-## Point-in-time restore
-
-Azure Database for PostgreSQL offre point-in-time restore entro la retention configurata.
-
-Microsoft documenta backup retention e restore come meccanismi di business continuity separati dalla HA.
+Azure PostgreSQL offre point-in-time restore entro la retention configurata e lo tratta come capability di business continuity distinta dalla HA.
 
 Fonte:
 
 - [Microsoft Learn — PostgreSQL Business Continuity](https://learn.microsoft.com/azure/postgresql/backup-restore/concepts-business-continuity)
 
-Per ESI dovremo quindi testare almeno:
+Per ESI questo significa che un vero drill non controlla soltanto una checkbox `backupEnabled`. Deve simulare un errore logico, ripristinare un server di recovery, validare schema e dati, misurare la durata e definire il percorso di cutover.
 
-```text
-create backup/recovery point
-→ simulate logical mistake
-→ restore to new server
-→ validate schema/data
-→ decide cutover path
-```
+## Service Bus ricorda perché “geo” non basta come parola
 
-Non basta verificare che l'opzione `backup` sia abilitata.
-
-## Service Bus e region failure
-
-Azure Service Bus offre zone redundancy all'interno della regione e, per scenari multi-region, capability distinte come Geo-Replication e Metadata Geo-Disaster Recovery nel tier Premium.
-
-Microsoft sottolinea una differenza molto importante:
-
-```text
-metadata replication
-≠
-message data replication
-```
+Azure Service Bus offre resilienza zonale e, nel tier Premium, capability cross-region differenti come Geo-Replication e Metadata Geo-Disaster Recovery. Microsoft distingue esplicitamente la replica dei metadata dalla replica dei message data.
 
 Fonte:
 
 - [Microsoft Learn — Reliability in Azure Service Bus](https://learn.microsoft.com/azure/reliability/reliability-service-bus)
 
-Questa distinzione impedisce un errore comune:
-
-> “Abbiamo configurato geo-DR, quindi i messaggi sono sicuramente al sicuro.”
-
-Dipende dal meccanismo scelto.
-
-## Outbox come recovery source
-
-Order Operations ha già una proprietà interessante.
-
-La source business della Payment Escalation vive nel database locale insieme all'outbox.
-
-Se un messaggio non è stato consegnato ma il database è integro, possiamo ricostruire l'intenzione di delivery.
-
-Questo significa che, in alcuni scenari:
+Questa distinzione è architetturalmente importante perché evita una conclusione superficiale:
 
 ```text
-PostgreSQL durable state
+abbiamo configurato geo-DR
+→ i messaggi sono sicuramente preservati
 ```
 
-è più importante della sopravvivenza immediata della singola copia nel broker.
+La risposta dipende da quale meccanismo abbiamo realmente scelto e da che cosa replica.
 
-Non significa che possiamo ignorare Service Bus reliability.
+Order Operations ha però una proprietà ulteriore: il business fact `PaymentEscalation` e l’intenzione di pubblicarlo vivono durablemente in PostgreSQL tramite outbox. Se il broker perde temporaneamente continuità ma il database resta recuperabile, possiamo ricostruire la delivery a partire dalla source locale.
 
-Significa che la recovery architecture conosce la propria **source of recovery**.
+L’outbox non rende Service Bus irrilevante. Ci dice semplicemente qual è la **recovery source** per la publication intent.
 
-## Recovery source
+## Ogni stato importante deve avere una recovery source
 
-Per ogni dato/processo dovremmo poter rispondere:
+Un sistema è molto più facile da recuperare quando sappiamo da che cosa deve essere ricostruito.
 
-```text
-che cosa ricostruiamo?
-da quale fonte?
-con quale versione?
-con quale ordering?
-con quale reconciliation?
-```
+Per ESI il modello è già leggibile:
 
-Esempi ESI:
+| Stato/capability | Recovery source |
+|---|---|
+| OperationalCase | PostgreSQL authoritative local state / backup |
+| PaymentEscalation | PostgreSQL authoritative local state / backup |
+| publication intent | `outbox_message` |
+| broker delivery | republish dalla durable outbox con `messageId` stabile |
+| Payments workflow | Payments & Risk authoritative state |
+| application | trusted build artifact |
+| infrastructure | repository IaC + landing-zone baseline |
+| secret inevitabili | Key Vault / processo di recovery del provider |
 
-### OperationalCase
+Questa mappa impedisce di inventare la recovery durante l’incidente.
 
-```text
-source = PostgreSQL backup/primary state
-```
+## Il runbook deve descrivere una sequenza eseguibile
 
-### Payment Escalation publication intent
+Un disaster-recovery diagram è utile per vedere la topologia. Il runbook deve invece dirci che cosa fare quando il tempo conta.
 
-```text
-source = PaymentEscalation + OutboxMessage
-```
-
-### Payments downstream workflow
-
-```text
-source = Payments & Risk authoritative state
-```
-
-### IaC
-
-```text
-source = repository + approved parameters + landing-zone baseline
-```
-
-### Application binary
-
-```text
-source = trusted build artifact / release
-```
-
-## DR runbook
-
-Un disaster-recovery plan non deve essere soltanto un diagramma.
-
-Serve almeno una sequenza operativa.
-
-Esempio semplificato:
+Una sequenza minima può essere:
 
 ```text
 1. declare incident
 2. classify failure domain
-3. freeze risky writes/deployments
-4. identify recovery point
-5. provision/activate recovery target
-6. restore data/config
-7. validate identity/network/dependencies
+3. freeze risky writes/deployments quando necessario
+4. identify recovery point/source
+5. provision or activate recovery target
+6. restore data/config/application
+7. validate identity, network and dependencies
 8. run synthetic critical journey
-9. reopen traffic
-10. reconcile backlog/divergence
-11. monitor recovery load
-12. post-incident review
+9. reopen traffic/work
+10. reconcile backlog and divergence
+11. observe recovery load
+12. record evidence and follow-up
 ```
 
-Ogni step deve avere owner e permission.
+Ogni step deve avere owner e permission. Se la persona che deve eseguire il restore non possiede il privilege necessario o l’unica credenziale è dentro il sistema che stiamo cercando di recuperare, il runbook è incompleto.
 
-## RTO/RPO ESI — prima decisione
+## ESI decide finalmente i primi RTO/RPO
 
-Fino al Capitolo 13 abbiamo lasciato RTO/RPO aperti per non inventare numeri prematuramente.
+Nei Capitoli 12–13 avevamo lasciato volutamente aperti questi numeri. Ora la reliability architecture deve trasformarli in una decisione simulata di business.
 
-Adesso il capitolo Reliability deve trasformarli in una prima decisione di business simulata.
-
-Per la **prima fase production di Order Operations**, ESI stabilisce come target iniziali:
-
-### Failure intra-region ordinario
-
-Per failure coperti dalla HA del workload:
+Per i failure ordinari **intra-region** coperti dalla topology di produzione, ESI stabilisce:
 
 ```text
-RTO target: <= 15 minuti per il core operator journey
-RPO target: 0 per transazioni committed di OperationalCase / PaymentEscalation
+RTO core journey <= 15 minuti
+RPO = 0 per OperationalCase / PaymentEscalation committed local state
 ```
 
-Il target non significa che ogni componente deve recuperare in 15 minuti.
+Non significa che ogni singolo componente debba tornare perfetto entro quindici minuti. Significa che il journey deve rientrare nel livello accettabile o in una degraded mode esplicitamente concordata.
 
-Significa che il journey deve tornare entro quel limite o passare a una modalità esplicitamente accettata dal business.
-
-### Region-wide disaster
-
-La prima fase resta single-region.
-
-ESI accetta un target più rilassato:
+Per un **region-wide disaster**, la prima fase resta single-region e accetta target più rilassati:
 
 ```text
-RTO target: <= 8 ore
-RPO target: <= 1 ora
+RTO <= 8 ore
+RPO <= 1 ora
 ```
 
-**Questi numeri sono requisiti simulati del capstone**, non benchmark né raccomandazioni universali.
+Questi sono **requisiti simulati ESI**, non benchmark né suggerimenti generali.
 
-La conseguenza architetturale è importante:
+La loro funzione è far emergere una conseguenza architetturale precisa: con questi target non abbiamo ancora una ragione sufficiente per comprare active-active multi-region.
 
-> **non compriamo ancora active-active multi-region.**
+Product e Operations accettano che un evento regionale raro richieda una recovery più lunga; il prodotto è interno e non coincide con il payment authorization path; Finance non giustifica oggi replica e operational complexity permanenti per ottenere continuità regionale quasi immediata.
 
-Costruiamo invece una recovery path documentata e testabile.
+Questo è un compromesso dichiarato. Non una omissione mascherata.
 
-## Perché questa asimmetria
+## Il quality floor resta anche quando il target è permissivo
 
-Product e Operations dichiarano che:
+Un RTO di otto ore non autorizza perdita non quantificata, restore mai provati, owner assenti o recovery improvvisata. Non autorizza nemmeno a dimenticare Payment Escalation già accettate.
 
-- failure di instance/zone durante il normale lavoro devono essere assorbiti rapidamente;
-- un region-wide disaster è molto meno probabile e può tollerare recovery più lunga nella fase corrente;
-- il prodotto è interno e non è il payment authorization path;
-- Finance non giustifica oggi il costo di una topologia active-active.
-
-È un compromesso.
-
-Non una scorciatoia nascosta.
-
-## Quality floor
-
-Anche con RTO regionale di 8 ore non accettiamo:
-
-- perdita non quantificata;
-- restore mai testato;
-- assenza di owner;
-- credenziali di recovery improvvisate;
-- documentazione non versionata;
-- escalation accettate e poi dimenticate;
-- recovery senza reconciliation.
-
-## Recovery test
-
-Una recovery strategy deve produrre evidence.
-
-Per Order Operations entreranno progressivamente:
+Il quality floor richiede:
 
 ```text
-restore test PostgreSQL
-outbox reconciliation test
-service redeploy from IaC
-synthetic critical journey after recovery
+recovery source nota
+restore procedure versionata
+permission definite
+reconciliation
+trusted artifact/IaC
+misura dell’actual RTO/RPO
+evidence del drill
+```
+
+Solo l’esercizio ci dirà se i target scelti sono realistici.
+
+Per questo Order Operations deve progressivamente eseguire almeno:
+
+```text
+PostgreSQL PITR / restore
+outbox reconciliation
+redeploy da IaC
 known-good application rollback
+synthetic critical journey dopo recovery
 ```
 
-Il test deve anche misurare:
+Ogni prova deve registrare tempo reale di recovery, punto recuperato, passi manuali e assunzioni risultate false.
 
-```text
-actual recovery time
-actual recovered point
-manual steps
-failed assumptions
-```
+## Quando riaprire la single-region decision
 
-Questi dati ci diranno se RTO/RPO sono realistici.
+La decisione regionale cambia quando cambia il business, non quando compare un nuovo servizio nel catalogo cloud.
 
-## Region strategy trigger
+Riapriremo la topologia se si modificano materialmente contractual commitment, criticality, copertura geografica, RTO/RPO regionali, revenue impact, vincoli normativi, platform standard o se i restore drill dimostrano che non riusciamo a stare dentro l’envelope dichiarato.
 
-Riapriremo la decisione single-region se cambia almeno uno fra:
+## Cosa cambia con l’AI
 
-- customer contract;
-- business criticality;
-- operator coverage globale;
-- RTO regionale;
-- RPO regionale;
-- revenue impact;
-- regulatory constraint;
-- restore exercise troppo lento;
-- Platform standard;
-- cost curve.
-
-## AI e DR
-
-L'AI può generare in pochi minuti un runbook multi-region molto convincente.
-
-Ma un runbook generato non sa:
-
-- se le permission funzionano;
-- se il backup è realmente ripristinabile;
-- se la secondary region ha capacity;
-- se il DNS cutover è corretto;
-- se le dipendenze esterne sono presenti;
-- se il team sa eseguire la procedura sotto pressione.
+Un agente può generare un runbook multi-region completo in pochi minuti. Non può dimostrare che la secondary region abbia capacity, che le permission funzionino, che il backup sia ripristinabile, che il DNS cutover sia corretto o che il team sappia eseguire la procedura sotto pressione.
 
 > **Il disaster recovery non è il documento che descrive il recovery. È la capacità dimostrata di recuperare.**
 
-## Corollario
-
-High availability riduce alcuni outage.
-
-Backup e restore recuperano da altri.
-
-Disaster recovery governa failure ancora più ampi.
-
-Confonderli produce una falsa sensazione di sicurezza.
+HA, backup/restore e disaster recovery proteggono failure diversi. Il Reliability Contract deve tenerli separati perché, durante un incidente, scegliere il meccanismo sbagliato può essere peggio del failure iniziale.
