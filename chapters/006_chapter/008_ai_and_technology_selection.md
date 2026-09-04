@@ -1,162 +1,80 @@
 ## AI e technology selection
 
-L'AI è molto brava a proporre tecnologie.
+L'AI è molto brava a proporre tecnologie. A volte fin troppo.
 
-A volte fin troppo.
+Davanti a una richiesta come “progetta un sistema altamente scalabile e resiliente”, un modello può generare Kubernetes, microservizi, Redis, Kafka, database distribuiti, service mesh, multi-region e uno stack di observability completo. La proposta può essere tecnicamente plausibile e, nello stesso tempo, completamente scollegata dal workload reale.
 
-Davanti a una richiesta generica come:
+Il problema non è la competenza tecnica del modello. È il vuoto che gli abbiamo chiesto di riempire.
 
-> “Progetta un sistema altamente scalabile e resiliente.”
+## Quando manca il requisito, l'AI inventa il contesto
 
-un modello può produrre in pochi secondi un design con Kubernetes e microservizi, Redis e Kafka, CDN, database distribuito e service mesh, fino a multi-region, autoscaling e uno stack di observability completo. La risposta può essere tecnicamente plausibile.
+Parole come `enterprise`, `scalable`, `modern`, `cloud-native`, `highly available` o `AI-native` suonano informative ma non definiscono un target. Se il prompt non contiene critical journey, scala, failure tolerance, budget e capacità del team, il modello deve ricostruire autonomamente ciò che queste etichette potrebbero significare.
 
-Il problema è che potrebbe non avere alcun rapporto con il contesto reale.
+Lo farà usando pattern frequenti, convenzioni note e architetture plausibili. È ottimo materiale per brainstorming. Diventa pericoloso quando l'inferenza viene scambiata per requirement.
 
-### L'AI completa il vuoto
+> **Più il contesto è vago, più la tecnologia proposta racconta i prior del modello invece del nostro sistema.**
 
-Quando mancano requisiti, il modello deve comunque produrre qualcosa.
+## Dare all'AI il problema di qualità
 
-Quindi riempie il vuoto con pattern comuni e convenzioni frequenti, architetture viste nel training, assunzioni plausibili e scelte statisticamente compatibili con il prompt. Questo è utile per generare idee.
+Un uso migliore consiste nel fornire target, vincoli e priorità e chiedere alternative significativamente differenti:
 
-È pericoloso quando interpretiamo quelle idee come decisioni.
+> “Proponi almeno tre soluzioni che possano soddisfare questi requisiti. Per ciascuna descrivi trade-off, failure mode, costo operativo, competenze richieste e trigger che la renderebbero inadatta.”
 
-Più il prompt contiene parole come:
+In questo modo l'agente non riceve l'autorità di scegliere. Riceve il compito di ampliare il design space e rendere più leggibili le conseguenze.
+
+Possiamo poi chiedere qualcosa di ancora più utile:
+
+> **Qual è la soluzione più semplice che potrebbe soddisfare tutti i requisiti dichiarati?**
+
+La domanda contrasta un bias nuovo dell'era degli agenti: generare quindici componenti costa pochissimo, ma possederli per cinque anni continua a costare molto.
+
+## Costruire una scala evolutiva invece di una soluzione finale immaginaria
+
+Dopo aver individuato la soluzione più semplice possiamo chiedere quale requisito ci obbligherebbe a passare a una variante più complessa. Otteniamo così una sequenza di trigger:
 
 ```text
-enterprise
-scalable
-modern
-cloud-native
-highly available
-AI-native
+soluzione semplice
+→ evidence insufficiente
+→ requisito più severo
+→ nuova alternativa
 ```
 
-senza definizioni concrete, più lasciamo all'agente il compito di inventare ciò che significano.
+Questo approccio è più utile di progettare subito per il massimo futuro concepibile. Mantiene visibile il motivo per cui una tecnologia entra nel sistema.
 
-E ogni significato inventato può generare una tecnologia diversa.
+## Attaccare la tecnologia che ci piace
 
-### Prima dare all'AI il problema di qualità
+Quando il team desidera già una soluzione specifica, l'AI può essere un buon adversarial reviewer. Possiamo chiederle di costruire il caso tecnico più forte **contro** Kafka, Kubernetes, una cache distribuita o qualunque altra proposta usando esclusivamente i requirement dichiarati; poi chiediamo il caso opposto.
 
-Un uso migliore consiste nel fornire il critical journey e i target, i vincoli, il team e il budget, la crescita prevista, la failure tolerance e le priorità.
+La decisione non esce dal confronto come un voto automatico. Il valore consiste nel far emergere assunzioni, costi e failure mode che il nostro entusiasmo tende a minimizzare.
 
-Poi chiedere:
+Un technology-fashion review può inoltre cercare componenti senza requisito esplicito, scelte introdotte come best practice generica, capacità progettate per scale non dichiarate o tecnologie che richiedono competenze e operating model assenti nel team.
 
-> “Proponi almeno tre soluzioni significativamente diverse che soddisfino questi requisiti. Per ciascuna descrivi trade-off, failure mode, costo operativo, competenze richieste e trigger che la renderebbero inadatta.”
+## Il modello conosce i prodotti, non automaticamente il nostro costo totale
 
-Adesso l'AI non sta scegliendo per noi.
+Un agente può conoscere feature, limiti e pattern di moltissimi servizi. Il fit reale dipende però anche da contratti commerciali, enterprise agreement, procurement, compliance, tooling esistente, incident history, persone disponibili e modello di on-call.
 
-Sta ampliando lo spazio delle alternative.
+Una comparazione tecnicamente competente può quindi essere economicamente o organizzativamente sbagliata se questi elementi non sono nel contesto.
 
-### Chiedere l'alternativa più semplice
+Per lo stesso motivo, quando una scelta dipende da feature, pricing, licensing, region availability o deprecation, la memoria del modello non basta. Le tecnologie cambiano e la research deve usare documentazione aggiornata.
 
-Un prompt molto utile è:
+> **Prima il requisito, poi la ricerca delle opzioni, poi il confronto.**
 
-> **“Qual è la soluzione più semplice che potrebbe soddisfare tutti i requisiti dichiarati?”**
+## Benchmark: precisione non significa rilevanza
 
-Questa domanda combatte un bias naturale dei sistemi generativi: la capacità di produrre molta architettura a costo quasi zero.
+Gli agenti possono accelerare benchmark, proof of concept, load test, raccolta di metriche e analisi dei risultati. Ma devono ricevere un esperimento che rappresenti il problema.
 
-Generare un diagramma con quindici componenti è facile.
+Confrontare due database su una query sintetica può produrre numeri molto precisi e dire poco sul nostro workload. Il benchmark utile nasce dal critical journey, dal dataset, dal pattern di lettura e scrittura e dalle quality priority che vogliamo verificare.
 
-Operarne quindici per cinque anni non lo è.
+L'AI può abbassare il costo dell'esperimento. Non può sostituire il significato della misura.
 
-Possiamo poi chiedere:
+## Agents make overengineering cheaper
 
-> “Quale requisito richiederebbe di passare alla soluzione più complessa?”
+Una nuova tentazione è: “possiamo aggiungerlo, tanto lo fa l'AI”. L'agente può effettivamente ridurre moltissimo il costo iniziale di configurare broker, cluster, cache o pipeline.
 
-Otteniamo così una scala evolutiva invece di un'architettura finale immaginaria.
+Non elimina però runtime cost, upgrade, cognitive load, security surface, debugging, incident response e ownership operativa. Costruire la tecnologia è soltanto una parte del costo. **Convivere con essa è il resto.**
 
-### Chiedere di attaccare la tecnologia preferita
+> **L'AI rende più economico aggiungere tecnologia. Non rende automaticamente più economico possederla.**
 
-Se il team vuole usare una tecnologia specifica, possiamo usare l'AI in modo avversariale.
+Il ruolo umano resta quindi quello di stabilire quali qualità contino abbastanza da comprare quella complessità e quali conseguenze siamo disposti ad accettare.
 
-Per esempio:
-
-> “Assumi che introdurre Kafka sia una cattiva idea. Costruisci il caso tecnico più forte contro questa scelta usando i requisiti dichiarati.”
-
-Poi invertiamo:
-
-> “Ora costruisci il caso più forte a favore.”
-
-Questo non produce la decisione.
-
-Riduce il rischio che il nostro entusiasmo iniziale domini l'analisi.
-
-### Technology fashion detector
-
-Possiamo chiedere a un agente di individuare segnali di fashion-driven architecture in una proposta.
-
-Domande:
-
-- quali componenti non sono legati a un requisito esplicito?
-- quali sembrano introdotti soltanto come best practice generica?
-- quali potrebbero essere sostituiti da una soluzione più semplice?
-- quali richiedono competenze che il team non possiede?
-- quali ottimizzano una scala non dichiarata?
-- quali creano lock-in senza valore esplicito?
-- quali spostano complexity cost senza beneficio verificabile?
-
-Questa review è particolarmente utile sui design generati automaticamente.
-
-### L'AI conosce prodotti. Non conosce automaticamente il nostro costo totale.
-
-Un modello può conoscere feature, pattern e API di molti prodotti.
-
-Ma il fit reale dipende anche da informazioni che spesso non sono nel prompt: contratti commerciali e accordi enterprise, competenze interne e persone disponibili, procedure di procurement e vincoli compliance. Tooling esistente, modello di on-call, incident history e costi di migrazione possono cambiare completamente la scelta.
-
-Quindi una comparazione tecnologica generata dall'AI può essere molto competente tecnicamente e comunque sbagliare la decisione economica o organizzativa.
-
-### La freschezza è un requisito della ricerca
-
-Le tecnologie cambiano.
-
-Cambiano feature, pricing e limiti, supporto e versioni, stato di deprecazione, licenze e availability geografica. Quando questi dettagli influenzano una scelta reale, non dobbiamo affidarci alla memoria del modello.
-
-Dobbiamo verificare documentazione e fonti aggiornate.
-
-Questo libro farà lo stesso quando entrerà nei prodotti specifici.
-
-Il principio generale invece rimane stabile:
-
-> **prima il requisito, poi la ricerca delle opzioni, poi il confronto.**
-
-### L'AI può accelerare il benchmark, non definirne il significato
-
-Possiamo usare agenti per creare benchmark e load test, preparare proof of concept, raccogliere metriche, confrontare configurazioni e analizzare risultati. Ma dobbiamo aver definito prima ciò che stiamo misurando.
-
-Un benchmark che misura la cosa sbagliata produce precisione senza utilità.
-
-Per esempio, confrontare due database su una query sintetica non ci dice necessariamente quale sia migliore per il nostro workload reale.
-
-La qualità dell'esperimento dipende dal modello del problema.
-
-### Agents make overengineering cheaper
-
-Con gli agenti è diventato più economico implementare infrastrutture sofisticate.
-
-Questo può creare una nuova tentazione:
-
-> “Tanto lo fa l'AI.”
-
-Ma l'AI può abbassare il costo iniziale di creazione senza eliminare runtime e incident cost, cognitive load e debugging, upgrade, security surface e operational ownership. Costruire è soltanto una parte del costo.
-
-Possedere il sistema è il resto.
-
-> **L'AI rende più economico aggiungere tecnologia. Non rende automaticamente più economico convivere con essa.**
-
-### Il ruolo umano nella scelta
-
-L'agente può produrre alternative.
-
-Può cercare documentazione.
-
-Può simulare trade-off.
-
-Può preparare benchmark.
-
-Può criticare una proposta.
-
-Può persino suggerire quale soluzione sembri avere fit migliore.
-
-La decisione finale resta una responsabilità architetturale perché richiede di decidere quali conseguenze siamo disposti ad accettare.
-
-> **Non chiedere all'AI quale tecnologia è migliore. Dalle il contesto e chiedile di aiutarti a capire quale compromesso stai comprando.**
+> **Non chiedere all'AI quale tecnologia è migliore. Dalle il contesto e chiedile di rendere visibile quale compromesso stai comprando.**
