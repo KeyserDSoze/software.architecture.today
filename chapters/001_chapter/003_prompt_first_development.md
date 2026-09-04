@@ -1,16 +1,6 @@
 ## Prompt-first development
 
-Quando uno strumento è molto potente, tende a deformare il processo attorno a sé.
-
-Se possiamo ottenere codice da una frase, la tentazione naturale è cominciare dalla frase.
-
-Non dal problema.
-
-Non dal comportamento desiderato.
-
-Non dai vincoli.
-
-Dal prompt.
+Quando uno strumento è molto potente, tende a deformare il processo attorno a sé. Se possiamo ottenere codice da una frase, la tentazione naturale è cominciare proprio dalla frase: non dal problema, non dal comportamento desiderato, non dai vincoli, ma dal prompt.
 
 Il pattern appare innocuo:
 
@@ -27,157 +17,39 @@ idea vaga
 → altra correzione
 ```
 
-All'inizio sembra velocissimo.
-
-Ogni iterazione produce qualcosa di visibile.
-
-Il sistema cresce.
-
-Le schermate compaiono.
-
-gli endpoint rispondono.
-
-I test diventano verdi.
-
-Ma dopo un certo numero di cicli può emergere una sensazione difficile da descrivere:
-
-> il progetto funziona, ma nessuno sa più esattamente perché sia fatto così.
+All’inizio sembra velocissimo. Ogni iterazione produce qualcosa di visibile, il sistema cresce, le schermate compaiono, gli endpoint rispondono e i test diventano verdi. Dopo un certo numero di cicli, però, può emergere una sensazione difficile da descrivere: il progetto funziona, ma nessuno sa più esattamente perché sia fatto così.
 
 Questo libro chiamerà questo anti-pattern **prompt-first development**.
 
 ### Il prompt non è il problema
 
-Non c'è nulla di sbagliato nel prompt come interfaccia.
+Non c’è nulla di sbagliato nel prompt come interfaccia. Possiamo usarlo per descrivere un task eccellente, esplorare alternative o verificare una decisione. Il problema nasce quando il prompt diventa il luogo in cui **inventiamo contemporaneamente problema, requisito, design e implementazione**.
 
-Possiamo usarlo per descrivere un task eccellente.
+Consideriamo una richiesta come: “Fammi una app per gestire ordini con login, pagamenti e notifiche”. Un agente competente può produrre rapidamente qualcosa di impressionante. Ma quella frase non ci dice chi siano gli utenti, quali ruoli esistano, chi possa vedere quali ordini, quando un ordine diventi immutabile o se il pagamento sia sincrono. Non chiarisce che cosa debba accadere con callback duplicati, quali dati siano autorevoli, quali requisiti di disponibilità o sicurezza contino, quanto traffico attendiamo o se stiamo costruendo un prototipo destinato a sparire oppure una piattaforma che dovrà vivere per anni.
 
-Possiamo usarlo per esplorare alternative.
-
-Possiamo usarlo per verificare una decisione.
-
-Il problema nasce quando il prompt diventa il luogo in cui **inventiamo contemporaneamente problema, requisito, design e implementazione**.
-
-Consideriamo:
-
-> “Fammi una app per gestire ordini con login, pagamenti e notifiche.”
-
-Un agente competente può produrre rapidamente una soluzione impressionante.
-
-Ma quali decisioni sono state prese dentro quella frase?
-
-Praticamente nessuna.
-
-Non sappiamo:
-
-- chi sono gli utenti;
-- quali ruoli esistono;
-- chi può vedere quali ordini;
-- quando un ordine diventa immutabile;
-- se il pagamento è sincrono;
-- come gestiamo un callback duplicato;
-- che cosa significa “notifica”;
-- quale dato è autorevole;
-- quali requisiti di disponibilità esistono;
-- che cosa succede durante un guasto del provider di pagamento;
-- quali vincoli normativi o di sicurezza contano;
-- quanto traffico dobbiamo sostenere;
-- se il sistema è un prototipo o una piattaforma destinata a durare anni.
-
-L'agente deve riempire i vuoti.
-
-E lo farà.
-
-Il problema è che i vuoti riempiti automaticamente tendono a sembrare decisioni intenzionali dopo che sono diventati codice.
+L’agente deve riempire i vuoti, e lo farà. Il problema è che i vuoti riempiti automaticamente tendono a sembrare decisioni intenzionali dopo che sono diventati codice.
 
 ### Architecture by autocomplete
 
-Il prompt-first development porta facilmente a un secondo anti-pattern:
+Il prompt-first development porta facilmente a un secondo anti-pattern: la **AI architecture by autocomplete**.
 
-## AI architecture by autocomplete
+La prima generazione introduce una struttura; la seconda osserva quella struttura e la tratta come contesto; la terza la estende; la quarta consolida una convenzione nata per caso. Dopo venti iterazioni, il repository contiene un’architettura, ma nessuno l’ha scelta davvero. È emersa per sedimentazione.
 
-La prima generazione introduce una struttura.
-
-La seconda generazione la osserva e la tratta come contesto.
-
-La terza estende ciò che esiste.
-
-La quarta consolida una convenzione nata per caso.
-
-Dopo venti iterazioni, il repository contiene un'architettura.
-
-Ma nessuno l'ha scelta davvero.
-
-È emersa per sedimentazione.
-
-Questo succede anche senza AI.
-
-La differenza è la velocità.
-
-Un pattern accidentale può propagarsi in decine di file prima che qualcuno si chieda se fosse quello giusto.
-
-Per esempio, la prima feature potrebbe introdurre direttamente l'accesso al database dentro un controller.
-
-La feature successiva copia la stessa struttura.
-
-L'agente vede la convenzione e la replica coerentemente.
-
-Dopo qualche giorno, il progetto ha trenta controller che contengono logica di business e accesso dati.
-
-A quel punto il problema non è che l'AI abbia scritto codice “cattivo”.
-
-Ha fatto qualcosa di molto più prevedibile:
-
-> ha amplificato il precedente che il repository gli ha mostrato.
+Questo succede anche senza AI. La differenza è la velocità con cui un precedente accidentale può propagarsi. Se la prima feature mette accesso al database e logica di business direttamente dentro un controller, la successiva può copiare la stessa forma. L’agente vede la convenzione e la replica coerentemente; pochi giorni dopo, decine di controller possono condividere la stessa scelta. A quel punto il problema non è che l’AI abbia scritto codice “cattivo”. Ha fatto qualcosa di più prevedibile: **ha amplificato il precedente che il repository le ha mostrato**.
 
 ### Il repository insegna
 
-Un agente che lavora su un codebase non riceve soltanto istruzioni esplicite.
+Un agente che lavora su un codebase non riceve soltanto istruzioni esplicite. Il codice esistente gli fornisce anche istruzioni implicite. Error handling incoerente, nomi vaghi, accesso ai secret sparso, test fragili, dipendenze introdotte senza criterio e boundary attraversati liberamente possono diventare segnali di ciò che il repository considera normale. Al contrario, contratti chiari, confini espliciti, test significativi, convenzioni stabili e decisioni architetturali spiegate offrono un contesto operativo migliore.
 
-Riceve anche istruzioni implicite dal codice esistente.
-
-Se vede error handling incoerente, nomi vaghi, accesso ai secret sparso, test fragili, dipendenze introdotte senza criterio e moduli che attraversano liberamente i boundary, può inferire che quelle pratiche siano accettabili.
-
-Se trova invece contratti chiari, confini espliciti e test significativi, insieme a convenzioni stabili, documentazione aggiornata e decisioni architetturali spiegate, parte da un contesto operativo molto migliore.
-
-Da questo punto di vista, ogni merge modifica non soltanto il software.
-
-Modifica anche il materiale da cui i prossimi agenti impareranno implicitamente.
+Da questo punto di vista, ogni merge modifica non soltanto il software, ma anche il materiale da cui i prossimi agenti impareranno implicitamente.
 
 > **Il codice di oggi è contesto per la generazione di domani.**
 
-Questa è una ragione ulteriore per curare la qualità strutturale del repository.
-
 ### Il ciclo della correzione locale
 
-Il prompt-first development tende a ottimizzare localmente.
+Il prompt-first development tende a ottimizzare localmente. Qualcosa non funziona e chiediamo di sistemarlo; la correzione rompe un test e chiediamo di sistemare il test; emerge una duplicazione e chiediamo un refactoring; il refactoring cambia un contratto e chiediamo di aggiornare i consumer. Ogni passaggio può essere ragionevole preso da solo.
 
-Qualcosa non funziona.
-
-Chiediamo di sistemarlo.
-
-La correzione rompe un test.
-
-Chiediamo di sistemare il test.
-
-Ora emerge una duplicazione.
-
-Chiediamo un refactoring.
-
-Il refactoring cambia un contratto.
-
-Chiediamo di aggiornare i consumer.
-
-Ogni step può essere ragionevole isolatamente.
-
-Ma il processo non contiene necessariamente un momento in cui qualcuno si chiede:
-
-> stiamo ancora costruendo la cosa giusta nel modo giusto?
-
-È come correggere continuamente la traiettoria guardando soltanto il metro di strada davanti alla macchina.
-
-Il feedback locale è rapido.
-
-La direzione globale può degradare.
+Il problema è che il processo non contiene necessariamente un momento in cui qualcuno si chiede se stiamo ancora costruendo la cosa giusta nel modo giusto. È come correggere continuamente la traiettoria guardando soltanto il metro di strada davanti alla macchina: il feedback locale è rapido, mentre la direzione globale può degradare lentamente.
 
 ### Una sequenza diversa
 
@@ -196,50 +68,24 @@ problema
 → verifica
 ```
 
-Non ogni feature richiede un documento per ogni freccia.
+Non ogni feature richiede un documento per ogni freccia. Una modifica di tre righe può attraversare mentalmente l’intera sequenza in pochi minuti; una migration critica può richiedere giorni di preparazione. La struttura serve a ricordare un principio, non a imporre un rituale.
 
-Una modifica di tre righe può attraversare mentalmente l'intera sequenza in pochi minuti.
-
-Una migrazione critica può richiedere giorni di preparazione.
-
-La struttura serve a ricordare un principio, non a imporre un rituale.
-
-> **Il livello di formalità deve crescere con il costo dell'errore e con il costo di inversione della decisione.**
+> **Il livello di formalità deve crescere con il costo dell’errore e con il costo di inversione della decisione.**
 
 ### Prompt dopo il pensiero
 
-Un buon prompt tecnico spesso è il risultato di lavoro già fatto.
-
-Per esempio:
-
-> “Implementa la cancellazione di un ordine rispettando la state machine descritta in `features/order-cancellation.md`. Il comando deve essere idempotente rispetto a `cancellationRequestId`. Non modificare il contratto pubblico. Usa il repository esistente per la persistenza. Aggiungi test per richiesta duplicata, ordine già spedito e failure del provider di rimborso. Se la soluzione richiede cambiare lo schema degli eventi pubblici, fermati e proponi un ADR.”
-
-Qui il prompt non sostituisce l'architettura.
-
-La trasporta nell'execution.
+Un buon prompt tecnico è spesso il risultato di lavoro già fatto. Se chiediamo, per esempio, di implementare la cancellazione di un ordine rispettando una state machine già descritta, mantenendo idempotenza, senza cambiare il contratto pubblico, aggiungendo test specifici e fermandosi se emerge la necessità di modificare eventi pubblici, il prompt non sta inventando l’architettura. La sta trasportando nell’execution.
 
 Questa è la differenza tra **prompting come scorciatoia del pensiero** e **prompting come interfaccia verso lavoro già sufficientemente pensato**.
 
 ### Il test del foglio bianco
 
-Un esercizio utile prima di delegare una feature importante è semplice.
+Prima di delegare una feature importante possiamo fare un esercizio semplice: togliere per un momento l’AI. Non dobbiamo chiederci se sapremmo scrivere tutto il codice a memoria, ma se sappiamo descrivere il comportamento atteso e ciò che non deve accadere, quali componenti sono coinvolti, quali invarianti non possono essere violate, come verificheremo il risultato e quali decisioni dovranno essere escalate se emergono durante l’execution.
 
-Togliamo l'AI.
-
-Non chiediamoci se sapremmo scrivere tutto il codice a memoria.
-
-Chiediamoci invece se sappiamo descrivere il comportamento atteso e ciò che non deve accadere, se abbiamo un'idea dei componenti coinvolti e delle invarianti che non possono essere violate. Dovremmo anche sapere come verificheremo il risultato e quali decisioni, se emergono durante l'execution, devono essere escalate.
-
-Se la risposta è no, il prossimo prompt potrebbe produrre output.
-
-Ma non abbiamo ancora costruito una delega professionale.
-
-Abbiamo soltanto trasformato l'incertezza in codice più velocemente.
+Se non sappiamo rispondere, il prossimo prompt potrà comunque produrre output. Ma non abbiamo ancora costruito una delega professionale; abbiamo soltanto trasformato l’incertezza in codice più velocemente.
 
 Il principio che useremo nel resto del libro è semplice:
 
 > **Prima capire, poi costruire.**
 
-Non significa capire tutto.
-
-Significa capire abbastanza da sapere che cosa stiamo chiedendo al sistema di moltiplicare.
+Non significa capire tutto. Significa capire abbastanza da sapere che cosa stiamo chiedendo al sistema di moltiplicare.
