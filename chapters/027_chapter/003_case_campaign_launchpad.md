@@ -1,297 +1,93 @@
-# 3. Caso 1 — Campaign Launchpad
+# Caso 1 — Campaign Launchpad
 
-Example Software Industries non produce un solo tipo di software.
+Dentro Marketing Technology, ESI incontra un problema molto diverso da Order Operations. Marketing lancia campagne frequenti e ha bisogno di landing page pubbliche coerenti con il brand, ma anche variazioni standard richiedono troppo spesso l’intervento di Engineering.
 
-Dentro **Marketing Technology**, ESI ha un problema molto diverso da Order Operations.
+Nasce così **Campaign Launchpad**.
 
-Il team Marketing lancia campagne frequenti e ha bisogno di landing page pubbliche coerenti con il brand.
+Il rischio iniziale non è costruire troppo poco. È trasformare una esigenza circoscritta in un CMS general purpose o in una nuova marketing platform prima che il problema lo richieda.
 
-Il processo corrente richiede troppo coordinamento manuale con Engineering anche per modifiche semplici.
+## Il problema definisce anche ciò che non dobbiamo costruire
 
-Nasce quindi un nuovo prodotto fittizio:
+L’outcome è semplice: un Marketing Author autorizzato deve poter partire da un template approvato, preparare contenuto, ottenere preview, passare da approval e pubblicare una versione tracciabile che possa essere ritirata o sostituita da una versione precedente.
 
-> **Campaign Launchpad**
+Non stiamo progettando payments, customer account, recommendation, CRM orchestration, arbitrary JavaScript, plugin runtime o real-time collaboration.
 
-## Il problema
+Questo non-scope è architettura tanto quanto il workflow principale. Se entrassero personalization, customer PII, scripting arbitrario o workflow configurabili, cambierebbero threat model, data ownership, runtime e support model.
 
-Marketing vuole poter:
+La semplicità del design è quindi sostenuta da una decisione funzionale precisa, non da mancanza di ambizione.
 
-1. scegliere un template approvato;
-2. inserire contenuti e asset;
-3. ottenere una preview;
-4. richiedere/registrare approvazione;
-5. pubblicare;
-6. ritirare o ripristinare una versione precedente.
+## Il quality floor resta concreto
 
-Il problema non è costruire un CMS general purpose.
+Campaign Launchpad non muove denaro e non eredita automaticamente il failure cost di Order Operations. Ma ha comunque property che non possono diventare opzionali: authoring non autorizzato deve essere impedito, soltanto una versione approvata può diventare pubblica, la publication deve essere tracciabile e il rollback deve essere praticabile.
 
-Non è neppure costruire una nuova marketing platform enterprise.
+Il public visitor non deve attraversare la stessa superficie interna dell’authoring.
 
-L'outcome è più ristretto:
+Queste property definiscono il quality floor. Active-active multi-region, Kubernetes, event choreography o una topology microservice non ne fanno parte oggi perché non comprano ancora un requisito necessario.
 
-> **ridurre la dipendenza da Engineering per il publishing di campagne standard senza perdere controllo su brand, accesso, versione pubblicata e rollback.**
+> **Un prodotto piccolo non richiede meno disciplina. Richiede meno complessità che non ha un lavoro da fare.**
 
-## Analisi funzionale minima
+## La decisione architetturale nasce dal failure model
 
-Attori:
+Il failure che ci interessa è molto concreto: una versione non approvata viene pubblicata, la publication rimane parziale, il public artifact è rotto oppure non riusciamo a tornare a una versione precedente.
+
+Questo suggerisce una decisione importante: separare l’**authoring state** dall’**artifact pubblico versionato**.
 
 ```text
-Marketing Author
-Marketing Approver
-Public Visitor
-Platform / Security support
+internal authenticated authoring
+→ approval
+→ publication pipeline
+→ immutable/versioned public artifact
+→ public visitor
 ```
 
-Journey principale:
+La separazione compra una property utile:
 
 ```text
-Author
-→ create campaign from approved template
-→ edit content
-→ preview
-→ submit for approval
-
-Approver
-→ approve/reject
-
-Author
-→ publish approved version
-
-Public Visitor
-→ read published landing page
+authoring/control plane degraded
+≠
+existing public campaign necessarily unavailable
 ```
 
-Business rule essenziali:
+Una soluzione Azure managed/static-first può avere fit. Azure Static Web Apps, per esempio, documenta hosting statico, integrazione repository, authentication/authorization e API serverless/managed.
 
-```text
-only approved templates can be used
-only approved content version can be published
-publish creates immutable publication version
-rollback selects a previously approved publication
-public visitor cannot access authoring surface
-```
+Fonte:
 
-Out of scope iniziale:
+- [Microsoft Learn — Azure Static Web Apps overview](https://learn.microsoft.com/en-us/azure/static-web-apps/overview)
 
-```text
-payments
-customer account
-personalized recommendation
-CRM orchestration
-complex workflow designer
-arbitrary JavaScript supplied by authors
-multi-brand rule engine
-real-time collaboration
-```
-
-Questa lista vale quanto le feature.
-
-Evita che un piccolo prodotto diventi accidentalmente una nuova piattaforma marketing.
-
-## Quality floor
-
-Il workload non ha la stessa criticità economica di Payments.
-
-Ma ha comunque proprietà non negoziabili:
-
-```text
-unauthorized authoring = forbidden
-unapproved content publication = forbidden
-published version traceable
-rollback available
-public content separated from internal authoring
-basic observability
-reproducible deployment
-```
-
-Non imponiamo invece in partenza:
-
-```text
-active-active multi-region
-microservices
-Kubernetes
-stream processing
-complex event choreography
-```
-
-Non perché siano tecnologie sbagliate.
-
-Perché non risolvono ancora un requisito.
-
-## Il compromesso ESI
-
-Marketing vuole autonomia.
-
-Platform vuole evitare una nuova snowflake application difficile da operare.
-
-Security vuole una separazione chiara fra authoring interno e content delivery pubblico.
-
-Finance vuole che il costo operativo resti coerente con un prodotto piccolo.
-
-Engineering vuole evitare che il One-Man Project diventi un CMS enterprise posseduto da una sola persona.
-
-La decisione è quindi:
-
-```text
-small bounded product
-+ managed platform
-+ templates instead of arbitrary extension
-+ explicit publishing state machine
-+ public static delivery where possible
-+ internal authenticated authoring
-```
-
-## Una possibile architettura appropriata
-
-Per lo scenario ESI possiamo immaginare:
-
-```text
-Marketing Author / Approver
-        ↓
-Entra-authenticated authoring UI
-        ↓
-small serverless / managed API
-        ↓
-campaign metadata + approved content
-        ↓
-publish pipeline
-        ↓
-versioned public static artifacts
-        ↓
-Public Visitor
-```
-
-Il dettaglio tecnologico può essere realizzato in più modi.
-
-Una soluzione Azure plausibile potrebbe usare **Azure Static Web Apps** per il web frontend/static delivery e API serverless/managed dove necessario.
-
-Microsoft documenta Static Web Apps come servizio integrato con repository e pipeline, con hosting statico, integrazione GitHub/Azure DevOps, authentication/authorization e API serverless:
-
-- https://learn.microsoft.com/en-us/azure/static-web-apps/overview
-
-Questa documentazione dimostra capability del prodotto Azure.
-
-Non dimostra che Campaign Launchpad debba necessariamente usarlo.
-
-La decisione ESI resta:
-
-```text
-managed static/public delivery
-before
-custom application hosting platform
-```
+Questa fonte dimostra capability del servizio, non l’appropriatezza automatica per ESI. La decisione resta a un livello più stabile: **managed/static public delivery prima di un custom runtime platform**, finché il workload rimane quello descritto.
 
 ## Perché non copiamo Order Operations
 
-Order Operations ha:
+ESI possiede già App Service, Service Bus, PostgreSQL, private-network pattern e observability capability. Riutilizzare guardrail e platform service comuni è utile. Copiare la topology di Order Operations no.
+
+Campaign Launchpad non ha Payment domain boundary, outbox, legacy coexistence o lo stesso recovery target. Aggiungere quei componenti soltanto perché esistono già nell’azienda trasformerebbe il riuso in cargo cult.
+
+> **Riutilizza le capability enterprise. Non riutilizzare un’architettura se non riutilizzi anche il problema che l’ha resa necessaria.**
+
+## Perché il One-Man Project può avere fit
+
+Il prodotto ha bounded domain, pochi stakeholder, workflow chiaro, managed services, deployment reversibile e nessun economic side effect nel primo scope.
+
+Questo rende plausibile un accountable lead singolo con forte platform leverage.
+
+Ma il lead non è davvero solo. Dipende da ESI Identity, CI/CD, security baseline, landing zone, brand/design system e Marketing authority. Il leverage individuale esiste perché l’organizzazione ha già reso molte capability riusabili.
+
+## Evidence e stato reale
+
+Prima di un launch servirebbero almeno workflow/state test, authorization negative test, real non-production publish, public smoke, rollback exercise e ownership/alert route.
+
+Il capstone Campaign Launchpad possiede già Problem, Functional Scope, Architecture Direction e un End-to-End Decision Trace persistente. Non possiede ancora implementation/runtime evidence.
+
+Per questo il suo stato reale resta:
 
 ```text
-PostgreSQL
-outbox
-Service Bus
-private ingress
-Payment domain boundary
-recovery requirements
-operational SLO
-legacy coexistence
-AI runtime
+Production decision
+NOT READY
+
+Reason
+implementation/runtime evidence not yet available
 ```
 
-Campaign Launchpad non riceve automaticamente tutto questo patrimonio.
+La semplicità architetturale non viene premiata con un `GO` automatico. Deve comunque essere verificata nel boundary che promette di sostenere.
 
-Il fatto che ESI abbia già Service Bus non significa che ogni prodotto debba pubblicare eventi.
-
-Il fatto che Platform supporti App Service non significa che un sito prevalentemente statico debba avere un application runtime sempre attivo.
-
-Il fatto che il libro abbia insegnato microservices non significa che dobbiamo usarli.
-
-> **Riutilizzare una capacità enterprise è utile. Riutilizzare un'architettura enterprise senza riutilizzarne il problema è cargo cult.**
-
-## One-Man Project fit
-
-Campaign Launchpad è un candidato migliore del core Payments per un One-Man Project.
-
-Perché?
-
-```text
-bounded domain
-small team of stakeholders
-clear workflow
-managed services
-no economic side effects
-no 24/7 mission-critical promise initially
-limited integrations
-reversible deployment model
-```
-
-Ma la persona non lavora davvero da sola.
-
-Dipende da:
-
-```text
-ESI identity
-platform landing zone
-security baseline
-CI/CD
-managed cloud services
-brand/design system
-Product/Marketing decisions
-```
-
-Questo è il punto del Capitolo 25:
-
-> **il leverage individuale è spesso il risultato di leverage organizzativo già costruito.**
-
-## Failure model
-
-I failure mode più importanti non sono quelli di Order Operations.
-
-Sono per esempio:
-
-```text
-wrong version published
-unapproved version published
-public site unavailable
-asset broken
-publish partially completed
-authorization failure
-bad content cannot be rolled back
-```
-
-Notare ciò che manca:
-
-```text
-partial payment transaction
-message duplicate economic effect
-regional settlement inconsistency
-```
-
-Il failure model segue il prodotto.
-
-## Evidence prima del launch
-
-Una readiness appropriata potrebbe richiedere:
-
-```text
-publishing state tests
-unauthorized authoring negative test
-preview/publish/rollback journey
-real non-production deployment
-public artifact smoke
-basic alerting
-owner/support route
-```
-
-Non serve dimostrare un disaster recovery da sistema bancario se il business non ha quella promessa.
-
-Serve però dimostrare **le proprietà che abbiamo promesso davvero**.
-
-## Il risultato
-
-Campaign Launchpad mostra la prima grande lezione del capitolo:
-
-> **La semplicità è una decisione architetturale quando è sostenuta da un perimetro funzionale e da un quality floor chiari.**
-
-Un prodotto piccolo non deve essere costruito con meno disciplina.
-
-Deve essere costruito con **meno complessità non necessaria**.
+> **La maturità del primo caso sta in due decisioni insieme: sapere quale tecnologia non aggiungere e sapere che questo, da solo, non costituisce production evidence.**
