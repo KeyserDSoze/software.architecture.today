@@ -1,168 +1,78 @@
 ## Modularità, cohesion e coupling
 
-Parlare di modularità senza parlare di cohesion e coupling produce spesso una frase vuota:
+“Dividiamo il sistema in moduli” è una frase facile da pronunciare e quasi priva di valore finché non sappiamo che cosa renda buono un modulo.
 
-> “Dividiamo il sistema in moduli.”
+La risposta che ci interessa non riguarda la dimensione. Un modulo utile contiene responsabilità che hanno una ragione forte per stare insieme, espone il minimo necessario e limita la quantità di conoscenza che deve uscire dal proprio confine. Soprattutto, permette a una parte del sistema di cambiare senza trascinare automaticamente tutto il resto.
 
-La domanda utile è un'altra:
+Cohesion e coupling descrivono due lati di questa proprietà.
 
-> **Che cosa rende buono un modulo?**
+## Cohesion: condividere una ragione di cambiamento
 
-Una risposta pratica è questa:
+Un modulo molto coeso non deve essere piccolo. Deve contenere elementi che cambiano prevalentemente perché cambia la stessa responsabilità.
 
-- contiene cose che hanno una ragione forte per stare insieme;
-- espone il minimo necessario;
-- limita il numero di cose che devono conoscere i suoi dettagli;
-- può cambiare senza obbligare il resto del sistema a cambiare con lui.
+Un modulo `Orders` può ragionevolmente includere creazione e annullamento dell'ordine, validazione delle transizioni e regole che determinano lo stato commerciale. Queste parti condividono il significato di ordine e le sue invarianti.
 
-Questa è la combinazione che cerchiamo.
+Se nello stesso modulo troviamo invece rendering delle fatture, gestione utenti, newsletter e retry verso un carrier, il nome `Orders` sta probabilmente diventando un contenitore più che una responsabilità.
 
-### Cohesion: stare insieme per una ragione
+Lo stesso problema compare spesso in `utils/`, `helpers/`, `common/` o `shared/`. Questi package nascono per comodità e possono trasformarsi nel punto in cui finisce tutto ciò che non ha un proprietario chiaro. Il risultato è paradossale: cohesion bassissima e fan-in altissimo.
 
-La cohesion misura, in modo concettuale, quanto le parti interne a un modulo appartengano alla stessa responsabilità.
+Un modulo shared non è sbagliato per definizione. Diventa leggibile quando la responsabilità è specifica: `shared/time`, `shared/serialization` o `shared/observability` dicono molto più di `common`.
 
-Un modulo molto coeso non è semplicemente un modulo piccolo.
+## Coupling: quanto costa conoscere una dipendenza
 
-Può essere anche grande.
+Il coupling non coincide con il numero di frecce. Dipendere da una funzione pura e stabile è molto diverso dal dipendere da una tabella condivisa, da una chiamata remota sincrona o da una convenzione temporale non documentata.
 
-La domanda è se le sue parti cambino prevalentemente per motivi correlati.
-
-Immaginiamo un modulo `Orders` che gestisca creazione e annullamento dell'ordine, validazione delle transizioni, calcolo dello stato corrente e regole di modifica. C'è una ragione plausibile per cui queste responsabilità vivano insieme: condividono il significato di “ordine” e le sue invarianti.
-
-Se dentro lo stesso modulo troviamo invece rendering PDF delle fatture, gestione utenti, invio newsletter e retry verso un provider logistico, il nome `Orders` sta probabilmente nascondendo responsabilità differenti.
-
-### Functional cohesion vs convenience cohesion
-
-Molti moduli nascono non da una responsabilità ma dalla comodità.
-
-Un esempio classico è:
-
-```text
-utils/
-helpers/
-common/
-shared/
-```
-
-All'inizio sembrano innocui.
-
-Poi diventano il luogo in cui finisce tutto ciò che non sappiamo dove mettere.
-
-Il risultato è un modulo con cohesion bassissima ma coupling altissimo: tutti lo usano.
-
-Questo non significa che un modulo shared sia sempre sbagliato.
-
-Significa che deve avere una responsabilità esplicita.
-
-Per esempio:
-
-```text
-shared/time
-shared/serialization
-shared/observability
-```
-
-può essere più leggibile di un contenitore generico di funzioni eterogenee.
-
-### Coupling: quanto costa dipendere
-
-Il coupling non è semplicemente il numero di dipendenze.
-
-Una dipendenza può essere economica o costosa.
-
-Dipendere da una funzione pura e stabile non ha lo stesso costo di dipendere da uno schema database condiviso o da una chiamata sincrona remota, da un formato evento instabile o da un ordine temporale implicito. Anche una convenzione non documentata o una libreria interna che espone dettagli di implementazione possono creare coupling molto più forte di quanto suggerisca un semplice import.
-
-Per questo conviene chiedere:
+Una domanda più utile è:
 
 > **Che cosa deve sapere A per usare B correttamente?**
 
-Più conoscenza serve, più il coupling è profondo.
+Più conoscenza implicita serve, più la dipendenza è profonda.
 
-### Coupling sintattico e coupling semantico
-
-Due moduli possono avere un'API piccola e rimanere fortemente accoppiati.
-
-Supponiamo che `Shipping` esponga:
+Supponiamo che Shipping esponga soltanto:
 
 ```ts
 reserve(orderId: string): Promise<void>
 ```
 
-L'interfaccia è minimale.
+La firma sembra minima. Ma se Orders deve sapere che la prenotazione dura quindici minuti, che una seconda chiamata ha una semantica particolare, che alcuni errori sono retryable e che la replica dei dati può arrivare in ritardo, il contratto reale è molto più grande della firma TypeScript.
 
-Ma se `Orders` deve sapere che:
+Questo è **coupling semantico**: la dipendenza vive nelle assunzioni necessarie per usare correttamente il servizio.
 
-- la prenotazione è valida per 15 minuti;
-- una seconda chiamata genera un errore irreversibile;
-- la risposta può arrivare prima che i dati siano replicati;
-- alcuni codici di errore richiedono retry e altri no;
+## La history mostra confini che il diagramma può nascondere
 
-allora il contratto reale è molto più grande della firma TypeScript.
+Il change coupling ci offre un'altra prospettiva. Se ogni modifica ad A richiede sistematicamente modifiche in B, C e D, esiste un legame che merita attenzione anche se il diagramma non lo mostra.
 
-Il coupling semantico vive nelle assunzioni necessarie per usare correttamente la dipendenza.
+Possiamo osservarlo nella history dei commit, nelle pull request che attraversano sempre le stesse aree, nei test che cambiano in cascata o nei deploy che richiedono coordinamento. Gli agenti possono accelerare molto questa analisi su repository grandi, ma il risultato va interpretato: correlazione nella history non significa automaticamente boundary di dominio.
 
-### Change coupling
+La domanda resta **perché** quelle parti cambiano insieme.
 
-Un segnale particolarmente utile è il **change coupling**.
+## Un confine logico non richiede un confine di rete
 
-Se ogni volta che modifichiamo A dobbiamo modificare B, C e D, esiste un legame strutturale anche se il diagramma non lo mostra.
+Il costo del coupling cresce quando attraversiamo processo e rete. Una chiamata remota porta con sé latency, failure parziali, timeout, retry, autenticazione, observability, versioning e compatibility.
 
-Possiamo scoprirlo osservando la history dei commit e i file che cambiano insieme, le pull request che attraversano sempre gli stessi confini, i test che devono essere aggiornati in cascata e i deploy che richiedono coordinamento.
+Questo significa che una separazione concettualmente elegante può essere operativamente pessima se la materializziamo subito come servizio distribuito.
 
-L'AI può aiutare molto a esplorare questi pattern in un repository grande.
+Possiamo avere moduli forti dentro lo stesso deployable. La separazione logica e la separazione fisica rispondono a domande diverse.
 
-Ma il risultato va interpretato.
+Questo punto sarà centrale quando confronteremo modular monolith e microservices.
 
-File che cambiano insieme possono farlo per ragioni accidentali.
+## High cohesion, controlled coupling
 
-Non ogni correlazione nella history rappresenta un bounded context nascosto.
-
-### Il costo del coupling dipende dal confine
-
-Una chiamata tra due classi nello stesso processo è diversa da una chiamata tra due servizi distribuiti.
-
-Quando attraversiamo un confine di processo o rete compaiono costi nuovi: latency e failure parziali, timeout e retry, autenticazione e versioning. Dobbiamo inoltre governare observability, deployment indipendente e compatibility. Per questo una separazione concettualmente elegante può essere operativamente pessima.
-
-Un confine logico non richiede automaticamente un confine fisico.
-
-Possiamo avere moduli forti dentro lo stesso deployable.
-
-Questo punto sarà centrale quando parleremo di modular monolith e microservices.
-
-### Cohesion alta, coupling controllato
-
-La formula classica “high cohesion, low coupling” è utile, ma rischia di sembrare uno slogan.
-
-La renderei così:
+Lo slogan classico “high cohesion, low coupling” è utile se lo rendiamo operativo:
 
 > **Tieni insieme ciò che condivide le stesse ragioni di cambiamento. Riduci la conoscenza necessaria tra ciò che deve poter cambiare indipendentemente.**
 
-Questo è più operativo.
-
-Non ci dice quanti moduli creare.
-
-Ci dice che cosa osservare.
-
-### Un test pratico
-
-Per ogni modulo possiamo provare a completare queste frasi:
+Per verificare un confine possiamo provare a completare:
 
 ```text
 Questo modulo esiste per...
-
 È autorevole su...
-
 Nasconde...
-
 Espone...
-
 Dipende da...
-
 Può cambiare senza coinvolgere...
 ```
 
-Se non riusciamo a completarle senza usare parole vaghe come “gestione”, “common” o “varie utility”, il confine potrebbe non essere ancora abbastanza chiaro.
+Se le risposte richiedono parole vaghe come “gestione”, “common” o “varie utility”, forse il confine non è ancora abbastanza chiaro.
 
-Un buon modulo non deve essere perfetto.
-
-Deve essere **comprensibile abbastanza da contenere il cambiamento**.
+Un buon modulo non deve essere perfetto. Deve essere **comprensibile abbastanza da contenere il cambiamento e il significato che gli appartiene**.
