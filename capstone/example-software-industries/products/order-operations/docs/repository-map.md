@@ -278,6 +278,7 @@ agent-context-fitness.test.mjs
 issue-readiness-fitness.test.mjs
 agent-governance-fitness.test.mjs
 ai-boundary-fitness.test.mjs
+one-man-project-fitness.test.mjs
 ```
 
 Additional legacy characterization lives outside the product directory:
@@ -298,6 +299,8 @@ Do not infer that a local green suite proves PostgreSQL, Azure, runtime observab
 
 `ai-boundary-fitness.test.mjs` checks selected deterministic AI-boundary properties. It does not prove groundedness, prompt-injection resistance of a real model, latency, cost or production quality.
 
+`one-man-project-fitness.test.mjs` checks selected mechanical operating-model properties such as WIP, non-authorities, continuity state and OO-002 eval-oracle discipline. It does not prove the One-Man Project model is operationally successful or that continuity has been demonstrated.
+
 ## `work-items/`
 
 Responsibility:
@@ -311,9 +314,14 @@ Current files:
 ```text
 TEMPLATE.md
 OO-001-postgresql-escalation-outbox-atomicity.md
+OO-002-case-explanation-model-evaluation.md
 ```
 
 `OO-001` exists because `TST-005` in the Testing Strategy still lacks higher-fidelity PostgreSQL evidence.
+
+`OO-002` exists because the Case Explanation Assistant has no model/provider decision or real model evaluation evidence yet.
+
+Both are T2 cross-boundary work items in the current One-Man Project Operating Model. Ready does not imply both should be Active at the same time.
 
 Important distinction:
 
@@ -371,6 +379,8 @@ ADC-OO-001-v1
 → A2 bounded execution
 ```
 
+OO-002 has an execution contract but requires a task-specific delegation contract before actual agent execution if delegated under the Chapter 23 governance model.
+
 ### `agent-verification-bundle.md`
 
 Defines claim-to-evidence structure and independent verification expectations.
@@ -394,6 +404,38 @@ Defines capability-specific A0…A4 levels and human gates for development/execu
 Runtime AI authority is separately constrained by `docs/ai-feature-contract.md`.
 
 An executor may propose an autonomy change but cannot grant itself the permission required to finish the current task.
+
+## One-Man Project operating context
+
+Canonical artifact:
+
+```text
+docs/one-man-project-operating-model.md
+```
+
+Purpose:
+
+- govern the Case Explanation Assistant pilot with one accountable project lead;
+- keep specialist/domain authority explicit;
+- cap WIP by review/decision capacity rather than agent availability;
+- require a secondary maintainer and continuity plan;
+- define exit triggers when the operating model stops having fit.
+
+Current WIP baseline:
+
+```text
+Max active execution tasks       2
+Max active cross-boundary tasks  1
+Max unresolved semantic gates    1
+```
+
+Current continuity drill:
+
+```text
+Designed / not yet executed
+```
+
+Do not interpret the existence of the operating-model document as continuity evidence.
 
 ## `docs/` — canonical context routes
 
@@ -430,9 +472,10 @@ reliability-contract.md
 observability-contract.md
 testing-strategy.md
 cost-model.md
+one-man-project-operating-model.md
 ```
 
-Use when changing a quality attribute, failure behavior, cloud mechanism, telemetry, test/eval evidence or architectural premium.
+Use when changing a quality attribute, failure behavior, cloud mechanism, telemetry, test/eval evidence, architectural premium, WIP/continuity policy or operating-model fit.
 
 ### Agent execution / governance
 
@@ -474,7 +517,8 @@ Use when changing topology or revisiting an architecturally significant decision
 | Runtime AI authority/output | AI Feature Contract, Functional Analysis/ownership, evals, Testing Strategy |
 | Runtime AI context/retrieval | AI Feature Contract, Data Ownership, Threat Model, evals |
 | Runtime AI write/tool capability | AI Feature Contract, Threat Model, AI Autonomy Matrix, API/authorization, Failure Mode Map, Testing Strategy |
-| Model/provider change | AI Feature Contract, evals, Observability Contract, Cost Model |
+| Model/provider change | AI Feature Contract, evals, Observability Contract, Cost Model, OO-002 |
+| One-Man Project WIP/continuity/decision rights | One-Man Project Operating Model, AGENTS.md, relevant work items, AI/agent governance |
 | Cloud resource/topology | Cloud Deployment, Threat Model, Reliability Contract, Cost Model |
 | New security boundary | Threat Model, Security Control Matrix, relevant ADR |
 | New retry/failure behavior | Failure Mode Map, Reliability Contract, Testing Strategy |
@@ -520,6 +564,8 @@ Do not collapse these dimensions.
 
 An AI Feature Contract being `Codified` does not imply model quality is `Verified`.
 
+A One-Man Project Operating Model being `Codified` does not imply continuity, sustainable throughput or organizational fit are `Verified`.
+
 ## Ownership / decision boundaries
 
 - Commerce & Operations owns Order Operations product behavior.
@@ -529,6 +575,7 @@ An AI Feature Contract being `Codified` does not imply model quality is `Verifie
 - Finance/FinOps participates when architectural premiums materially affect cost/value.
 - Human/domain owners retain authority for the high-impact gates listed in the AI Autonomy Matrix.
 - Case Explanation Assistant is advisory and does not become a new source of business authority.
+- The One-Man Project Accountable Project Lead integrates execution but does not become sovereign authority over these domains.
 
 ## Stop conditions
 
@@ -549,6 +596,7 @@ Update this map when:
 - a former temporary migration boundary becomes permanent or is removed;
 - the work-item model or task-routing rules change materially;
 - the agent governance model changes materially;
-- runtime AI context, provider/tool boundary or eval surface changes materially.
+- runtime AI context, provider/tool boundary or eval surface changes materially;
+- One-Man Project WIP, continuity, specialist triggers, secondary-maintainer expectations or exit criteria change materially.
 
 > **The map describes where knowledge and responsibility live. It must not become a second copy of that knowledge.**
