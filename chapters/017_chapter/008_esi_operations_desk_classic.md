@@ -1,94 +1,86 @@
 # 17.8 — ESI: capire Operations Desk Classic prima di sostituirlo
 
-ESI ha ora un problema che non abbiamo progettato noi.
+ESI incontra ora un problema diverso da tutti quelli costruiti finora.
 
-La business unit Commerce & Operations usa ancora **Operations Desk Classic**, un'applicazione interna precedente a Order Operations.
+**Operations Desk Classic** esiste da prima di Order Operations.
 
-Il sistema è fittizio, ma il problema è realistico.
+Non l'abbiamo progettato noi, non possediamo una Functional Analysis affidabile e non sappiamo ancora distinguere con precisione fra regole necessarie, compatibilità storiche e accidenti del codice.
 
-## Perché ESI vuole intervenire
+Le pressioni per intervenire sono reali.
 
-Le pressioni arrivano da più parti.
+Finance vuole ridurre runtime, pipeline e manutenzione legacy.
 
-### Finance / FinOps
+Platform vuole eliminare deployment fuori standard.
 
-Vuole ridurre:
+Security vuole ridurre identity tecniche storiche, permission ampie e secret statici.
 
-- runtime legacy;
-- pipeline separate;
-- licenze e manutenzione;
-- supporto specialistico.
+Commerce & Operations vuole evitare che gli operatori debbano usare due console.
 
-### Platform Engineering
+Operations pone però il vincolo che governa il capitolo:
 
-Vuole ridurre workload fuori standard e deployment non uniformi.
+> **non possiamo perdere un comportamento operativo importante soltanto perché nessuno riesce più a spiegare bene da dove provenga.**
 
-### Security
+La risposta ESI non è una rewrite.
 
-Vuole eliminare:
+È una discovery slice.
 
-- identity tecniche storiche;
-- permission ampie;
-- secret statici;
-- componenti non più allineati alla baseline ESI.
+## Una sola capability: legacy case priority routing
 
-### Commerce & Operations
+Non studiamo l'intera applicazione.
 
-Vuole evitare che gli operatori debbano usare due console.
-
-### Operations
-
-Pone però il vincolo più importante:
-
-> **non possiamo perdere regole operative soltanto perché nessuno le ha più formalizzate.**
-
-## Scope del Capitolo 17
-
-Non migreremo l'intera applicazione.
-
-Studieremo una sola capability:
+Isoliamo una capability che potrebbe entrare in Order Operations:
 
 > **legacy case priority routing**
 
-Operations Desk Classic calcola una priority interna per alcuni case.
+Operations Desk Classic assegna una priority interna ad alcuni case.
 
-Order Operations oggi non usa quella stessa semantica.
+Order Operations oggi non possiede la stessa semantica.
 
-Prima di decidere se incorporarla, sostituirla o eliminarla, dobbiamo capire che cosa fa davvero.
-
-## Il primo inventory
-
-La discovery iniziale trova:
+Prima di decidere se conservarla, cambiarla o eliminarla dobbiamo ricostruire:
 
 ```text
-Operations Desk Classic
-├── HTTP/UI entry point
-├── priority-routing module
-├── shared operations database
-├── nightly export
-└── configuration values
+behavior
+→ consumers
+→ data
+→ operational meaning
+→ ownership
+→ safe seam candidate
 ```
 
-Stato iniziale:
+Questo è il principio della minimum sufficient understanding applicato al capstone.
+
+## Primo inventory: sappiamo già meno di quanto sembri
+
+La discovery trova una slice con:
 
 ```text
-priority-routing source exists           = Found
-nightly export source exists             = Found
-same DB table referenced by both         = Found
-priority affects current workflow        = Inferred
-enterprise special case is intentional   = Unknown
-current business owner                   = Unknown
+HTTP / UI entry point
+priority-routing module
+shared operations state candidate
+nightly export
+configuration values
 ```
 
-Questa è già informazione utile.
+Ma ogni elemento entra nell'Evidence Ledger con un grado diverso.
 
-Ma non è ancora sufficiente per scrivere un nuovo requisito.
+```text
+priority-routing source exists          = Found
+nightly export source exists            = Found
+same legacy state appears referenced    = Found / Inferred
+priority affects current workflow       = Inferred
+enterprise special case intentional     = Unknown
+current business owner                  = Unknown
+```
 
-## Il codice legacy
+Questa differenza di stato è fondamentale.
 
-Nel capstone introduciamo intenzionalmente una piccola slice legacy separata dal nuovo codice.
+Se scrivessimo subito “Operations Desk Classic usa la priority per governare il workflow enterprise”, avremmo già trasformato più inferenze in fatti.
 
-La funzione di routing contiene comportamento storico simile a questo:
+## La slice legacy che introduciamo nel repository
+
+Il capstone contiene intenzionalmente una piccola implementazione legacy separata dal nuovo codice.
+
+Il comportamento osservabile è simile a:
 
 ```text
 closed case
@@ -97,102 +89,95 @@ closed case
 manual hold
 → MANUAL_REVIEW
 
-payment case with repeated attempts
+Payment + repeated failures
 → URGENT
 
-enterprise case older than threshold
+Enterprise + age >= threshold
 → URGENT
 
 otherwise
 → STANDARD
 ```
 
-Questi comportamenti sono **simulati**.
+Queste regole sono **fittizie**.
 
-Non sono best practice e non rappresentano regole industriali.
+Non sono benchmark, best practice o policy industriali.
 
-Servono a mostrare il processo di discovery.
+Servono a mostrare come si passa da codice esistente a conoscenza governata.
 
-## Perché non ripuliamo subito il codice
+## Prima characterization: osservare senza promuovere a requisito
 
-La tentazione sarebbe:
+La characterization suite produce questa baseline:
 
-- rinominare tutto;
-- creare enum;
-- separare funzioni;
-- introdurre dependency injection;
-- trasformare CommonJS in TypeScript;
-- eliminare magic number.
-
-Non ancora.
-
-Il Capitolo 17 deve preservare una situazione importante:
-
-> **stiamo ancora scoprendo che cosa significa il comportamento.**
-
-Refactor e modernization arrivano nel Capitolo 18.
-
-Qui aggiungiamo characterization evidence.
-
-## Behavioral observations
-
-La prima characterization produce osservazioni come:
-
-| ID | Input | Output osservato | Stato |
+| ID | Scenario | Output osservato | Stato al Capitolo 17 |
 |---|---|---|---|
 | LB-01 | case closed | `NONE` | Observed |
 | LB-02 | manual hold | `MANUAL_REVIEW` | Observed |
-| LB-03 | Payment + 3 failed attempts | `URGENT` | Observed |
-| LB-04 | Enterprise tier + age >= threshold | `URGENT` | Observed |
-| LB-05 | standard case | `STANDARD` | Observed |
+| LB-03 | Payment + repeated failures | `URGENT` | Observed |
+| LB-04 | Enterprise + age >= threshold | `URGENT` | Observed, meaning unknown |
+| LB-05 | Enterprise before threshold | `STANDARD` | Observed |
+| LB-06 | ordinary open case | `STANDARD` | Observed |
 
-Notiamo la parola:
+Nessuna riga diventa automaticamente `Confirmed`.
 
-> **Observed**
+La suite ci permette di sapere se una modifica cambia il comportamento.
 
-Non `Confirmed`.
+Non ci dice ancora quale comportamento ESI debba scegliere per il target.
 
-## La regola enterprise è sospetta
+## LB-04 è il caso che ci impedisce di barare
 
-Il branch enterprise contiene un threshold temporale.
+La regola Enterprise + threshold temporale sembra importante.
 
-Perché?
+Potrebbe derivare da:
 
-Possibili spiegazioni:
+```text
+contractual SLA
+Operations policy
+historical incident workaround
+temporary feature never removed
+dead/unconsumed branch
+```
 
-1. esiste uno SLA contrattuale;
-2. era una policy Operations;
-3. era una workaround durante un incidente;
-4. era una feature temporanea mai rimossa;
-5. il codice è dead e nessuno usa più quel path.
+Il repository non può scegliere fra queste spiegazioni.
 
-Il repository non può rispondere da solo.
+Il fatto che il test osservi `URGENT` non autorizza Order Operations a introdurre la stessa regola nella propria Functional Analysis.
 
-La domanda diventa un item della Legacy Understanding Map.
+LB-04 resta quindi:
 
-## Nightly export
+```text
+Observed behavior
+→ classification pending
+→ owner confirmation required
+```
 
-La discovery trova anche un export notturno che include la priority.
+Questo è il punto pedagogico più importante della slice.
 
-Questo cambia il blast radius.
+## Il nightly export allarga il blast radius
 
-Il priority router non influenza soltanto la UI.
+Durante la discovery troviamo un export notturno che sembra includere la priority.
 
-Potrebbe influenzare:
+Improvvisamente il problema non è più soltanto la UI.
+
+La capability potrebbe influenzare:
 
 ```text
 operator workflow
++ persisted legacy state
 + nightly export
 + downstream reporting
 ```
 
-Il consumer dell'export deve quindi essere identificato prima di qualsiasi modifica.
+Lo stato della claim è ancora `Inferred` finché non troviamo execution evidence e owner.
 
-Il nuovo system boundary non può essere progettato guardando soltanto la chiamata UI.
+Ma basta per creare un blocker:
 
-## Data ownership
+> **nessun retirement del priority path finché i consumer dell'export non sono stati identificati.**
 
-La stessa discovery trova una tabella legacy che contiene:
+Una modernization prudente usa anche l'incertezza come input di stop.
+
+## Data ownership: non dichiariamo un nuovo owner prima di trovarne uno vecchio
+
+La discovery suggerisce stato legacy come:
 
 ```text
 case_id
@@ -201,124 +186,128 @@ priority_updated_at
 manual_hold
 ```
 
-Domande:
-
-- Operations Desk Classic è l'unico writer?
-- Order Operations legge già quella tabella indirettamente?
-- il nightly export usa la tabella o ricalcola?
-- `manual_hold` è business state o operational workaround?
-- chi può modificarlo?
-- esiste audit?
-
-Finché queste domande non hanno risposta, non dichiariamo ownership nuova.
-
-## Il compromesso ESI del capitolo
-
-### Esigenza
-
-Ridurre il costo e il rischio di Operations Desk Classic e consolidare progressivamente le capability in Order Operations.
-
-### Tensione
+Le domande sono più importanti del design target:
 
 ```text
-Finance / Platform / Security
-→ vogliono accelerare il retirement
-
-Operations / Product
-→ non vogliono perdere comportamento necessario
-
-Order Operations team
-→ non vuole importare accidenti legacy come nuovo dominio
+chi scrive priority_code?
+chi lo legge?
+il nightly export legge o ricalcola?
+manual_hold è business state o workaround operativo?
+chi può modificarlo?
+esiste audit?
+Order Operations legge già indirettamente questi dati?
 ```
 
-### Decisione
+Finché queste risposte mancano, Order Operations non dichiara una nuova authority.
 
-Non facciamo una rewrite né un cutover.
+Un nuovo modello più pulito non ci dà il diritto di ignorare writer e reader esistenti.
 
-Facciamo:
+## Perché non refactorizziamo ancora
+
+Il legacy code contiene nomi e forme che potremmo migliorare subito.
+
+Potremmo introdurre TypeScript, enum, dependency injection, funzioni più piccole e magic number più leggibili.
+
+Non lo facciamo nel Capitolo 17.
+
+La ragione non è conservatorismo.
+
+È controllo delle variabili.
+
+Stiamo ancora cercando di capire che cosa significhi il comportamento.
+
+Cambiare contemporaneamente struttura e semantica renderebbe più difficile distinguere:
 
 ```text
-inventory
-→ characterization
-→ owner discovery
-→ hidden consumer discovery
-→ behavior classification
-→ seam design
+refactoring difference
 ```
 
-### Costo accettato
+da:
 
-Operations Desk Classic continuerà a esistere ancora per un periodo.
+```text
+behavioral difference
+```
 
-Paghiamo temporaneamente:
+Il Capitolo 18 costruirà il Refactoring Safety Plan proprio dopo avere ottenuto questa baseline.
 
-- doppio runtime;
-- doppia conoscenza;
-- discovery effort;
-- characterization suite;
-- coexistence futura.
+## Candidate seam, non decisione già implementata
 
-### Quality floor
-
-Non accettiamo:
-
-- silent semantic regression;
-- perdita di tenant isolation;
-- perdita di audit necessario;
-- cambio di priority behavior non dichiarato;
-- dual ownership ambiguo;
-- cutover senza rollback.
-
-### Guardrail
-
-- Legacy Understanding Map;
-- characterization test;
-- evidence state `Found/Inferred/Observed/Confirmed`;
-- consumer discovery;
-- owner confirmation;
-- modernization slice con rollback;
-- decisione esplicita su ogni behavior legacy significativo.
-
-## Modernization candidate
-
-Dopo la fase di understanding, una direzione probabile è:
+Una direzione plausibile emerge:
 
 ```text
 Order Operations
-→ PriorityRouting port / ACL
-→ legacy implementation first
-→ new implementation later
+→ PriorityPolicy / PriorityRouting boundary
+   ├── legacy adapter
+   └── future target policy
 ```
 
-Questo creerebbe il seam per un **Branch by Abstraction**.
+Questo potrebbe abilitare Branch by Abstraction e shadow comparison.
 
-Ma nel Capitolo 17 resta una candidate direction.
+Al Capitolo 17 resta però **candidate**.
 
-Non la implementiamo ancora.
+Non sappiamo ancora quali behavior debbano vivere nella target policy.
 
-Perché manca una cosa fondamentale:
+Creare subito l'implementazione nuova significherebbe usare una domanda ancora aperta come specifica.
 
-> sapere quali regole devono davvero sopravvivere.
+## Legacy Understanding Map — baseline del Capitolo 17
 
-## Evidence prima del refactor
-
-Il capitolo quindi lascia ESI in uno stato apparentemente meno spettacolare di una nuova architettura.
-
-Abbiamo però guadagnato:
+L'artefatto persistente introdotto dal capitolo registra almeno:
 
 ```text
-legacy slice visible
-characterization executable
-unknown behavior explicit
-hidden downstream candidate visible
-ownership questions visible
-migration seam candidate visible
+capability scope
+entry points
+evidence ledger
+characterized behaviors
+data / ownership questions
+consumer hypotheses
+operational unknowns
+security unknowns
+candidate seams
+migration risks
+decision blockers
 ```
 
-Questa è modernization progress.
+Il file vivo del capstone continuerà a evolvere.
 
-Non abbiamo ancora rimosso una riga legacy.
+Nei capitoli successivi alcuni behavior verranno confermati, LB-04 riceverà una decisione esplicita, il seam verrà codificato e apparirà una shadow strategy.
 
-Abbiamo ridotto l'incertezza del prossimo cambiamento.
+Qui manteniamo la fotografia corretta **prima** di quelle decisioni.
 
-> **Il primo prodotto di una modernizzazione sicura non è il nuovo codice. È una comprensione abbastanza affidabile da sapere quale nuovo codice merita di essere scritto.**
+## Il compromesso ESI del Capitolo 17
+
+**Esigenza:** ridurre progressivamente costo e rischio di Operations Desk Classic e consolidare capability in Order Operations.
+
+**Tensione:** retirement speed contro semantic safety, hidden consumers e rischio di importare accidental complexity nel nuovo dominio.
+
+**Decisione:** nessun cutover e nessuna rewrite; prima inventory, characterization, owner discovery, hidden-consumer discovery, behavior classification e candidate seam.
+
+**Costo accettato:** Operations Desk Classic continua a esistere e paghiamo temporaneamente discovery effort, characterization suite e doppia conoscenza.
+
+**Quality floor:** nessuna silent semantic regression, tenant/security boundary preservati, nessuna data authority ambigua, nessun behavior significativo rimosso senza decisione, nessun cutover senza rollback.
+
+**Guardrail:** Legacy Understanding Map, characterization tests, Evidence Ledger `Found/Inferred/Observed/Confirmed`, consumer discovery, owner confirmation e explicit decision blocker.
+
+## Che cosa abbiamo davvero ottenuto
+
+A fine capitolo non abbiamo rimosso una riga di legacy.
+
+Abbiamo però trasformato:
+
+```text
+"quel codice sembra fare priority routing"
+```
+
+in:
+
+```text
+6 behavior osservati
+1 regola semanticamente sospetta
+consumer notturni ancora da confermare
+ownership dati non risolta
+candidate seam identificato
+decision blocker espliciti
+```
+
+Questa è modernization progress perché riduce l'incertezza del prossimo change.
+
+> **Il primo prodotto di una modernization sicura non è il nuovo codice. È una comprensione abbastanza affidabile da sapere quale nuovo codice abbiamo davvero il diritto di scrivere.**
