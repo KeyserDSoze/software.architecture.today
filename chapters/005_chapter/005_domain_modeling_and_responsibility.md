@@ -1,28 +1,14 @@
 ## Domain modeling: i confini seguono il significato
 
-Una delle tentazioni più forti nel software design è partire dalla struttura tecnica.
+Una delle tentazioni più forti nel software design è partire dalla struttura tecnica: frontend, backend, API, database, queue. Sono elementi reali, ma descrivono **come** il sistema è costruito, non ancora **che cosa significa**.
 
-Frontend.
-
-Backend.
-
-Database.
-
-API.
-
-Queue.
-
-Questi elementi esistono davvero.
-
-Ma non spiegano che cosa il sistema significa.
-
-Il domain modeling prova a partire da un'altra domanda:
+Il domain modeling prova a partire da una domanda diversa:
 
 > **Quali concetti, regole e responsabilità rendono questo sistema quello che è?**
 
-### Il dominio non è il database
+## Il dominio non coincide con lo schema
 
-Se osserviamo Order Operations dal database potremmo vedere tabelle come:
+Osservando Order Operations dal database potremmo trovare tabelle come:
 
 ```text
 customers
@@ -33,33 +19,17 @@ shipments
 refunds
 ```
 
-È facile trasformare automaticamente ogni tabella in un'entità e ogni relazione in una relazione del dominio.
+È facile trasformare automaticamente ogni tabella in un'entità e ogni foreign key in una relazione del dominio. Ma lo schema relazionale è una rappresentazione di persistenza; non contiene necessariamente il modello mentale corretto del comportamento.
 
-Ma uno schema relazionale è una rappresentazione di persistenza.
+Il concetto di “ordine annullabile”, per esempio, può dipendere da stato logistico e pagamento, finestra temporale, policy commerciale e ruolo dell'utente. Nessuna singola tabella esprime necessariamente quella regola.
 
-Non è necessariamente il modello mentale corretto per il comportamento.
+Il domain model deve quindi proteggere **significato e invarianti**, non riprodurre fedelmente la forma del database.
 
-Per esempio, il concetto di “ordine annullabile” potrebbe dipendere dallo stato logistico e del pagamento, da una finestra temporale, da una policy commerciale e dal ruolo dell'utente. Nessuna singola tabella rappresenta necessariamente quella regola.
+## Rendere autorevole il comportamento
 
-### Entità, valore e comportamento
+Possiamo distinguere entità con identità, value object, eventi e policy, ma il valore non sta nel classificare perfettamente ogni oggetto secondo un vocabolario DDD. Sta nel rendere esplicito dove vive una regola.
 
-Nel domain modeling ci interessa distinguere cose con identità nel tempo da valori definiti dalle proprie proprietà, riconoscere comportamenti e invarianti, eventi significativi e responsabilità che appartengono a un contesto specifico.
-
-Un `OrderId` può essere un value object.
-
-Un `Order` può avere identità.
-
-Una `Money` può incorporare importo e valuta.
-
-Un evento `OrderCancelled` può rappresentare un fatto avvenuto.
-
-Ma il valore non sta nel classificare tutto correttamente secondo un vocabolario.
-
-Sta nel rendere esplicite le regole che il software deve proteggere.
-
-### Modello anemico e logica sparsa
-
-Supponiamo di avere:
+Supponiamo di avere un oggetto semplice:
 
 ```ts
 interface Order {
@@ -70,7 +40,7 @@ interface Order {
 }
 ```
 
-E poi decine di servizi che fanno:
+Se decine di servizi ricostruiscono indipendentemente la cancellabilità con condizioni come:
 
 ```ts
 if (order.status === "paid" && !order.shippedAt) {
@@ -78,146 +48,60 @@ if (order.status === "paid" && !order.shippedAt) {
 }
 ```
 
-Il problema non è necessariamente che l'oggetto sia “anemico” in senso dogmatico.
+il problema non è dogmaticamente “anemic domain model”. Il problema è che il significato della regola è sparso.
 
-Il problema è che la regola potrebbe essere duplicata in più punti.
+Potremmo rendere autorevole quel comportamento con `order.canBeCancelled(at)` oppure con una `cancellationPolicy.evaluate(order, at)`. La forma concreta dipende dal design; il principio è avere **un luogo che possiede la semantica**.
 
-Un modello più esplicito potrebbe fornire:
+## Il linguaggio rivela i confini
 
-```ts
-order.canBeCancelled(at)
-```
+L'ubiquitous language è utile perché le parole usate dal team fanno emergere collisioni di significato. “Completed” può voler dire pagato per Payments, consegnato per il cliente, preparato per il magazzino o contabilizzato per Analytics.
 
-oppure una policy dedicata:
+La soluzione non è necessariamente imporre una definizione universale. A volte il modello migliora quando riconosciamo che lo stesso termine appartiene a contesti diversi e richiede nomi o mapping espliciti.
 
-```ts
-cancellationPolicy.evaluate(order, at)
-```
+Il concetto di **bounded context** è prezioso proprio qui: un modello ha validità dentro un confine. Non segue però che ogni bounded context debba diventare un microservizio. Orders, Payments e Shipping possono essere contesti distinti dentro lo stesso monolite modulare.
 
-La scelta dipende dal contesto.
+> **Confine logico prima, topologia fisica dopo.**
 
-Ciò che conta è avere un luogo autorevole per il significato.
+## Tradurre invece di esportare il modello interno
 
-### Ubiquitous language come strumento di design
+Quando due contesti collaborano, vogliamo sapere chi possiede il significato e quale parte venga tradotta al boundary.
 
-Il linguaggio usato dal team rivela spesso confini e ambiguità.
-
-Che cosa significa “completato”?
-
-Per il cliente potrebbe significare ricevuto.
-
-Per il pagamento potrebbe significare incassato.
-
-Per il magazzino potrebbe significare preparato.
-
-Per il reporting potrebbe significare contabilizzato.
-
-Se usiamo la stessa parola per concetti diversi, il codice finirà facilmente per mescolarli.
-
-A volte la soluzione non è trovare una definizione universale.
-
-È riconoscere che il termine appartiene a contesti differenti.
-
-### Bounded context senza rituale
-
-Il concetto di bounded context è estremamente utile quando ci ricorda che **un modello ha validità dentro un confine**.
-
-Non deve diventare una scusa per creare automaticamente un microservizio per ogni contesto.
-
-Possiamo avere:
-
-```text
-Orders context
-Payments context
-Shipping context
-```
-
-all'interno dello stesso monolite modulare.
-
-La separazione concettuale non impone una separazione di deployment.
-
-Ancora una volta:
-
-> **confine logico prima, topologia fisica dopo.**
-
-### Context mapping pragmatico
-
-Quando due contesti interagiscono, vogliamo capire chi possieda il concetto e quale informazione venga condivisa, chi traduca il modello, quali assunzioni diventino contratto e quale parte sia autorizzata a cambiare il significato.
-
-Supponiamo che Shipping esponga:
+Se Shipping espone:
 
 ```text
 shipment.status = dispatched
 ```
 
-Orders potrebbe decidere di tradurlo internamente in:
+Orders può scegliere di tradurlo in un proprio concetto:
 
 ```text
 order.fulfillmentState = in_transit
 ```
 
-Questo mapping può sembrare ridondante.
+Il mapping può sembrare ridondante, ma impedisce al vocabolario interno di Shipping di diventare automaticamente il modello di Orders. È una forma di **protezione semantica**.
 
-Ma evita che il vocabolario interno di Shipping diventi automaticamente il modello interno di Orders.
+Questo è particolarmente importante quando i due contesti evolvono per ragioni diverse.
 
-È una forma di protezione semantica.
+## Ownership non segue la posizione del dato
 
-### La responsabilità non segue il dato
-
-Una regola importante:
-
-> **Il luogo in cui un dato è memorizzato non determina automaticamente chi possiede il comportamento associato.**
-
-Un customer ID può comparire in molti moduli.
-
-Questo non significa che ogni modulo possieda il cliente.
-
-Un prezzo può essere copiato dentro un ordine per ragioni storiche e transazionali.
-
-Questo non significa che Orders possieda il catalogo prezzi.
+Un dato può comparire in più posti senza avere più proprietari. Un `customerId` può essere presente in Orders, Billing e Shipping senza rendere tutti e tre autorevoli sul cliente. Il prezzo copiato dentro un ordine per preservare lo snapshot storico non rende Orders proprietario del catalogo prezzi.
 
 Ownership riguarda il diritto di definire e modificare il significato autorevole.
 
-### Duplicate data vs duplicate meaning
+Per questo dobbiamo distinguere **duplicate data** da **duplicate meaning**. Duplicare `customerDisplayNameAtPurchase` può essere una scelta utile per conservare lo storico; permettere a due moduli di definire indipendentemente che cosa significhi `OrderStatus` è molto più pericoloso.
 
-Un sistema ben progettato può duplicare dati senza duplicare ownership.
+I dati possono essere replicati. Il significato autorevole deve rimanere governato.
 
-Per esempio, Orders può memorizzare:
+## AI e modelli troppo puliti
 
-```text
-customerDisplayNameAtPurchase
-```
+L'AI può estrarre velocemente un primo domain model da API, schema, codice, test, ticket e documentazione. Può proporre entità, invarianti, eventi e bounded context.
 
-per conservare lo snapshot storico.
+Il rischio è che produca un modello più elegante della realtà. I domini veri contengono eccezioni, termini storici, compromessi commerciali, ownership organizzativa e casi che non entrano bene nella decomposizione più pulita.
 
-Il dato è duplicato.
+Un modello generato va quindi trattato come ipotesi. Una review utile non chiede soltanto “è coerente?”, ma:
 
-Il significato non necessariamente lo è.
+> **Quale comportamento reale entra male in questo modello? Quale parola sta nascondendo significati diversi?**
 
-Diverso sarebbe avere due moduli che possono entrambi modificare indipendentemente la stessa definizione di “stato ordine”.
+Un domain model non deve riprodurre perfettamente la realtà. Deve fornire una struttura abbastanza buona da rendere chiaro dove vivano le regole, chi possa cambiarle e quali invarianti il software debba proteggere.
 
-Quello è duplicate meaning.
-
-Ed è molto più pericoloso.
-
-### AI e domain modeling
-
-L'AI è molto utile per estrarre un primo modello da codice esistente, nomi delle API e schema database, ma anche da ticket, documentazione, test e log. Può proporre entità, invarianti e bounded context.
-
-Ma tende anche a produrre modelli troppo puliti.
-
-Il dominio reale contiene eccezioni e termini ambigui, regole storiche e compromessi commerciali, ownership organizzativa e casi che contraddicono il modello più elegante. Per questo un domain model generato deve essere trattato come ipotesi.
-
-Una buona review chiede:
-
-> “Quale comportamento reale non entra bene in questo modello?”
-
-Oppure:
-
-> “Quali termini stanno nascondendo significati diversi?”
-
-### Il criterio finale
-
-Un modello di dominio è utile se rende più facile dire dove viva una regola e chi possa cambiarla, quali invarianti debbano restare vere e quali concetti non debbano trapelare fuori dal loro contesto. Non deve riprodurre perfettamente la realtà.
-
-Deve fornire **una struttura sufficientemente buona per proteggere il significato del software**.
+> **Il valore del modello non è l'eleganza. È la capacità di proteggere il significato del sistema mentre il codice cambia.**
