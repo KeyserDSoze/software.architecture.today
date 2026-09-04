@@ -1,345 +1,84 @@
-## Queue, pub/sub e stream: non sono sinonimi
+## Queue, pub/sub e stream: la relazione viene prima del broker
 
-Quando diciamo “mettiamo un broker”, stiamo comprimendo decisioni molto diverse in una parola sola.
+Quando diciamo “mettiamo un broker” stiamo comprimendo decisioni molto diverse in una parola sola. Prima della tecnologia dobbiamo capire che relazione vogliamo creare tra producer e consumer.
 
-Prima della tecnologia dobbiamo capire **che relazione vogliamo creare tra producer e consumer**.
-
-## Queue: lavoro da eseguire
-
-Una queue è utile quando un producer delega lavoro che può essere eseguito in un secondo momento.
-
-Il modello concettuale è:
-
-```text
-producer
-  ↓
-queue
-  ↓
-uno dei worker disponibili
-```
-
-Tipici obiettivi:
-
-- temporal decoupling;
-- buffering;
-- load leveling;
-- retry;
-- concorrenza controllata;
-- assorbire burst senza bloccare il caller.
-
-Microsoft descrive il Competing Consumers pattern proprio in questi termini: più consumer ricevono lavoro dalla stessa coda per aumentare throughput e availability, a condizione che i task siano separabili e che il sistema gestisca correttamente affidabilità, concorrenza e ordering quando necessario.
+Una **queue** è naturale quando qualcuno produce lavoro che uno dei worker disponibili deve eseguire. Compra temporal decoupling, buffering e load leveling; permette di controllare concurrency e assorbire burst senza trattenere il caller. Microsoft descrive il Competing Consumers pattern proprio come più consumer che ricevono lavoro dalla stessa coda per aumentare throughput e availability, a condizione che il lavoro sia separabile e che concorrenza e ordering siano governati.
 
 Fonte:
 
 - [Microsoft Learn — Competing Consumers pattern](https://learn.microsoft.com/azure/architecture/patterns/competing-consumers)
 
-Per Order Operations, una queue avrebbe fit se dicessimo:
+Per Order Operations la forma sarebbe: “questa escalation deve essere presa in carico da Payments & Risk, ma l’operatore non deve aspettare che il downstream completi il lavoro”.
 
-> “questa escalation deve essere elaborata da Payments & Risk, ma l'operatore non deve aspettare che l'elaborazione finisca”.
-
-Il lavoro è destinato a un capability consumer preciso.
-
-## Publish/subscribe: annunciare un fatto
-
-Pub/sub risponde a un problema diverso.
-
-Il producer non assegna necessariamente lavoro a un consumer specifico.
-
-Pubblica un fatto:
-
-```text
-OperationalCaseEscalated
-```
-
-E più subscriber possono reagire indipendentemente:
-
-```text
-Payments & Risk
-Notification service
-Audit analytics
-Future reporting consumer
-```
-
-Il producer non dovrebbe dover conoscere ogni subscriber.
-
-Microsoft Publisher-Subscriber pattern evidenzia proprio questo vantaggio: producer e consumer possono evolvere con minore accoppiamento diretto, e i consumer possono selezionare gli eventi di interesse.
+Il **publish/subscribe** esprime invece un’altra relazione. Il producer rende noto un fatto e più subscriber possono reagire indipendentemente. `OperationalCaseEscalated` potrebbe interessare Payments, audit, reporting o altri consumer futuri senza costringere Order Operations a conoscerli tutti. Microsoft Publisher-Subscriber pattern evidenzia proprio questo disaccoppiamento.
 
 Fonte:
 
 - [Microsoft Learn — Publisher-Subscriber pattern](https://learn.microsoft.com/azure/architecture/patterns/publisher-subscriber)
 
-Ma questo disaccoppiamento non è gratuito.
+Il vantaggio, però, porta con sé più contratti, failure indipendenti, tracing più difficile e maggiore rischio di effetti emergenti. Il producer conosce meno consumer, ma il sistema nel suo insieme deve governarne di più.
 
-Più consumer significano:
+Uno **stream** sposta ancora il modello: il valore non è soltanto consegnare lavoro, ma conservare una sequenza di record con retention, offset/checkpoint e possibilità di replay. Può essere ideale quando la storia e la rilettura fanno parte del requisito. Può essere sproporzionato quando abbiamo soltanto bisogno di consegnare pochi task asincroni.
 
-- più contratti da mantenere;
-- più failure indipendenti;
-- più difficoltà di tracing end-to-end;
-- più possibilità di side effect emergenti;
-- più attenzione a schema evolution e compatibility.
+Per questo ESI non sceglie automaticamente Kafka perché “ci sono eventi”. La domanda è se servano davvero le proprietà operative e semantiche di un log durabile e replayable.
 
-## Stream: un log ordinato da leggere
+## Command ed event: intenzione e fatto non sono la stessa cosa
 
-Uno stream non è semplicemente “una queue più potente”.
+Un command come `ProcessPaymentEscalation` o `SendCustomerNotification` esprime una richiesta verso una capability responsabile. Un event come `OperationalCaseEscalated` o `PaymentFailed` descrive invece qualcosa che è già accaduto.
 
-Tipicamente il modello enfatizza:
+La distinzione non è puramente grammaticale. Un command ha idealmente un destinatario, può essere rifiutato e porta idempotency legata all’operazione. Un event dovrebbe essere abbastanza stabile da permettere a consumer indipendenti di reagire senza trasformare il nome del messaggio in un ordine mascherato.
 
-- sequenza di record;
-- retention;
-- consumer offset/checkpoint;
-- replay;
-- più consumer group;
-- elaborazione continua.
+La domanda pratica è: **stiamo chiedendo a qualcuno di fare qualcosa o stiamo rendendo noto un fatto?**
 
-Questo può essere ottimo quando il valore sta anche nella storia degli eventi e nella capacità di rileggere il log.
+## Il messaggio è un contratto distribuito
 
-Può essere eccessivo quando abbiamo soltanto bisogno di consegnare una piccola quantità di task asincroni.
+Una volta pubblicato, uno schema può diventare più difficile da cambiare di una classe interna. Un consumer può costruire assunzioni sul significato di `status`, sull’ordering o sulla relazione causale tra eventi e trasformare un campo apparentemente innocuo in una dipendenza di lungo periodo.
 
-Per questo nel nostro scenario ESI non scegliamo automaticamente Kafka.
+Per questo un message contract importante dovrebbe rendere espliciti almeno tipo e versione, `messageId`, tempo di occorrenza, producer, correlation/causation identity, entity identity, significato business, compatibility policy, classificazione dei dati e ordering key quando davvero rilevante.
 
-La domanda non è:
+La struttura serve perché il messaggio attraversa ownership e tempo.
 
-> “abbiamo eventi?”
+## Delivery semantics: scegliere quale rischio accettiamo
 
-ma:
+Con **at-most-once** riduciamo la redelivery ma possiamo perdere lavoro in alcuni failure mode. Può essere un trade-off accettabile per telemetria best-effort o segnali effimeri; non lo è automaticamente per escalation, movimenti economici o altre operazioni che non possono scomparire senza lasciare traccia.
 
-> “abbiamo bisogno delle proprietà operative e semantiche di uno stream durabile e replayable?”
+Con **at-least-once** scegliamo invece di preferire un possibile duplicato a una perdita silenziosa. È il modello che adottiamo per il primo flusso ESI. Non promettiamo che un messaggio venga fisicamente consegnato una sola volta; promettiamo che la stessa `escalationId` non produca effetti business duplicati.
 
-## Command ed event non sono la stessa cosa
-
-Questa distinzione evita molti sistemi event-driven confusi.
-
-### Command
-
-Esprime un'intenzione diretta:
+La complessità si distribuisce quindi così:
 
 ```text
-ProcessPaymentEscalation
-SendCustomerNotification
-RebuildOperationalProjection
+broker   → delivery affidabile
+consumer → idempotency / deduplication
+sistema  → reconciliation / observability
 ```
 
-Ha idealmente un destinatario responsabile.
-
-Può essere rifiutato.
-
-Può avere una semantica di idempotency legata all'operazione.
-
-### Event
-
-Descrive qualcosa che è già accaduto:
-
-```text
-OperationalCaseEscalated
-PaymentFailed
-ShipmentDelayed
-```
-
-Non dovrebbe chiedere a un consumer specifico di comportarsi in un modo nascosto nel nome.
-
-Un evento sano comunica un fatto abbastanza stabile da permettere a consumer indipendenti di reagire.
-
-Il confine non è sempre perfetto.
-
-Ma la domanda è utile:
-
-> **stiamo ordinando a qualcuno di fare qualcosa o stiamo rendendo noto un fatto già avvenuto?**
-
-## Il messaggio è un contratto
-
-Una volta pubblicato, un message schema può diventare più difficile da cambiare di una classe interna.
-
-Supponiamo:
-
-```json
-{
-  "caseId": "case_123",
-  "type": "payment",
-  "status": "escalated"
-}
-```
-
-Poi un consumer interpreta `type=payment` come:
-
-> “avvia automaticamente un workflow di chargeback”.
-
-Un altro lo usa soltanto per reporting.
-
-Un terzo assume che `status` sia monotono.
-
-Abbiamo creato semantica distribuita.
-
-Per questo un event contract dovrebbe definire almeno:
-
-```text
-message type
-schema version
-message id
-occurredAt
-producer
-correlation / causation
-entity identity
-business meaning
-compatibility policy
-PII classification
-ordering key se rilevante
-```
-
-## At-most-once
-
-Con una semantica at-most-once, il sistema evita redelivery ma può perdere messaggi in certi failure mode.
-
-Può essere accettabile per dati come:
-
-- telemetria non critica;
-- aggiornamenti effimeri;
-- segnali che verranno presto sostituiti da valori nuovi.
-
-Non è accettabile automaticamente per:
-
-- escalation operativa;
-- movimento economico;
-- richiesta di fulfillment;
-- evento necessario a ricostruire uno stato.
-
-Il punto non è che at-most-once sia “inferiore”.
-
-È che compra una proprietà pagando un'altra.
-
-## At-least-once
-
-At-least-once privilegia la consegna:
-
-```text
-meglio un possibile duplicato
-che una perdita silenziosa
-```
-
-Il prezzo è che il consumer deve tollerare redelivery.
-
-È il modello che adottiamo per il primo flusso asincrono ESI.
-
-Non promettiamo che il broker consegnerà fisicamente una sola volta.
-
-Promettiamo che **la stessa escalation non produrrà effetti business duplicati**.
-
-Questo cambia il luogo della complessità:
-
-```text
-broker
-→ delivery affidabile
-
-consumer
-→ idempotency e deduplication
-
-sistema
-→ reconciliation e observability
-```
-
-## Exactly-once
-
-Exactly-once è una proprietà utile quando viene definita con precisione.
-
-Diventa marketing architetturale quando resta vaga.
-
-Dobbiamo sempre chiedere:
-
-```text
-exactly once dove?
-tra producer e broker?
-dentro una pipeline transazionale?
-nel consumer offset?
-nel database del consumer?
-nel payment provider esterno?
-per quale intervallo di deduplication?
-```
-
-Uber, descrivendo il proprio sistema di processing pubblicitario con Kafka, Flink e Pinot, spiega di usare exactly-once nelle parti di pipeline controllate da Flink/Kafka e di aggiungere comunque identificatori univoci per idempotency e deduplication nei sistemi downstream.
+**Exactly-once** diventa utile soltanto se diciamo esattamente dove valga. Producer-broker, pipeline transazionale, offset consumer e side effect esterno sono boundary diversi. Uber, descrivendo una pipeline real-time con Kafka, Flink e Pinot, usa exactly-once nel perimetro controllato dalla pipeline e continua comunque a fare affidamento su identity e deduplication nei downstream.
 
 Fonte:
 
 - [Uber Engineering — Real-Time Exactly-Once Ad Event Processing with Apache Flink, Kafka, and Pinot](https://www.uber.com/blog/real-time-exactly-once-ad-event-processing/)
 
-È un ottimo esempio del principio:
+La lezione è che **le delivery guarantee non sostituiscono l’identità del lavoro**.
 
-> **le garanzie di delivery non sostituiscono l'identità del lavoro.**
+## Fan-out: autonomia che può diventare causalità invisibile
 
-## Fan-out: autonomia e rischio
+Pub/sub consente di aggiungere subscriber senza modificare il producer. È potente, ma può generare catene in cui un evento ne produce un altro, poi un altro ancora, fino a creare un business process distribuito che nessuno possiede più end-to-end.
 
-Pub/sub può permettere a nuovi team di consumare un evento senza modificare il producer.
-
-Questo aumenta autonomia.
-
-Ma può anche creare una rete di reazioni che nessuno comprende più end-to-end.
-
-Esempio:
-
-```text
-OperationalCaseEscalated
-  ↓
-Payments apre workflow
-  ↓
-PaymentWorkflowStarted
-  ↓
-Notification invia alert
-  ↓
-AlertSent
-  ↓
-Analytics aggiorna metriche
-  ↓
-...
-```
-
-Se ogni evento genera altri eventi senza una mappa delle responsabilità, emergono:
-
-- event storm;
-- loop;
-- difficoltà di causalità;
-- policy duplicate;
-- business process distribuito senza proprietario.
-
-Microsoft Choreography pattern avverte esplicitamente di questo rischio e raccomanda guardrail come filtering, concurrency limit, throttling, schema governance e regole per evitare catene circolari.
+Microsoft Choreography pattern richiama proprio rischi di catene circolari, schema evolution, idempotency e controllo della concorrenza.
 
 Fonte:
 
 - [Microsoft Learn — Choreography pattern](https://learn.microsoft.com/azure/architecture/patterns/choreography)
 
-## Ordering: chiedere l'ordine minimo necessario
+Il problema non è “avere molti eventi”. È perdere la capacità di spiegare causalità, responsabilità e recovery.
 
-La frase:
+## Ordering: chiedere il minimo che protegge la correttezza
 
-> “i messaggi devono arrivare in ordine”
+“Gli eventi devono arrivare in ordine” è quasi sempre un requisito troppo ampio. Ordine globale, per tenant, per `orderId` e per `caseId` hanno costi molto diversi.
 
-è un requisito troppo ampio.
+Spesso ciò che serve davvero è evitare che, per la stessa aggregate key, una versione vecchia venga applicata dopo una nuova. In quel caso partition key, sequence/version e stale-event rejection possono proteggere la semantica senza serializzare l’intero workload.
 
-Ordine rispetto a che cosa?
-
-Tutti i messaggi globalmente?
-
-Tutti gli eventi di un tenant?
-
-Tutti gli eventi dello stesso ordine?
-
-Tutti gli eventi dello stesso `OperationalCase`?
-
-Ordering globale costa scalabilità e concorrenza.
-
-Spesso il requisito reale è:
-
-```text
-per la stessa aggregate key
-non applicare una versione più vecchia dopo una più nuova
-```
-
-Possiamo allora usare:
-
-```text
-partition key = caseId
-sequence / version
-consumer reject stale version
-```
-
-Microsoft Sequential Convoy pattern mostra proprio il trade-off fra ordering e parallelismo: un singolo consumer preserva ordine globale ma limita throughput; più consumer richiedono grouping o meccanismi per mantenere ordine solo dove serve.
+Microsoft Sequential Convoy pattern mostra il trade-off fra ordine e parallelismo: preservare ordine globale limita throughput; raggruppare per chiave permette di pagare il costo soltanto dove serve.
 
 Fonte:
 
@@ -347,50 +86,18 @@ Fonte:
 
 ## Il fit per Order Operations
 
-Per il nostro primo flusso scegliamo una semantica semplice:
+Per il primo flusso scegliamo un contratto minimale. `OperationalCasePaymentEscalated` porta identity stabile, `caseId`, `escalationId`, timestamp, riferimento tenant scoped, reason code, source e schema version. Non include note libere, dettagli payment sensibili, stack trace, token, payload provider o l’intero `Order` DTO.
+
+La minimizzazione protegge security e coupling. Payments può recuperare altro contesto attraverso contract autorizzati se davvero necessario.
+
+Non chiediamo ordering globale. Se in futuro più eventi dello stesso `OperationalCase` dovranno essere applicati in sequenza, aggiungeremo una key e una versione soltanto quando il consumer ne avrà bisogno.
+
+La regola resta semplice:
 
 ```text
-OperationalCaseEscalated
-- event id stabile
-- caseId
-- escalationId
-- occurredAt
-- tenantId pseudonimizzato / scoped identifier
-- reason category
-- source = order-operations
-- schemaVersion
+queue   → qualcuno deve eseguire questo lavoro
+pub/sub → questo fatto è avvenuto; più consumer possono reagire
+stream  → questa sequenza deve essere processata e spesso riletta
 ```
 
-Il messaggio non contiene:
-
-- descrizioni libere dell'operatore;
-- dettagli payment sensibili;
-- stack trace;
-- token;
-- payload di provider esterni;
-- intero Order DTO.
-
-Questo protegge security e coupling.
-
-Per ordering, non chiediamo ordine globale.
-
-Se in futuro arrivano più eventi dello stesso `OperationalCase`, useremo `caseId` come ordering/partition key e una versione monotona quando il consumer ne ha bisogno.
-
-## Regola
-
-Scegli il modello di messaging partendo dalla relazione desiderata:
-
-```text
-queue
-→ qualcuno deve eseguire questo lavoro
-
-pub/sub
-→ questo fatto è avvenuto; chi è interessato può reagire
-
-stream
-→ questa sequenza di record deve poter essere processata e spesso riletta
-```
-
-Poi scegli la tecnologia.
-
-Non il contrario.
+Prima scegliamo la relazione. Poi il prodotto.
