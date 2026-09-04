@@ -1,60 +1,24 @@
-# 9. Esercizi, autovalutazione e sintesi
+# Esercizi e sintesi
 
-Questo capitolo non introduce un nuovo pattern.
+Il Capitolo 27 non aggiunge un nuovo pattern. Verifica una capacità più difficile: usare insieme analisi, ownership, quality, failure, evidence e readiness senza trasformarli in una checklist meccanica.
 
-Introduce una prova più difficile:
+I tre casi hanno prodotto tre architetture diverse proprio perché la disciplina era la stessa e i problemi no.
 
-> **sappiamo usare insieme ciò che abbiamo imparato senza trasformarlo in una checklist meccanica?**
+Campaign Launchpad dimostra che la semplicità può essere una scelta matura quando scope e quality floor sono chiari. La Priority migration mostra che conservare temporaneamente il legacy può essere più responsabile che eliminarlo. Il Case Explanation Assistant mostra che limitare il potere dell’AI può essere una proprietà architetturale, non una mancanza di ambizione.
 
-## Idee chiave
+> **La maturità non sta nel pattern scelto. Sta nella relazione leggibile fra problema, compromesso ed evidence.**
 
-1. Un metodo architetturale coerente deve poter produrre architetture molto diverse.
-2. Un caso end-to-end deve mostrare la catena causale delle decisioni, non soltanto il diagramma finale.
-3. Greenfield, brownfield e AI-native hanno failure model e evidence requirement differenti.
-4. La semplicità è una decisione matura quando deriva da scope e quality floor chiari.
-5. Modernizzare non significa preservare automaticamente ogni comportamento legacy.
-6. Un modello AI può essere utile senza diventare authority.
-7. Readiness deve essere valutata per launch boundary, non come percentuale globale.
-8. I casi reali servono a studiare forze e conseguenze, non a copiare topologie.
-9. L'ottimo locale di un team non coincide sempre con l'ottimo dell'azienda.
-10. Enterprise architecture deve distinguere ciò che merita standardizzazione da ciò che deve restare workload-specific.
-11. Più economico diventa creare un nuovo sistema, più importante diventa decidere se quel sistema merita di esistere.
-12. Il compromesso non deve nascondere una riduzione non intenzionale del quality floor.
+## Esercizio 1 — Cambia il problema, non la tecnologia
 
----
+Product aggiunge a Campaign Launchpad personalized content per customer account usando dati CRM quasi real-time.
 
-# Esercizio 1 — Smonta Campaign Launchpad
+Ricostruisci il Decision Trace: quali authoritative source entrano? quali dati diventano sensibili? quale failure model cambia? il public static artifact resta sufficiente? quale decisione del design originale deve essere riaperta?
 
-Prendi il caso Campaign Launchpad.
+Non scegliere ancora la tecnologia. Prima descrivi come sono cambiate le forze.
 
-Assumi che Product aggiunga il requisito:
+## Esercizio 2 — Non promuovere il legacy a requisito
 
-```text
-landing page personalizzata
-per ogni customer account
-in base a dati CRM quasi real-time
-```
-
-Rispondi:
-
-1. quali nuove authoritative source entrano nel sistema?
-2. quali dati diventano sensibili?
-3. il public static model resta sufficiente?
-4. quali failure mode nuovi compaiono?
-5. quali parti del Threat Model cambiano?
-6. quali NFR diventano ora materialmente più importanti?
-7. quale decisione del caso originale deve essere riaperta?
-8. quale tecnologia **non** sceglieresti ancora senza ulteriori informazioni?
-
-Obiettivo:
-
-> vedere come un requisito funzionale cambia l'architettura senza partire da una tecnologia.
-
----
-
-# Esercizio 2 — Non preservare automaticamente il legacy
-
-Dato questo comportamento legacy:
+Osservi nel legacy:
 
 ```text
 customerTier == GOLD
@@ -62,327 +26,89 @@ and age > 10m
 → CRITICAL
 ```
 
-Costruisci una piccola Legacy Understanding Map con:
+Costruisci una piccola Legacy Understanding Map con claim, evidence, state, possible owner, alternative explanation e missing evidence. Poi separa `Observed behavior` da `Confirmed target requirement`.
+
+L’esercizio è corretto anche se la conclusione finale è “non sappiamo ancora se deve sopravvivere”.
+
+## Esercizio 3 — Expected Difference o regressione?
+
+La shadow comparison produce:
 
 ```text
-Claim
-Evidence
-State
-Possible owner
-Alternative explanation
-Missing evidence
-```
-
-Poi separa:
-
-```text
-Observed behavior
-Confirmed target requirement
-```
-
-Non decidere che il comportamento deve sopravvivere soltanto perché esiste.
-
----
-
-# Esercizio 3 — Expected difference o regressione?
-
-Immagina che shadow comparison produca:
-
-```text
-10,000 Match
+10.000 Match
 73 ExpectedDifference
 2 UnexpectedDifference
 ```
 
-Una persona propone:
+Spiega perché la percentuale aggregata non autorizza il cutover. Per ciascun unexpected mismatch descrivi business impact, affected user/tenant, authoritative expected result, cause e stop/continue decision.
 
-> Abbiamo il 99,98% di match, possiamo fare cutover.
+Il rischio non si decide per maggioranza.
 
-Spiega perché la percentuale non basta.
+## Esercizio 4 — Aggiungi un write tool all’AI Assistant
 
-Per ciascun `UnexpectedDifference` definisci:
+Product propone `retryPayment()`.
 
-```text
-business impact
-affected tenant/user
-cause
-reproducibility
-authoritative expected result
-stop/continue decision
-```
+Prima di implementare costruisci un decision packet con business outcome, authority owner, authorization, precondition, idempotency, failure, compensation, audit, confirmation, permission, observability ed eval security.
 
-Obiettivo:
+Poi decidi se il modello debba poter chiamare il tool oppure soltanto proporre l’azione. La risposta deve dipendere dal blast radius, non da quanto il modello sembra capace.
 
-> imparare a pesare i mismatch per rischio, non per maggioranza.
+## Esercizio 5 — RAG o no?
 
----
+Confronta quattro problemi: spiegare un Order Case da quattro source strutturate; cercare procedure in 50.000 documenti; calcolare authoritative PaymentStatus; riassumere una incident timeline già correlata.
 
-# Esercizio 4 — Aggiungi un tool all'AI Assistant
+Per ciascuno scegli deterministic context, search, RAG o nessuna AI e giustifica la scelta in termini di retrieval need, authority, security, cost, latency ed evaluation.
 
-Product propone:
+## Esercizio 6 — Local optimum vs enterprise optimum
 
-```text
-Case Explanation Assistant
-→ retryPayment()
-```
+Tre team chiedono una nuova logging stack, un nuovo identity provider e una nuova queue technology.
 
-Non implementare.
+Per ciascuna richiesta rispondi: quale problema locale risolve? quale property compra? esiste già una paved road? quanto costa la varietà enterprise? quanto costa forzare lo standard? quale review trigger avrebbe l’eccezione?
 
-Produci invece un decision packet con:
+L’obiettivo è distinguere standardizzazione utile da uniformità ideologica.
 
-```text
-Business outcome
-Authority owner
-Preconditions
-Authorization
-Idempotency
-Failure modes
-Compensation
-Audit
-Human confirmation
-Tool permission
-Rate/abuse limit
-Testing
-Observability
-Stop conditions
-```
+## Esercizio 7 — Tre Production Readiness Review
 
-Poi rispondi:
+Crea una mini-PRR per Campaign Launchpad, Priority candidate cutover e Case Explanation Assistant.
 
-> Il modello deve decidere quando chiamare il tool o deve soltanto proporre l'azione?
+Per ciascuna usa soltanto stati decisionali reali — `READY`, `CONDITIONAL`, `BLOCKED`, `NOT AUTHORIZED`, `NOT READY` — e rendi espliciti launch boundary, required evidence, blocker, disabled capability e owner.
 
-Non esiste una risposta universale.
+È vietato usare percentuali come `90% ready`.
 
-La valutazione deve dipendere dal rischio.
+## Esercizio 8 — Leggi un caso reale senza copiarlo
 
----
+Scegli un engineering blog di una grande organizzazione e ricostruisci `Problem → Context → Forces → Decision → Consequences → Evidence`.
 
-# Esercizio 5 — RAG o no?
-
-Per ciascun caso scegli se useresti deterministic context, search classica, RAG o nessuna AI.
-
-### Caso A
+Poi separa chiaramente:
 
 ```text
-spiegare un Order Case
-con quattro source strutturate già note
+What I can learn
+What I am not authorized to copy without the same context
 ```
 
-### Caso B
+Questo è il modo corretto di usare i casi reali come evidence.
 
-```text
-cercare procedure
-in 50,000 runbook/documenti enterprise
-```
+## Esercizio 9 — Disegna un quarto prodotto ESI
 
-### Caso C
+Scegli Engineering Software, Payments & Risk, Mobile Products, Data & AI o Corporate Systems. Definisci problem/outcome, functional scope, owner, tre quality attribute, un key trade-off, tre failure mode e un production gate.
 
-```text
-calcolare il PaymentStatus authoritative
-```
+Confrontalo con i tre casi del capitolo. Se la topology è identica a una delle precedenti, verifica che siano davvero identiche anche le forze.
 
-### Caso D
+## Esercizio 10 — Togli complessità
 
-```text
-riassumere un incident timeline
-costruito da eventi già correlati
-```
-
-Giustifica ogni scelta in termini di:
-
-```text
-retrieval need
-authority
-security
-cost
-latency
-evaluation
-```
-
----
-
-# Esercizio 6 — Local optimum vs enterprise optimum
-
-Tre team ESI chiedono:
-
-```text
-Team A
-new logging stack
-
-Team B
-new identity provider
-
-Team C
-new queue technology
-```
-
-Per ogni richiesta costruisci una tabella:
-
-| Domanda | Risposta |
-|---|---|
-| Quale problema locale risolve? | |
-| Quale proprietà compra? | |
-| Esiste già una paved-road capability? | |
-| Qual è il costo enterprise della varietà? | |
-| Qual è il costo di forzare lo standard? | |
-| L'eccezione ha expiry/review trigger? | |
-
-Obiettivo:
-
-> distinguere standardizzazione utile da standardizzazione ideologica.
-
----
-
-# Esercizio 7 — Tre Production Readiness Review
-
-Crea tre mini-PRR separate:
-
-```text
-Campaign Launchpad
-Priority candidate cutover
-Case Explanation Assistant
-```
-
-Per ognuna definisci:
-
-```text
-Launch boundary
-Blocker
-Accepted-risk candidate
-Required evidence
-Disabled capability
-Owner
-Decision
-```
-
-È vietato usare:
-
-```text
-80% ready
-90% ready
-almost ready
-```
-
-Usa soltanto stati che descrivano una decisione reale.
-
----
-
-# Esercizio 8 — Copiare Netflix, GitHub o Uber
-
-Scegli un engineering blog reale di una grande organizzazione.
-
-Estrai:
-
-```text
-Problem
-Context
-Forces
-Decision
-Consequences
-Evidence
-```
-
-Poi scrivi due sezioni separate:
-
-### Cosa posso imparare
-
-### Cosa NON sono autorizzato a copiare senza il loro contesto
-
-Obiettivo:
-
-> allenarsi a usare i casi reali come evidence, non come architecture template.
-
----
-
-# Esercizio 9 — Disegna una quarta azienda/prodotto ESI
-
-Aggiungi un prodotto in uno dei domini:
-
-```text
-Engineering Software
-Payments & Risk
-Mobile Products
-Data & AI
-Corporate Systems
-```
-
-Scrivi soltanto:
-
-```text
-Problem & Outcome
-Functional scope
-Owners
-3 quality attributes
-1 key trade-off
-3 failure modes
-1 production gate
-```
-
-Poi confrontalo con i tre casi del capitolo.
-
-Se la tua architettura è identica a una delle precedenti, chiediti se il problema è davvero identico.
-
----
-
-# Esercizio 10 — Riduci l'architettura
-
-Prendi uno dei tre casi e prova a eliminare:
-
-```text
-one service
-one datastore
-one async mechanism
-one cache
-one AI layer
-one deployment environment
-```
+Prendi uno dei tre casi e prova a rimuovere un service, datastore, async mechanism, AI layer o deployment environment.
 
 Per ogni rimozione chiedi:
 
-> Quale requisito o quale evidence smette di essere soddisfatto?
+> **Quale requisito, failure protection o evidence smette di essere soddisfatto?**
 
-Se non sai rispondere, quella complessità potrebbe non avere un lavoro.
+Se non trovi una risposta, quella complessità potrebbe non avere un lavoro.
 
----
+## Artefatto operativo — End-to-End Decision Trace
 
-# Autovalutazione
-
-Dovresti riuscire a rispondere senza consultare il testo.
-
-1. Perché lo stesso metodo può produrre architetture diverse?
-2. Che differenza c'è fra case study e architecture template?
-3. Perché Campaign Launchpad non eredita automaticamente la topology di Order Operations?
-4. Che cosa rende un One-Man Project dipendente dall'organizzazione anche se ha un solo accountable lead?
-5. Perché un characterization test non dimostra che un behavior legacy debba sopravvivere?
-6. Che cos'è una ExpectedDifference?
-7. Perché zero mismatch può essere un obiettivo sbagliato?
-8. Perché il modello AI non deve diventare owner dei fact che sintetizza?
-9. Perché grounding e RAG non sono sinonimi?
-10. Perché una eval dataset non è evidence di model quality finché non viene eseguita?
-11. Che differenza c'è fra public authoring boundary e runtime AI tool boundary?
-12. Perché una feature disabilitata può consentire un launch boundary più piccolo?
-13. Che cosa dovrebbe standardizzare una piattaforma enterprise?
-14. Quando un'eccezione allo standard è giustificata?
-15. Perché cost allocation è una architectural concern?
-16. Perché una capability comune non deve nascere prima di un problema comune ripetuto?
-17. Che cosa cambia quando l'AI rende più economico creare nuovi sistemi?
-18. Che ruolo ha l'analisi funzionale nei tre casi?
-19. Che cosa significa `fit before fashion` osservando i tre sistemi insieme?
-20. Quale evidence useresti per decidere se un sistema può davvero andare in produzione?
-
----
-
-# Artefatto operativo del capitolo
-
-Il Capitolo 27 non introduce un nuovo artefatto obbligatorio.
-
-Usa invece un **End-to-End Decision Trace** come vista sintetica dei documenti già esistenti.
-
-Template:
+Il capitolo usa una vista sintetica, non un nuovo documento obbligatorio:
 
 ```text
 Case
-
 Problem
 Outcome
 Functional scope
@@ -390,7 +116,7 @@ Owners
 Quality floor
 Key trade-off
 Architecture decision
-Rejected alternative
+Rejected/deferred alternative
 Failure modes
 Verification
 Production decision
@@ -399,73 +125,26 @@ Review triggers
 Real-world evidence anchors
 ```
 
-Non deve diventare una seconda copia di tutti gli ADR e contract.
+Il trace non deve ricopiare ADR, Threat Model e PRR. Deve rendere visibile la causalità fra essi.
 
-Serve a raccontare la causalità.
+Campaign Launchpad possiede già questa vista nel capstone e la sua production decision resta `NOT READY`. Order Operations conserva il proprio `NO-GO`; Priority e AI rimangono rispettivamente `NOT AUTHORIZED` e `NOT READY / DISABLED`.
 
----
+La disciplina del capitolo non crea finti finali felici per rendere i casi più ordinati.
 
-# Cosa cambia con l'AI
+## Che cosa cambia con l’AI
 
-L'AI può accelerare quasi ogni fase dei tre casi:
+L’AI può accelerare discovery, analysis candidate, design alternative, implementation, test, migration tooling, evaluation e review.
 
-```text
-discovery
-analysis candidate
-design alternatives
-implementation
-testing
-migration tooling
-eval generation
-documentation
-review
-```
+Proprio per questo può comprimere pericolosamente la distanza fra “abbiamo prodotto una soluzione” e “abbiamo preso una decisione autorizzata”.
 
-Ma proprio per questo aumenta il rischio di saltare la catena causale.
+Può generare architecture senza problem, test senza property, migration senza behavior classification, AI integration senza authority boundary e production config senza readiness evidence.
 
-Può produrre:
+La risposta non è rallentare artificialmente il lavoro. È mantenere il decision trace abbastanza esplicito da impedire alla velocità di nascondere il significato.
 
-```text
-architecture
-without problem
+> **L’AI può comprimere il tempo fra decisione ed execution. Non deve comprimere la distinzione fra decisione ed execution.**
 
-tests
-without property
+I tre casi non insegnano tre topologie da ricordare. Insegnano una competenza più difficile da automatizzare:
 
-migration
-without behavior classification
+> **Un buon architect non riconosce la soluzione perché l’ha già vista. Riconosce le domande che devono essere risposte prima che la soluzione meriti di esistere.**
 
-AI integration
-without authority boundary
-
-production config
-without readiness evidence
-```
-
-La risposta non è rallentare artificialmente ogni task.
-
-È rendere il percorso decisionale abbastanza esplicito che la velocità non possa nascondere il significato.
-
-> **L'AI può comprimere il tempo fra decisione ed execution. Non deve comprimere la distinzione fra decisione ed execution.**
-
----
-
-# Corollario
-
-I tre casi non ci insegnano tre architetture da ricordare.
-
-Ci insegnano qualcosa di più difficile da automatizzare:
-
-> **la stessa disciplina può portare a una soluzione semplice, a una coexistence temporanea o a un runtime AI fortemente limitato — perché la maturità non sta nel pattern scelto, ma nel rapporto fra problema, compromesso ed evidence.**
-
-E soprattutto:
-
-> **Un buon architect non riconosce la soluzione perché l'ha già vista. Riconosce le domande che devono essere risposte prima che la soluzione meriti di esistere.**
-
-Nel prossimo capitolo torneremo sulla persona.
-
-Dopo aver progettato sistemi, organizzazione, agenti e production gate, possiamo finalmente chiederci:
-
-> **Che cosa significa essere software architect quando una parte crescente dell'execution può essere delegata?**
-
-È il **Capitolo 28 — L'architect del 2030**.
+Nel Capitolo 28 torniamo proprio su quella persona: **L’architect del 2030**.
