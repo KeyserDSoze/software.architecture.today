@@ -1,325 +1,186 @@
-# Setup deterministico e verification path
+# 21.3 — Setup deterministico e verification path
 
-Un agente che conosce perfettamente l'architettura ma non riesce a costruire il progetto è poco utile.
+Un agente può comprendere perfettamente l'architettura e restare poco utile se non riesce a costruire il progetto. Può anche riuscire a costruirlo e diventare pericoloso se non sa quale verifica renda accettabile la modifica.
 
-Un agente che riesce a costruirlo ma non sa quali test dimostrano il risultato è pericoloso.
+Per questo l'AI-readiness non finisce nella documentazione. Deve esistere un percorso corto, esplicito e ripetibile da:
 
-Per questo un repository AI-ready deve avere un **verification path corto, esplicito e ripetibile**.
+```text
+change
+→ build
+→ verification
+→ evidence
+```
+
+Più questo percorso dipende da gesti manuali, credenziali personali e conoscenza orale, più la delegabilità apparente del repository supera quella reale.
 
 ## Il vero onboarding è eseguibile
 
-La documentazione può dire:
+Scrivere “installa le dipendenze e lancia i test” serve poco se, nella pratica, il contributor deve conoscere una versione implicita del runtime, generare un file a mano, impostare una variabile non documentata, avviare un servizio in un ordine particolare o applicare un workaround che vive soltanto nella memoria del team.
 
-```text
-install dependencies
-run tests
-```
-
-Ma se per farlo servono:
-
-- una versione specifica del runtime;
-- un file generato manualmente;
-- una variabile d'ambiente non documentata;
-- un servizio locale;
-- un ordine preciso fra script;
-- una credenziale personale;
-- un workaround noto soltanto al team;
-
-il repository non è realmente self-service.
-
-GitHub, nella propria guidance per le custom instructions, raccomanda di documentare bootstrap, build, test e validazione e di verificare che i comandi dichiarati funzionino. OpenAI sottolinea a sua volta che agenti come Codex lavorano meglio con ambienti configurati e test affidabili.
+GitHub raccomanda di rendere espliciti bootstrap, build, test e validation nelle repository instructions. OpenAI, descrivendo l'ambiente in cui lavorano coding agent come Codex, sottolinea analogamente il valore di setup prevedibile e test affidabili.
 
 Fonti:
 
 - [GitHub Docs — Adding repository custom instructions](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/add-custom-instructions/add-repository-instructions)
 - [OpenAI — Introducing Codex](https://openai.com/index/introducing-codex/)
 
-Il punto non è ottimizzare un prodotto specifico.
+La lezione non è specifica del tool. Un repository diventa più self-service quando il percorso operativo smette di dipendere dal senior che “sa come farlo partire”.
 
-È eliminare tribal knowledge dal percorso di execution.
+## I golden command sono una piccola API del repository
 
-## Golden commands
+Un progetto dovrebbe offrire pochi comandi canonici con un significato stabile.
 
-Un progetto dovrebbe avere pochi comandi canonici.
+Per Order Operations oggi sono:
 
-Per esempio:
-
-```text
-npm ci
+```bash
 npm run typecheck
 npm test
-npm run lint
 ```
 
-oppure:
+Il dettaglio della sintassi conta meno del contratto. Se `npm test` è il golden command, persone, agenti e CI devono poter capire che cosa esegue, che cosa dimostra e che cosa **non** dimostra.
+
+Possiamo pensare a questi comandi come a una API interna:
 
 ```text
-make bootstrap
-make verify
+typecheck()
+test()
 ```
 
-La sintassi conta poco.
+Una API può evolvere. Ma non dovrebbe cambiare in modo accidentale né avere un significato diverso per ogni contributor.
 
-Conta che:
+Un alias chiamato `test` che salta silenziosamente metà della suite o richiede un setup non dichiarato non è un golden command. È un'interfaccia ambigua.
 
-1. i comandi siano stabili;
-2. il repository sappia quali sono;
-3. persone e CI usino gli stessi meccanismi quando possibile;
-4. il successo abbia un significato definito.
+## Una verifica non vale per ogni claim
 
-Un `npm test` che salta silenziosamente metà della suite non è un golden command.
+Il Capitolo 16 ha già separato i livelli di evidence. Il repository deve rendere questa distinzione operativa.
 
-È un alias ambiguo.
+Il gate locale può dimostrare TypeScript correctness, behavior deterministico, characterization e architecture fitness. Non può dimostrare automaticamente PostgreSQL reale, Azure identity, private networking, recovery o comportamento production.
 
-## Verification tiers
+Quindi il problema non è eseguire “tutti i test sempre”. È scegliere il verification tier coerente con la claim.
 
-Non tutti i task devono eseguire tutto.
+Una forma utile è:
 
-Nel Capitolo 16 abbiamo già separato i layer di evidence.
+| Claim | Evidence minima plausibile | Cosa non possiamo inferire |
+|---|---|---|
+| business rule locale | typecheck + deterministic tests | comportamento di un provider esterno |
+| architecture boundary | architecture fitness | runtime security |
+| PostgreSQL semantics | integration su PostgreSQL reale | Azure deployment |
+| cloud identity/network | environment Azure appropriato | production readiness complessiva |
+| recovery target | recovery drill | SLO production continuativo |
 
-Un repository agent-ready deve rendere questa separazione utilizzabile.
+Il task dovrebbe dichiarare il tier necessario invece di lasciare all'agente la scelta casuale fra test economici e test realmente probanti.
 
-Esempio:
+## Definition of Done: proprietà prima dei comandi
+
+Una Definition of Done utile non è “make sure everything works”. Deve dire che cosa deve risultare vero e quale evidence deve sostenerlo.
+
+Per un normale change applicativo ESI può richiedere:
 
 ```text
-Fast local
-- typecheck
-- unit/component
-- architecture fitness
-- cost metadata fitness
-
-Boundary verification
-- PostgreSQL integration
-- API integration
-- contract tests
-
-Cloud verification
-- Bicep build/lint
-- Azure Policy
-- connectivity/RBAC
-
-Readiness
-- performance
-- recovery
-- security drill
+scoped behavior implemented
+canonical docs synchronized when semantics changed
+typecheck PASS
+relevant tests PASS
+architecture fitness PASS
+verification gaps reported
 ```
 
-L'agente non deve scegliere casualmente quali test eseguire.
+Per un change che tocca persistence il livello aumenta e può richiedere una vera integration suite. Se quella suite non esiste ancora, il risultato non va promosso artificialmente da `Codified` a `Verified`.
 
-Il task e le istruzioni devono indicare il livello minimo necessario.
+Il comando è il meccanismo. La Definition of Done resta il contratto sul risultato.
 
-## Definition of done eseguibile
+## Code failure e environment failure devono essere distinguibili
 
-Un task ben definito dovrebbe avere qualcosa di simile:
+Un workflow automatico può reagire male a un failure ambiguo.
 
-```text
-Definition of done:
-- functional behavior implemented
-- relevant docs updated
-- typecheck PASS
-- local tests PASS
-- architecture fitness PASS
-- no unexpected contract change
-```
+Un'asserzione che fallisce suggerisce un problema di behavior. Un registry irraggiungibile indica probabilmente un problema di environment. Una credential mancante è un problema di setup o permission. Un PostgreSQL non disponibile non dovrebbe spingere l'agente a cambiare una query corretta soltanto per far passare il task.
 
-Per una modifica più rischiosa:
+Questa distinzione deve emergere da messaggi, script e documentazione. Altrimenti l'agente può iniziare a **riparare il codice per compensare un'infrastruttura rotta**.
 
-```text
-Definition of done:
-- all above
-- PostgreSQL integration PASS
-- migration tested forward/backward as applicable
-- security review complete
-```
+Un buon verification path non produce soltanto verde o rosso. Produce un failure abbastanza leggibile da guidare la prossima decisione.
 
-Questo è molto diverso da:
+## Proteggere l'oracle
 
-```text
-Make sure everything works.
-```
+Quando lo stesso esecutore può modificare implementazione, test, fixture ed expected output, una failure introduce una tentazione strutturale: rendere più facile il criterio invece di correggere il comportamento.
 
-## Fallimento del test vs fallimento dell'ambiente
+Questo rischio non riguarda soltanto gli agenti. L'automazione lo amplifica perché rende molto economico cambiare contemporaneamente entrambe le parti.
 
-Un agente deve poter distinguere:
+Per questo il task deve distinguere gli artifact che possono cambiare dagli **oracle protetti**.
 
-```text
-code failure
-```
+Nel caso della priority policy, per esempio, la characterization legacy non va riscritta per assomigliare al target e una architecture fitness rule non va indebolita soltanto perché il nuovo diff la viola. Se la semantica confermata o la policy devono cambiare, serve una decisione esplicita che preceda il cambiamento dell'oracle.
 
-da:
+> **Se l'esecutore può modificare liberamente sia il comportamento sia il criterio che lo giudica, un build verde perde molto del proprio valore.**
 
-```text
-environment failure
-```
+## Reproducibility riduce il costo della verifica
 
-Esempi:
+Lockfile, runtime version esplicita, script idempotenti, fixture versionate e test deterministici non sono ornamenti per agenti. Riducono le variabili che separano una failure reale da una failure accidentale.
 
-```text
-assertion failed
-→ probabilmente code/behavior issue
+Questo non implica adottare Docker o devcontainer in ogni repository. Un piccolo progetto TypeScript con dipendenze bloccate e due comandi affidabili può essere più agent-ready di un environment containerizzato enorme che richiede dieci minuti di bootstrap e nasconde molti servizi impliciti.
 
-package registry unreachable
-→ environment/network issue
-
-secret missing
-→ setup/permission issue
-
-PostgreSQL unavailable
-→ dependency/environment issue
-```
-
-Se questa distinzione non è leggibile, l'agente può iniziare a modificare codice corretto per compensare un ambiente rotto.
-
-Questo è un failure mode reale dei workflow automatici.
-
-## Non “fixare” il test per farlo diventare verde
-
-Un altro rischio aumenta quando l'agente controlla contemporaneamente:
-
-- implementazione;
-- test;
-- istruzioni;
-- expected output.
-
-Se il test fallisce, può essere tentato di cambiare il test.
-
-Per questo il repository dovrebbe esplicitare quali artifact sono **oracle** e quali sono parte del diff consentito.
-
-Esempio:
-
-```text
-Allowed:
-- src/priority/*
-- tests/priority-policy.test.mjs only when acceptance criteria change
-
-Do not change without explicit approval:
-- characterization tests
-- confirmed requirement semantics
-- architecture fitness rules
-```
-
-La stessa idea vale per snapshot, fixture e golden file.
-
-> **Un agente che può modificare contemporaneamente il comportamento e il criterio che lo giudica ha bisogno di un gate più forte.**
-
-## Reproducibility
-
-La reproducibility riduce il costo della verifica.
-
-Aiuta:
-
-- lockfile;
-- runtime version esplicita;
-- container/devcontainer quando giustificato;
-- script idempotenti;
-- fixture versionate;
-- test deterministici;
-- dipendenze esterne isolate o dichiarate.
-
-Non significa che ogni repository debba avere Docker.
-
-Ancora una volta:
+Vale ancora la nostra stella polare:
 
 > **fit before fashion.**
 
-Un piccolo package TypeScript che usa soltanto `node:test` può essere più agent-ready di un ambiente containerizzato enorme se il primo si prepara e verifica con due comandi affidabili.
+La riproducibilità è la proprietà. Il tool è il meccanismo.
 
-## Output leggibile
+## Il failure output è anche context engineering
 
-I comandi dovrebbero fallire in modo utile.
+Un test architetturale che restituisce soltanto `FAIL` spreca una parte del proprio valore.
 
-Un architecture test che restituisce:
-
-```text
-FAIL
-```
-
-è meno utile di:
+Un output come:
 
 ```text
 AF-005 Vendor SDK boundary violated
 src/application/foo.ts -> @azure/service-bus
-Move Azure-specific behavior behind src/integration or reopen the ADR.
+Move infrastructure behavior behind src/integration
+or reopen the architectural decision.
 ```
 
-Questo tipo di output è contemporaneamente:
+fa tre lavori insieme: verifica, documenta il boundary e suggerisce quale tipo di decisione è necessario se il boundary non ha più fit.
 
-- verification;
-- documentation;
-- context engineering.
+L'agente non riceve un elenco di regole da ricordare. Riceve feedback eseguibile quando attraversa quella rilevante.
 
-L'agente non riceve solo un no.
+## Verification Bundle senza rifare il lavoro
 
-Riceve un'indicazione del confine violato.
+Torna qui una delle tesi del libro: il supervisore umano non può ripetere manualmente tutta l'execution dell'agente.
 
-## Verification without re-execution
-
-Torna qui una delle tesi iniziali del libro.
-
-Il supervisore umano non può rifare ogni modifica generata.
-
-Deve poter leggere evidence compatta:
+Deve poter ricevere evidence compatta:
 
 ```text
-Files changed
-Tests executed
-Tests passed
-Architecture rules checked
-Known verification gaps
-Unexpected warnings
+files changed
+commands executed
+results
+architecture checks
+known gaps
+unexpected warnings
 ```
 
-Il repository deve rendere economico produrre questo bundle.
+Nel Capitolo 23 formalizzeremo questo concetto. Qui ci basta renderlo possibile: i golden command devono produrre risultati leggibili e il task deve distinguere chiaramente ciò che è stato eseguito da ciò che resta Pending.
 
-Nel Capitolo 23 lo formalizzeremo ulteriormente con gli agenti.
+## La baseline ESI
 
-Qui ci basta una regola:
-
-> **Se la verifica richiede conoscenza orale o gesti manuali non documentati, la delegabilità del task è più bassa di quanto sembri.**
-
-## Verification commands come API del repository
-
-Possiamo pensare ai comandi canonici come una piccola API offerta dal repository ai suoi contributor.
+Nel Capitolo 21 Order Operations possiede già in `package.json`:
 
 ```text
-bootstrap()
-build()
-test()
-verifyArchitecture()
-```
-
-un'API interna può cambiare.
-
-Ma deve farlo intenzionalmente.
-
-Se ogni contributor inventa una combinazione diversa di comandi, perdiamo comparabilità dell'evidence.
-
-Per questo un repository AI-ready dovrebbe dichiarare:
-
-- command;
-- scope;
-- expected evidence;
-- known gaps;
-- escalation path in caso di failure infrastrutturale.
-
-## La regola ESI
-
-Per Order Operations adotteremo una sequenza corta:
-
-```text
-npm install / npm ci when lockfile exists
 npm run typecheck
 npm test
 ```
 
-I task più sensibili aggiungeranno gate specifici quando saranno realmente disponibili.
+Il secondo costruisce il progetto, esegue la suite del prodotto e include anche la characterization legacy configurata nel package script.
 
-Non dichiareremo:
+Questa è evidence locale reale.
+
+Non dichiariamo invece:
 
 ```text
-Azure verified
+PostgreSQL Verified
+Azure Verified
+Recovery Verified
+Production Monitored
 ```
 
-finché non esiste un comando/deployment path che produce quell'evidence.
+perché il repository non possiede ancora quei gate eseguiti.
 
-> **Un repository è più agent-ready quando il percorso da modifica a evidence è corto, deterministico e difficile da reinterpretare.**
+Questa precisione è parte dell'AI-readiness: un agente deve sapere non soltanto come ottenere un verde, ma **quale claim quel verde autorizza davvero**.
+
+> **Un repository è più delegabile quando il percorso da modifica a evidence è corto, deterministico e difficile da reinterpretare.**
