@@ -1,266 +1,99 @@
-# 4. Campaign Launchpad — dal perimetro al launch
+# Campaign Launchpad — dal perimetro al launch
 
-Un caso end-to-end deve arrivare fino alla decisione operativa.
+Il primo caso diventa davvero end-to-end soltanto quando la semplicità del design arriva fino a testing, operability e production decision.
 
-Quindi immaginiamo di portare Campaign Launchpad attraverso lo stesso metodo usato per Order Operations, ma senza trascinarci dietro la stessa architettura.
+Il problema iniziale era ridurre la dipendenza da Engineering per campagne standard. Il non-goal — **non costruire un CMS general purpose** — ha limitato il functional scope a template, draft, preview, approval, publication e rollback.
 
-## Problem & Outcome Brief
+Questa scelta ha conseguenze lungo tutta la catena.
 
-```text
-Problem
-Marketing dipende da Engineering anche per campaign landing page standard.
+## Ownership prima della tecnologia
 
-Outcome
-Un operatore Marketing autorizzato può creare, far approvare, pubblicare e ritirare una landing page basata su template approvati.
+Marketing Technology possiede il workflow del prodotto. Brand/Marketing mantiene authority sul contenuto approvato. ESI Identity possiede workforce identity. Platform e Security forniscono i guardrail enterprise.
 
-Non-goal
-Costruire un CMS general purpose.
-```
+Campaign Launchpad possiede Campaign, DraftVersion, ApprovalDecision e PublicationVersion. Non diventa owner di employee identity, CRM profile o enterprise brand source.
 
-La presenza del non-goal è architettura.
+Questa mappa riduce due rischi: copiare dati autorevoli per comodità e trasformare il piccolo prodotto in un nuovo integration hub.
 
-Se il prodotto dovesse supportare arbitrary extension, plugin, custom scripting, real-time personalization e workflow configurabili, cambierebbero threat model, testability, runtime e ownership.
+## Il trade-off che compra la static-first direction
 
-## Functional Scope Map
+Separare authoring state e public artifact riduce il coupling fra control plane interno e read path pubblico. Una publication approvata può diventare un artifact versionato e cache-friendly; il public path non deve dipendere da ogni failure dell’authoring API.
 
-Capability:
+Paghiamo però una limitazione: il modello è adatto soprattutto a contenuto versionato e bounded. Real-time personalization, customer-specific state o arbitrary extension potrebbero invalidarlo.
+
+La decisione è quindi versionata:
 
 ```text
-Template Catalog
-Campaign Draft
-Preview
-Approval
-Publication
-Rollback
-```
-
-Boundary esterni:
-
-```text
-ESI Identity
-Brand Design System
-Public Web
-```
-
-Dati posseduti:
-
-```text
-Campaign
-DraftVersion
-ApprovalDecision
-PublicationVersion
-```
-
-Dati non posseduti:
-
-```text
-employee identity
-enterprise brand source assets
-CRM customer profile
-analytics warehouse truth
-```
-
-## NFR Card
-
-Una prima card potrebbe essere:
-
-```text
-Security
-internal authoring authenticated
-public read surface separated
-no arbitrary author script execution
-
-Reliability
-published page should remain readable during authoring API issues where platform allows
-rollback to previous approved version
-
-Performance
-public static content should be cache-friendly
-
-Operability
-publish outcome traceable
-failed deployment observable
+Benefit
+small operational/security surface
 
 Cost
-prefer managed/consumption-oriented components while traffic/workflow remains small
+less dynamic/custom flexibility
+
+Quality floor
+approved publication + traceability + rollback + authorization
+
+Review trigger
+personalization / PII / scripting / 24x7 contractual need / multiple owners
 ```
 
-Non assegniamo numeri inventati dove il business non li ha ancora definiti.
+## Security proporzionata non significa security debole
 
-Il metodo non richiede di fabbricare precisione.
+Dire “è soltanto Marketing” sarebbe un errore. Un public publishing system può produrre brand damage, malicious content o supply-chain exposure.
 
-## Architecture Decision
+Per questo il primo boundary richiede internal authenticated authoring, approval before publish, immutable publication history e niente arbitrary executable content per default.
 
-Decisione:
+Non richiede automaticamente la stessa private-network topology di Order Operations. Il rischio è differente e anche il controllo appropriato può esserlo.
 
-> **separare authoring state e public publication artifact.**
+## La testing strategy segue la promessa
 
-Questo ci dà una proprietà utile:
+Nel fast layer possiamo verificare state transition, approval rule, template validation e publication versioning.
 
-```text
-authoring unavailable
-≠
-public campaign necessarily unavailable
-```
-
-La pubblicazione può produrre un artefatto versionato e immutabile per il public path.
-
-Il dettaglio tecnologico resta sostituibile.
-
-Su Azure, Static Web Apps è una possibile implementazione coerente per una parte del problema; Microsoft documenta hosting statico, workflow integrato con repository e API serverless/managed:
-
-- https://learn.microsoft.com/en-us/azure/static-web-apps/overview
-
-## Security Decision
-
-L'errore più facile sarebbe dire:
-
-> È soltanto Marketing.
-
-Ma public publishing può comunque creare:
-
-```text
-brand damage
-malicious content
-credential abuse
-content injection
-supply-chain compromise
-```
-
-Quindi il quality floor richiede:
-
-```text
-internal authenticated authoring
-approval before publish
-no raw secret in content
-no arbitrary executable content by default
-immutable publication history
-```
-
-Non richiede necessariamente lo stesso private network topology di Order Operations.
-
-Questa è **proportional security**, non weaker security.
-
-## Testing Strategy
-
-Fast layer:
-
-```text
-state transition tests
-approval rule tests
-template validation
-publication version tests
-```
-
-Higher fidelity:
-
-```text
-identity/auth test
-non-production publish
-public smoke
-rollback exercise
-```
-
-L'E2E più importante non è:
-
-```text
-browser opens homepage
-```
-
-ma:
+La higher-fidelity evidence deve attraversare identity e deployment:
 
 ```text
 Draft
 → Approval
 → Publish
-→ Public version visible
+→ Public artifact visible
 → Rollback
 → Previous approved version restored
 ```
 
-## Production Readiness
+Questo journey è più significativo di un semplice browser smoke sulla homepage perché esercita proprio la promessa distintiva del prodotto.
 
-Un launch boundary iniziale potrebbe essere:
+## Il launch boundary rimane piccolo
 
-```text
-approved Marketing cohort
-approved template set
-public read-only landing pages
-no personalization
-no customer account
-no dynamic CRM data
-```
+Una prima proposta può includere un approved Marketing cohort, un approved template set e public read-only landing page, lasciando fuori personalization, customer account, CRM data e custom script.
 
-Readiness evidence:
+Disabilitare capability non necessarie non è una rinuncia. È un modo per mantenere il launch boundary coerente con l’evidence realmente disponibile.
 
-```text
-functional workflow verified
-unauthorized author negative test
-publish/rollback tested
-real deploy smoke
-basic alert ownership
-content owner identified
-```
+In futuro un `CONDITIONAL GO` potrebbe avere senso soltanto dopo implementation e runtime evidence su publish/rollback, authorization, deployment e support route.
 
-Il prodotto potrebbe ricevere un `CONDITIONAL GO` anche senza alcune capability future.
+Oggi il capstone non possiede ancora quella prova. Il suo Production Readiness Direction dichiara esplicitamente che il prodotto non è implementato e non afferma readiness.
 
-Per esempio:
+Quindi il Decision Trace resta:
 
 ```text
-personalization = disabled
-custom scripts = not supported
-multi-brand workflow = deferred
+Architecture direction  Designed/Codified in docs
+Implementation          Pending
+Runtime verification    Pending
+Production decision     NOT READY
 ```
 
-Disabilitare una capability non necessaria può essere una mitigation migliore che costruirne frettolosamente la governance.
+## Il One-Man Project ha un costo anche qui
 
-## Il costo del One-Man Project
+Un accountable lead singolo può ridurre coordination overhead, ma ESI continua a richiedere repository context, secondary-maintainer direction, platform guardrail e specialist gate quando il public/security boundary cambia.
 
-Un solo accountable lead riduce coordination overhead.
+Il lead non diventa proprietario del Brand, dell’Identity Platform o della security policy.
 
-Ma ESI accetta anche un costo:
+Questo è esattamente il tipo di leverage discusso nel Capitolo 25: concentrare integration e execution senza concentrare tutte le authority.
 
-```text
-secondary maintainer
-repository context
-standard platform
-small WIP
-specialist gate for security/public surface
-```
+## Quando riaprire la scelta
 
-Il lead non diventa owner del Brand, dell'Identity Platform o della security policy.
+Se Campaign Launchpad entra in customer PII, personalized content, regulated consent, real-time CRM integration, arbitrary plugin o 24x7 contractual availability, non concludiamo che la tecnologia corrente “non scala”.
 
-Questo mantiene il modello agile senza creare una piccola monarchia tecnica.
+Concludiamo che è cambiato il problema e quindi devono essere riaperti outcome, quality floor, threat model e architecture decision.
 
-## Trigger che invalidano l'architettura
+> **La lezione non è che poca tecnologia sia sempre migliore. È che ogni componente deve poter indicare il requisito, il rischio o l’evidence che giustifica la sua presenza.**
 
-Il design va riaperto se Campaign Launchpad evolve verso:
-
-```text
-customer PII
-personalized content
-regulated campaign consent
-real-time CRM integration
-high-volume dynamic API
-arbitrary extension/plugin
-multiple independent product teams
-24/7 contractual availability
-```
-
-Notare il pattern.
-
-Non diciamo:
-
-> Static Web Apps non scala.
-
-Diciamo:
-
-> **Se cambia il problema, rivalutiamo il fit.**
-
-## La lezione del primo caso
-
-Campaign Launchpad non è interessante perché usa poca tecnologia.
-
-È interessante perché sappiamo spiegare **perché quella poca tecnologia è sufficiente oggi**.
-
-> **La migliore dimostrazione di maturità architetturale può essere la tecnologia che abbiamo saputo non aggiungere.**
+Nel primo caso la migliore dimostrazione di maturità architetturale è anche la complessità che ESI ha saputo non introdurre prematuramente.
