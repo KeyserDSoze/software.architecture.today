@@ -1,52 +1,18 @@
 ## Dalla qualità desiderata alla qualità misurabile
 
-I requisiti non funzionali vengono spesso trattati come una lista standard da completare.
+I requisiti non funzionali vengono spesso trattati come una lista standard: performance, scalability, availability, security, maintainability, cost. Il problema è che conoscere le categorie non ci dice ancora quali qualità cambino davvero il successo o il rischio del sistema che stiamo progettando.
 
-Performance.
+Un motore di trading e un backoffice amministrativo possono entrambi avere un requisito di performance, ma non per questo devono essere ottimizzati allo stesso modo. In un pagamento, evitare duplicazioni e perdita di transazioni può contare molto più della latency media; in un sito editoriale, disponibilità e capacità di assorbire picchi possono dominare il design. Per un tool interno usato da poche persone, una sofisticata piattaforma di autoscaling può costare più valore di quanto restituisca.
 
-Scalability.
+La domanda utile è quindi:
 
-Availability.
+> **Quali proprietà di qualità cambiano materialmente le decisioni, il rischio o l'outcome di questo sistema?**
 
-Security.
+Le categorie che seguono non sono una checklist da compilare. Sono modi diversi di rendere quella domanda concreta.
 
-Maintainability.
+## Performance: il journey viene prima della media
 
-Cost.
-
-Il problema è che una lista di categorie non ci dice ancora quali proprietà contino davvero per il sistema che stiamo progettando.
-
-Ogni prodotto ha un profilo di qualità diverso.
-
-Per un motore di trading, alcuni millisecondi possono essere decisivi.
-
-Per un backoffice amministrativo, la stessa ottimizzazione potrebbe non cambiare nulla per l'utente.
-
-Per un sistema di pagamento, perdita o duplicazione di una transazione può essere molto più importante della latency media.
-
-Per un sito editoriale, disponibilità e capacità di assorbire picchi possono dominare il design.
-
-Per un tool interno usato da dodici persone, una soluzione estremamente sofisticata di autoscaling potrebbe non restituire mai il proprio costo.
-
-La domanda quindi non è:
-
-> “Quali NFR dobbiamo avere?”
-
-ma:
-
-> **“Quali proprietà di qualità cambiano materialmente il successo o il rischio di questo sistema?”**
-
-### Latency
-
-La latency misura quanto tempo impiega un'operazione a produrre una risposta osservabile.
-
-Ma anche qui dobbiamo essere precisi.
-
-Una media può nascondere una coda pessima.
-
-Per questo spesso ragioniamo in percentile.
-
-Per esempio:
+La latency descrive il tempo necessario a produrre una risposta osservabile, ma una media può nascondere un'esperienza pessima nella coda della distribuzione. Per questo spesso ragioniamo in percentile:
 
 ```text
 p50 < 100 ms
@@ -54,144 +20,68 @@ p95 < 300 ms
 p99 < 800 ms
 ```
 
-Non significa che questi numeri siano buoni in assoluto.
+Questi numeri non sono buoni in assoluto. Diventano utili quando appartengono a un journey, a un workload e a una condizione di misura espliciti.
 
-Significa che abbiamo descritto il comportamento atteso in modo discutibile e verificabile.
+La stessa distinzione vale tra latency del componente e latency end-to-end. Ottimizzare un servizio a 20 ms non cambia molto se una dipendenza esterna domina il percorso con tre secondi di attesa. La quality attribute appartiene al comportamento che vogliamo proteggere, non alla metrica più facile da raccogliere.
 
-Dobbiamo inoltre distinguere la latency del singolo componente da quella end-to-end e da quella percepita dall'utente. La stessa misura va letta sotto carico normale e durante degrado o dipendenze lente.
+Throughput e capacity completano il quadro. Dire che il sistema “supporta 1.000 richieste al secondo” ha senso soltanto se sappiamo con quale mix di operazioni, dataset, durata e target di latency. Un sistema che processa quel volume facendo esplodere il p99 non ha necessariamente soddisfatto il requisito.
 
-Ottimizzare un servizio a 20 ms non serve se il critical user journey impiega comunque tre secondi per una dipendenza esterna.
+## Availability non basta se il sistema risponde male
 
-### Throughput e capacity
+Availability riguarda la capacità di offrire il servizio richiesto, ma il numero globale può essere fuorviante. La pagina pubblica, un pagamento e un report amministrativo possono avere tolleranze completamente diverse. Progettare tutto secondo il journey più severo può moltiplicare costi senza aumentare valore.
 
-Il throughput descrive quanta attività il sistema riesce a processare in un intervallo di tempo.
+Reliability e correctness aggiungono una distinzione essenziale: un sistema può essere sempre raggiungibile e produrre risultati sbagliati. Un pagamento duplicato, un ordine mostrato al tenant sbagliato o un workflow eseguito due volte sono failure anche se ogni chiamata restituisce `200 OK`.
 
-La capacity riguarda invece il perimetro entro cui quel throughput può essere sostenuto rispettando gli altri requisiti.
+In alcuni domini, quindi, essere temporaneamente indisponibili è preferibile a essere disponibili in uno stato semanticamente incerto.
 
-Dire:
+## Consistency e freshness
 
-> “Il sistema deve supportare 1.000 richieste al secondo.”
-
-è già meglio di “deve scalare”, ma non basta.
-
-Dobbiamo sapere con quale mix di operazioni e per quanto tempo, con quale dataset e quale latency target. Servono anche un margine e un comportamento dichiarato quando la soglia viene superata.
-
-Un sistema che regge 1.000 richieste al secondo ma porta il p99 a trenta secondi non ha necessariamente soddisfatto il requisito.
-
-### Availability
-
-Availability non significa “non deve mai andare giù”.
-
-Significa definire quale indisponibilità possiamo tollerare e per quali journey.
-
-Un singolo numero globale può essere fuorviante.
-
-La pagina pubblica potrebbe richiedere disponibilità molto elevata mentre un report amministrativo può tollerare ore di indisponibilità.
-
-La qualità può essere diversa per percorso.
-
-Questo evita di progettare l'intero sistema per il requisito più severo quando quel requisito riguarda solo una piccola parte del prodotto.
-
-### Reliability e correctness
-
-Availability e reliability non sono sinonimi.
-
-Un sistema può rispondere sempre e rispondere male.
-
-Per alcune funzioni la correttezza è il requisito dominante.
-
-Pensiamo a un pagamento duplicato o a un saldo errato, a un ordine assegnato al tenant sbagliato, alla perdita di un evento di business o alla doppia esecuzione di un workflow non idempotente. In questi casi “HTTP 200” è una misura quasi inutile della qualità reale.
-
-### Consistency
-
-Quando più copie o viste dello stesso fatto esistono nel sistema, dobbiamo capire quanto possono divergere e per quanto tempo.
-
-“Eventually consistent” non è una licenza per mostrare qualsiasi dato in ritardo.
-
-Anche l'eventual consistency deve avere un profilo accettabile.
+Quando esistono più copie o rappresentazioni dello stesso fatto, dobbiamo decidere quanto possano divergere e per quanto tempo. “Eventually consistent” non significa “prima o poi andrà bene”. Anche l'eventual consistency ha bisogno di un profilo accettabile.
 
 Per esempio:
 
-> Gli aggiornamenti di stato dell'ordine devono essere visibili nella vista operatore entro 30 secondi nel 99% dei casi.
+> Gli aggiornamenti di stato dell'ordine devono diventare visibili nella vista operatore entro 30 secondi nel 99% dei casi.
 
-Adesso possiamo progettare polling, eventi, retry, monitoraggio e recovery rispetto a una proprietà concreta.
+Una frase così cambia design e verifica: eventi, polling, retry, monitoraggio e recovery possono essere valutati rispetto a una proprietà osservabile. La domanda non è se accettiamo eventual consistency come etichetta architetturale, ma quale freshness il journey possa tollerare senza produrre una decisione sbagliata.
 
-### Durability
+## Durability e recovery
 
-Durability riguarda la probabilità che un dato considerato acquisito rimanga disponibile nel tempo.
+Durability riguarda la capacità di conservare nel tempo un dato considerato acquisito. È diversa dalla availability: un database può essere temporaneamente irraggiungibile senza aver perso nulla oppure essere online dopo una perdita non ancora rilevata.
 
-È diversa dalla availability.
+Per dati economicamente o legalmente importanti, replica, backup, restore, retention, corruzione e cancellazione accidentale diventano parte del design. Ma nessuna di queste protezioni è credibile soltanto perché configurata. Un backup che non è mai stato ripristinato conserva un'ipotesi, non ancora una prova di recovery.
 
-Un database potrebbe essere temporaneamente non raggiungibile ma non aver perso alcun dato.
+RTO e RPO trasformano questa discussione in una decisione sul tempo di ripristino e sulla perdita tollerabile. Li approfondiremo nella sezione successiva.
 
-Oppure potrebbe essere online e avere già subito una perdita non rilevata.
+## Operability: chi pagherà la complessità
 
-Quando il dato è economicamente o legalmente importante, dobbiamo discutere esplicitamente replica, backup e restore, retention, corruzione e cancellazione accidentale, fino al recovery testing che dimostra se le protezioni funzionano davvero.
+Un sistema può essere elegante e difficile da possedere. Operability riguarda il modo in cui viene distribuito, osservato, diagnosticato, aggiornato e recuperato. Include rollback, alert, runbook, competenze specialistiche, maintenance delle dipendenze e capacità di distinguere rapidamente un errore applicativo da una dipendenza degradata.
 
-### Operability
+Questa qualità è architetturale perché ogni componente aggiuntivo crea anche una responsabilità operativa. Una soluzione che soddisfa throughput e latency ma richiede un operating model che il team non può sostenere non ha un buon fit.
 
-Una proprietà spesso sottovalutata è l'operabilità.
+## Maintainability e changeability
 
-Possiamo costruire un sistema tecnicamente elegante che nessuno sa operare bene.
-
-Dobbiamo sapere come il sistema viene distribuito e come si torna indietro, come capiamo che sta fallendo e chi riceve l'alert. Conta anche quanta manutenzione richiedano le dipendenze, quante competenze specialistiche servano e se un incidente possa essere diagnosticato senza collegarsi manualmente a dieci macchine.
-
-L'operabilità è architettura perché modifica il costo reale di mantenere il sistema vivo.
-
-### Maintainability e changeability
-
-Un sistema deve essere non soltanto eseguibile, ma modificabile.
-
-Qui le metriche diventano meno perfette, ma possiamo comunque rendere i requisiti più concreti.
+Non tutto ciò che conta si esprime bene con una singola metrica. Possiamo però usare invarianti e scenari osservabili.
 
 Per esempio:
 
-- una modifica al provider di pagamento non deve richiedere modifiche nel dominio Orders;
-- una nuova regola di autorizzazione deve poter essere testata senza avviare l'intero stack;
-- il deploy di un modulo deve poter essere verificato automaticamente;
-- una modifica al contratto pubblico deve avere una strategia di compatibilità.
+```text
+una modifica al provider di pagamento non deve richiedere modifiche al dominio Orders
+una nuova regola di autorizzazione deve poter essere testata senza avviare l'intero stack
+una modifica al contratto pubblico deve avere una strategia di compatibilità
+```
 
-Non tutto ciò che conta ha una metrica perfetta.
+Queste condizioni descrivono la forma del cambiamento che vogliamo rendere possibile. Non sono percentili, ma discriminano comunque tra design differenti.
 
-Questo non significa che dobbiamo tornare agli aggettivi vaghi.
+## Security e privacy
 
-Possiamo definire invarianti, scenari e criteri osservabili.
+“Sicuro” non è più utile di “veloce”. Dobbiamo sapere quali asset proteggiamo, da chi, attraverso quali trust boundary e con quali permessi. Dobbiamo distinguere dati sensibili, azioni auditabili e rischio residuo accettato.
 
-### Security e privacy
+Un requisito come “i dati personali devono essere protetti” esprime un'intenzione importante, ma per guidare il design va tradotto in comportamenti, boundary e controlli verificabili.
 
-“Sicuro” non è un requisito.
+## Cost è una proprietà del sistema
 
-Dobbiamo capire quali asset proteggiamo e da chi, attraverso quali trust boundary e con quali permessi. Dobbiamo sapere quali dati siano sensibili, quali azioni debbano essere auditabili e quale rischio residuo siamo disposti ad accettare. Lo stesso vale per privacy.
+Se una soluzione soddisfa tutti i target tecnici ma costa dieci volte il budget disponibile, non è una soluzione valida. Il costo comprende infrastruttura, licenze, traffico, storage, osservabilità e backup, ma anche personale, on-call, formazione, migrazione e lock-in.
 
-Una frase come:
-
-> “I dati personali devono essere protetti.”
-
-ha valore normativo, ma per guidare il design deve essere scomposta in comportamenti e controlli.
-
-### Cost
-
-Il costo è una quality attribute tanto quanto la latency.
-
-Se una soluzione soddisfa tutti i requisiti tecnici ma costa dieci volte il budget disponibile, non è una soluzione valida.
-
-Il costo comprende:
-
-- infrastruttura;
-- licenze;
-- traffico;
-- storage;
-- osservabilità;
-- backup;
-- personale;
-- on-call;
-- complessità operativa;
-- migrazione;
-- lock-in;
-- formazione.
-
-La qualità non è massimizzare ogni dimensione.
-
-È trovare un equilibrio coerente con il problema.
+Per questo non ottimizziamo tutte le quality attribute. Costruiamo un profilo di qualità coerente con il prodotto e dichiariamo quali dimensioni non meritano, oggi, il prossimo incremento di complessità.
 
 > **Un'architettura è credibile quando sa dire non soltanto che cosa ottimizza, ma anche che cosa ha deciso di non ottimizzare.**
