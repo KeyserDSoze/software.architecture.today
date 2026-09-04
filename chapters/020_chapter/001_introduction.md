@@ -50,7 +50,7 @@ Per governare la spesa dobbiamo capire come reagisce al cambiamento del workload
 
 Un costo **fixed** resta presente anche a basso utilizzo: la baseline minima di un runtime, un tier managed o una capability operativa che richiede comunque ownership. Un costo **variable** cresce con uso, volume o tempo: messaggi, storage, egress, telemetry, request o, più avanti, token e inference. Un costo **step** resta relativamente stabile finché attraversiamo una soglia che impone un nuovo gradino di capacità o complessità: una replica, un tier superiore, una nuova region o un team operativo aggiuntivo.
 
-Queste forme contano perché una architettura può sembrare economica finché non attraversa il punto in cui la curva cambia. Il nostro compito non è prevedere ogni euro con precisione impossibile. È riconoscere le variabili che rendono una decisione economicamente diversa quando cambiano traffico, retention, topology, ownership o requirement.
+Queste forme contano perché un'architettura può sembrare economica finché non attraversa il punto in cui la curva cambia. Il nostro compito non è prevedere ogni euro con precisione impossibile. È riconoscere le variabili che rendono una decisione economicamente diversa quando cambiano traffico, retention, topology, ownership o requirement.
 
 ## Il costo deve avere un owner e un significato
 
