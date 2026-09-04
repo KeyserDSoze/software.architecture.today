@@ -1,274 +1,158 @@
-# Verifica indipendente ed evidence
+# 23.5 — Verifica indipendente ed evidence
 
-Quando un agente produce molto codice, la tentazione è aumentare la quantità di review.
+Quando un agente produce più codice, la reazione intuitiva è aggiungere più review.
 
 Non basta.
 
-Serve aumentare la qualità della **evidence**.
+La quantità di review non compensa automaticamente una evidence debole. Cinque persone possono leggere un diff e nessuna può dimostrare che una transaction PostgreSQL rollbacki davvero nel failure scenario che ci interessa.
 
-La domanda corretta non è:
+La domanda corretta è:
 
-> quante persone o agenti hanno guardato il diff?
+> **quale proprietà importante stiamo accettando, con quale evidence e quanto quella evidence dipende dalla stessa interpretazione che ha prodotto l'implementazione?**
 
-È:
+## Review e verification rispondono a domande diverse
 
-> **quale proprietà importante è stata verificata, con quale meccanismo e da una fonte sufficientemente indipendente dall'implementazione?**
+Una code review può trovare coupling, naming problematico, edge case dimenticati, security smell o test troppo deboli. È una source preziosa di signal.
 
-## Review e verification non sono sinonimi
+Ma alcune claim richiedono di attraversare il boundary reale.
 
-Una review può trovare:
+Una review testuale non dimostra PostgreSQL commit/rollback, non prova una private route Azure, non misura un restore rispetto a RTO/RPO e non dimostra che un consumer reale tolleri un contract change.
 
-- naming problematico;
-- edge case dimenticati;
-- coupling;
-- bug logici;
-- security smell;
-- test deboli.
-
-Ma una review testuale non può dimostrare da sola:
-
-- che una transaction PostgreSQL rollbacki realmente;
-- che una private route Azure sia raggiungibile soltanto dal path previsto;
-- che una restore soddisfi RTO/RPO;
-- che un consumer reale tolleri una modifica di contract.
-
-Quindi il verifier deve sapere quando l'unica evidence adeguata è attraversare il boundary reale.
-
-Ritorna una regola del Capitolo 16:
+Ritorna quindi una regola del Capitolo 16:
 
 > **Use the real technology when testing the boundary itself.**
 
-## Indipendenza: da cosa?
+Il Verifier deve sapere quando leggere è sufficiente e quando serve evidence prodotta dal sistema reale o da un environment ad alta fedeltà.
 
-L'indipendenza non è binaria.
+## Indipendenza: separare la fonte del giudizio
 
-Possiamo separare:
+L'indipendenza non è binaria e non nasce semplicemente cambiando agente.
 
-### 1. Agent identity
+Possiamo separare identity, instruction, permission, evidence source e final authority.
 
-Un altro agente esegue la review.
+Un secondo modello che legge lo stesso summary dell'Implementer aggiunge una prospettiva. Un Verifier che interroga direttamente il PostgreSQL test environment aggiunge una source di evidence diversa. Un Verifier read-only riduce il rischio di green-by-editing-the-oracle. Una final authority esterna al producer impedisce che il risultato si auto-promuova.
 
-Debole se usa esattamente lo stesso contesto e criterio.
-
-### 2. Prompt / instruction
-
-Il verifier riceve una missione diversa:
+Le combinazioni hanno forza diversa.
 
 ```text
-find evidence that the claimed property is not proven
+same summary
++ second opinion
+→ weak independence
+
+primary evidence
++ adversarial verifier
++ read-only verification role
++ separate merge authority
+→ much stronger independence
 ```
 
-invece di:
-
-```text
-check that implementation looks good
-```
-
-### 3. Evidence source
-
-L'implementer dice:
-
-```text
-transaction is atomic
-```
-
-Il verifier usa:
-
-```text
-real database result
-```
-
-Questa è indipendenza molto più importante.
-
-### 4. Permission
-
-Il verifier non può modificare il codice che sta verificando.
-
-Questo riduce il rischio di green-by-editing-the-oracle.
-
-### 5. Authority
-
-Il verifier può raccomandare `PASS`, ma il merge/high-impact approval resta umano o in una policy separata.
-
-## Verification bundle
-
-Per non trasformare la review in una chat dispersiva introduciamo un artefatto:
-
-> **Agent Verification Bundle**
-
-Struttura minima:
-
-```text
-Work Item
-Claim
-Evidence mechanism
-Evidence result
-Artifacts inspected
-Commands/checks executed
-Independent review
-Contradictions / findings
-Known limitations
-Not verified
-Stop conditions encountered
-Recommendation
-```
-
-Non è un report narrativo lungo.
-
-È una **catena di custodia dell'evidence**.
+> **L'indipendenza che conta è quella che rende possibile dissentire sulla base di evidence che il producer non controlla interamente.**
 
 ## Claim-first verification
 
-Il bundle parte dai claim.
+Un bundle di verification non dovrebbe iniziare con “all tests passed”. Dovrebbe iniziare da ciò che stiamo cercando di sostenere.
 
-Esempio OO-001:
+Per OO-001 i claim principali sono già derivati dall'acceptance:
 
 ```text
-Claim C-01
-Migration chain 001 → 002 runs on PostgreSQL.
-
-Claim C-02
-Escalation + Outbox commit atomically on success.
-
-Claim C-03
-Second-write failure rolls back both.
-
-Claim C-04
-Fast suite remains independent from PostgreSQL environment.
+C-01 migration 001 → 002 executes on real PostgreSQL
+C-02 success commits escalation + outbox together
+C-03 second-write failure rolls back both
+C-04 fast suite remains independent
+C-05 closure preserves evidence limitations
 ```
 
-Per ogni claim:
+Per ognuno chiediamo:
 
 ```text
 claim
-→ evidence
-→ result
-→ limitations
+→ evidence mechanism
+→ primary result
+→ verifier finding
+→ limitation
 ```
 
-Questo è migliore di:
+Questa forma è molto più resistente all'overclaim. Un `PASS` resta legato a una property precisa invece di espandersi a “database layer verified” o “production ready”.
+
+## Il Verifier non dovrebbe dipendere soltanto dal summary
+
+Un failure mode molto realistico è:
 
 ```text
-All tests passed.
-```
-
-Perché costringe a dichiarare **che cosa quei test dimostrano**.
-
-## Il verifier non deve fidarsi del summary
-
-Un failure mode agentico molto realistico è:
-
-```text
-Implementer executes 27 checks
+Implementer runs many checks
 → summarizes "all good"
 → Verifier reads only summary
-→ approves
+→ PASS
 ```
 
-Abbiamo creato una review apparentemente indipendente che dipende interamente dalla narrazione dell'implementer.
+Formalmente abbiamo due ruoli. Epistemicamente ne abbiamo ancora uno solo.
 
-Quando il claim è significativo, il verifier dovrebbe poter accedere almeno a una delle fonti primarie:
+Per i claim importanti il Verifier deve poter accedere a evidence primaria: raw test output, query result, migration log, diff, schema output, scan result, trace o policy decision.
 
-- raw test output;
-- diff;
-- generated artifact;
-- schema result;
-- trace;
-- scan output;
-- query result;
-- policy decision.
+Non deve necessariamente rieseguire tutto. Deve poter campionare e controllare la provenance.
 
 > **La provenance dell'evidence vale più dell'eloquenza del summary.**
 
-## Tracing del workflow agentico
+Questa è la base del nostro Agent Verification Bundle.
 
-L'OpenAI Agents SDK include tracing di agent run, generation, function tool call, handoff e guardrail. Questo tipo di tracing è utile non soltanto per debugging, ma per ricostruire quali passaggi hanno prodotto un risultato.
+## Contradiction search: il verifier cerca dove la prova potrebbe mentire
+
+Una verification forte non domanda soltanto “il test passa?”.
+
+Per C-03 può chiedere se il failure viene davvero iniettato sulla seconda write prima del commit; se entrambe le tabelle vengono interrogate dopo il rollback; se un cleanup potrebbe nascondere partial state; se l'adapter è davvero PostgreSQL e non un fake; se la migration è stata modificata per rendere il test più facile.
+
+Per C-04 può chiedere se `npm test` ha acquisito indirettamente una dipendenza da Docker o PostgreSQL.
+
+Questa ricerca di contradiction riduce confirmation bias e rende il Verifier una responsibility diversa dall'Implementer.
+
+## LLM-as-judge è un evaluator, non una proof primitive universale
+
+Un modello può classificare output, applicare una rubrica, cercare missing case o fare adversarial review. È utile soprattutto per proprietà qualitative o per ampliare la superficie della review.
+
+Ma `LLM says PASS` non sostituisce evidence deterministica quando la property è deterministica.
+
+Un evaluator può condividere bias, incomprensioni o context gap del producer. Per questo, quando possiamo formulare un check meccanico, preferiamo quello. Quando il giudizio resta qualitativo, usiamo rubriche, esempi, più source di signal e human sampling proporzionato al rischio.
+
+GitHub documenta esplicitamente che Copilot code review può sbagliare e raccomanda di validarne il feedback e affiancarlo alla review umana.
+
+Fonti:
+
+- [GitHub Docs — About GitHub Copilot code review](https://docs.github.com/en/copilot/concepts/agents/code-review)
+- [GitHub Docs — Application card: GitHub Copilot Agents](https://docs.github.com/en/copilot/responsible-use/agents)
+
+Il messaggio non è che l'AI review sia debole per definizione. È che **una review è una source di signal; il gate deve essere proporzionato al claim**.
+
+## Tracing: provenance del workflow, non log indiscriminato
+
+OpenAI Agents SDK include tracing per run, generation, tool call, handoff e guardrail.
 
 Fonte:
 
 - [OpenAI Agents SDK — Tracing](https://openai.github.io/openai-agents-python/tracing/)
 
-Non significa salvare indiscriminatamente ogni prompt e dato sensibile.
+In un workflow complesso questo aiuta a ricostruire quale agente abbia prodotto un output e quale tool sia stato usato. Ma il tracing non deve diventare un dump indiscriminato di prompt, customer data o secret.
 
-Anche il tracing ha:
+Valgono le stesse regole del Capitolo 15: data minimization, retention, access control e cost.
 
-- data minimization;
-- retention;
-- access control;
-- cost;
-- privacy.
-
-Il Capitolo 15 vale anche per gli agenti.
-
-## LLM-as-judge
-
-Un modello può essere usato come evaluator.
-
-Può essere utile per:
-
-- confrontare output con rubriche;
-- classificare violation;
-- trovare missing case;
-- fare adversarial review.
-
-Ma non trasformiamo:
-
-```text
-LLM says PASS
-```
-
-in una prova universale.
-
-L'evaluator può condividere bias, incomprensioni o errori del producer.
-
-Per proprietà deterministiche preferiamo evidence deterministica.
-
-Per proprietà qualitative usiamo rubriche, esempi, più source di evidence e human sampling quando il rischio lo richiede.
-
-## GitHub: AI review non sostituisce human review
-
-GitHub documenta esplicitamente che Copilot code review può sbagliare e raccomanda di validarne attentamente il feedback e di affiancarlo a review umana.
-
-Fonte:
-
-- [GitHub Docs — About GitHub Copilot code review](https://docs.github.com/en/copilot/concepts/agents/code-review)
-
-La stessa documentazione sul cloud coding agent richiede di revieware e testare il contenuto generato prima del merge.
-
-Fonte:
-
-- [GitHub Docs — Application card: GitHub Copilot Agents](https://docs.github.com/en/copilot/responsible-use/agents)
-
-Il messaggio per il libro non è "AI review is bad".
-
-È:
-
-> **una review è una source di signal. Il gate deve essere proporzionato al rischio del claim.**
+La trace è utile quando migliora la possibilità di ricostruire la catena di evidence senza creare una nuova data-risk surface sproporzionata.
 
 ## Verification without re-execution
 
-Il manager umano non può:
+Il manager umano non può rifare ogni task delegato. Se deve leggere ogni file, rieseguire ogni test e ricostruire ogni decisione, l'automazione non scala.
 
-- leggere ogni file;
-- rieseguire ogni test;
-- ricostruire ogni decisione;
-- rifare il lavoro dell'agente.
+Per questo il Verification Bundle deve comprimere senza cancellare provenance.
 
-Altrimenti l'automazione non scala.
-
-Quindi il Verification Bundle deve comprimere l'evidence senza perdere provenance.
-
-Una buona compressione è:
+Una forma utile per C-03 può essere:
 
 ```text
 Claim
-C-03 rollback both facts
+second-write failure rolls back both facts
 
 Evidence
-integration test ID PG-ATOMIC-02
-PostgreSQL 18 test container
+real PostgreSQL integration scenario
 migration 001 → 002
 forced outbox insert failure
+post-failure query on both tables
 
 Result
 PASS
@@ -277,73 +161,42 @@ Primary evidence
 raw test log + query output
 
 Limitation
-single-node test engine; no HA/failover claim
+no Azure HA/failover claim
 ```
 
-Il reviewer può poi campionare l'evidence primaria invece di rifare tutto.
+Il reviewer può campionare l'evidence primaria e approfondire soltanto dove il rischio o un finding lo richiedono.
 
-## Contradiction first
+Questa è **verification without re-execution**: non fidarsi del summary, ma neppure duplicare tutta l'execution.
 
-Un verifier forte cerca anche contradiction.
+## Evidence debt: claim senza gate
 
-Esempio:
+Un workflow accumula evidence debt quando produce continuamente parole come `secure`, `reliable`, `backward compatible` o `production ready` senza un mechanism capace di sostenerle.
+
+Questo non è soltanto un problema di wording. Significa che il sistema di quality non sa ancora trasformare una claim importante in evidence verificabile.
+
+Il manager di agenti deve rendere visibile questo debito. L'agente può produrre il claim. Non deve poter colmare il gap con confidence language.
+
+## ESI: il Verification Bundle viene progettato prima dell'execution
+
+Per OO-001 ESI definisce il bundle **prima** che l'Implementer inizi.
+
+Il verifier sa già che dovrà controllare C-01…C-05, usare evidence primaria, cercare contradiction e mantenere esplicito `Not verified`.
+
+Questo evita di inventare il criterio di review dopo aver visto il diff, quando siamo già esposti a confirmation bias e sunk cost.
+
+La baseline resta:
 
 ```text
-Claim
-Fast test layer remains independent.
+OO-001 execution
+→ Pending
 
-Contradiction search
-Does npm test now require Docker?
-Does package import integration adapter globally?
-Does setup fail without PostgreSQL?
+Primary evidence
+→ Pending
+
+Independent verifier result
+→ Pending
 ```
 
-Questo riduce confirmation bias.
+Il documento esiste. La prova ancora no.
 
-## Evidence debt
-
-Se un workflow continua a produrre claim che nessun gate riesce a verificare, abbiamo **evidence debt**.
-
-Esempi:
-
-```text
-"secure"
-"production ready"
-"backward compatible"
-"reliable"
-```
-
-senza mechanism associato.
-
-Il manager di agenti deve trattare questo come rischio di sistema, non come difetto di wording.
-
-## ESI: Verification Bundle per OO-001
-
-Prima di eseguire OO-001 definiamo già la forma del bundle atteso.
-
-```text
-Work item
-OO-001
-
-Required claims
-C-01 migration chain
-C-02 success atomicity
-C-03 failure rollback
-C-04 fast-layer independence
-C-05 evidence scope explicit
-
-Independent verifier
-separate review role
-
-Forbidden shortcut
-rewriting migration semantics merely to pass
-
-Human gate
-if stop condition triggers
-```
-
-La cosa importante è che il verifier non debba inventare a posteriori cosa controllare.
-
-I criteri principali erano già nella issue.
-
-> **La verification migliore comincia prima dell'implementazione, quando decidiamo quale evidence ci servirà per credere al risultato.**
+> **La verification migliore comincia prima dell'implementation, quando decidiamo quale evidence ci servirà per credere al risultato.**
