@@ -1,228 +1,100 @@
 # 19.8 — ESI: Architecture Fitness per Order Operations
 
-Ora applichiamo tutto a Order Operations.
+Order Operations possiede ormai molte decisioni architetturali.
 
-L'obiettivo non è costruire una piattaforma di governance.
+Il rischio nuovo è credere che tutte debbano diventare regole automatiche.
 
-L'obiettivo è proteggere poche proprietà ad alto valore usando il minimo meccanismo sufficiente.
+ESI sceglie invece una baseline più piccola:
 
-## Le proprietà che vogliamo proteggere
+> **proteggere automaticamente poche proprietà strutturali ad alto valore e mantenere human review per ciò che richiede ancora judgment.**
+
+## Partire dalle decisioni già prese
+
+Le prime cinque fitness non vengono generate guardando semplicemente la forma corrente del repository.
+
+Derivano da decisioni già esplicite.
 
 ### AF-001 — Legacy isolation
 
 ```text
-Property:
+Property
 Order Operations target source must not import Operations Desk Classic implementation directly.
 
-Why:
-Legacy semantics must remain behind an adapter during coexistence.
+Why
+Legacy semantics remain behind an adapter during coexistence.
 ```
+
+Questa regola protegge la separazione costruita nei Capitoli 17–18.
 
 ### AF-002 — Application dependency direction
 
 ```text
-Property:
+Property
 src/application cannot depend on src/integration.
 
-Why:
-Application behavior should depend on ports/contracts, not infrastructure mechanisms.
+Why
+Application behavior depends on ports/contracts, not infrastructure mechanisms.
 ```
 
 ### AF-003 — Contract independence
 
 ```text
-Property:
+Property
 src/contracts must not depend on application, integration, observability or priority implementation.
 
-Why:
-Contracts are boundary artifacts and should remain stable enough to be consumed independently.
+Why
+Contracts remain boundary artifacts consumable without pulling implementation layers.
 ```
 
 ### AF-004 — Priority isolation
 
 ```text
-Property:
+Property
 src/priority cannot depend on integration or observability implementation.
 
-Why:
-Priority policy is domain/application behavior and must remain independently testable.
+Why
+Priority semantics remain independently testable and free from mechanism leakage.
 ```
 
 ### AF-005 — Vendor SDK boundary
 
 ```text
-Property:
-application/contracts/priority do not import Azure-specific SDK packages.
+Property
+application/contracts/priority do not import @azure/* packages.
 
-Why:
-Cloud choice must not leak into core semantics without a reason.
+Why
+Cloud mechanism must not become core semantics without an explicit decision.
 ```
 
-Non sono verità universali.
+Queste cinque fitness non descrivono l'unico modo corretto di strutturare TypeScript.
 
-Sono proprietà coerenti con le decisioni accumulate fin qui.
+Descrivono ciò che ESI vuole impedire **nel proprio stato corrente**.
 
-## Come le verifichiamo
+## Il meccanismo minimo è sufficiente
 
-Non introduciamo un framework nuovo.
+Il repository è ancora abbastanza piccolo da non giustificare una nuova piattaforma di governance.
 
-Il progetto è piccolo e TypeScript.
+Un test Node può:
 
-Un test Node può leggere i file `.ts`, estrarre gli import e verificare alcune regole.
+```text
+walk src/
+→ inspect imports
+→ apply AF-001…AF-005
+→ emit rule ID on violation
+→ fail normal test gate
+```
 
-Se in futuro il repository cresce, possiamo rivalutare strumenti più sofisticati.
-
-Questo applica ancora una volta:
-
-> **fit before fashion.**
-
-La capability richiesta oggi è piccola.
-
-Non serve adottare uno strumento enterprise per dimostrare maturità.
-
-## Il test architetturale
-
-Nel capstone entra:
+Nel capstone entra quindi:
 
 ```text
 tests/architecture-fitness.test.mjs
 ```
 
-Il test:
+Se in futuro aumenteranno language, repository e regole, ESI potrà rivalutare tooling dedicato.
 
-1. attraversa `src/`;
-2. legge gli import relativi e package import;
-3. verifica le regole AF-001…AF-005;
-4. produce messaggi con l'ID della fitness function;
-5. fallisce il normale test gate se rileva drift.
+Oggi introdurlo soltanto per sembrare enterprise sarebbe un'altra forma di fashion-driven architecture.
 
-Quindi il feedback loop diventa:
-
-```text
-agent/developer change
-→ npm test
-→ architecture fitness
-→ violation with rule ID
-→ fix or explicit architecture discussion
-```
-
-## Non introduciamo un bypass automatico
-
-La prima versione non supporta:
-
-```text
-// ignore-architecture
-```
-
-Se una regola deve essere violata intenzionalmente, il team deve prima aggiornare:
-
-```text
-Architecture Fitness Checklist
-+ ADR / architecture decision if needed
-+ exception record if temporary
-```
-
-Poi il test può evolvere.
-
-Questo impedisce che la waiver diventi il path più economico.
-
-## Architecture Fitness Checklist ESI
-
-Il nuovo artefatto:
-
-```text
-docs/architecture-fitness-checklist.md
-```
-
-non contiene soltanto AF-001…AF-005.
-
-Collega anche property già progettate in capitoli precedenti:
-
-```text
-functional semantics
-ownership
-security
-reliability
-observability
-testing
-cost
-evolution
-```
-
-Alcune sono `Codified`.
-
-Alcune `Verified`.
-
-Alcune restano `Designed`.
-
-Questo rende visibile una cosa importante:
-
-> il fatto che una proprietà sia architetturalmente importante non significa che oggi abbiamo già un meccanismo automatico per verificarla.
-
-## Esempio di stato
-
-```text
-AF-001 Legacy isolation
-Mechanism: architecture test
-State: Codified + Verified locally
-
-AF-SEC-01 Private production ingress
-Mechanism: Bicep + future connectivity/drift test
-State: Codified, not Verified in Azure
-
-AF-REL-01 Regional recovery
-Mechanism: restore/failover drill
-State: Designed, not Verified
-
-AF-OBS-01 Bounded metric dimensions
-Mechanism: TypeScript contract + tests
-State: Codified + locally exercised
-```
-
-Questa vista impedisce alla governance di appiattire tutto in una checkbox verde.
-
-## Il compromesso ESI
-
-Platform proponeva inizialmente una baseline più ampia:
-
-```text
-central architecture scanner
-mandatory enterprise scorecard
-repository ingestion
-custom policy service
-```
-
-Commerce & Operations chiede di partire più piccolo.
-
-Decisione:
-
-```text
-local executable architecture tests
-+ versioned fitness checklist
-+ existing CI/test runner
-+ manual review for non-automatable trade-offs
-```
-
-Costo accettato:
-
-- meno reporting centralizzato;
-- alcune property ancora manuali;
-- possibile futura migrazione verso tooling comune.
-
-Benefit:
-
-- feedback immediato;
-- nessun nuovo control plane;
-- regole leggibili vicino al codice;
-- basso costo di manutenzione iniziale.
-
-Quality floor:
-
-- Security e Platform possono imporre requirement enterprise realmente non negoziabili;
-- una regola locale non può disabilitare requirement normativi o security baseline;
-- le eccezioni significative restano tracciate.
-
-## Un caso concreto di drift
+## Il feedback deve spiegare la proprietà
 
 Immaginiamo che un agente aggiunga:
 
@@ -231,19 +103,17 @@ Immaginiamo che un agente aggiunga:
 import { ServiceBusClient } from "@azure/service-bus";
 ```
 
-La feature potrebbe funzionare.
-
-I test funzionali potrebbero passare.
+I test funzionali potrebbero essere verdi.
 
 AF-005 deve fallire.
 
-Il messaggio non dovrebbe dire soltanto:
+Ma un messaggio utile non dovrebbe fermarsi a:
 
 ```text
 forbidden import
 ```
 
-ma:
+Dovrebbe portare anche l'intento:
 
 ```text
 AF-005 Vendor SDK boundary violated.
@@ -251,29 +121,162 @@ Move Azure-specific behavior behind an integration adapter
 or reopen the architectural decision with evidence.
 ```
 
-Questo rende il test un pezzo di context engineering.
+Il gate diventa così parte del context engineering per persone e agenti.
 
-## Un caso che il test non deve decidere
+## Nessun bypass anonimo
 
-Supponiamo invece che Order Operations debba esporre una nuova public API per partner.
-
-Il test non deve rispondere:
+La prima versione non offre un commento universale:
 
 ```text
-public ingress forbidden forever
+// architecture-ignore
 ```
 
-Deve scattare un review trigger:
+Se una regola non ha più fit o serve una violazione temporanea, dobbiamo prima capire quale caso stiamo vivendo.
+
+### Intent changed
+
+Aggiorniamo decisione, checklist e test.
+
+### Temporary exception
+
+Registriamo owner, risk, expiry e removal condition.
+
+### Accidental drift
+
+Correggiamo l'implementazione.
+
+Il bypass non deve essere più economico della comprensione del problema.
+
+## La checklist collega fitness automatiche e proprietà non ancora automatizzate
+
+`docs/architecture-fitness-checklist.md` contiene una vista più ampia rispetto ad AF-001…AF-005.
+
+Al Capitolo 19 collega anche proprietà già emerse su:
 
 ```text
-Threat Model
-Cloud Deployment Map
-Security Control Matrix
+functional semantics
+data ownership
+security
+reliability
+observability
+testing
+evolution
+```
+
+Alcune sono `Codified`.
+
+Alcune hanno evidence locale.
+
+Alcune restano `Designed` in attesa dell'ambiente che può verificarle.
+
+Esempio di baseline narrativa:
+
+```text
+AF-001 Legacy isolation
+→ architecture test
+→ Codified + locally Verified
+
+AF-SEC-01 Private production ingress
+→ Bicep + future connectivity/drift verification
+→ Codified, not Azure-Verified
+
+AF-REL-01 Regional recovery
+→ failover/restore drill
+→ Designed, not Verified
+
+AF-OBS-01 Bounded metric dimensions
+→ telemetry contract/tests
+→ Codified + locally exercised
+```
+
+Questa vista impedisce alla governance di diventare una scorecard in cui ogni riga verde sembra equivalere alla stessa qualità di evidence.
+
+Il file vivo del repository continuerà a crescere nei capitoli successivi con fitness di cost, repository context, issue readiness e agent governance. Qui conserviamo la baseline **del Capitolo 19**.
+
+## Il compromesso con Platform Engineering
+
+Una proposta più ampia potrebbe includere:
+
+```text
+central architecture scanner
+mandatory enterprise scorecard
+repository ingestion
+custom policy service
+```
+
+Commerce & Operations sceglie invece:
+
+```text
+local executable architecture tests
++ versioned fitness checklist
++ existing CI/test runner
++ human review for non-automatable trade-offs
+```
+
+Costo accettato:
+
+- meno reporting centralizzato;
+- alcune proprietà ancora manuali;
+- possibile futura migrazione verso tooling condiviso.
+
+Beneficio:
+
+- feedback immediato;
+- nessun nuovo control plane;
+- rule ID vicino al codice;
+- maintenance iniziale bassa.
+
+Security e Platform mantengono comunque il diritto di imporre requirement enterprise realmente non negoziabili.
+
+Autonomia del workload non significa autonomia da compliance o baseline condivise.
+
+## Il guardrail non deve bloccare l'evoluzione intenzionale
+
+Supponiamo che domani arrivi un requirement reale:
+
+> partner esterni devono accedere alla operational view via Internet.
+
+La risposta non è modificare silenziosamente la regola di private ingress né dichiararla eterna.
+
+Il requirement deve riaprire:
+
+```text
+Functional Analysis
+API Contract
 NFR
-ADR
-cost
+Threat Model
+Security Control Matrix
+Cloud Deployment Map
+Observability Contract
+Testing Strategy
+ADR / topology decisions
+cost model
 ```
 
-Qui il cambiamento è architetturale perché cambia il contesto.
+Qui abbiamo context drift, non semplice implementation drift.
 
-> **Il buon guardrail blocca il drift. Non blocca l'evoluzione intenzionale.**
+> **Il buon guardrail blocca il drift. Non impedisce l'evoluzione intenzionale: la costringe a dichiarare quali decisioni sta riaprendo.**
+
+## Stato del Capitolo 19
+
+Sul piano locale ESI può arrivare a:
+
+```text
+AF-001…AF-005
+= Codified + locally Verified when architecture test passes
+
+Architecture Fitness Checklist
+= Codified/documented
+
+Architecture exception policy
+= Designed/documented
+
+Runtime/security/recovery fitness
+= mixed Designed/Codified; external verification still pending where required
+```
+
+Ancora una volta, cinque architecture test verdi non certificano l'architettura del workload.
+
+Dimostrano soltanto che cinque proprietà strutturali selezionate non sono state violate nel repository verificato.
+
+> **Una fitness function vale per la claim che riesce a falsificare, non per la quantità di architettura che il suo nome sembra promettere.**
