@@ -106,16 +106,7 @@ Ma supponiamo che entrambi abbiano interpretato male il requisito.
 
 Il primo scopre l'errore dopo cinque giorni di lavoro.
 
-Il secondo potrebbe aver costruito nello stesso tempo:
-
-- backend;
-- frontend;
-- migration;
-- test;
-- dashboard;
-- deployment;
-- documentazione;
-- integrazione con un servizio esterno.
+Il secondo, nello stesso tempo, potrebbe aver costruito backend e frontend, preparato una migration e i test, aggiunto dashboard e deployment, aggiornato la documentazione e integrato persino un servizio esterno.
 
 La velocità ha ridotto il costo dell'esecuzione di una singola attività.
 
@@ -125,14 +116,7 @@ Questo spostamento è uno dei temi centrali del libro.
 
 > **Quando il costo dell'execution scende, il costo di una direzione sbagliata può salire.**
 
-Il nuovo collo di bottiglia diventa più spesso:
-
-- chiarezza dell'intento;
-- qualità del contesto;
-- qualità delle decisioni;
-- capacità di verifica;
-- capacità di integrare output diversi;
-- capacità di fermarsi.
+Il nuovo collo di bottiglia diventa più spesso la chiarezza dell'intento e la qualità del contesto, ma anche la qualità delle decisioni. Conta la capacità di verificare e integrare output diversi e, soprattutto, di fermarsi quando la velocità sta portando il sistema oltre ciò che abbiamo davvero deciso.
 
 ## Il paradosso della velocità
 
@@ -184,15 +168,7 @@ Possiamo generare, eseguire, correggere e rigenerare in cicli molto più brevi.
 
 Queste quattro proprietà sono potenti.
 
-Ma nessuna garantisce automaticamente:
-
-- correttezza;
-- coerenza;
-- sicurezza;
-- operabilità;
-- utilità;
-- semplicità;
-- sostenibilità.
+Ma nessuna garantisce automaticamente che il risultato sia corretto, coerente e sicuro, né che sia operabile, utile, semplice o sostenibile nel tempo.
 
 Sono moltiplicatori.
 

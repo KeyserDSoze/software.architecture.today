@@ -33,14 +33,7 @@ Ogni iterazione sembra piccola.
 
 Ma richiede continui context switch.
 
-Dobbiamo ricordare:
-
-- che cosa avevamo chiesto;
-- quali vincoli erano già stati chiariti;
-- quale parte dell'output precedente era corretta;
-- quale nuova assunzione è stata introdotta;
-- quali file sono cambiati;
-- quali conseguenze non sono ancora state verificate.
+Dobbiamo ricordare che cosa avevamo chiesto e quali vincoli erano già stati chiariti, quale parte dell'output precedente fosse corretta e quale nuova assunzione sia stata introdotta. Dobbiamo inoltre sapere quali file sono cambiati e quali conseguenze non sono ancora state verificate.
 
 Se il lavoro è frammentato in decine di micro-interazioni, l'essere umano può diventare il collo di bottiglia del coordinamento.
 
@@ -149,16 +142,7 @@ Una pull request enorme non diventa più leggibile soltanto perché è stata gen
 
 Anzi, può essere più difficile da revisionare perché il reviewer non possiede il contesto incrementale della persona che avrebbe scritto il codice passo dopo passo.
 
-Per questo servono strategie come:
-
-- task verticali ma contenuti;
-- commit con intento chiaro;
-- diff separati per cambiamenti meccanici e semantici;
-- summary delle decisioni;
-- indicazione esplicita dei file ad alto rischio;
-- test evidence;
-- reviewer indipendente prima della review umana;
-- limite al numero di cambiamenti paralleli che richiedono attenzione.
+Per questo servono task verticali ma contenuti e commit con un intento leggibile. Separare i diff meccanici da quelli semantici, riassumere le decisioni e indicare i file ad alto rischio rende la review meno costosa; test evidence e reviewer indipendenti possono preparare il lavoro prima dell'intervento umano. Infine serve un limite al numero di cambiamenti paralleli che competono contemporaneamente per la stessa attenzione.
 
 La capacità degli agenti di produrre lavoro deve essere bilanciata dalla capacità del sistema umano di assorbirlo.
 
@@ -168,14 +152,7 @@ Il fallimento peggiore non è essere stanchi.
 
 È sviluppare una routine di approvazione superficiale.
 
-Quando riceviamo troppo output, possiamo iniziare a leggere soltanto:
-
-- il summary;
-- il numero di test verdi;
-- il titolo della PR;
-- qualche file principale.
-
-Poi premiamo merge.
+Quando riceviamo troppo output, possiamo iniziare a leggere soltanto il summary, il numero di test verdi, il titolo della pull request e qualche file principale. Poi premiamo merge, non perché abbiamo costruito confidence, ma perché abbiamo esaurito l'attenzione.
 
 A quel punto l'essere umano è formalmente nel loop ma sostanzialmente fuori dal processo decisionale.
 
@@ -183,12 +160,7 @@ Questo è un human-in-the-loop teatrale.
 
 La presenza di una persona non garantisce supervisione reale.
 
-Serve che la persona abbia:
-
-- tempo sufficiente;
-- evidenza leggibile;
-- punti di attenzione identificati;
-- possibilità concreta di fermare il cambiamento.
+Serve invece che la persona abbia tempo sufficiente, evidence leggibile e punti di attenzione già identificati, oltre alla possibilità concreta di fermare il cambiamento quando ciò che vede non giustifica il passo successivo.
 
 ### Ridurre fatica con la struttura
 

@@ -38,14 +38,7 @@ Il test passa.
 
 La task sembra conclusa.
 
-Ma la cache potrebbe aver introdotto:
-
-- dati stantii;
-- invalidazione incompleta;
-- crescita incontrollata della memoria;
-- leakage tra tenant;
-- inconsistenza con un flusso di update;
-- nuove dipendenze operative.
+Ma la cache potrebbe aver introdotto dati stantii o invalidazione incompleta, crescita incontrollata della memoria, leakage tra tenant, inconsistenza con un flusso di update e nuove dipendenze operative.
 
 Il feedback locale dice:
 
@@ -129,19 +122,7 @@ Rinominare meccanicamente un simbolo in cinquecento file può essere un cambiame
 
 Per questo non dovremmo usare il numero di righe come proxy ingenuo del rischio.
 
-Dovremmo guardare almeno:
-
-- numero di boundary attraversati;
-- persistenza coinvolta;
-- compatibilità pubblica;
-- security boundary;
-- irreversibilità;
-- dati storici;
-- dipendenze esterne;
-- capacità di rollback;
-- osservabilità dopo il deploy.
-
-Il blast radius è semantico prima che quantitativo.
+Per stimarlo dovremmo guardare quanti boundary vengono attraversati e quale persistenza è coinvolta, se cambiano compatibilità pubblica o security boundary e quanto la modifica sia reversibile. Dati storici, dipendenze esterne, capacità di rollback e osservabilità dopo il deploy completano il quadro. Il blast radius è semantico prima che quantitativo.
 
 ### Agenti paralleli, feedback intrecciati
 
@@ -200,14 +181,7 @@ Nessun livello è sufficiente da solo.
 
 Un sistema di sviluppo può ottimizzare rapidamente ciò che misura.
 
-Se premiamo soltanto:
-
-- issue chiuse;
-- numero di PR;
-- tempo medio di implementazione;
-- test generati;
-
-potremmo ottenere esattamente più di queste cose.
+Se premiamo soltanto issue chiuse, numero di pull request, tempo medio di implementazione e test generati, potremmo ottenere esattamente più di queste cose senza migliorare il sistema che volevamo misurare.
 
 Non necessariamente più valore.
 
@@ -241,14 +215,7 @@ Il miglior feedback non è quello che ci conferma che il codice compila.
 
 È quello che avvicina il prima possibile il sistema alla realtà che dovrà sostenere.
 
-Per questo, a seconda del rischio, possiamo cercare presto:
-
-- dati realistici;
-- failure realistici;
-- carico realistico;
-- contratti reali;
-- utenti reali;
-- vincoli operativi reali.
+Per questo, a seconda del rischio, conviene introdurre presto porzioni di realtà: dati e failure realistici, carico rappresentativo, contratti e utenti reali, vincoli operativi che il prototipo non può inventare a piacere.
 
 L'AI può velocizzare enormemente la costruzione del ciclo.
 

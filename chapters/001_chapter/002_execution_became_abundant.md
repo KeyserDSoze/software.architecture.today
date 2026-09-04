@@ -11,18 +11,7 @@ Questo attrito non era sempre positivo. Molto lavoro ripetitivo, manuale o mecca
 
 Ma quell'attrito aveva un effetto collaterale: limitava naturalmente il numero di direzioni che potevamo perseguire contemporaneamente.
 
-Oggi possiamo chiedere a un agente di:
-
-- aggiungere un endpoint;
-- generare test;
-- creare una migration;
-- modificare uno schema;
-- aggiungere telemetry;
-- aggiornare documentazione;
-- preparare una Dockerfile;
-- proporre infrastruttura;
-- rifattorizzare decine di file;
-- aprire una pull request.
+Oggi possiamo chiedere a un agente di aggiungere un endpoint e generare i test, creare una migration o modificare uno schema, aggiungere telemetry e aggiornare la documentazione. Può preparare una Dockerfile, proporre infrastruttura, rifattorizzare decine di file e arrivare fino all'apertura di una pull request.
 
 Il limite non è più sempre “quanto riusciamo a produrre?”.
 
@@ -201,13 +190,7 @@ Se codice, test e documentazione diventano relativamente più abbondanti, quale 
 
 L'attenzione umana.
 
-Ogni decisione importante compete per:
-
-- tempo di review;
-- capacità di comprensione;
-- memoria del team;
-- concentrazione;
-- responsabilità operativa.
+Ogni decisione importante compete per risorse umane che restano scarse: tempo di review, capacità di comprensione, memoria del team e concentrazione. Alla fine compete anche per responsabilità operativa, perché qualcuno dovrà vivere con le conseguenze di ciò che è stato prodotto.
 
 Un repository può crescere più velocemente della capacità delle persone di mantenere un modello mentale coerente.
 

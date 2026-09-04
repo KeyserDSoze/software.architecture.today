@@ -135,27 +135,9 @@ Un agente che lavora su un codebase non riceve soltanto istruzioni esplicite.
 
 Riceve anche istruzioni implicite dal codice esistente.
 
-Se vede:
+Se vede error handling incoerente, nomi vaghi, accesso ai secret sparso, test fragili, dipendenze introdotte senza criterio e moduli che attraversano liberamente i boundary, può inferire che quelle pratiche siano accettabili.
 
-- error handling incoerente;
-- nomi vaghi;
-- accesso ai secret sparso;
-- test fragili;
-- dipendenze introdotte senza criterio;
-- moduli che attraversano liberamente i boundary;
-
-può inferire che queste pratiche siano accettabili.
-
-Se vede invece:
-
-- contratti chiari;
-- confini espliciti;
-- test significativi;
-- convenzioni stabili;
-- documentazione aggiornata;
-- decisioni architetturali spiegate;
-
-ha un contesto operativo migliore.
+Se trova invece contratti chiari, confini espliciti e test significativi, insieme a convenzioni stabili, documentazione aggiornata e decisioni architetturali spiegate, parte da un contesto operativo molto migliore.
 
 Da questo punto di vista, ogni merge modifica non soltanto il software.
 
@@ -246,14 +228,7 @@ Togliamo l'AI.
 
 Non chiediamoci se sapremmo scrivere tutto il codice a memoria.
 
-Chiediamoci invece:
-
-- sappiamo descrivere il comportamento atteso?
-- sappiamo dire che cosa non deve accadere?
-- sappiamo quali componenti saranno probabilmente coinvolti?
-- sappiamo quali invarianti non possono essere violate?
-- sappiamo come verificheremo il risultato?
-- sappiamo quali decisioni devono essere escalate?
+Chiediamoci invece se sappiamo descrivere il comportamento atteso e ciò che non deve accadere, se abbiamo un'idea dei componenti coinvolti e delle invarianti che non possono essere violate. Dovremmo anche sapere come verificheremo il risultato e quali decisioni, se emergono durante l'execution, devono essere escalate.
 
 Se la risposta è no, il prossimo prompt potrebbe produrre output.
 

@@ -74,16 +74,7 @@ Le integrazioni erano mock.
 
 La documentazione era assente.
 
-Oggi un agente può produrre in poco tempo qualcosa che **sembra** molto più maturo:
-
-- interfaccia curata;
-- test;
-- Dockerfile;
-- pipeline;
-- logging;
-- configurazioni;
-- README;
-- infrastruttura dichiarativa.
+Oggi un agente può produrre in poco tempo qualcosa che **sembra** molto più maturo: un'interfaccia curata, test, Dockerfile e pipeline, logging e configurazioni, un README convincente e persino infrastruttura dichiarativa.
 
 La presenza di questi elementi è positiva.
 
@@ -135,15 +126,7 @@ La confidenza è una proprietà che dobbiamo argomentare.
 
 Non tutte le demo richiedono lo stesso rigore.
 
-Se stiamo esplorando un'idea, possiamo deliberatamente accettare:
-
-- dati finti;
-- sicurezza minima;
-- architettura temporanea;
-- dipendenze veloci da integrare;
-- error handling incompleto.
-
-Questa può essere la scelta giusta.
+Se stiamo esplorando un'idea, possiamo deliberatamente accettare dati finti, sicurezza minima, un'architettura temporanea, dipendenze scelte per la velocità di integrazione ed error handling incompleto. Questa può essere la scelta giusta, purché il carattere temporaneo di quei compromessi resti visibile.
 
 Il problema non è avere un prototipo fragile.
 
@@ -185,17 +168,7 @@ La trasformazione avviene per accumulo.
 
 Chiamiamo **debito di promozione** la distanza tra ciò che il sistema era stato progettato per sostenere e ciò che ora gli stiamo chiedendo di sostenere.
 
-Può includere:
-
-- autenticazione insufficiente;
-- assenza di backup;
-- schema dati improvvisato;
-- nessun rollback;
-- osservabilità minima;
-- assenza di ownership;
-- costi non controllati;
-- dipendenze non governate;
-- gestione errori pensata soltanto per la demo.
+Può includere autenticazione insufficiente e assenza di backup, uno schema dati improvvisato e nessun rollback, osservabilità minima e ownership incerta. Può nascondere costi non controllati, dipendenze non governate e una gestione degli errori pensata soltanto per far riuscire la demo.
 
 L'AI può accelerare moltissimo la nascita di questo debito perché riduce il tempo necessario a far sembrare maturo un prototipo.
 
@@ -205,15 +178,7 @@ Il modo migliore di usare una demo non è considerarla una prova finale.
 
 È usarla come strumento per far emergere conoscenza.
 
-Una buona demo dovrebbe farci chiedere:
-
-- quali assunzioni abbiamo appena validato?
-- quali non abbiamo validato?
-- cosa abbiamo imparato sugli utenti?
-- cosa abbiamo imparato sui dati?
-- quali failure non abbiamo ancora esplorato?
-- quale parte dell'architettura era soltanto temporanea?
-- cosa dovrebbe essere buttato via se il progetto continua?
+Una buona demo dovrebbe farci chiedere quali assunzioni abbiamo appena validato e quali sono ancora intatte, che cosa abbiamo imparato sugli utenti e sui dati e quali failure non abbiamo ancora esplorato. Dovrebbe anche costringerci a riconoscere quale parte dell'architettura fosse soltanto temporanea e che cosa, se il progetto continua, dovrebbe essere buttato via invece di essere promosso per inerzia.
 
 Il prototipo è uno strumento di apprendimento.
 
@@ -223,17 +188,7 @@ Quando lo trasformiamo inconsapevolmente in fondazione, il suo valore esplorativ
 
 Una feature può essere visibile e non essere finita.
 
-Può essere corretta nel percorso principale e mancare di:
-
-- security review;
-- observability;
-- backward compatibility;
-- gestione degli edge case;
-- rollback;
-- capacity consideration;
-- runbook;
-- test significativi;
-- aggiornamento dei contratti.
+Può essere corretta nel percorso principale e avere ancora buchi importanti: security review e observability, backward compatibility ed edge case, rollback e capacity, runbook, test significativi o contratti non ancora aggiornati.
 
 Non ogni feature richiede tutto questo.
 
