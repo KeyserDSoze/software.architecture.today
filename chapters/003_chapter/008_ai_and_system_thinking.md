@@ -1,62 +1,35 @@
 ## AI e pensiero sistemico
 
-L'AI rende più economico esplorare sistemi complessi.
+L'AI rende molto più economico esplorare un sistema sconosciuto. Un agente può cercare dipendenze nel repository, ricostruire call graph, trovare consumer di un'API, confrontare configurazioni, individuare eventi e schemi condivisi, riassumere ADR e proporre una prima Architecture Context Map.
 
-Possiamo chiederle di cercare dipendenze nel repository, ricostruire call graph e individuare schemi condivisi; può mappare eventi, confrontare configurazioni e trovare i consumer di un'API. Può inoltre riassumere ADR, identificare aree che cambiano insieme, proporre failure mode e generare una prima Architecture Context Map. Queste capacità sono molto utili.
+Tutto questo è utile. Proprio per questo è facile cadere in un errore nuovo: confondere **una mappa generata** con **un sistema compreso**.
 
-Ma contengono un rischio.
+## Il repository è evidenza, non l'intero sistema
 
-Possiamo confondere **mappa generata** con **sistema compreso**.
+Il codice contiene una parte importante della realtà, ma non necessariamente tutta. Un agente che esplora il repository potrebbe non vedere una feature flag gestita altrove, un job schedulato da un'altra piattaforma, un'integrazione legacy posseduta da un altro team o una procedura manuale usata dal supporto durante gli incidenti. Potrebbe ignorare un limite contrattuale del provider, una dashboard operativa, una configurazione applicata fuori dal repository o semplicemente il traffico reale che determina quali percorsi sono davvero critici.
 
-## Il repository non contiene tutto il sistema
+Questo significa che una ricostruzione automatica dell'architettura deve essere trattata come **ipotesi supportata da evidenza**, non come verità finale.
 
-Un agente che esplora il codice vede una parte importante della realtà.
+Il principio è importante anche quando il diagramma sembra convincente. Il fatto che una dipendenza non compaia nel codice analizzato non prova che non esista. Dimostra soltanto che non l'abbiamo ancora osservata in quella fonte.
 
-Ma potrebbe non vedere:
+## Discovery: struttura statica, comportamento runtime e contesto umano
 
-- procedure operative manuali;
-- dipendenze configurate fuori repository;
-- feature flag;
-- servizi gestiti da altri team;
-- integrazioni legacy;
-- workaround del supporto;
-- dashboard utilizzate durante incidenti;
-- vincoli contrattuali;
-- dipendenze organizzative;
-- traffico reale;
-- assunzioni non documentate.
+Un workflow utile su un sistema sconosciuto parte dalla struttura statica, ma non si ferma lì. Prima possiamo chiedere all'agente di formulare ipotesi su dipendenze, ownership e critical journey; poi quelle ipotesi vanno confrontate con documentazione e persone che conoscono il dominio e, quando possibile, con evidenza runtime.
 
-Il codice è evidenza.
-
-Non è sempre il sistema intero.
-
-Per questo una mappa prodotta automaticamente deve essere trattata come **ipotesi da validare**, non come verità.
-
-## AI-assisted architecture discovery
-
-Un workflow utile su un sistema sconosciuto può essere:
+In forma compatta:
 
 ```text
-1. Repository scan
-2. Dependency hypothesis
-3. Data ownership hypothesis
-4. Critical journey hypothesis
-5. Human / documentation validation
-6. Runtime evidence
-7. Context Map
+repository scan
+→ dependency hypotheses
+→ ownership and journey hypotheses
+→ documentation / human validation
+→ runtime evidence
+→ Architecture Context Map
 ```
 
-L'ordine conta.
+Log, metriche e trace possono raccontare una storia diversa da quella suggerita dal codice. Possono mostrare chiamate inattese, retry, fan-out reale, latenze dominanti, feature apparentemente marginali che assorbono traffico o componenti considerati obsoleti che in produzione sono ancora attivi.
 
-Se saltiamo direttamente da repository scan a diagramma definitivo, rischiamo di rappresentare soltanto ciò che è facile da inferire staticamente.
-
-### Runtime evidence
-
-Il runtime può raccontare una storia diversa dal codice.
-
-Log, metriche e trace possono mostrare chiamate inattese, dependency latency e retry, il fan-out reale e percorsi poco usati. Possono anche rendere visibili error propagation e feature obsolete che il diagramma considera morte ma che in produzione sono ancora attive.
-
-Quando possibile, la comprensione architetturale dovrebbe combinare:
+Per questo la comprensione architetturale più affidabile combina:
 
 ```text
 static structure
@@ -64,143 +37,68 @@ static structure
 + human context
 ```
 
-## Chiedere all'AI di cercare ciò che manca
+Nessuna delle tre fonti, da sola, è sempre sufficiente.
 
-Un buon uso dell'AI non è soltanto:
+## Chiedere all'AI anche che cosa non può sapere
 
-> “Descrivi questa architettura.”
+Una delle domande meno utili è “descrivi questa architettura” senza altri vincoli. Spinge facilmente l'agente a produrre una narrazione completa anche quando l'evidenza è incompleta.
 
-Può essere molto più utile chiedere:
+Domande migliori chiedono invece di rendere visibili i limiti dell'analisi: quali parti del comportamento non possono essere dedotte dal repository? Quali assunzioni stiamo facendo sulla source of truth? Quali dipendenze potrebbero vivere fuori dal codice? Quali failure mode suggeriscono che manchi un componente, una procedura o un ownership boundary?
 
-> “Quali parti del comportamento di questo sistema non possono essere dedotte dal repository?”
+Questo cambia il ruolo dell'agente. Non gli chiediamo di sembrare sicuro; gli chiediamo di aiutarci a separare ciò che ha trovato da ciò che sta inferendo.
 
-Oppure:
+## Dal local optimum al reasoning di sistema
 
-> “Quali assunzioni stai facendo sulla source of truth?”
+Nel Capitolo 1 abbiamo chiamato **architecture by autocomplete** la tendenza a trasformare rapidamente una richiesta locale in una soluzione plausibile. Il pensiero sistemico è uno degli antidoti più efficaci.
 
-Oppure:
+“Come aggiungo caching qui?” è una domanda locale. Se però il contesto include critical journey, freshness requirement, source of truth, consumer, failure domain e security constraint, la decisione cambia forma. Il caching potrebbe essere corretto, oppure inutile, oppure incompatibile con la semantica del dato. Potremmo scoprire che ci serve una proiezione o che quel dato non dovrebbe essere replicato affatto.
 
-> “Quali dipendenze potrebbero esistere fuori dal codice analizzato?”
+Il valore del contesto non è ottenere una risposta più sofisticata. È impedire che la risposta venga ottimizzata per il perimetro sbagliato.
 
-Oppure:
+## Multi-agent: parallelizzare prospettive, non incoerenza
 
-> “Assumi che il diagramma sia incompleto. Quali failure mode suggeriscono componenti o processi mancanti?”
+Più agenti possono accelerare la discovery se ricevono una domanda condivisa. Possiamo assegnare a uno la dependency map, a un altro i trust boundary, a un terzo data ownership e a un quarto failure mode. Un quinto può svolgere una review avversariale.
 
-Queste domande trasformano l'agente da narratore sicuro a strumento di discovery.
-
-## Architecture by autocomplete
-
-Nel Capitolo 1 abbiamo introdotto il rischio dell'architecture by autocomplete.
-
-Il pensiero sistemico è uno degli antidoti.
-
-Se chiediamo:
-
-> “Come aggiungo caching qui?”
-
-l'agente tenderà a rispondere localmente.
-
-Se forniamo invece il journey, il freshness requirement e la source of truth, insieme ai consumer, al failure domain e ai security constraint, la domanda cambia.
-
-Forse il caching è corretto.
-
-Forse è inutile.
-
-Forse serve una proiezione.
-
-Forse il dato non deve essere cached affatto.
-
-Il contesto amplia lo spazio di ragionamento.
-
-## Multi-agent e local optimum
-
-Più agenti possono accelerare l'analisi.
-
-Per esempio:
-
-```text
-Agent A → dependency map
-Agent B → security boundaries
-Agent C → data ownership
-Agent D → failure modes
-Agent E → skeptical review
-```
-
-Ma se tutti lavorano senza una domanda comune, producono cinque mappe incompatibili.
+La parallelizzazione funziona però soltanto se tutti stanno osservando lo stesso system of interest e lo stesso critical journey. Altrimenti otteniamo mappe apparentemente ricche ma incompatibili tra loro.
 
 Ritorna il principio del Capitolo 0:
 
 > **Prima sincronizzare il pensiero. Poi parallelizzare l'esecuzione.**
 
-Il system of interest e il critical journey possono diventare il shared context che mantiene allineate le analisi.
+Qui il system of interest e il journey diventano il contesto condiviso che impedisce ai diversi agenti di ottimizzare sistemi diversi senza accorgersene.
 
-## Il ruolo dello skeptical reviewer
+## Lo skeptical reviewer cerca ciò che manca
 
-Dopo aver prodotto una Context Map, possiamo assegnare a un agente un ruolo esplicitamente avversariale:
+Dopo aver prodotto una prima Context Map, un secondo agente può essere più utile se non gli chiediamo di ridisegnarla. Gli chiediamo invece di cercare dipendenze mancanti, ownership ambigue, failure correlati, trust boundary dimenticati e assunzioni non validate.
 
-> “Cerca dipendenze mancanti, ownership ambigue, failure correlati e assunzioni che renderebbero questa mappa fuorviante.”
-
-Non vogliamo un secondo agente che ridisegni la stessa cosa in modo più bello.
-
-Vogliamo un agente che cerchi ciò che il primo non ha visto.
-
-Questa distinzione sarà importante in tutto il libro.
-
-L'abbondanza di agenti è utile quando compra **indipendenza di prospettiva**.
+Questa indipendenza di prospettiva è uno dei modi migliori di usare l'abbondanza di agenti. Non compriamo cinque versioni della stessa risposta; compriamo cinque possibilità di trovare un errore diverso.
 
 ## Generated diagram illusion
 
-Un anti-pattern nuovo merita un nome:
+Un anti-pattern merita un nome: **generated diagram illusion**.
 
-### Generated diagram illusion
+Il diagramma è pulito, le frecce hanno nomi plausibili, Mermaid compila e i componenti sono allineati. Quella qualità visiva crea facilmente una sensazione di comprensione che l'evidenza non giustifica.
 
-Il diagramma è pulito.
+Potrebbero mancare ownership, temporality, freshness, fallback, failure correlation, trust boundary o processi manuali. Il diagramma può essere sintatticamente corretto e semanticamente sbagliato.
 
-Le frecce hanno nomi corretti.
+> **La qualità grafica è un segnale molto debole della qualità del modello architetturale.**
 
-I componenti sono allineati.
+Per questo una Context Map deve dichiarare anche ciò che non sa e ciò che deve ancora essere verificato.
 
-La sintassi Mermaid compila.
+## Context engineering come controllo architetturale
 
-Quindi abbiamo la sensazione di aver capito il sistema.
+Nei sistemi AI-native, context engineering non riguarda soltanto il modo in cui formuliamo un prompt. Riguarda quali parti del sistema rendiamo disponibili alla decisione automatizzata.
 
-Ma potrebbero mancare ownership e temporality, data freshness e fallback, failure correlation, trust boundary e processi manuali. La qualità visiva è un segnale molto debole di qualità architetturale.
+Se un coding agent vede soltanto il file da modificare, gli stiamo implicitamente dicendo che il resto del sistema non conta. Se invece riceve Problem & Outcome Brief, Architecture Context Map, ADR, contract, NFR e stop condition, gli stiamo dando una rappresentazione molto più fedele del problema e dei suoi confini.
 
-> **Un diagramma può essere corretto sintatticamente e sbagliato semanticamente.**
+La documentazione, in questo senso, diventa parte del control plane architetturale. Non perché il documento sia sempre corretto, ma perché rende verificabili le assunzioni che altrimenti verrebbero ricostruite ogni volta per inferenza.
 
-## Context engineering come system engineering
+## La responsabilità resta epistemica
 
-Nei sistemi AI-native, context engineering non riguarda soltanto come ottenere una risposta migliore dal modello.
+Anche con strumenti molto forti dobbiamo sapere distinguere ciò che sappiamo da ciò che crediamo. Un architect non vale perché possiede una mappa perfetta; vale anche perché riconosce dove quella mappa è incompleta, quali assunzioni sono fragili, quando serve runtime evidence e quando bisogna parlare con un altro team.
 
-Riguarda anche quali parti del sistema rendiamo disponibili alla decisione automatizzata.
+Lo stesso vale per l'output di un agente. Un'analisi elegante non elimina il bisogno di chiedersi da quali fonti deriva e quali parti non potevano essere verificate.
 
-Se un coding agent vede soltanto il file da modificare, gli stiamo implicitamente dicendo che il resto non conta.
+Il pensiero sistemico non elimina l'incertezza. La rende visibile abbastanza presto da poterla governare.
 
-Se vede:
-
-```text
-Problem & Outcome Brief
-Architecture Context Map
-ADR
-contracts
-NFR
-stop conditions
-```
-
-gli stiamo fornendo una rappresentazione più fedele della decisione.
-
-La documentazione diventa così parte del controllo architetturale.
-
-## Ma la responsabilità resta epistemica
-
-Anche con strumenti perfetti dobbiamo sapere che cosa non sappiamo.
-
-Questo è un aspetto centrale del mestiere.
-
-Un architect non vale perché possiede una mappa completa.
-
-Vale anche perché riconosce dove la mappa è incompleta e quali assunzioni sono fragili, quali domande richiedono evidence runtime e quando serve parlare con un altro team. Sa infine riconoscere quando un agente non può verificare da solo il proprio output. Il pensiero sistemico non elimina l'incertezza.
-
-La rende visibile abbastanza presto da poterla governare.
-
-> **L'AI può aiutarci a vedere più parti del sistema. Il judgment serve ancora per capire quali parti mancano.**
+> **L'AI può aiutarci a vedere più parti del sistema. Il judgment serve ancora per capire quali parti mancano e quali evidenze ci autorizzano a fidarci.**
