@@ -20,23 +20,9 @@ Per capire quali decisioni stiamo per affidare al sistema.
 
 Order Operations appartiene alla business unit **Commerce & Operations** di Example Software Industries S.p.A.
 
-ESI possiede già sistemi e capability che gestiscono:
+ESI possiede già sistemi e capability per il lifecycle degli ordini, i pagamenti e il fulfillment, oltre a identity aziendale, logging e observability condivisi. Order Operations non nasce per sostituirli.
 
-- lifecycle degli ordini;
-- pagamenti;
-- fulfillment/spedizione;
-- identity aziendale;
-- logging e observability condivisi.
-
-Order Operations non nasce per sostituirli.
-
-Nasce perché alcuni ordini rimangono in condizioni che richiedono intervento umano e il team Operations li scopre attraverso combinazioni di:
-
-- segnalazioni dei clienti;
-- ricerche manuali;
-- log tecnici;
-- messaggi interni;
-- conoscenza informale del sistema.
+Nasce perché alcuni ordini rimangono in condizioni che richiedono intervento umano e il team Operations li scopre combinando segnalazioni dei clienti, ricerche manuali e log tecnici con messaggi interni e conoscenza informale del sistema.
 
 La risposta spontanea è:
 
@@ -248,16 +234,7 @@ Non abbiamo ancora scelto l'architettura.
 
 Ed è intenzionale.
 
-Potremmo implementare questa capability con:
-
-- query sul database esistente;
-- read model dedicato;
-- eventi;
-- polling;
-- notifiche push;
-- altre varianti.
-
-Alcune saranno migliori di altre.
+Potremmo implementare questa capability con query sul database esistente o con un read model dedicato, usando eventi, polling, notifiche push o altre varianti. Alcune saranno migliori di altre.
 
 Ma adesso abbiamo criteri con cui giudicarle.
 

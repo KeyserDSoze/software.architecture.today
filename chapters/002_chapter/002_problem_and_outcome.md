@@ -16,15 +16,7 @@ Consideriamo:
 
 È una richiesta chiara dal punto di vista linguistico.
 
-Ma non sappiamo ancora:
-
-- chi la userà;
-- quale decisione deve migliorare;
-- con quale frequenza;
-- quali metriche servono davvero;
-- quale livello di freschezza è necessario;
-- se esiste già un altro strumento che risolve parte del problema;
-- quale comportamento dovrebbe cambiare grazie alla dashboard.
+Ma non sappiamo ancora chi la userà, quale decisione dovrebbe migliorare e con quale frequenza. Non abbiamo definito quali metriche servano davvero, quale freshness sia necessaria, se esista già uno strumento che risolve parte del problema né quale comportamento dovrebbe cambiare grazie alla dashboard.
 
 Se partiamo direttamente dalla soluzione, la dashboard diventa il problema.
 
@@ -154,11 +146,7 @@ A volte il primo outcome della fase iniziale è proprio rendere misurabile il si
 
 Questo non giustifica outcome vaghi per sempre.
 
-Significa distinguere:
-
-- ciò che sappiamo;
-- ciò che stimiamo;
-- ciò che dobbiamo ancora misurare.
+Significa distinguere ciò che sappiamo da ciò che stiamo stimando e da ciò che dobbiamo ancora misurare.
 
 Un buon brief può dire:
 

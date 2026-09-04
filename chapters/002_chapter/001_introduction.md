@@ -32,16 +32,7 @@ Non il database.
 
 Non il cloud provider.
 
-Prima ancora dobbiamo sapere:
-
-- quale problema stiamo cercando di risolvere;
-- per chi;
-- quale outcome ci interessa;
-- quale parte del problema è davvero nel nostro scope;
-- quali vincoli non possiamo ignorare;
-- quali comportamenti devono esistere;
-- quali qualità devono essere misurabili;
-- che cosa significa, concretamente, poter dire che abbiamo finito.
+Prima ancora dobbiamo sapere quale problema stiamo cercando di risolvere e per chi, quale outcome ci interessa e quale parte del problema appartiene davvero al nostro scope. Dobbiamo riconoscere i vincoli che non possiamo ignorare, i comportamenti che devono esistere, le qualità che devono diventare misurabili e che cosa significhi, concretamente, poter dire che abbiamo finito.
 
 Questa fase non è un rito preliminare.
 
@@ -202,15 +193,7 @@ Il primo sarà il **Problem & Outcome Brief**.
 
 Non è una specifica completa.
 
-È una pagina — a volte meno — che deve permettere a chiunque, umano o agente, di capire:
-
-- quale situazione vogliamo cambiare;
-- per chi;
-- quale outcome ci dirà che abbiamo creato valore;
-- cosa stiamo facendo adesso;
-- cosa non stiamo facendo;
-- quali vincoli sono già noti;
-- quali assunzioni richiedono verifica.
+È una pagina — a volte meno — che deve permettere a chiunque, umano o agente, di capire quale situazione vogliamo cambiare, per chi e quale outcome ci dirà che abbiamo creato valore. Deve rendere leggibile ciò che stiamo facendo adesso e ciò che non stiamo facendo, i vincoli già noti e le assunzioni che richiedono ancora verifica.
 
 Il suo scopo non è descrivere la soluzione.
 

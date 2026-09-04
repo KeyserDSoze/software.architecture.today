@@ -89,18 +89,7 @@ Prima della cattura del pagamento?
 
 “Recente” sembra descrittivo, ma nasconde una regola di business.
 
-Lo stesso vale per parole come:
-
-- attivo;
-- valido;
-- completato;
-- disponibile;
-- amministratore;
-- prioritario;
-- fallito;
-- verificato.
-
-Molti bug che appaiono tecnici sono in realtà divergenze semantiche.
+Lo stesso vale per parole apparentemente semplici come *attivo*, *valido*, *completato*, *disponibile*, *amministratore*, *prioritario*, *fallito* o *verificato*. Molti bug che appaiono tecnici sono in realtà divergenze semantiche.
 
 Un servizio considera un ordine “completato” quando il pagamento è confermato.
 
@@ -124,18 +113,7 @@ Se chiediamo:
 
 > “Implementa il pagamento di un ordine.”
 
-esistono decine di comportamenti non definiti:
-
-- pagamento rifiutato;
-- timeout del provider;
-- risposta duplicata;
-- callback in ritardo;
-- callback prima della risposta sincrona;
-- utente che riprova;
-- ordine già pagato;
-- importo cambiato;
-- valuta non supportata;
-- autorizzazione riuscita ma persistenza fallita.
+esistono decine di comportamenti non definiti. Il pagamento può essere rifiutato o il provider andare in timeout; una risposta può arrivare duplicata, in ritardo o in un ordine diverso da quello atteso. L'utente può riprovare, l'ordine risultare già pagato, l'importo cambiare o la valuta non essere supportata. E possiamo perfino autorizzare correttamente il pagamento per poi fallire durante la persistenza.
 
 Non dobbiamo elencare ogni failure possibile per ogni feature.
 
@@ -155,29 +133,11 @@ Frasi come:
 
 sembrano requisiti.
 
-Ma cosa implicano?
-
-- isolamento dei dati?
-- configurazioni separate?
-- quote?
-- identità separate?
-- cifratura con chiavi diverse?
-- custom domain?
-- deployment separati?
-- billing separato?
+Ma che cosa implicano davvero? Potrebbero richiedere isolamento dei dati e configurazioni separate, quote o identità distinte, cifratura con chiavi differenti, custom domain, deployment dedicati o persino billing separato.
 
 La parola “supportare” può nascondere un'intera architettura.
 
-Lo stesso vale per:
-
-- supportare offline;
-- supportare multi-region;
-- supportare real time;
-- supportare audit;
-- supportare plugin;
-- supportare AI.
-
-Ogni volta dobbiamo tradurre la capacità in comportamenti e qualità osservabili.
+Lo stesso vale quando diciamo che il sistema deve supportare offline, multi-region, real time, audit, plugin o AI. Ogni volta dobbiamo tradurre la capacità in comportamenti e qualità osservabili.
 
 ### Requisiti non funzionali: gli aggettivi non bastano
 

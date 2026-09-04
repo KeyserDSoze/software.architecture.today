@@ -64,16 +64,7 @@ Quali scoperte devono interrompere l'execution e riportarci alla decisione?
 
 ### Non è una specifica tecnica
 
-Il brief non dovrebbe contenere automaticamente:
-
-- framework;
-- class diagram;
-- schema database dettagliato;
-- provider cloud;
-- struttura delle directory;
-- nomi delle classi;
-- librerie;
-- numero di microservizi.
+Il brief non dovrebbe contenere automaticamente framework, class diagram o uno schema database dettagliato, né prescrivere provider cloud, struttura delle directory, nomi delle classi, librerie o numero di microservizi.
 
 Queste possono diventare decisioni successive.
 
@@ -182,15 +173,7 @@ open decisions
 
 Per cambiamenti con forte blast radius:
 
-il brief rimane breve, ma viene accompagnato da artefatti specifici:
-
-- threat model;
-- ADR;
-- migration plan;
-- data contract;
-- reliability analysis;
-- compliance review;
-- rollback plan.
+il brief rimane breve e, quando serve, viene accompagnato da artefatti specifici: threat model e ADR, migration plan e data contract, reliability analysis, compliance review o rollback plan.
 
 Non dobbiamo gonfiare il brief per farlo contenere tutto.
 

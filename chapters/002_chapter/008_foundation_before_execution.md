@@ -42,17 +42,7 @@ Una distinzione utile è tra due forme di execution.
 
 Costruiamo qualcosa per ridurre incertezza.
 
-Può essere:
-
-- prototipo;
-- spike;
-- benchmark;
-- proof of concept;
-- simulazione;
-- test di integrazione;
-- esperimento utente.
-
-Il suo criterio di successo è l'apprendimento.
+Può essere un prototipo o uno spike, un benchmark o una proof of concept, una simulazione, un test di integrazione o un esperimento con utenti. Il suo criterio di successo è l'apprendimento.
 
 **Build to ship**
 

@@ -20,34 +20,13 @@ Immaginiamo un task iniziale:
 
 > “Permetti al cliente di scaricare la ricevuta di un ordine.”
 
-Durante l'implementazione emergono possibilità:
-
-- inviarla anche via email;
-- personalizzare il template;
-- supportare più lingue;
-- aggiungere un QR code;
-- archiviare i PDF;
-- creare una pagina amministrativa;
-- permettere la rigenerazione;
-- aggiungere firme digitali;
-- esportare tutte le ricevute del mese.
+Durante l'implementazione emergono facilmente nuove possibilità: inviare il risultato anche via email, personalizzare il template, supportare più lingue o aggiungere un QR code. Poi arrivano l'archiviazione dei PDF, una pagina amministrativa, la rigenerazione, le firme digitali e l'export mensile. Ognuna sembra piccola quando viene guardata da sola.
 
 Un agente può implementare alcune di queste estensioni in poco tempo.
 
 Ma il costo di sviluppo non è l'unico costo.
 
-Ogni capacità aggiunta può introdurre:
-
-- superficie di test;
-- dati da gestire;
-- casi limite;
-- autorizzazioni;
-- dipendenze;
-- storage;
-- compatibilità futura;
-- documentazione;
-- supporto operativo;
-- responsabilità legali o fiscali.
+Ogni capacità aggiunta allarga la superficie di test e i dati da gestire, porta nuovi casi limite, autorizzazioni e dipendenze e può richiedere storage. Crea inoltre compatibilità futura, documentazione e supporto operativo; in alcuni domini introduce perfino responsabilità legali o fiscali.
 
 Il fatto che il codice sia economico non rende economica la capacità nel suo ciclo di vita.
 
@@ -156,23 +135,11 @@ Possiamo distinguere almeno:
 
 **Hard constraint** — non può essere violato nel perimetro corrente.
 
-Esempi:
-
-- una normativa;
-- un'API esterna che non supporta un certo comportamento;
-- un deployment obbligatorio in una determinata regione;
-- compatibilità con una versione minima;
-- un limite contrattuale.
+Una normativa, un'API esterna che non supporta un certo comportamento, un deployment obbligatorio in una determinata regione, la compatibilità con una versione minima o un limite contrattuale sono esempi di hard constraint.
 
 **Soft constraint** — può essere negoziato, ma ha un costo.
 
-Esempi:
-
-- preferire una tecnologia già nota al team;
-- evitare una nuova piattaforma operativa;
-- target di delivery;
-- budget desiderato;
-- standard interno modificabile.
+Preferire una tecnologia già nota al team, evitare una nuova piattaforma operativa, puntare a una certa data di delivery o a un certo budget e rispettare uno standard interno modificabile sono invece esempi di soft constraint.
 
 Questa distinzione evita che una preferenza diventi accidentalmente una legge.
 
@@ -210,19 +177,7 @@ Torniamo ad Order Operations.
 
 Immaginiamo che il team voglia “migliorare la gestione degli ordini problematici”.
 
-La frase potrebbe esplodere rapidamente in:
-
-- dashboard;
-- workflow;
-- alert;
-- automazioni;
-- chatbot;
-- nuova coda operativa;
-- nuove API;
-- analytics;
-- notifiche al cliente.
-
-Prima di progettare, restringiamo.
+La frase potrebbe esplodere rapidamente in una dashboard, un workflow e nuovi alert, poi in automazioni, chatbot, una coda operativa, nuove API, analytics e notifiche al cliente. Prima di progettare, restringiamo.
 
 ```text
 In scope della prima iterazione

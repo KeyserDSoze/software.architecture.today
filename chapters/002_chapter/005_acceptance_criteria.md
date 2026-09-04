@@ -14,14 +14,7 @@ Devono dire che cosa deve essere vero perché possiamo considerare il comportame
 
 ### Done non significa compilato
 
-Un agente può produrre codice che:
-
-- compila;
-- passa i test esistenti;
-- rispetta lo stile del repository;
-- sembra coerente con il task.
-
-Eppure la feature può non essere “done”.
+Un agente può produrre codice che compila, passa i test esistenti, rispetta lo stile del repository e sembra coerente con il task. Eppure la feature può non essere “done”.
 
 Per esempio:
 
@@ -29,15 +22,7 @@ Per esempio:
 
 Un'implementazione può salvare un `assignedUserId` nel database.
 
-Ma restano domande:
-
-- due operatori possono prendere in carico lo stesso ordine contemporaneamente?
-- cosa vede il secondo?
-- l'assegnazione è auditabile?
-- un operatore può liberare il caso?
-- un amministratore può riassegnarlo?
-- l'utente deve vedere immediatamente il nuovo stato?
-- cosa succede se la richiesta viene ripetuta?
+Ma restano domande sul comportamento reale. Due operatori possono prendere in carico lo stesso ordine contemporaneamente, e che cosa vede il secondo? L'assegnazione è auditabile? Un operatore può liberare il caso e un amministratore riassegnarlo? Il nuovo stato deve essere immediatamente visibile e che cosa succede se la stessa richiesta viene ripetuta?
 
 Il codice può esistere senza che il comportamento sia definito.
 
@@ -96,17 +81,7 @@ Ma esiste una domanda estremamente utile da porre prima dell'execution:
 
 > **Che evidenza ci convincerebbe che questa feature funziona?**
 
-La risposta può essere:
-
-- un test automatico;
-- una proprietà invariabile;
-- un benchmark;
-- un test manuale guidato;
-- un contract test;
-- una query di verifica;
-- una metrica osservata;
-- una review di sicurezza;
-- una combinazione di questi elementi.
+La risposta può essere un test automatico o una proprietà invariabile, un benchmark o un test manuale guidato, un contract test o una query di verifica. In altri casi serve una metrica osservata, una security review o una combinazione di più forme di evidence.
 
 Il punto è evitare di definire la verifica soltanto dopo aver visto la soluzione.
 
@@ -203,14 +178,7 @@ Una demo può mostrare:
 
 > “Guarda, l'operatore prende in carico l'ordine.”
 
-Gli acceptance criteria ci ricordano di verificare anche:
-
-- concorrenza;
-- autorizzazione;
-- audit;
-- idempotenza;
-- errore;
-- osservabilità.
+Gli acceptance criteria ci ricordano di verificare anche concorrenza e autorizzazione, audit e idempotenza, comportamento in errore e osservabilità.
 
 Non perché ogni feature debba essere perfetta.
 
