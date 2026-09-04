@@ -1,140 +1,71 @@
-# ESI: Order Operations e il primo operating model agentico
+# 23.8 — ESI: il primo operating model agentico di Order Operations
 
-ESI non introduce un agent swarm generico.
+ESI non introduce uno swarm generico e non parte da una piattaforma multi-agent.
 
-Parte da un task reale.
+Parte da OO-001, il work item costruito nel capitolo precedente:
 
 ```text
-OO-001
 Verify PostgreSQL atomicity
 for Payment Escalation + Outbox
 ```
 
-Il task è interessante perché è abbastanza tecnico da essere delegabile, ma abbastanza importante da richiedere evidence vera.
+È un candidato utile perché ha un outcome osservabile, scope già bounded, canonical context, acceptance property e stop condition. Non cambia business semantics, non sposta ownership e non richiede production access.
 
-Non modifica business semantics.
+In altre parole: **il task è abbastanza decidibile da poter delegare execution senza delegare una nuova decisione di prodotto**.
 
-Non cambia ownership.
+## L'obiettivo non è produrre più codice
 
-Non richiede produzione.
+Commerce & Operations vuole aumentare throughput, ma formula l'obiettivo in modo più preciso:
 
-Quindi è un buon candidato per autonomia bounded.
+> **ridurre human time speso sulla bounded execution preservando qualità della decisione e qualità della verification.**
 
-## Esigenza
+Questa frase cambia il design.
 
-Commerce & Operations vuole aumentare il throughput dell'engineering team.
+Se l'obiettivo fosse semplicemente “far lavorare più agenti”, potremmo creare planner, implementer, test agent, security agent e reviewer fin dal primo task. Ma OO-001 non giustifica tutto quel coordination cost.
 
-L'obiettivo non è:
+Engineering ha bisogno di un executor capace di costruire un integration harness e riparare difetti locali. Platform non vuole una mini-piattaforma sproporzionata. Security non vuole production credential o permission escalation ad hoc. Architecture non vuole che una migration o una fitness rule vengano cambiate per ottenere verde. Finance non vuole che il workflow multi-agent costi più dell'evidence che compra.
 
-```text
-make agents write more code
-```
+La soluzione deve quindi comprare separazione **soltanto dove serve**.
 
-È:
+## La topologia scelta
 
-```text
-reduce human time spent on bounded execution
-while preserving decision and verification quality
-```
-
-OO-001 contiene già:
-
-- problem;
-- outcome;
-- scope;
-- out of scope;
-- canonical context;
-- acceptance criteria;
-- verification;
-- stop conditions.
-
-Quindi possiamo delegare senza chiedere all'agente di inventare il task.
-
-## Tensione
-
-Gli stakeholder vedono il problema in modo diverso.
-
-### Engineering
-
-Vuole che l'agente possa:
-
-- costruire l'integration harness;
-- scegliere un test environment riproducibile;
-- eseguire migration e test;
-- correggere problemi locali;
-- produrre un diff pronto per review.
-
-### Platform
-
-Non vuole introdurre una nuova mini-piattaforma solo per un test.
-
-### Security
-
-Non vuole:
-
-- production credentials;
-- shared privileged database;
-- uncontrolled network access;
-- permission escalation ad hoc.
-
-### Architecture
-
-Non vuole che un test fallito porti a:
-
-- cambiare migration history;
-- indebolire data ownership;
-- modificare fitness rule.
-
-### Finance / FinOps
-
-Non vuole un workflow multi-agent più costoso del valore del task.
-
-## Decisione
-
-ESI adotta un workflow semplice:
+ESI adotta:
 
 ```text
 Human Decision Owner
         ↓
 Implementer Agent
         ↓
-Deterministic gates
+deterministic PostgreSQL evidence
         ↓
-Verifier Agent / independent review role
+Independent Verifier role
         ↓
-Human merge decision
+Human / repository merge gate
 ```
 
-Specialist escalation soltanto su trigger.
+Non esiste un Planner Agent separato: OO-001 è già execution-ready. L'Implementer produce un piano breve prima del primo write, ma planning e implementation restano nello stesso mandate.
+
+Specialist review scatta soltanto su trigger. Security/Platform entra se il test environment richiede permission, network o risorse condivise oltre il contract. Architecture entra se migration semantics o verification policy devono cambiare. Product/Domain entra se emerge una nuova business decision.
+
+Questo è il primo esempio concreto di **role separation by risk**.
+
+## Agent Delegation Contract — `ADC-OO-001-v1`
+
+ESI introduce:
 
 ```text
-Security/Platform reviewer
-→ if environment requires shared permission/network/resource
-
-Architecture reviewer
-→ if existing architecture rule or migration semantics must change
-
-Product/Domain decision
-→ if business semantics become ambiguous
+docs/agent-delegation-contract.md
 ```
 
-Non abbiamo un Planner Agent separato.
+Il contract non ricopia OO-001. La referenzia e aggiunge il mandato operativo.
 
-OO-001 è già sufficientemente definita.
-
-L'Implementer deve comunque produrre un execution plan breve prima del primo write, ma non serve un nuovo boundary organizzativo.
-
-## Agent Delegation Contract — OO-001
-
-ESI introduce il primo contract persistente.
-
-Sintesi:
+La baseline è:
 
 ```text
 Delegation ID
 ADC-OO-001-v1
 
-Work Item
+Work item
 OO-001
 
 Role
@@ -144,253 +75,140 @@ Autonomy
 A2 — Execute + verify in bounded environment
 
 Goal
-Produce real PostgreSQL evidence for TST-005.
-
-Allowed
-read repo
-edit test/integration scope
-start isolated local PostgreSQL
-run typecheck/tests/integration checks
-add justified test-only dependency
-
-Forbidden
-merge main
-production credential/resource
-rewrite migration semantics merely to pass
-change business/data ownership
-weaken verification oracle
-
-Retry budget
-2 repair loops after first complete attempt
-
-Stop
-any OO-001 stop condition
-plus permission/environment escalation
+Produce real PostgreSQL evidence for TST-005
+without changing Payment Escalation semantics.
 ```
 
-Il contract non ricopia l'intera issue.
+L'Implementer può leggere il repository, modificare lo scope test/integration, avviare un PostgreSQL isolato, applicare la migration chain corrente, eseguire i gate e aggiungere una dependency test-only giustificata.
 
-La referenzia.
+Non può fare merge, usare production credential, usare production Azure resource, modificare Payments ownership, introdurre un nuovo authoritative fact, riscrivere migration `001/002` per ottenere verde, indebolire fitness rule o aumentare il proprio livello di autonomia.
 
-## AI Autonomy Matrix — prima versione
-
-Per Order Operations:
-
-| Capability | Level | Current rule |
-|---|---:|---|
-| read/search repository | A3 | automatic within repository context |
-| plan scoped execution | A2 | no semantic scope expansion |
-| edit scoped branch/worktree | A2 | task boundary required |
-| run local deterministic tests | A3 | no production access |
-| start isolated test dependency | A2 | reproducible + no prod secret |
-| add test-only dependency | A2 | justify in closure evidence |
-| create/update PR branch | A2/A3 | depends on execution platform |
-| modify existing migration semantics | A0 | explicit decision required |
-| modify architecture/security oracle | A0/A1 | separate policy decision |
-| change data ownership | A0 | human/domain decision |
-| merge default branch | human gate | repository policy |
-| production mutation | A0 | dedicated future workflow only |
-
-Questa matrice non misura l'intelligenza dell'agente.
-
-Misura il rischio che ESI sa governare oggi.
-
-## Verification Bundle — predefinito prima dell'execution
-
-OO-001 potrà essere considerata completata solo se il bundle contiene:
+Il contract aggiunge inoltre un repair budget:
 
 ```text
-C-01
-migration 001 → 002 succeeds on real PostgreSQL
-
-C-02
-success commits escalation + outbox
-
-C-03
-second-write failure commits neither
-
-C-04
-fast suite remains independent
-
-C-05
-evidence limitations explicit
+initial complete attempt
++ at most 2 bounded repair loops
 ```
 
-Per ogni claim:
+Quando il budget termina o una stop condition scatta, il risultato valido è `Stopped`, non execution infinita.
+
+## Verification Bundle — progettato prima del diff
+
+ESI introduce anche:
 
 ```text
-mechanism
-result
-primary evidence reference
-verifier finding
-limitation
-```
-
-Il verifier deve controllare almeno:
-
-1. engine reale PostgreSQL;
-2. migration non riscritte per convenienza;
-3. failure injection prima del commit;
-4. query post-failure su entrambe le tabelle;
-5. test harness riproducibile;
-6. nessun claim improprio su Azure/HA/production.
-
-## Human gate
-
-Il human owner non riesegue tutto.
-
-Riceve:
-
-```text
-work item
-+ diff
-+ verification bundle
-+ unresolved findings
-+ limitations
-```
-
-E decide:
-
-```text
-accept
-request change
-stop for decision
-```
-
-Il merge non è delegato in questa fase.
-
-Questo è un costo consapevole.
-
-## Costo accettato
-
-ESI accetta:
-
-- un secondo passaggio di verifica;
-- più metadata/evidence per task delegati;
-- un human merge gate;
-- qualche latenza aggiuntiva rispetto a `agent → main`;
-- costo di mantenere contract e autonomy matrix.
-
-Non massimizziamo autonomia.
-
-Massimizziamo **autonomia compatibile con evidence attuale**.
-
-## Quality floor
-
-Non sono negoziabili:
-
-```text
-business semantics
-Payments ownership
-migration provenance
-data ownership
-verification oracle integrity
-no production credentials
-explicit evidence limitations
-```
-
-Se un agente arriva a uno di questi boundary, il risultato corretto può essere `Stopped`.
-
-## Guardrail
-
-ESI aggiunge tre documenti al capstone:
-
-```text
-docs/agent-delegation-contract.md
 docs/agent-verification-bundle.md
+```
+
+Il documento non dichiara che OO-001 sia verificata. Definisce la forma del pacchetto che dovrà esistere **se e quando** l'execution verrà completata.
+
+I claim sono:
+
+| Claim | Proprietà |
+|---|---|
+| C-01 | migration `001 → 002` eseguita su PostgreSQL reale |
+| C-02 | success committa escalation + outbox insieme |
+| C-03 | failure sulla seconda write rollbacka entrambe |
+| C-04 | fast suite resta indipendente dal PostgreSQL integration environment |
+| C-05 | la closure mantiene esplicito il boundary dell'evidence |
+
+Per ogni claim il bundle richiede mechanism, result, primary evidence reference, verifier finding e limitation.
+
+Lo stato corrente resta:
+
+```text
+Primary evidence             Pending
+Independent verifier result  Pending
+Human acceptance             Pending
+```
+
+Questa distinzione è deliberata. **Un template di verification non è verification.**
+
+## AI Autonomy Matrix — capability, non modello
+
+Il terzo artifact è:
+
+```text
 docs/ai-autonomy-matrix.md
 ```
 
-E un fitness test per verificare almeno meccanicamente che:
+La matrice non dice “questo agente è A2”. Distingue capability.
 
-- i documenti esistano;
-- il contract referenzi OO-001;
-- l'autonomy matrix mantenga human gate su decisioni critiche;
-- il verification bundle preservi claim/evidence/limitations;
-- nessun artefatto dichiari OO-001 già verificata.
+Per la baseline del Capitolo 23, repository read/search può essere molto autonomo; plan ed edit scoped worktree sono A2; local deterministic test può procedere automaticamente dentro il repository boundary; PostgreSQL isolato per OO-001 resta A2; changing functional semantics, data ownership e architecture oracle restano A0 o proposal-only; merge e high-impact action rimangono human/repository gate.
 
-La semantica dei documenti resta materia di review.
+Order Operations non concede A4 production capability.
 
-## Trigger per aumentare autonomia
+La matrice rende anche esplicito che l'autonomia può diminuire quando cambiano tool, dati, reversibilità o observed failure behavior.
 
-ESI non aumenta A2 perché “il modello nuovo è migliore”.
+> **La matrice descrive il rischio che ESI sa governare oggi, non il potenziale teorico del modello.**
 
-Valuta invece:
+## Human gate: accettare evidence senza rifare l'execution
 
-```text
-accepted task rate
-repair loops
-stop-condition quality
-false green / missed finding
-human review effort
-policy violations
-cost per verified change
-```
+Il human owner non deve diventare un secondo executor.
 
-Un possibile aumento verso A3 richiede:
+Quando OO-001 verrà eseguita, riceverà work item, diff, Verification Bundle, primary evidence reference, finding e limitation. Potrà quindi decidere se accettare scoped evidence, richiedere change o fermare il flusso per una nuova decisione.
 
-- più task bounded completati correttamente;
-- evidence bundle consistente;
-- permission isolation reale;
-- rollback/review flow affidabile;
-- nessuna necessità di ampliare scope ad hoc.
+Il merge resta human/repository gate in questa fase.
 
-## Trigger per ridurre autonomia
+È un costo consapevole. ESI preferisce più latenza di acceptance a una self-certification che non ha ancora evidence sufficiente per essere automatizzata.
 
-Autonomy scende se:
+## Il fitness test rende meccanico il minimo governabile
 
-- cambia il toolset;
-- compare accesso a dati sensibili;
-- aumenta il blast radius;
-- si introducono one-way door;
-- il verifier trova recurring false positive;
-- cresce il numero di repair loop;
-- un agent modifica oracle/policy fuori autorizzazione.
-
-Quindi:
-
-> **L'autonomia non è una ricompensa all'agente. È una decisione di rischio dell'organizzazione.**
-
-## Il compromesso ESI del capitolo
+ESI aggiunge:
 
 ```text
-Esigenza
-più execution delegata
-
-Tensione
-throughput vs accountability / permission / verification cost
-
-Decisione
-A2 bounded execution + independent verification + human merge gate
-
-Costo accettato
-più governance e latenza di review
-
-Quality floor
-no semantic drift, no unauthorized permission, no self-certification
-
-Guardrail
-Delegation Contract + Verification Bundle + Autonomy Matrix
-
-Evidence
-platform guidance + executable repository gates + future task metrics
-
-Trigger
-observed task reliability / cost / failure / blast radius change
+tests/agent-governance-fitness.test.mjs
 ```
 
-Questa è la prima vera trasformazione del developer in manager di agenti dentro il capstone.
+La baseline contiene cinque check:
 
-Non perché smette di programmare.
+| ID | Proprietà protetta |
+|---|---|
+| AGOV-001 | Delegation Contract, Verification Bundle, Autonomy Matrix e OO-001 esistono |
+| AGOV-002 | `ADC-OO-001-v1` resta bounded a OO-001/A2 e non concede merge/production/autonomy escalation |
+| AGOV-003 | il bundle conserva C-01…C-05, primary evidence, independent verification, limitation e `Not verified` |
+| AGOV-004 | high-impact decision restano dietro human gate / A0 / forbidden boundary |
+| AGOV-005 | gli artifact non possono dichiarare OO-001 già eseguita o agent reliability già osservata |
 
-Ma perché una parte crescente del suo lavoro diventa:
+AGOV-005 è particolarmente importante. Protegge il libro e il capstone dallo stesso anti-pattern che combattiamo da molti capitoli: **confondere un design con evidence che non esiste**.
+
+Il test non dimostra che la governance sia semanticamente perfetta. Impedisce almeno che alcune proprietà meccaniche fondamentali driftino in silenzio.
+
+## Stato ESI dopo il Capitolo 23
+
+A questo punto il progetto può dichiarare:
 
 ```text
-definire il mandato
-progettare i confini
-selezionare l'evidence
-leggere le eccezioni
-prendere le decisioni che restano
+Agent Delegation Contract       Codified
+Verification Bundle structure   Codified
+AI Autonomy Matrix              Codified
+Agent governance fitness        Codified + locally verifiable
+OO-001 delegation               Designed / Codified at A2
+OO-001 PostgreSQL execution     Not yet executed
+OO-001 primary evidence         Pending
+Independent verifier result     Pending
+Observed production reliability No dataset yet
+A4 production capability        Not authorized
 ```
 
-> **Il manager di agenti non gestisce prompt. Gestisce responsabilità, permessi, evidence e rischio.**
+Questa è la maturity corretta.
+
+ESI ha costruito **il sistema che potrà governare una execution delegata**. Non ha ancora prodotto l'evidence che quella execution funzioni.
+
+## Quando aumenteremo autonomia
+
+ESI non promuoverà una capability perché arriva un modello più nuovo.
+
+Guarderà evidence di workflow: accepted scoped task rate, repair loop, stop-condition quality, verifier finding dopo implementer `PASS`, policy violation, human review effort e cost per verified change.
+
+Se quei segnali migliorano in modo stabile e il permission enforcement è reale, una capability potrà candidarsi ad A3. Se cresce blast radius, entrano dati sensibili o compaiono recurring false green, l'autonomia può diminuire.
+
+L'autonomia non è una ricompensa all'agente. È una decisione di rischio dell'organizzazione.
+
+## Il compromesso ESI
+
+ESI accetta un secondo passaggio di verification, più metadata per task delegati e un human merge gate. In cambio compra permission contenute, provenance migliore, meno self-certification e un percorso misurabile per aumentare autonomia in futuro.
+
+Il quality floor resta business semantics, Payments ownership, migration provenance, data ownership, oracle integrity, assenza di production credential e limitation esplicite.
+
+> **Il primo operating model agentico di ESI non massimizza quanta execution può essere automatizzata. Massimizza quanta execution può essere delegata senza perdere la capacità di spiegare chi l'ha autorizzata, quale evidence la sostiene e chi può accettarla.**
