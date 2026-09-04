@@ -1,46 +1,29 @@
-# Cardinality, sampling, costo e data governance
+## Cardinality, sampling, costo e data governance
 
-L'observability ha una proprietà pericolosa: è molto facile aggiungere signal e molto più difficile rimuoverli.
+L’observability ha una proprietà pericolosa: aggiungere un signal costa poco, mentre rimuoverlo mesi dopo è difficile. Nel tempo una nuova label, un nuovo trace attribute, un nuovo log e una retention più lunga possono accumularsi fino a produrre una seconda piattaforma complessa quanto il workload che stavano cercando di osservare.
 
-Un nuovo log sembra innocuo.
+Il problema non è soltanto economico. Telemetry incontrollata può creare query lente, dashboard fragili, alert rumorosi, esposizione di dati sensibili e soprattutto una enorme quantità di informazioni senza una gerarchia di significato.
 
-Una nuova label sembra innocua.
+Per questo costo, cardinalità e data governance non sono attività FinOps da aggiungere dopo. Sono parte dell’observability design.
 
-Una nuova retention policy sembra prudente.
+## Cardinality: quando “più dettaglio” cambia la scala del sistema
 
-Un nuovo trace attribute sembra utile.
-
-Presi singolarmente, quasi tutti lo sono.
-
-Insieme possono produrre:
-
-- ingestion molto costosa;
-- query lente;
-- cardinality ingestibile;
-- dashboard fragili;
-- alert rumorosi;
-- esposizione di dati sensibili;
-- costi di storage sproporzionati;
-- impossibilità pratica di capire che cosa sia davvero importante.
-
-## La cardinalità non è un dettaglio di monitoring
-
-Consideriamo una metric:
+Consideriamo una metric semplice:
 
 ```text
 payment_escalation_requests_total
 ```
 
-Con attributi:
+Con dimensioni bounded come:
 
 ```text
 environment
 result
 ```
 
-La cardinalità resta limitata.
+il numero di serie resta controllabile.
 
-Ora aggiungiamo:
+Se aggiungiamo:
 
 ```text
 tenantId
@@ -50,268 +33,93 @@ operatorId
 messageId
 ```
 
-Ogni combinazione può generare una serie temporale distinta.
+non abbiamo semplicemente una metric più dettagliata. Ogni combinazione può generare una nuova time series e cambiare drasticamente storage, ingestion e query cost.
 
-Non abbiamo semplicemente “più dettaglio”.
+La distinzione pratica è tra attributi con un insieme di valori relativamente limitato — environment, route template, result class, failure class, service version — e attributi che crescono con utenti, ordini, case, trace o messaggi.
 
-Abbiamo cambiato l'economia e la scalabilità del sistema di telemetry.
+Questi ultimi possono essere preziosi durante una investigazione. Semplicemente non sono il posto giusto in ogni metric dimension.
 
-## Low-cardinality vs high-cardinality
-
-Non esiste una soglia universale che separi magicamente le due categorie.
-
-Ma possiamo ragionare così.
-
-Dimensioni tipicamente bounded:
-
-```text
-environment
-region
-result class
-HTTP method
-route template
-failure class
-service name
-version
-```
-
-Dimensioni tipicamente unbounded o quasi:
-
-```text
-userId
-orderId
-caseId
-traceId
-messageId
-free-text error
-URL completa
-```
-
-Le seconde possono essere utilissime durante un'investigazione.
-
-Ma non significa che debbano diventare label di ogni metric.
-
-Possiamo conservarle dove il costo e il modello di query sono più appropriati, per esempio in trace/log strutturati, con retention e access control differenti.
-
-## Route template, non URL concreta
-
-Una metric HTTP dovrebbe preferire:
+Un esempio piccolo ma fondamentale è l’HTTP route:
 
 ```text
 /api/operational-cases/{caseId}/payment-escalations
 ```
 
-alla URL concreta:
+è una dimensione bounded.
+
+La URL concreta con un `caseId` diverso per ogni richiesta trasforma invece business identity in cardinalità infrastrutturale.
+
+## Il cardinality budget di ESI
+
+Nel capstone introduciamo una regola operativa, non una feature di Azure o OpenTelemetry: ogni custom metric significativa deve dichiarare purpose, dimensions, expected value set, owner e consumer.
+
+Se una dimensione cresce con il numero di utenti, case, ordini, escalation o messaggi, la risposta di default è **no** finché non esiste una motivazione esplicita.
+
+Questo produce un semplice cardinality budget:
 
 ```text
-/api/operational-cases/4f82.../payment-escalations
+bounded dimension by default
+unbounded identity → trace/log/audit context quando serve
+free text → mai metric dimension
 ```
 
-Altrimenti trasformiamo ogni business identifier in cardinalità infrastrutturale.
+Il budget non serve a vietare informazione. Serve a scegliere il signal con l’economia adatta.
 
-Questo è un esempio di decisione piccola con conseguenze architetturali.
+## Sampling: spendere meno accettando di non vedere ogni execution
 
-## Il cardinality budget
+I trace possono produrre volumi importanti. Conservare ogni singola esecuzione non è sempre utile né economicamente sostenibile.
 
-Per ESI introduciamo un concetto operativo semplice:
+Il sampling riduce il volume, ma compra quel risparmio accettando la possibilità di perdere un dettaglio che in futuro potrebbe servirci.
 
-> **cardinality budget**.
+Con **head sampling** la decisione viene presa presto, prima di conoscere l’outcome completo. È semplice e prevedibile, ma può scartare proprio la richiesta che diventerà interessante più avanti.
 
-Non è una feature di Azure o OpenTelemetry.
+Con **tail sampling** la decisione può usare l’esito del trace e quindi preservare, per esempio, errori o high-latency execution. Questo aumenta però infrastruttura, buffering e operational complexity.
 
-È una regola del capstone.
+Per la prima versione ESI non introduciamo un sistema dedicato di tail sampling senza volume e cost evidence che lo giustifichino.
 
-Ogni custom metric deve dichiarare:
+Il punto più importante è un altro:
 
-```text
-metric name
-purpose
-attributes
-expected value set
-owner
-SLI/alert/dashboard consumer
-```
+> **Il sampling dei trace non deve cambiare la semantica degli SLI.**
 
-Se un attribute può crescere con il numero di utenti, ordini, case o messaggi, non entra automaticamente in una metric dimension.
+Se il core journey SLO richiede una misura completa, la source primaria deve essere un signal appropriato — metric counter/histogram o event accounting — e non un sample arbitrario dei trace.
 
-Richiede una motivazione esplicita.
+I trace spiegano. Lo SLI misura.
 
-## Sampling
+## Non tutti gli errori meritano la stessa retention
 
-I trace possono avere volume significativo.
+Una policy può scegliere di preservare una quota più alta di error trace, rare failure class o high-latency execution rispetto al traffico normale. È una buona direzione finché non dimentichiamo che anche il comportamento sano serve come confronto.
 
-Conservare ogni singolo trace non è sempre necessario o economicamente sensato.
+Lo stesso vale per i log. Una dependency indisponibile può produrre migliaia di stack trace identici. Registrare ogni copia può aumentare il costo, saturare la pipeline e nascondere signal più importanti proprio durante l’incidente.
 
-Il sampling permette di ridurre il volume osservato.
+Possiamo aggregare, rate-limitare, deduplicare o campionare diagnostic event ripetitivi.
 
-Ma introduce un nuovo trade-off:
+Non possiamo applicare la stessa leggerezza a un audit event di una operazione sensibile. Il tipo di evidence cambia la policy.
 
-```text
-costo inferiore
-vs
-probabilità di perdere dettaglio utile
-```
+## Separare le classi di telemetry prima di scegliere la retention
 
-### Head sampling
+Per Order Operations distinguiamo almeno cinque classi:
 
-La decisione viene presa presto, tipicamente all'inizio del trace.
+**Operational metrics** per SLI, saturation, alerting e trend.
 
-Vantaggi:
+**Diagnostic traces** per execution path e dependency behavior, con sampling governato.
 
-- semplice;
-- prevedibile;
-- riduce subito il volume.
+**Application diagnostic logs** per eventi tecnici strutturati e minimizzati.
 
-Limite:
+**Security/audit events** per accountability e operazioni sensibili, con policy di accesso e retention proprie.
 
-non sappiamo ancora se il trace diventerà interessante.
+**Business operational events** per stato e progression dei journey, come Payment Escalation `Requested`, `Published`, `Delayed` o `DeadLettered`.
 
-Potremmo scartare proprio una richiesta che finirà in errore dopo diversi boundary.
+Questa classificazione evita una retention unica applicata per comodità a dati con significati e rischi differenti.
 
-### Tail sampling
+Più retention non è automaticamente meglio. Una retention lunga aumenta costo, privacy exposure, superficie di accesso e governance. Una retention troppo breve rende impossibili trend analysis, incident comparison, capacity planning o audit.
 
-La decisione può considerare il trace dopo averne osservato outcome e caratteristiche.
+La domanda corretta è:
 
-Questo permette policy come:
+> **Per quale decisione ci serve questo signal e per quanto tempo deve rimanere interrogabile?**
 
-```text
-keep all errors
-keep high-latency traces
-sample normal successful traffic
-```
+## Il telemetry store è un vero data store
 
-Ma richiede più infrastruttura e buffering.
-
-Non lo introdurremo automaticamente nel capstone.
-
-## Sampling non deve alterare gli SLI
-
-Uno SLO come:
-
-```text
-99.9% successful core journey
-```
-
-non dovrebbe dipendere da un sample arbitrario dei trace se esiste una fonte più adatta e completa, come metric counter/histogram o eventi contabilizzati in modo affidabile.
-
-I trace aiutano a spiegare il comportamento.
-
-Le metric appropriate possono essere la fonte primaria della misura.
-
-> **Non usare il segnale più ricco per forza. Usa il segnale con la semantica più adatta alla decisione.**
-
-## Error sampling
-
-Una policy ragionevole può preservare una percentuale maggiore di:
-
-```text
-error trace
-high-latency trace
-rare failure class
-security-significant trace, quando appropriato
-```
-
-rispetto alle richieste normali.
-
-Ma anche qui dobbiamo evitare una nuova illusione.
-
-Se conserviamo soltanto errori, perdiamo il contesto di cosa significhi comportamento normale.
-
-Una investigazione ha spesso bisogno di confronto.
-
-## Logs: sampling e deduplication
-
-Un dependency failure può produrre lo stesso errore migliaia di volte.
-
-Registrare ogni replica della stessa eccezione con stack trace completo può:
-
-- aumentare il costo;
-- nascondere altri signal;
-- saturare pipeline di log;
-- peggiorare il sistema durante un incidente.
-
-Le strategie possibili includono:
-
-- aggregation;
-- rate limiting;
-- deduplication;
-- sampling;
-- summary counter.
-
-La scelta dipende dal tipo di evento.
-
-Un audit event sensibile non può essere campionato con la stessa leggerezza di un diagnostic log ripetitivo.
-
-## Telemetry class
-
-Per Order Operations distinguiamo almeno:
-
-### Operational metrics
-
-Per SLI, saturation e alerting.
-
-Retention orientata a trend e incident comparison.
-
-### Diagnostic traces
-
-Per ricostruire execution path e dependency behavior.
-
-Sampling consentito secondo policy.
-
-### Application diagnostic logs
-
-Per eventi tecnici strutturati.
-
-Retention limitata e data minimization forte.
-
-### Security/audit events
-
-Per operazioni sensibili e ricostruzione accountability.
-
-Access control, integrity e retention possono essere diversi dal logging ordinario.
-
-### Business operational events
-
-Per capire il journey:
-
-```text
-PaymentEscalation Requested
-Delivered
-Delayed
-DeadLettered
-```
-
-La semantica deve rimanere coerente col dominio.
-
-## Retention non è “più è meglio”
-
-Una retention lunga aumenta:
-
-- storage;
-- privacy exposure;
-- costo di query;
-- obblighi di governance;
-- superficie di accesso.
-
-Una retention troppo corta può invece impedire:
-
-- incident comparison;
-- trend analysis;
-- capacity planning;
-- audit requirement;
-- analisi di failure intermittenti.
-
-Quindi la domanda non è:
-
-> quanti giorni possiamo conservare?
-
-ma:
-
-> **per quale decisione ci serve questo segnale e per quanto tempo deve restare interrogabile?**
-
-## Telemetry e dati sensibili
-
-Il Capitolo 13 aveva già stabilito un quality floor:
+Il Capitolo 13 aveva già fissato un quality floor:
 
 ```text
 no token
@@ -320,86 +128,60 @@ no secret
 payload minimization
 ```
 
-Aggiungiamo:
+Qui lo estendiamo: request e response body non vengono registrati per default; free-text business content non diventa metric dimension; gli identifier vengono classificati prima della propagation; redaction e minimization avvengono prima dell’export quando possibile.
 
-- non registrare request/response body per default;
-- non usare free-text business content come metric dimension;
-- classificare gli identifier prima di propagarli;
-- applicare redaction prima dell'export quando possibile;
-- considerare telemetry store come sistema che contiene dati reali e quindi soggetto a identity, retention e incident response.
+Un workspace centralizzato può diventare uno dei database più sensibili dell’azienda proprio perché mette in relazione informazioni che nei sistemi originali erano separate.
 
-Un log centralizzato può diventare uno dei database più sensibili dell'azienda proprio perché aggrega dettagli da molti sistemi.
+Observability e Security by Design si incontrano quindi sul data lifecycle della telemetry.
 
-## Cost observability
+## Rendere osservabile anche il costo dell’observability
 
-Il costo deve essere reso osservabile a sua volta.
+Se il costo di telemetry cresce, dobbiamo riuscire a sapere perché.
 
 Per ESI vogliamo almeno distinguere:
 
 ```text
 log ingestion volume
 trace ingestion volume
-custom metric count
-retention cost
-query cost, dove applicabile
-high-cardinality custom telemetry
+custom metric count/cardinality
+retention/storage cost
+query cost dove applicabile
 ```
 
-Questo non significa ottimizzare ogni byte.
+Non per ottimizzare ogni byte, ma per evitare una situazione paradossale in cui il sistema di osservazione costa più della capability che protegge senza produrre un aumento proporzionato della capacità investigativa.
 
-Significa evitare di scoprire a fine mese che la telemetry del workload costa più della capability che sta osservando.
+La cost review deve quindi chiedere quali signal siano ancora usati da SLI, alert, dashboard, runbook o investigation. Un debug log dimenticato può essere un costo reale. Una metric senza consumer è un candidato alla rimozione.
 
-## Platform vs workload
+## Platform standardizza il meccanismo, il workload possiede il significato
 
-Platform Engineering può fornire:
+Platform Engineering può fornire collector/export path, semantic convention comuni, workspace policy, default retention, security baseline e cost allocation.
 
-- collector/export path;
-- standard semantic conventions;
-- central workspace policy;
-- default retention;
-- security baseline;
-- cost allocation;
-- shared dashboards/tooling.
+Non può sapere da sola che `PaymentEscalation PublishedWithinTarget` è il signal che collega business intent e reliability contract.
 
-Ma il workload team deve possedere:
+Il workload team deve possedere custom metric, business event, SLI query, failure-specific telemetry e alert meaning.
 
-- business signal;
-- custom metric;
-- journey correlation;
-- SLI query;
-- failure-specific telemetry;
-- alert meaning.
-
-Platform può standardizzare il meccanismo.
-
-Non può conoscere automaticamente la semantica di `PaymentEscalation`.
+Questa divisione è coerente con la landing zone dei Capitoli precedenti: centralizziamo ciò che riduce cognitive load condiviso, non la semantica del prodotto.
 
 ## Il compromesso ESI
 
-Operations vorrebbe conservare tutto per investigare qualsiasi cosa.
+Operations vorrebbe conservare tutto. Finance vuole contenere ingestion e retention. Security vuole minimizzare dati. Il workload team vuole poter diagnosticare rapidamente failure rari.
 
-Finance/FinOps vuole contenere ingestion e retention.
-
-Security vuole minimizzare i dati.
-
-Il workload team vuole debugging efficace.
-
-La decisione è:
+La decisione corrente è:
 
 ```text
-bounded metrics dimensions
-+ structured logs
-+ sampled traces
-+ full preservation of required audit/business evidence
+bounded metric dimensions
++ structured diagnostic events
++ governed trace sampling
++ preserved audit/business evidence quando richiesto
 + explicit retention classes
 + telemetry cost review
 ```
 
-Non scegliamo “massima telemetry”.
+Non scegliamo la massima quantità di telemetry.
 
-Scegliamo **massima capacità di risposta per unità di complessità e costo ragionevoli**.
+Scegliamo la massima capacità di risposta compatibile con costo, privacy e complessità sostenibili.
 
-## Fonti
+Fonti:
 
 - [OpenTelemetry — Signals](https://opentelemetry.io/docs/concepts/signals/)
 - [OpenTelemetry — Metrics specification](https://opentelemetry.io/docs/specs/otel/metrics/)
