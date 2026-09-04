@@ -2,13 +2,13 @@
 
 L'architettura non vive soltanto nel codice.
 
-Vive anche nella struttura organizzativa che deve costruirla, cambiarla e operarla.
+Vive nell'organizzazione che deve costruirla, modificarla, rilasciarla e operarla.
 
 Per questo team boundary e service boundary sono spesso collegati.
 
-Ma non sono la stessa cosa.
+Ma confonderli produce un altro tipo di architecture by default.
 
-### Il rischio del service-per-team
+## L'organigramma non è automaticamente il dominio
 
 Una scorciatoia frequente è:
 
@@ -17,107 +17,103 @@ un team
 → un servizio
 ```
 
-Può funzionare quando il team possiede davvero una capacità di business coerente e può operarla con autonomia.
+Può funzionare quando il team possiede davvero una capability coerente, ha una roadmap relativamente indipendente e può portare cambiamenti in produzione senza coordinamento continuo.
 
-Ma può anche trasformare l'organigramma in architettura.
+Ma può anche cristallizzare nel codice una struttura organizzativa temporanea.
 
-Se dividiamo il sistema soltanto perché esistono tre team, potremmo ottenere servizi che non corrispondono a confini di responsabilità reali.
+Gli organigrammi cambiano. I manager cambiano. I team vengono fusi, divisi o rinominati.
 
-Il risultato è un'architettura che riflette una struttura organizzativa temporanea.
+Le dipendenze tecniche create per riflettere quella fotografia possono restare per anni.
 
-Gli organigrammi cambiano.
+Separare servizi soltanto perché esistono team diversi significa quindi rischiare di trasformare una scelta organizzativa contingente in un costo architetturale persistente.
 
-Le dipendenze restano.
+## Nemmeno il grande servizio condiviso risolve il problema
 
-### Il rischio opposto
+L'errore opposto è avere un unico componente enorme posseduto formalmente da molti team.
 
-Possiamo anche avere un singolo servizio enorme posseduto formalmente da molti team.
+In questo caso tutti possono modificarlo, ma nessuno possiede davvero il comportamento end-to-end. Ogni feature attraversa ownership differenti, ogni incident coinvolge più gruppi e il codice diventa un territorio comune in cui le responsabilità sono condivise ma non realmente governate.
 
-In quel caso nessuno possiede davvero l'intero comportamento.
+Quindi non dobbiamo scegliere tra un'architettura “guidata dai team” e una “guidata dal dominio”.
 
-Ogni modifica attraversa ownership diverse.
-
-Il codice diventa un territorio condiviso in cui tutti hanno accesso ma nessuno ha responsabilità completa.
-
-Quindi il problema non è scegliere tra:
+Dobbiamo cercare un allineamento sufficiente fra quattro cose:
 
 ```text
-team-centric
-vs
-architecture-centric
+responsabilità di dominio
+ownership di codice e dati
+responsabilità operativa
+capacità di delivery
 ```
 
-Dobbiamo cercare un allineamento ragionevole fra responsabilità di dominio, ownership del codice e dei dati, responsabilità operativa e capacità di delivery. Quando queste dimensioni puntano in direzioni diverse, il confine tecnico tende a diventare un punto di coordinamento permanente.
+Quando queste dimensioni puntano in direzioni molto diverse, il confine tende a diventare un punto di coordinamento permanente.
 
-### Autonomia reale
+## Autonomia significa ridurre il coordinamento necessario
 
-Un team è realmente autonomo quando può portare una modifica significativa in produzione senza coordinamento eccessivo con altri team.
+Un team è realmente autonomo quando può portare una modifica significativa in produzione senza dover sincronizzare continuamente il proprio lavoro con altri team.
 
-Questo non significa lavorare in isolamento.
+Autonomia non significa isolamento.
 
-Significa che i contratti e i boundary riducono il bisogno di sincronizzazione continua.
+Significa che i contratti permettono collaborazione senza obbligare alla co-evoluzione continua.
 
-Se un team possiede `Payments`, per esempio, dovrebbe idealmente poter:
+Se un team possiede Payments, dovrebbe poter cambiare il proprio modello interno, evolvere la logica di pagamento, correggere incidenti e rilasciare senza richiedere una modifica simultanea in Orders ogni volta che il contratto pubblico resta compatibile.
 
-- modificare la logica di pagamento;
-- evolvere il proprio modello interno;
-- gestire incidenti;
-- cambiare implementazione;
-- rilasciare;
+Questa è la proprietà che un service boundary può rafforzare.
 
-senza richiedere modifiche simultanee in `Orders`, purché il contratto resti rispettato.
+Se invece il team deve concordare ogni schema, ogni release e ogni dettaglio implementativo con altri gruppi, il servizio separato non ha ancora comprato molta autonomia.
 
-Questa è autonomia architetturale utile.
+## Build, run, change, learn
 
-### Ownership end-to-end
+L'ownership diventa più forte quando chi cambia una capability riceve anche feedback dalle sue conseguenze operative.
 
-Una separazione organizzativa sana tende ad avvicinare:
+Possiamo pensare a un ciclo:
 
 ```text
 build
-+ run
-+ change
-+ learn
+→ run
+→ observe
+→ learn
+→ change
 ```
 
-Lo stesso team che modifica una capacità dovrebbe avere sufficiente visibilità sulle sue conseguenze operative.
+Se un team produce cambiamenti ma un altro assorbe sistematicamente alert, incidenti e recovery, la velocità di delivery è separata dal costo operativo. Il feedback si indebolisce.
 
-Altrimenti rischiamo un modello in cui qualcuno produce cambiamenti e qualcun altro assorbe sistematicamente gli incidenti.
+Con l'AI questo rischio cresce: possiamo produrre più cambiamenti nello stesso tempo senza aumentare automaticamente la comprensione del loro comportamento in produzione.
 
-L'AI può amplificare questo problema.
+La topologia dovrebbe quindi favorire ownership end-to-end dove l'organizzazione è in grado di sostenerla.
 
-Se un team può produrre più cambiamenti ma non osserva gli effetti in produzione, aumenta la velocità senza aumentare il feedback.
+## Quando il team boundary rafforza il caso per un servizio
 
-### Quando un boundary di team suggerisce un service boundary
+Un boundary operativo diventa più interessante quando più segnali convergono.
 
-La separazione fisica diventa più interessante quando più segnali convergono: ownership stabile e distinta, ciclo di rilascio e roadmap realmente indipendenti, profilo di carico diverso, failure isolation utile o security boundary specifico. Dati posseduti chiaramente e bisogno di autonomia operativa rafforzano ulteriormente il caso.
+Una capability ha ownership stabile e distinta. Il team ha una roadmap e una release cadence realmente indipendenti. Il modulo ha dati propri, un profilo di carico specifico o un security boundary che merita isolamento più forte. Gli incidenti e l'on-call possono essere posseduti senza dipendere continuamente dal resto dell'organizzazione.
 
-Uno solo di questi segnali può non bastare.
+Questi segnali raccontano una storia coerente: esiste già una forma di autonomia logica e organizzativa che la separazione fisica può rendere più forte.
 
-Molti insieme costruiscono un caso più forte.
+Un solo segnale, invece, raramente basta.
 
-### Team piccoli, sistemi grandi
+Avere un team dedicato non obbliga a creare un servizio. Avere un servizio non crea automaticamente un team autonomo.
 
-Nei team piccoli la distribuzione prematura può diventare particolarmente costosa.
+## Team piccoli, costo distribuito grande
 
-Tre persone che possiedono dieci servizi non ottengono automaticamente più autonomia.
+La dimensione dell'organizzazione cambia completamente il fit.
 
-Potrebbero semplicemente dover operare dieci deployable, dieci pipeline, dieci set di alert e dieci failure mode distribuiti.
+Tre persone che possiedono dieci servizi non hanno necessariamente dieci unità autonome.
 
-Questo ci riporta a **fit before fashion**.
+Hanno dieci deployable da aggiornare, dieci failure surface, più pipeline, più dashboard, più contract e più possibilità che una modifica attraversi la rete.
 
-Un'architettura progettata per cento engineer può essere completamente sbagliata per cinque.
+Per un team piccolo un modular monolith può offrire ownership molto chiara con un costo operativo molto più basso.
 
-E copiare la topologia di un'azienda molto più grande non copia automaticamente le condizioni che la rendevano sensata.
+Per un'organizzazione con molti team indipendenti, la stessa topologia potrebbe diventare un collo di bottiglia di rilascio e coordinamento.
 
-### L'organizzazione è un requisito
+Non c'è contraddizione.
 
-Nel Capitolo 6 abbiamo detto che il team è parte del sistema.
+È il contesto organizzativo che cambia il valore della separazione.
 
-Qui la conseguenza diventa concreta:
+## Evidenza metodologica
 
-> **la topologia deve essere sostenibile dall'organizzazione che la possiede oggi, non da quella immaginaria che forse avremo domani.**
+La documentazione Microsoft sui microservizi collega esplicitamente questo stile a servizi autonomi gestibili da team piccoli e alla possibilità di sviluppare e rilasciare indipendentemente le capability: [Microsoft Learn — Microservices architecture style](https://learn.microsoft.com/azure/architecture/microservices/).
 
-Possiamo preservare opzioni future.
+Questa indicazione non significa “un team, un servizio”.
 
-Non dobbiamo pagarle tutte in anticipo.
+Significa che l'autonomia del team è una delle proprietà che può rendere utile il boundary operativo, insieme a dominio, dati, deployment e failure isolation.
+
+> **La topologia deve essere sostenibile dall'organizzazione che possiede il sistema oggi, non da quella immaginaria che forse avremo domani.**
