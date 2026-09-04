@@ -338,30 +338,8 @@ Rappresentano complessità che prima era nascosta.
 
 ## Che cosa abbiamo ottenuto
 
-Non abbiamo ancora scelto:
+Non abbiamo ancora scelto database o cache, queue o event broker, microservizi, serverless o uno specifico cloud service. Eppure sappiamo molto di più sull'architettura.
 
-- database;
-- cache;
-- queue;
-- microservizio;
-- serverless;
-- cloud service;
-- event broker.
-
-Eppure sappiamo molto di più sull'architettura.
-
-Abbiamo identificato:
-
-- il system of interest;
-- gli attori;
-- le fonti autorevoli;
-- le dipendenze;
-- il journey critico;
-- il trust boundary;
-- i failure domain;
-- gli stakeholder aziendali;
-- le domande che cambieranno la soluzione.
-
-Questo è il punto dell'Architecture Context Map.
+Abbiamo identificato il system of interest e gli attori, le fonti autorevoli e le dipendenze, il journey critico e il trust boundary. Conosciamo meglio failure domain e stakeholder aziendali e, soprattutto, abbiamo reso visibili le domande che possono cambiare la soluzione. Questo è il punto dell'Architecture Context Map.
 
 > **Prima di scegliere i componenti, rendiamo visibili le forze che dovranno governarli.**

@@ -51,16 +51,7 @@ Ci obbliga a definire affidabilità e performance in relazione a un risultato, n
 
 Un journey può fallire anche se nessun componente è completamente down.
 
-Può fallire per:
-
-- stale data;
-- autorizzazione errata;
-- timeout cumulativo;
-- inconsistenza tra schermate;
-- dipendenza degradata;
-- evento perso;
-- errore di mapping;
-- workflow incompleto.
+Può fallire per stale data o autorizzazione errata, per timeout cumulativi e inconsistenza tra schermate, per una dipendenza degradata o un evento perso. Anche un errore di mapping o un workflow rimasto incompleto può rompere il journey pur lasciando molti componenti localmente sani.
 
 ## La latency si somma
 

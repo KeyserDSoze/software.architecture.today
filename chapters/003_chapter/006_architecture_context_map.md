@@ -1,18 +1,6 @@
 ## Architecture Context Map
 
-Finora abbiamo introdotto molti elementi:
-
-- system of interest;
-- attori esterni;
-- confini;
-- dipendenze;
-- ownership;
-- critical user journey;
-- failure domain;
-- coupling;
-- feedback loop.
-
-Serve un modo leggero per metterli insieme.
+Finora abbiamo introdotto il system of interest e gli attori esterni, confini, dipendenze e ownership. Abbiamo aggiunto critical user journey, failure domain, coupling e feedback loop. Serve un modo leggero per mettere insieme questi concetti senza trasformarli in nove documenti separati.
 
 L'artefatto operativo di questo capitolo è l'**Architecture Context Map**.
 
@@ -78,15 +66,7 @@ flowchart LR
 
 Ma il diagramma da solo non basta.
 
-Non ci dice, per esempio:
-
-- se `Orders DB` è authoritative;
-- quanto può essere vecchio il dato;
-- che cosa succede se Identity non risponde;
-- chi possiede il significato dello stato ordine;
-- quali vincoli di accesso esistono.
-
-Per questo la Context Map unisce rappresentazione e annotazioni decisionali.
+Non ci dice, per esempio, se `Orders DB` sia authoritative, quanto possa essere vecchio il dato o che cosa accada se Identity non risponde. Non chiarisce chi possieda il significato dello stato ordine né quali vincoli di accesso esistano. Per questo la Context Map unisce rappresentazione e annotazioni decisionali.
 
 ## Non è documentation theater
 
@@ -181,15 +161,7 @@ Invece di dare a un agente soltanto:
 
 > “Implementa la ricerca ordini.”
 
-possiamo fornire:
-
-- Problem & Outcome Brief;
-- Architecture Context Map;
-- contract rilevanti;
-- acceptance criteria;
-- stop condition.
-
-L'agente riceve così non soltanto il compito, ma una rappresentazione del sistema in cui il compito vive.
+possiamo fornire il Problem & Outcome Brief e l'Architecture Context Map, insieme ai contract rilevanti, agli acceptance criteria e alle stop condition. L'agente riceve così non soltanto il compito, ma una rappresentazione del sistema in cui il compito vive.
 
 Questo riduce la probabilità di ottimizzazioni locali incoerenti.
 

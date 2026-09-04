@@ -49,16 +49,7 @@ Questo è un esempio perfetto di perché il pensiero sistemico serve prima del c
 
 Il retry non è “buono”.
 
-È una scelta che interagisce con:
-
-- timeout;
-- backoff;
-- jitter;
-- capacity;
-- idempotency;
-- rate limiting;
-- queueing;
-- recovery time.
+È una scelta che interagisce con timeout, backoff e jitter, ma anche con capacity, idempotency e rate limiting. Queueing e recovery time completano un sistema di feedback che non può essere compreso guardando un solo parametro.
 
 ## Autoscaling come feedback loop
 
@@ -132,16 +123,7 @@ Molte architetture sembrano resilienti finché assumiamo failure indipendenti.
 
 Due istanze possono sembrare ridondanti.
 
-Ma se condividono:
-
-- lo stesso processo di deploy;
-- la stessa configurazione;
-- la stessa image corrotta;
-- la stessa availability zone;
-- lo stesso database;
-- la stessa quota;
-
-possono fallire contemporaneamente.
+Ma se condividono lo stesso processo di deploy o la stessa configurazione, la stessa image corrotta, la stessa availability zone, lo stesso database o perfino la stessa quota, possono fallire contemporaneamente.
 
 La ridondanza fisica non implica indipendenza del failure.
 

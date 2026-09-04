@@ -70,15 +70,7 @@ order created
 → payment processed later
 ```
 
-riduciamo un certo tipo di coupling e ne introduciamo altri:
-
-- eventual consistency;
-- retry;
-- idempotency;
-- osservabilità del workflow;
-- gestione degli stati intermedi.
-
-Non esiste eliminazione gratuita del coupling.
+riduciamo un certo tipo di coupling e ne introduciamo altri: eventual consistency, retry e idempotency diventano parte del problema, insieme all'osservabilità del workflow e alla gestione degli stati intermedi. Non esiste eliminazione gratuita del coupling.
 
 Esiste trasformazione.
 
@@ -250,15 +242,7 @@ Una transazione deve rispettare invarianti.
 
 Due concetti che fanno parte della stessa responsabilità possono essere correttamente coesi e quindi cambiare insieme.
 
-Il problema nasce quando il coupling è:
-
-- accidentale;
-- invisibile;
-- non proporzionato;
-- non governato;
-- contrario ai confini che crediamo di avere.
-
-L'obiettivo non è costruire un sistema in cui nulla dipende da nulla.
+Il problema nasce quando il coupling è accidentale o invisibile, non proporzionato al beneficio, non governato oppure contrario ai confini che crediamo di avere. L'obiettivo non è costruire un sistema in cui nulla dipende da nulla.
 
 Sarebbe impossibile e probabilmente inutile.
 

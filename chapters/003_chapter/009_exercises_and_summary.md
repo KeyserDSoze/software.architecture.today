@@ -301,17 +301,7 @@ Serve allenarsi a vedere relazioni.
 
 Prima dell'AI ricostruire le dipendenze di un sistema grande poteva richiedere molto lavoro manuale.
 
-Oggi possiamo accelerare enormemente:
-
-- repository exploration;
-- dependency discovery;
-- diagram generation;
-- call graph analysis;
-- ricerca di consumer;
-- failure brainstorming;
-- document summarization.
-
-Questo è un vantaggio reale.
+Oggi possiamo accelerare enormemente repository exploration e dependency discovery, diagram generation e call graph analysis, ricerca di consumer, failure brainstorming e document summarization. Questo è un vantaggio reale.
 
 Ma la nuova difficoltà è distinguere:
 

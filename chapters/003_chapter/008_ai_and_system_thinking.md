@@ -2,20 +2,7 @@
 
 L'AI rende più economico esplorare sistemi complessi.
 
-Possiamo chiederle di:
-
-- cercare dipendenze nel repository;
-- ricostruire call graph;
-- individuare schema condivisi;
-- mappare eventi;
-- confrontare configurazioni;
-- trovare consumer di un'API;
-- riassumere ADR;
-- identificare aree modificate insieme;
-- proporre failure mode;
-- generare una prima Architecture Context Map.
-
-Queste capacità sono molto utili.
+Possiamo chiederle di cercare dipendenze nel repository, ricostruire call graph e individuare schemi condivisi; può mappare eventi, confrontare configurazioni e trovare i consumer di un'API. Può inoltre riassumere ADR, identificare aree che cambiano insieme, proporre failure mode e generare una prima Architecture Context Map. Queste capacità sono molto utili.
 
 Ma contengono un rischio.
 
@@ -67,15 +54,7 @@ Se saltiamo direttamente da repository scan a diagramma definitivo, rischiamo di
 
 Il runtime può raccontare una storia diversa dal codice.
 
-Log, metriche e trace possono mostrare:
-
-- chiamate inattese;
-- dependency latency;
-- retry;
-- fan-out reale;
-- percorsi poco usati;
-- error propagation;
-- feature obsolete ma ancora attive.
+Log, metriche e trace possono mostrare chiamate inattese, dependency latency e retry, il fan-out reale e percorsi poco usati. Possono anche rendere visibili error propagation e feature obsolete che il diagramma considera morte ma che in produzione sono ancora attive.
 
 Quando possibile, la comprensione architetturale dovrebbe combinare:
 
@@ -121,16 +100,7 @@ Se chiediamo:
 
 l'agente tenderà a rispondere localmente.
 
-Se forniamo invece:
-
-- journey;
-- freshness requirement;
-- source of truth;
-- consumer;
-- failure domain;
-- security constraints;
-
-la domanda cambia.
+Se forniamo invece il journey, il freshness requirement e la source of truth, insieme ai consumer, al failure domain e ai security constraint, la domanda cambia.
 
 Forse il caching è corretto.
 
@@ -194,17 +164,7 @@ La sintassi Mermaid compila.
 
 Quindi abbiamo la sensazione di aver capito il sistema.
 
-Ma potrebbero mancare:
-
-- ownership;
-- temporality;
-- data freshness;
-- fallback;
-- failure correlation;
-- trust boundary;
-- processi manuali.
-
-La qualità visiva è un segnale molto debole di qualità architetturale.
+Ma potrebbero mancare ownership e temporality, data freshness e fallback, failure correlation, trust boundary e processi manuali. La qualità visiva è un segnale molto debole di qualità architetturale.
 
 > **Un diagramma può essere corretto sintatticamente e sbagliato semanticamente.**
 
@@ -239,15 +199,7 @@ Questo è un aspetto centrale del mestiere.
 
 Un architect non vale perché possiede una mappa completa.
 
-Vale anche perché riconosce:
-
-- dove la mappa è incompleta;
-- quali assunzioni sono fragili;
-- quali domande richiedono evidenza runtime;
-- quando serve parlare con un altro team;
-- quando un agente non può verificare il proprio output.
-
-Il pensiero sistemico non elimina l'incertezza.
+Vale anche perché riconosce dove la mappa è incompleta e quali assunzioni sono fragili, quali domande richiedono evidence runtime e quando serve parlare con un altro team. Sa infine riconoscere quando un agente non può verificare da solo il proprio output. Il pensiero sistemico non elimina l'incertezza.
 
 La rende visibile abbastanza presto da poterla governare.
 

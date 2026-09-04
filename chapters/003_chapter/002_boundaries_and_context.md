@@ -42,15 +42,7 @@ frontend
 → read model
 ```
 
-Se vogliamo capire l'impatto economico di un outage, il sistema può includere anche:
-
-- customer support;
-- processi manuali;
-- SLA;
-- revenue;
-- comunicazione verso i clienti.
-
-Il sistema rilevante cambia con la decisione.
+Se vogliamo capire l'impatto economico di un outage, il sistema può includere anche customer support e processi manuali, SLA e revenue, fino alla comunicazione verso i clienti. Il sistema rilevante cambia con la decisione.
 
 ### System of interest
 
@@ -85,18 +77,7 @@ Ed è proprio questo che li rende architetturalmente importanti.
 
 ## Una dipendenza esterna è una decisione interna
 
-Quando integriamo un servizio esterno stiamo introducendo nel nostro sistema caratteristiche che non controlliamo:
-
-- availability;
-- latency;
-- rate limit;
-- semantic versioning;
-- pricing;
-- error model;
-- authentication;
-- retention;
-- compliance;
-- support policy.
+Quando integriamo un servizio esterno stiamo introducendo nel nostro sistema caratteristiche che non controlliamo: availability e latency, rate limit e versioning, pricing ed error model. Anche authentication, retention, compliance e support policy del provider entrano nel nostro spazio di decisione, pur vivendo fuori dal nostro repository.
 
 Il fatto che un componente sia esterno non elimina la sua influenza sull'architettura.
 
@@ -180,15 +161,7 @@ Questa è una forma comune di **framework-driven architecture**: la struttura te
 
 Un confine utile riduce il numero di cose che devono cambiare insieme.
 
-Se una modifica alla logica di pricing richiede toccare:
-
-- frontend;
-- tre servizi;
-- schema condiviso;
-- pipeline analytics;
-- script di deployment;
-
-potremmo avere un confine debole.
+Se una modifica alla logica di pricing richiede di toccare frontend, tre servizi, uno schema condiviso, la pipeline analytics e gli script di deployment, potremmo avere un confine debole.
 
 Non sempre.
 
