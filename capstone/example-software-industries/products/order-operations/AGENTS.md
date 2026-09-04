@@ -26,6 +26,7 @@ Common routes:
 - cloud / security / reliability → `docs/cloud-deployment.md`, `docs/threat-model.md`, `docs/security-control-matrix.md`, `docs/reliability-contract.md`, `docs/cost-model.md`
 - architecture policy → `docs/architecture-fitness-checklist.md`
 - testing/evidence → `docs/testing-strategy.md`
+- execution/discovery task contract → `work-items/TEMPLATE.md` and the specific work item under `work-items/`
 
 Do not copy inferred behavior into canonical documentation as if it were confirmed. For legacy knowledge preserve the distinction `Found → Inferred → Observed → Confirmed`.
 
@@ -38,7 +39,8 @@ Do not copy inferred behavior into canonical documentation as if it were confirm
 - `src/priority/` — confirmed priority policy and explicit legacy compatibility seam.
 - `database/` — persistence owned by Order Operations only.
 - `infra/` — Azure workload infrastructure. Security, reliability and cost decisions apply.
-- `tests/` — behavioral, architecture, cost and repository-context verification.
+- `tests/` — behavioral, architecture, cost, issue-readiness and repository-context verification.
+- `work-items/` — bounded discovery/execution contracts for current or future work; not a second copy of canonical architecture documentation.
 
 Architecture rules are executable in `tests/architecture-fitness.test.mjs`.
 
@@ -75,6 +77,8 @@ If changing cloud topology, review Threat Model, Reliability Contract, Cost Mode
 
 If changing a legacy/refactoring behavior, preserve characterization evidence and the expected-difference registry. Do not change legacy characterization tests just to make the target implementation pass.
 
+If working from a `work-items/` execution task, preserve its outcome, scope, out-of-scope, acceptance criteria and stop conditions. New work discovered outside scope should be recorded as follow-up unless it is required to satisfy the declared acceptance properties.
+
 ## Stop conditions
 
 Stop execution and request an explicit decision if the task requires any of the following and the decision is not already documented:
@@ -89,9 +93,11 @@ Stop execution and request an explicit decision if the task requires any of the 
 - removing legacy/fallback before its completion and rollback conditions are satisfied;
 - changing an architecture/security/reliability rule only because the current implementation fails it.
 
+A work item may define additional, narrower stop conditions. Those conditions remain part of the task contract.
+
 ## Security
 
-Never add secrets, production credentials, private tokens or real customer data to source, fixtures, documentation or this file.
+Never add secrets, production credentials, private tokens or real customer data to source, fixtures, documentation, work items or this file.
 
 Instructions explain how to work; they do not grant production permissions.
 
@@ -103,6 +109,10 @@ Do not absorb unrelated cleanup into the current task. Record follow-up work ins
 
 Treat file paths in a task as hints unless the task explicitly constrains them. Preserve the semantic scope and out-of-scope constraints.
 
+Do not change an existing verification oracle merely to make a task green unless the work item explicitly authorizes a policy/test-baseline change and the corresponding decision has been reviewed.
+
+For a new execution/discovery task, prefer `work-items/TEMPLATE.md` rather than an unstructured ad-hoc prompt when the work has material semantic, architectural, security or migration risk.
+
 ## Definition of done
 
 For a normal code change:
@@ -113,6 +123,7 @@ For a normal code change:
 4. `npm run typecheck` passes;
 5. `npm test` passes, or failures/gaps are explicitly reported;
 6. architecture/security boundaries were not silently weakened;
-7. the final report distinguishes what was verified from what remains designed/pending.
+7. the final report distinguishes what was verified from what remains designed/pending;
+8. if a work item was used, closure evidence records outcome, checks executed, limitations, `Not verified` and follow-up work.
 
 > **Do not invent missing business semantics. Do not hide missing evidence.**
