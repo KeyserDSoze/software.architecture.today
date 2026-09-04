@@ -1,54 +1,34 @@
 ## Idee chiave
 
-Questo capitolo non sostiene che il software engineering sia diventato più difficile perché esiste l'AI.
+Questo capitolo non sostiene che il software engineering sia diventato più difficile perché esiste l’AI. Sostiene qualcosa di più preciso: l’AI modifica il rapporto tra **pensiero ed execution**.
 
-Sostiene qualcosa di più preciso.
+Quando produrre artefatti costa meno, scompare una parte dell’attrito che per anni ha rallentato il lavoro. È un vantaggio enorme. Scompare però anche una parte del tempo che, volontariamente o meno, ci costringeva a incontrare certe domande prima che il sistema crescesse troppo. Per questo produrre software e costruire buoni sistemi diventano attività ancora più chiaramente distinguibili.
 
-L'AI modifica il rapporto tra **pensiero ed execution**.
+L’execution abbondante sposta il collo di bottiglia verso chiarezza, judgment, integrazione e verifica. Ogni artefatto che diventa economico da creare può restare costoso da possedere: codice, servizi, dipendenze, test e documentazione continuano a richiedere comprensione, manutenzione e responsabilità. La capacità extra può però essere spesa bene, per comprare alternative, prototipi scartabili, review indipendenti, test avversariali e altre forme di evidence che aumentano la confidenza anziché soltanto il volume.
 
-Quando produrre artefatti costa meno, alcune vecchie forme di attrito scompaiono. È un vantaggio enorme.
+Abbiamo anche visto perché il **prompt-first development** è pericoloso quando trasforma l’incertezza direttamente in implementazione. Il problema non è usare prompt: è lasciare che il prompt inventi contemporaneamente problema, design e soluzione. In questo processo il repository diventa esso stesso un insegnante, perché gli agenti propagano con grande efficienza tanto le convenzioni sane quanto i precedenti accidentali.
 
-Ma scompare anche una parte del tempo che, volontariamente o meno, ci costringeva a incontrare certe domande prima che il sistema crescesse troppo.
+Una demo, allo stesso modo, produce evidence parziale. Mostra che almeno un percorso ha funzionato, non che il sistema sia production-ready. E un feedback loop veloce è utile soltanto se osserva ciò che conta davvero: il blast radius di una modifica è semantico, non dipende dal numero di righe, e una ottimizzazione locale può peggiorare il sistema globale.
 
-Le idee da portare avanti sono queste.
+Infine, l’abbondanza di output porta con sé un nuovo costo umano. **AI fatigue** emerge quando il sistema di lavoro costringe le persone a supervisionare una sequenza infinita di micro-interazioni. Context engineering, repository engineering e fonti di verità affidabili servono anche a questo: ridurre il lavoro di ricostruzione del contesto e conservare attenzione per le decisioni in cui il giudizio umano è realmente necessario.
 
-1. **Produrre software e costruire buoni sistemi non sono sinonimi.** Un'applicazione può essere generata rapidamente senza che i suoi requisiti, failure mode o costi siano stati compresi.
+Il principio che unisce tutto il capitolo resta semplice:
 
-2. **L'execution abbondante sposta il collo di bottiglia.** Diventano più preziosi chiarezza, judgment, integrazione e verifica.
+> **Prima capire, poi costruire.**
 
-3. **Ogni artefatto economico da creare può restare costoso da possedere.** Codice, servizi, dipendenze, test e documentazione introducono costi futuri.
-
-4. **L'AI può essere usata per comprare qualità, non soltanto volume.** Alternative, review indipendenti, test avversariali e prototipi scartabili sono forme di execution ad alto valore.
-
-5. **Prompt-first development significa trasformare l'incertezza direttamente in implementazione.** Il problema non è usare prompt; è chiedere al prompt di inventare contemporaneamente problema, design e soluzione.
-
-6. **Il repository insegna agli agenti.** Convenzioni buone e cattive vengono propagate attraverso il codice esistente.
-
-7. **Una demo produce evidenza parziale.** Dimostra un percorso osservato, non production readiness.
-
-8. **Il blast radius è semantico.** Una modifica piccola può avere conseguenze enormi; una trasformazione meccanica ampia può essere relativamente sicura.
-
-9. **Un feedback loop veloce è utile soltanto se osserva ciò che conta.** Ottimizzare localmente può peggiorare il sistema globale.
-
-10. **AI fatigue è un problema di sistema di lavoro.** Più micro-interazioni non equivalgono a più controllo.
-
-11. **Context engineering supera il singolo prompt.** Repository, contratti, ADR, test, issue, tool e permission boundary fanno parte del contesto operativo.
-
-12. **Più contesto non significa automaticamente contesto migliore.** Serve contesto affidabile, navigabile e proporzionato al task.
-
-13. **Il prototipo è uno strumento di apprendimento.** Non tutte le decisioni nate nel prototipo meritano di diventare fondazione.
-
-14. **Prima capire, poi costruire.** Non significa aspettare di sapere tutto. Significa capire abbastanza da sapere che cosa stiamo chiedendo all'execution di moltiplicare.
+Non significa aspettare di sapere tutto. Significa capire abbastanza da sapere che cosa stiamo chiedendo all’execution di moltiplicare.
 
 ---
 
 ## Esercizi
 
+Qui la struttura a lista è intenzionale: gli esercizi devono poter essere eseguiti, verificati e ripresi come strumenti di lavoro.
+
 ### Esercizio 1 — Togliere output
 
 Prendi una feature recente su cui hai lavorato o inventane una realistica.
 
-Elenca tutti gli artefatti che un'AI potrebbe produrre rapidamente:
+Elenca tutti gli artefatti che un’AI potrebbe produrre rapidamente:
 
 - codice;
 - test;
@@ -59,7 +39,7 @@ Elenca tutti gli artefatti che un'AI potrebbe produrre rapidamente:
 - script;
 - configurazioni.
 
-Ora elimina dalla lista tutto ciò che non è necessario per ottenere l'outcome desiderato.
+Ora elimina dalla lista tutto ciò che non è necessario per ottenere l’outcome desiderato.
 
 Per ogni elemento rimasto rispondi:
 
@@ -68,9 +48,7 @@ Per ogni elemento rimasto rispondi:
 3. chi dovrà mantenerlo?
 4. come potremmo evitarlo?
 
-L'obiettivo non è minimizzare il software a ogni costo.
-
-È allenarsi a distinguere capacità di generazione e necessità.
+L’obiettivo non è minimizzare il software a ogni costo. È allenarsi a distinguere capacità di generazione e necessità.
 
 ### Esercizio 2 — Diagnosi di prompt-first development
 
@@ -89,7 +67,7 @@ Considera questa sequenza:
 → implementazione
 ```
 
-Identifica almeno dieci decisioni importanti che sono state lasciate implicitamente all'execution.
+Identifica almeno dieci decisioni importanti che sono state lasciate implicitamente all’execution.
 
 Poi riscrivi il lavoro fino al primo task implementabile usando la sequenza:
 
@@ -106,16 +84,7 @@ Non scrivere codice.
 
 ### Esercizio 3 — Demo sotto processo
 
-Hai davanti una demo di un'applicazione che:
-
-- autentica utenti;
-- accetta pagamenti;
-- salva ordini;
-- invia email;
-- ha test automatici;
-- viene deployata tramite pipeline.
-
-La demo funziona perfettamente.
+Hai davanti una demo di un’applicazione che autentica utenti, accetta pagamenti, salva ordini, invia email, ha test automatici e viene deployata tramite pipeline. La demo funziona perfettamente.
 
 Costruisci una tabella con tre colonne:
 
@@ -140,32 +109,15 @@ Ordina questi cambiamenti per rischio, senza usare il numero di righe come crite
 - cambiare timeout di una chiamata esterna;
 - introdurre una cache condivisa.
 
-Per ogni scelta esplicita:
-
-- boundary coinvolti;
-- reversibilità;
-- persistenza;
-- compatibilità;
-- security impact;
-- osservabilità richiesta.
+Per ogni scelta esplicita boundary coinvolti, reversibilità, persistenza, compatibilità, security impact e osservabilità richiesta.
 
 Non esiste un ordine universale corretto. Devi difendere il tuo.
 
 ### Esercizio 5 — Progettare feedback
 
-Un agente deve ridurre la latenza di un endpoint critica.
+Un agente deve ridurre la latenza di un endpoint critico.
 
-Definisci un feedback loop che non si limiti alla latenza locale.
-
-Includi almeno:
-
-- performance;
-- correttezza;
-- consistenza;
-- failure;
-- costo;
-- sicurezza;
-- segnali dopo il deploy.
+Definisci un feedback loop che non si limiti alla latenza locale. Deve includere almeno performance, correttezza, consistenza, failure, costo, sicurezza e segnali dopo il deploy.
 
 Poi identifica quali controlli devono essere eseguiti prima del merge e quali possono essere osservati soltanto durante rollout o produzione.
 
@@ -180,32 +132,17 @@ Conta, anche approssimativamente:
 - quante review riguardano sempre la stessa regola;
 - quante informazioni vivono soltanto nella chat.
 
-Progetta una versione alternativa del workflow usando almeno tre tra:
+Progetta una versione alternativa del workflow usando almeno tre tra documento stabile, contract, ADR, `AGENTS.md`, test automatico, architecture test, issue template e stop condition.
 
-- documento stabile;
-- contract;
-- ADR;
-- AGENTS.md;
-- test automatico;
-- architecture test;
-- issue template;
-- stop condition.
-
-L'obiettivo è ridurre interazioni senza ridurre controllo.
+L’obiettivo è ridurre interazioni senza ridurre controllo.
 
 ### Esercizio 7 — Context engineering
 
 Devi delegare a un agente la modifica di un flusso di autenticazione.
 
-Costruisci due pacchetti di contesto.
+Costruisci due pacchetti di contesto. Nel **Pacchetto A** inserisci tutto ciò che potresti dare all’agente; nel **Pacchetto B** conserva soltanto il contesto minimo sufficiente per il task.
 
-**Pacchetto A:** tutto ciò che potresti dare all'agente.
-
-**Pacchetto B:** il contesto minimo sufficiente per il task.
-
-Spiega cosa hai escluso dal secondo e perché.
-
-Poi definisci una gerarchia delle fonti in caso di contraddizione, per esempio:
+Spiega che cosa hai escluso dal secondo e perché. Poi definisci una gerarchia delle fonti in caso di contraddizione, per esempio:
 
 ```text
 security policy
@@ -219,22 +156,13 @@ La tua gerarchia può essere diversa, ma deve essere esplicita.
 
 ### Esercizio 8 — Adversarial review
 
-Chiedi a un agente AI di progettare una feature non banale.
-
-Non implementarla.
+Chiedi a un agente AI di progettare una feature non banale. Non implementarla.
 
 Poi assegna a un secondo agente questo ruolo:
 
 > “Assumi che il design proposto sia pericolosamente incompleto. Trova assunzioni implicite, failure mode, costi nascosti, problemi di sicurezza e decisioni difficili da invertire.”
 
-Confronta i due output.
-
-Annota:
-
-- cosa il primo agente non aveva considerato;
-- cosa il reviewer ha inventato senza evidenza;
-- quali critiche cambiano davvero la decisione;
-- quali sono soltanto possibilità teoriche.
+Confronta i due output e annota che cosa il primo agente non aveva considerato, quali critiche del reviewer siano senza evidence, quali cambino davvero la decisione e quali siano soltanto possibilità teoriche.
 
 ### Esercizio 9 — Order Operations
 
@@ -244,11 +172,11 @@ Il requisito iniziale è:
 
 > “Inserire e consultare ordini.”
 
-Senza progettare ancora la soluzione finale, elenca:
+Senza progettare ancora la soluzione finale, prepara:
 
-- dieci domande che vorresti fare al product owner;
-- cinque assunzioni che accetteresti temporaneamente per un prototipo;
-- cinque assunzioni che non lasceresti implicite neppure nel prototipo;
+- dieci domande per il product owner;
+- cinque assunzioni accettabili temporaneamente per un prototipo;
+- cinque assunzioni da non lasciare implicite neppure nel prototipo;
 - tre segnali che ti farebbero fermare e riprogettare.
 
 ### Esercizio 10 — Il test del foglio bianco
@@ -264,20 +192,13 @@ Prima di aprire lo strumento, scrivi senza AI:
 5. criteri di verifica;
 6. stop condition.
 
-Solo dopo chiedi all'AI di implementare o progettare il task.
-
-Alla fine confronta:
-
-- ciò che avevi previsto;
-- ciò che l'agente ha aggiunto;
-- ciò che l'agente ha interpretato diversamente;
-- ciò che avresti probabilmente accettato senza il foglio iniziale.
+Solo dopo chiedi all’AI di implementare o progettare il task. Alla fine confronta ciò che avevi previsto, ciò che l’agente ha aggiunto, ciò che ha interpretato diversamente e ciò che avresti probabilmente accettato senza il foglio iniziale.
 
 ---
 
 ## Domande di autovalutazione
 
-1. So spiegare la differenza tra abbondanza dell'execution e riduzione della complessità del sistema?
+1. So spiegare la differenza tra abbondanza dell’execution e riduzione della complessità del sistema?
 2. So riconoscere quando sto usando il prompt come interfaccia e quando invece lo sto usando per evitare di chiarire il problema?
 3. Davanti a una demo funzionante, so descrivere quali claim posso fare e quali no?
 4. So valutare il blast radius di una modifica senza guardare soltanto la dimensione del diff?
@@ -285,84 +206,30 @@ Alla fine confronta:
 6. So riconoscere un workflow che genera AI fatigue?
 7. So indicare quali informazioni dovrebbero vivere nel repository invece che nella cronologia di una chat?
 8. So definire quale fonte è autorevole quando codice, documentazione e issue si contraddicono?
-9. So usare l'AI per generare alternative e critica, non soltanto implementazione?
-10. So fermare l'execution quando mi accorgo che stiamo trasformando assunzioni non comprese in struttura permanente?
+9. So usare l’AI per generare alternative e critica, non soltanto implementazione?
+10. So fermare l’execution quando mi accorgo che stiamo trasformando assunzioni non comprese in struttura permanente?
 
-Se alcune risposte sono “no”, non è necessario memorizzare una nuova lista di best practice.
-
-È più utile osservare il prossimo task reale e identificare dove il processo perde contesto o produce falsa confidenza.
+Se alcune risposte sono “no”, non serve memorizzare un’altra lista di best practice. È più utile osservare il prossimo task reale e identificare dove il processo perde contesto o produce falsa confidenza.
 
 ---
 
-## Cosa cambia con l'AI
+## Cosa cambia con l’AI
 
-Senza AI era già possibile:
+Partire dal codice troppo presto, innamorarsi di una demo, copiare pattern senza comprenderli, accumulare complessità, produrre documentazione obsoleta o misurare output invece di valore erano problemi possibili anche prima dei modelli generativi. L’AI non li inventa: li rende più veloci.
 
-- partire dal codice troppo presto;
-- innamorarsi di una demo;
-- copiare pattern senza comprenderli;
-- accumulare complessità;
-- produrre documentazione obsoleta;
-- misurare output invece di valore.
+Allo stesso tempo, rende più economiche molte contromisure. Possiamo esplorare alternative, generare test, costruire prototipi scartabili, cercare failure mode, documentare, eseguire review indipendenti, analizzare repository e automatizzare controlli con un costo marginale molto più basso.
 
-L'AI non inventa questi problemi.
+La tecnologia amplifica entrambe le direzioni. Per questo la domanda professionale non è “quanto velocemente può lavorare l’AI?”, ma:
 
-Li rende più veloci.
-
-E allo stesso tempo rende più economiche molte delle contromisure:
-
-- esplorare alternative;
-- generare test;
-- costruire prototipi scartabili;
-- cercare failure mode;
-- documentare;
-- eseguire review indipendenti;
-- analizzare repository;
-- automatizzare controlli.
-
-La tecnologia amplifica entrambe le direzioni.
-
-Per questo la domanda professionale non è:
-
-> “Quanto velocemente può lavorare l'AI?”
-
-È:
-
-> **“Quale processo stiamo rendendo più veloce?”**
+> **Quale processo stiamo rendendo più veloce?**
 
 ---
 
 ## Verso il Capitolo 2
 
-Abbiamo identificato il rischio.
+Abbiamo identificato il rischio: l’execution può partire prima che il problema sia abbastanza chiaro. Il passo successivo non è aggiungere più architettura, ma tornare indietro rispetto ai componenti, ai pattern, al cloud e perfino al codice.
 
-L'execution può partire prima che il problema sia abbastanza chiaro.
-
-Il passo successivo non è aggiungere più architettura.
-
-È tornare indietro.
-
-Prima dei componenti.
-
-Prima dei pattern.
-
-Prima del cloud.
-
-Prima persino del codice.
-
-Nel prossimo capitolo costruiremo la foundation minima che permette all'execution di essere utile:
-
-- problema;
-- utenti;
-- outcome;
-- scope;
-- vincoli;
-- requisiti;
-- acceptance criteria.
-
-Non per produrre documentazione.
-
-Per evitare che la velocità trasformi ambiguità in sistema.
+Nel prossimo capitolo costruiremo la foundation minima che rende utile l’execution. Chiariremo problema, utenti, outcome, scope, vincoli, requisiti e acceptance criteria non per produrre documentazione, ma per evitare che la velocità trasformi ambiguità in sistema.
 
 ## Corollario
 
