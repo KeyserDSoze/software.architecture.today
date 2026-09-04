@@ -1,374 +1,129 @@
 ## Un sistema asincrono deve saper rallentare
 
-Una queue può assorbire un picco.
+Una queue può assorbire un picco, ma non lo elimina: lo trasforma in backlog. Se il producer genera 500 messaggi al secondo e i consumer ne smaltiscono 200, il sistema accumula 300 messaggi di debito operativo ogni secondo. La queue può restare perfettamente disponibile mentre il prodotto diventa sempre più indietro rispetto alla propria promessa.
 
-Questo non significa che abbia eliminato il picco.
+È per questo che un sistema asincrono non deve soltanto sapere come accettare lavoro. Deve sapere come rallentare, quanto backlog può tollerare e quando il ritardo cambia significato funzionale.
 
-Lo ha **trasformato in backlog**.
+## Backpressure: decidere dove si trova il freno
 
-Questa distinzione è fondamentale.
+Backpressure significa impedire che una parte veloce saturi una parte più lenta. Possiamo rallentare il producer, limitare la concurrency dei consumer, applicare admission control, rifiutare lavoro oltre una soglia, degradare feature non essenziali o scalare i consumer quando il workload lo giustifica.
 
-Supponiamo:
+La scelta dipende dal flusso. Un audit trail può tollerare backlog per un periodo; una notifica real-time può diventare inutile dopo una TTL; un command economico non può essere semplicemente scartato perché “la coda è piena”.
 
-```text
-producer rate = 500 msg/s
-consumer capacity = 200 msg/s
-```
+Il design deve quindi collegare capacità tecnica e valore temporale del lavoro.
 
-La queue rimane disponibile.
+## Il backlog va letto in unità di business
 
-Il producer continua a pubblicare.
+`queue depth` è utile, ma spesso la metrica più significativa è l’**età del messaggio più vecchio**. Due queue con 100.000 messaggi possono avere implicazioni opposte: una può smaltire il backlog in pochi secondi, l’altra può essere bloccata da quarantacinque minuti.
 
-La dashboard sembra verde.
+Per Payment Escalation la domanda importante non è quanti messaggi esistano, ma da quanto tempo una escalation accettata attenda di essere consegnata. La metrica si avvicina quindi a `business delivery lag`, non a una semplice dimensione infrastrutturale.
 
-Ma ogni secondo accumuliamo:
+Questo collegamento tra observability e promessa funzionale tornerà più avanti nel libro.
 
-```text
-300 messaggi di debito operativo
-```
+## Una queue infinita è failure differito
 
-Dopo dieci minuti il problema non è più soltanto throughput.
+Se un downstream resta indisponibile per ore e continuiamo ad accettare lavoro senza limite, possiamo creare crescita di storage, recovery enormi, messaggi ormai vecchi e un nuovo picco ingestibile quando il consumer torna disponibile.
 
-È freshness.
-
-Dopo un'ora può diventare recovery.
-
-Una queue permette di **spostare nel tempo** il lavoro.
-
-Non crea capacità dal nulla.
-
-## Backpressure
-
-Backpressure significa che il sistema possiede un modo per impedire a una parte veloce di saturare una parte più lenta.
-
-Può essere implementata in modi diversi:
-
-- limitare il producer;
-- limitare concurrency dei consumer;
-- applicare rate limiting;
-- rifiutare lavoro oltre una soglia;
-- degradare feature non essenziali;
-- usare admission control;
-- rallentare polling;
-- scalare consumer se il workload lo giustifica;
-- prioritizzare classi di lavoro.
-
-La scelta dipende dal tipo di flusso.
-
-Un sistema di audit potrebbe preferire accumulare backlog per un periodo.
-
-Un sistema di notifiche real-time potrebbe preferire scartare messaggi ormai inutili dopo una TTL.
-
-Un payment command non può essere semplicemente scartato perché “la coda è piena”.
-
-## Backlog come metrica di prodotto
-
-Una delle metriche più utili in un sistema asincrono non è soltanto:
-
-```text
-queue depth
-```
-
-ma:
-
-```text
-age of oldest message
-```
-
-Perché due backlog di 100.000 messaggi possono significare cose molto diverse.
-
-Caso A:
-
-```text
-consumer throughput elevato
-oldest message = 3 secondi
-```
-
-Caso B:
-
-```text
-consumer bloccato
-oldest message = 45 minuti
-```
-
-La profondità dice quanto lavoro c'è.
-
-L'età dice quanto siamo indietro rispetto alla promessa funzionale.
-
-Per Order Operations, se Payments & Risk accetta un'escalation entro 5 minuti, la metrica significativa è più vicina a:
-
-```text
-escalation delivery lag
-```
-
-che al numero assoluto di record nella queue.
-
-## Fail fast e queue limit
-
-Una queue infinita è una forma di failure differito.
-
-Se un downstream rimane indisponibile per ore e continuiamo ad accettare lavoro senza limite, possiamo creare:
-
-- storage growth;
-- recovery time enorme;
-- messaggi ormai semanticamente vecchi;
-- burst ingestibile quando il consumer torna;
-- costi elevati;
-- incidenti secondari.
-
-AWS Well-Architected collega esplicitamente resilienza, timeout, retry limitati e queue bounded: il sistema deve evitare che i meccanismi di recovery amplifichino il guasto.
+AWS Well-Architected collega resilienza, timeout e retry limitati proprio alla necessità di evitare che i meccanismi di recovery amplifichino un guasto.
 
 Fonti:
 
 - [AWS Well-Architected — Control and limit retry calls](https://docs.aws.amazon.com/wellarchitected/latest/framework/rel_mitigate_interaction_failure_limit_retries.html)
 - [AWS Well-Architected — Set client timeouts](https://docs.aws.amazon.com/wellarchitected/latest/framework/rel_mitigate_interaction_failure_client_timeouts.html)
 
-## Retry path separato dal fast path
+La capacità di mettere in coda il lavoro non elimina quindi il bisogno di admission control e business timeout.
 
-Un errore ricorrente nei consumer è:
+## Il lavoro che non progredisce deve uscire dal fast path
 
-```text
-consume
-→ fallisce
-→ sleep
-→ retry
-→ sleep
-→ retry
-```
+Un consumer che fallisce, fa `sleep`, ritenta e trattiene la queue principale può trasformare un singolo messaggio problematico in head-of-line blocking per lavoro sano.
 
-Se il consumer blocca la partition o la queue principale mentre aspetta un downstream degradato, un singolo messaggio problematico può trattenere messaggi sani.
-
-Una strategia possibile separa:
+Una strategia frequente separa i percorsi:
 
 ```text
-normal path
-retry path
-terminal failure path
+main path
+  ↓ transient failure
+retry path / scheduled retry
+  ↓ retries exhausted
+terminal failure / DLQ
 ```
 
-Per esempio:
+Non è obbligatorio costruire tre infrastrutture separate in ogni caso. Il principio è che un messaggio che non riesce a progredire normalmente deve avere una strategia distinta, non occupare indefinitamente il percorso sano.
 
-```text
-main queue
-   ↓ failure transient
-retry queue / scheduled retry
-   ↓ retries exhausted
-DLQ
-```
-
-Questo non è sempre necessario.
-
-Ma rende esplicito che il lavoro che non progredisce normalmente ha bisogno di un percorso diverso.
-
-## Il caso reale Uber: reprocessing senza bloccare il real-time
-
-Uber Insurance Engineering ha documentato un sistema di retry e dead-lettering costruito su Kafka per il programma Driver Injury Protection.
-
-Il problema era concreto: un downstream lento o indisponibile non doveva bloccare il processing real-time degli altri eventi.
-
-Il team ha introdotto topic di reprocessing e dead-letter queue separati, consentendo retry non bloccanti e osservabili.
+Uber Insurance Engineering ha documentato un sistema di reprocessing e DLQ sopra Kafka proprio per impedire che downstream degradati bloccassero il traffico real-time.
 
 Fonte:
 
 - [Uber Engineering — Building Reliable Reprocessing and Dead Letter Queues with Apache Kafka](https://www.uber.com/blog/reliable-reprocessing/)
 
-La lezione non è:
+La proprietà trasferibile non è la topologia Kafka. È la separazione tra **normal progress** e **recovery progress**.
 
-> “dobbiamo copiare la topology di Uber”.
+## Una DLQ non è recovery se nessuno la governa
 
-La lezione è:
+`retries exhausted → DLQ` è una regola di routing, non una recovery strategy. Una DLQ operabile deve avere owner, alert, retention, reason code, original identity, correlation, retry history, redrive policy, security rule e soprattutto una risposta alla domanda: **che cosa succede al business mentre il messaggio è fermo lì?**
 
-> **un messaggio che fallisce deve avere una strategia di progressione distinta dal traffico sano.**
+Per una Payment Escalation dobbiamo sapere se l’operatore vede il ritardo, se esiste un canale alternativo, quando parte un alert, chi può redrive e come impedire che il redrive produca un secondo workflow.
 
-## Dead-letter queue: il parcheggio non è recovery
+La coda terminale non chiude il problema. Lo rende esplicito.
 
-Una DLQ è utile perché impedisce a messaggi problematici di bloccare indefinitamente il flusso principale.
+## Poison message: quando riprovare non può aiutare
 
-Ma spesso viene trattata come una discarica:
+Alcuni messaggi falliscono sempre perché lo schema è invalido, la versione non è supportata, una entity non esiste, una business precondition è violata o il payload è strutturalmente incompatibile. Cento retry non cambieranno il risultato.
 
-```text
-retries exhausted
-→ DLQ
-→ fine
-```
+La failure policy deve quindi distinguere almeno transient failure, infrastructure failure persistente, deterministic message failure e business rejection. Il primo può meritare retry; il secondo può richiedere pause/circuit/degraded mode; il terzo deve essere quarantinato rapidamente; il quarto è un esito funzionale, non un errore tecnico da martellare.
 
-Non è abbastanza.
+## Ordering e failure si influenzano
 
-Una DLQ production-ready deve avere almeno:
+Se gli eventi di una stessa key devono essere applicati in ordine e il primo è poison, non possiamo semplicemente far passare i successivi senza una decisione semantica. Possiamo bloccare quella key, parcheggiarla, correggere e redrive, oppure consentire processing fuori ordine con version check.
 
-```text
-owner
-alerting
-retention
-reason code
-original message identity
-correlation id
-last failure
-retry count
-first seen / last attempted
-redrive policy
-manual procedure
-security policy
-```
+Questo mostra che ordering non è soltanto una feature del broker. È una decisione sul comportamento durante failure e concorrenza.
 
-E soprattutto una risposta alla domanda:
+## TTL: durability non significa “per sempre”
 
-> che cosa succede al business mentre il messaggio è lì?
-
-Per un'email promozionale possiamo forse accettare una perdita finale.
-
-Per un'escalation payment dobbiamo sapere:
-
-- l'operatore vede che la consegna non è completata?
-- Payments & Risk ha un canale alternativo?
-- esiste un alert?
-- possiamo redrive in sicurezza?
-- la redelivery è idempotente?
-- dopo quanto tempo serve intervento umano?
-
-## Poison message
-
-Un messaggio può fallire sempre perché:
-
-- schema invalido;
-- dato incompatibile;
-- bug deterministico;
-- consumer non riconosce la versione;
-- riferimento a entity inesistente;
-- permission errata;
-- payload troppo grande;
-- business invariant violata.
-
-Riprovare cento volte non lo rende più corretto.
-
-Questo è il **poison message** problem.
-
-La policy deve distinguere:
-
-```text
-transient failure
-→ retry
-
-persistent infrastructure failure
-→ retry bounded + circuit / pause
-
-deterministic message failure
-→ DLQ / quarantine rapidamente
-
-business rejection
-→ stato funzionale, non errore tecnico da ritentare
-```
-
-## Ordering e head-of-line blocking
-
-Ordering può peggiorare proprio il failure handling.
-
-Se tutti gli eventi di un `caseId` devono essere processati in ordine e il primo è poison, i successivi non possono semplicemente superarlo senza cambiare la semantica.
-
-Dobbiamo scegliere:
-
-- bloccare quella key;
-- parcheggiare la key intera;
-- correggere/redrive il messaggio;
-- permettere processing fuori ordine con version check;
-- dichiarare una semantica diversa.
-
-Il punto è che:
-
-> **ordering non è soltanto una property del broker. È una decisione sul comportamento durante failure e concorrenza.**
-
-## TTL e messaggi scaduti
-
-Alcuni messaggi perdono valore nel tempo.
-
-Uber, descrivendo la propria Real-Time Push Platform, documenta messaggi con TTL esplicita e retry fino alla scadenza, perché una notifica real-time consegnata troppo tardi può non avere più utilità.
+Alcuni messaggi perdono valore nel tempo. Uber, descrivendo la propria Real-Time Push Platform, documenta messaggi con TTL e retry fino alla scadenza perché una notifica real-time troppo tarda può diventare inutile.
 
 Fonte:
 
 - [Uber Engineering — Uber's Real-Time Push Platform](https://www.uber.com/blog/real-time-push-platform/)
 
-Questo ci ricorda che durability non deve essere applicata ciecamente.
+Per una Payment Escalation il ragionamento è differente: non vogliamo una scadenza silenziosa. Il superamento del business timeout può invece trasformare il flusso in `DeliveryDelayed` o `ManualEscalationRequired`.
 
-Per alcuni workload la domanda non è:
+Durability e utilità temporale sono due dimensioni differenti.
 
-> “riusciremo a consegnarlo prima o poi?”
+## La DLQ umana
 
-ma:
+Esiste anche un failure organizzativo: alert correttamente emesso, broker funzionante, messaggio bloccato e nessun team che riconosce la responsabilità del recovery. Il sistema tecnico ha fatto il proprio lavoro; la capability operativa no.
 
-> “dopo quanto tempo questa informazione smette di essere utile o sicura?”
+Per questo ownership del redrive, escalation e runbook fanno parte dell’architettura del flusso, non della documentazione accessoria.
 
-Per un'escalation payment, invece, il messaggio non dovrebbe scadere silenziosamente.
+## Failure Policy come artefatto operativo
 
-La policy potrebbe trasformare il superamento della soglia in:
-
-```text
-manual escalation required
-```
-
-## Poison pill organizzativa
-
-Esiste anche una DLQ umana.
-
-Succede quando il sistema segnala errori ma nessuno è chiaramente responsabile.
-
-```text
-alert arriva
-→ team A pensa sia team B
-→ team B pensa sia Platform
-→ Platform vede che il broker funziona
-→ messaggio resta fermo
-```
-
-La tecnologia è disponibile.
-
-La capability di recovery no.
-
-Per questo ownership operativa è parte dell'architettura distribuita.
-
-## Una Failure Policy minima
-
-Per ogni flusso asincrono dovremmo poter scrivere qualcosa come:
+Per i flussi importanti possiamo mantenere una policy sintetica:
 
 ```markdown
-### Failure policy
-
-Transient errors:
-- max 5 attempts
+Transient errors
+- retry bounded
 - exponential backoff + jitter
 
-Non-retryable:
-- schema validation
-- authorization failure
-- unsupported message version
+Deterministic failures
+- no blind retry
+- quarantine / DLQ
 
-Dead-letter:
-- after retry budget exhausted
-- alert owner: Payments Integration
+Dead-letter
+- owner e alert espliciti
+- redrive solo dopo cause resolution
+- stessa message/business identity
 
-Redrive:
-- manual or automated only after cause resolved
-- same messageId/escalationId preserved
+Ordering
+- solo per la key che lo richiede
 
-Ordering:
-- per caseId only
-
-Backpressure:
-- consumer concurrency capped
+Backpressure
+- concurrency limit
 - oldest-message-age alert
 
-Business timeout:
-- if not delivered within 5 min, case becomes DeliveryDelayed
-- operator visibility required
+Business timeout
+- ritardo oltre soglia → stato/visibilità funzionale
 ```
 
-I numeri qui sono esempi di struttura, non target universali.
+I numeri concreti dipenderanno da workload ed evidence. La struttura, invece, serve sempre a rispondere alla domanda che conta:
 
-## Regola
-
-Una queue diventa architettura quando sappiamo rispondere non soltanto a:
-
-> “come entra il messaggio?”
-
-ma anche a:
-
-> **“come rallenta, come fallisce, dove finisce, chi lo recupera e quando smette di essere utile?”**
+> **come rallenta il sistema, come fallisce, dove finisce il lavoro, chi lo recupera e quando il ritardo cambia significato?**
