@@ -8,7 +8,7 @@ Ma i coding agent rendono molto più visibile la qualità — o la debolezza —
 
 GitHub documenta esplicitamente un workflow in cui una issue può essere assegnata a un coding agent, che da quel contesto pianifica il lavoro, apre una pull request, modifica il codice, esegue test e torna per review.[^github-agent]
 
-La best practice ufficiale insiste su tre elementi:
+La guidance ufficiale insiste su tre elementi:
 
 - problema o lavoro richiesto chiaro;
 - acceptance criteria completi;
