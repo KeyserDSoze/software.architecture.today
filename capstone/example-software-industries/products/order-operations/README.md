@@ -4,7 +4,7 @@
 
 Order Operations è il capstone principale di *Software Architecture Today* e appartiene alla business unit **Commerce & Operations**.
 
-I capitoli spiegano **perché** il progetto cambia. Questa directory conserva **lo stato corrente** delle decisioni, del codice e delle evidenze accumulate.
+I capitoli spiegano **perché** il progetto cambia. Questa directory conserva **lo stato corrente** delle decisioni, del codice e dell'evidence accumulata.
 
 ## Product goal
 
@@ -37,16 +37,19 @@ Order Operations non sostituisce Orders, Payments o Shipping come authoritative 
 | 15 | Observability Contract e telemetry port vendor-neutral |
 | 16 | Testing Strategy e prima suite eseguibile |
 | 17 | Operations Desk Classic, characterization e Legacy Understanding Map |
-| 18 | PriorityPolicy seam, Branch by Abstraction, shadow comparison e Refactoring Safety Plan |
-| 19 | Architecture Fitness Checklist e architecture fitness test eseguibile |
-| 20 | Cost Model, unit economics, allocation direction e cost fitness test |
-| 21 | `AGENTS.md`, Repository Map e context fitness per repository AI-ready |
-| 22 | Issue-driven development, work-item template, OO-001 e issue-readiness fitness |
-| 23 | Agent Delegation Contract, Verification Bundle, AI Autonomy Matrix e agent-governance fitness |
+| 18 | PriorityPolicy seam, shadow comparison e Refactoring Safety Plan |
+| 19 | Architecture Fitness Checklist e architecture fitness |
+| 20 | Cost Model, unit economics e cost fitness |
+| 21 | `AGENTS.md`, Repository Map e context fitness |
+| 22 | issue-driven development, work-item template e OO-001 |
+| 23 | Agent Delegation Contract, Verification Bundle e AI Autonomy Matrix |
+| 24 | Case Explanation Assistant, AI Feature Contract, eval seed e AI boundary fitness |
 
-## Stato funzionale corrente
+---
 
-### Payment Escalation
+# Stato funzionale corrente
+
+## Payment Escalation
 
 ```text
 OperationalCase
@@ -60,7 +63,7 @@ OperationalCase
 
 Order Operations possiede l'intenzione di escalation; Payments & Risk mantiene ownership della semantica economica.
 
-### Priority migration
+## Priority migration
 
 Target semantics confermate nello scenario ESI:
 
@@ -96,287 +99,134 @@ modes: legacy | shadow | candidate
 
 Il production candidate cutover non è ancora autorizzato.
 
-## Architecture Evolution — Capitolo 19
+## Case Explanation Assistant — Capitolo 24
 
-Entrano:
+Prima capability AI **dentro** il runtime del prodotto.
 
-```text
-docs/architecture-fitness-checklist.md
-tests/architecture-fitness.test.mjs
-```
-
-Prime fitness function strutturali:
+Obiettivo:
 
 ```text
-AF-001 legacy isolation
-AF-002 application dependency direction
-AF-003 contract independence
-AF-004 priority isolation
-AF-005 vendor SDK boundary
+operator
+→ authorized case context
+→ AI explanation
+→ confirmed facts + hypotheses + missing evidence + sources
 ```
 
-Verification dedicata eseguita durante il Capitolo 19:
+V1 boundary:
 
 ```text
-AF-001…AF-005
-→ 5 pass
-→ 0 fail
+read-only
++ deterministic context assembly
++ provider-neutral CaseExplanationPort
++ structured source-backed result
++ no write tools
++ no vector/RAG dependency required yet
++ explicit fallback
 ```
 
-Questa evidence verifica **soltanto** le dependency/import rule dichiarate.
-
-## Costi e decisioni — Capitolo 20
-
-Entra:
+Authoritative boundary:
 
 ```text
-docs/cost-model.md
-tests/cost-fitness.test.mjs
+model interpretation
+≠
+authoritative business fact
 ```
 
-Il Cost Model non contiene prezzi Azure inventati. Rende espliciti cost surface, architectural premium, cost driver, allocation direction, unit economics e review trigger.
-
-Prime unit metric candidate:
+Il modello non può decidere:
 
 ```text
-UM-01 cost per OperationalCase handled
-UM-02 cost per Payment Escalation delivered
-UM-03 observability cost per 1,000 critical journeys
+PaymentStatus
+Priority
+refund/remediation
+business authorization
+tenant access
 ```
 
-Stato:
+Nuovi artifact:
 
 ```text
-Designed
-not yet measured from production billing
+docs/ai-feature-contract.md
+src/ai/case-explanation.ts
+evals/case-explanation-v1.jsonl
+tests/ai-boundary-fitness.test.mjs
 ```
 
-Cost metadata guard esercitato localmente:
+Current provider/model decision:
 
 ```text
-CF-001…CF-002
-→ 2 pass
-→ 0 fail
+Pending eval comparison
 ```
 
-## AI-ready repository — Capitolo 21
+Nessun adapter OpenAI/Azure/Anthropic o altro è stato ancora inserito nel semantic core.
 
-Entrano:
+---
+
+# Agentic engineering state
+
+## Repository context
 
 ```text
 AGENTS.md
 docs/repository-map.md
-tests/agent-context-fitness.test.mjs
 ```
 
-La scelta è tool-neutral:
+Il repository distingue:
 
 ```text
-short AGENTS.md
-+ canonical Repository Map
-+ existing decision documents
-+ executable verification
-+ explicit stop conditions
+persistent canonical context
+≠
+current work-item context
 ```
 
-Context fitness esercitato localmente:
+## Current work item
 
 ```text
-CTX-001…CTX-004
-→ 4 pass
-→ 0 fail
-```
-
-## Issue-driven development — Capitolo 22
-
-Il repository distingue ora il contesto persistente dal task context.
-
-Entrano:
-
-```text
-work-items/TEMPLATE.md
-work-items/OO-001-postgresql-escalation-outbox-atomicity.md
-tests/issue-readiness-fitness.test.mjs
-```
-
-Regola:
-
-```text
-repository canonical context
-→ ciò che resta vero fra i task
-
-work item
-→ ciò che deve diventare vero nel task corrente
-```
-
-Il primo work item nasce da un gap già presente nella Testing Strategy:
-
-```text
-TST-005
-PaymentEscalation + Outbox atomicity
-higher-fidelity PostgreSQL evidence pending
-```
-
-`OO-001` richiede un real PostgreSQL engine ma non prescrive il meccanismo del test environment.
-
-Issue-readiness gate:
-
-```text
-ISSUE-001…ISSUE-004
-→ 4 pass
-→ 0 fail
+OO-001
+Verify PostgreSQL atomicity for Payment Escalation + Outbox
 ```
 
 Stato:
 
 ```text
-OO-001 execution contract
-= Codified
-
-PostgreSQL integration execution
-= Pending
+execution contract = Codified
+PostgreSQL execution = Pending
 ```
 
-## Manager di agenti — Capitolo 23
-
-Il repository introduce ora un modello esplicito di delega, verifica e autonomia.
-
-Entrano:
-
-```text
-docs/agent-delegation-contract.md
-docs/agent-verification-bundle.md
-docs/ai-autonomy-matrix.md
-tests/agent-governance-fitness.test.mjs
-```
-
-Per il primo workflow delegato ESI sceglie deliberatamente una topologia semplice:
-
-```text
-Human Decision Owner
-        ↓
-Implementer Agent
-        ↓
-Deterministic evidence
-        ↓
-Independent Verifier role
-        ↓
-Human/repository merge gate
-```
-
-Nessun swarm generico viene introdotto.
-
-### Delegation baseline
+## Delegation baseline
 
 ```text
 Delegation ID
 ADC-OO-001-v1
 
-Work item
-OO-001
+Implementer autonomy
+A2 — bounded execution
 
-Role
-Implementer
+Independent verification
+required
 
-Autonomy
-A2 — bounded execution + bounded verification
+Merge
+human/repository gate
 ```
 
-L'Implementer può lavorare sul test/integration scope e avviare un PostgreSQL isolato.
-
-Non può:
+Artifact:
 
 ```text
-merge main
-use production credentials/resources
-change Payments ownership
-change functional semantics
-rewrite migrations merely to pass
-weaken verification oracle
-increase its own autonomy
+docs/agent-delegation-contract.md
+docs/agent-verification-bundle.md
+docs/ai-autonomy-matrix.md
 ```
 
-### Verification Bundle
+Nessuna A4 production capability è autorizzata.
 
-Il bundle predefinisce i claim che dovranno essere dimostrati quando OO-001 verrà realmente eseguita:
+---
 
-```text
-C-01 migration chain
-C-02 success atomicity
-C-03 rollback on second-write failure
-C-04 fast-suite independence
-C-05 evidence boundary
-```
+# Evidence già accumulata
 
-Current state:
-
-```text
-bundle structure
-= Codified
-
-primary evidence
-= Pending
-
-independent verifier result
-= Pending
-
-human acceptance
-= Pending
-```
-
-### AI Autonomy Matrix
-
-Autonomy è capability-based.
-
-Boundary principali:
-
-```text
-read/search repo                    A3
-edit scoped branch/worktree         A2
-run isolated PostgreSQL for OO-001  A2
-modify business/data ownership      A0
-merge default branch                human/repository gate
-production destructive DB mutation  A0
-production secret/customer data     forbidden in coding workflow
-```
-
-Non esiste alcuna A4 production capability corrente.
-
-### Agent governance fitness
-
-Il nuovo gate controlla selezionate proprietà meccaniche:
-
-```text
-AGOV-001 governance artifacts exist
-AGOV-002 delegation stays bounded to OO-001/A2
-AGOV-003 verification bundle preserves claims/evidence/limitations
-AGOV-004 high-impact actions remain behind human gates
-AGOV-005 governance does not claim OO-001 was executed
-```
-
-Logica esercitata localmente su una ricostruzione degli artifact correnti:
-
-```text
-AGOV-001…AGOV-005
-→ 5 pass
-→ 0 fail
-```
-
-Questa evidence **non** dimostra:
-
-```text
-PostgreSQL atomicity
-real agent execution reliability
-real permission enforcement
-human review quality
-production autonomy
-```
-
-## Evidence già accumulata
+Le evidence restano legate al gate realmente eseguito.
 
 ```text
 Chapter 18
-Order Operations application/refactoring       19/19 previously PASS
+Order Operations application/refactoring       19/19 PASS at that revision
 Operations Desk Classic characterization        6/6 PASS
 
 Chapter 19
@@ -393,11 +243,40 @@ Issue readiness ISSUE-001…ISSUE-004            4/4 PASS
 
 Chapter 23
 Agent governance AGOV-001…AGOV-005             5/5 locally exercised
+
+Chapter 24
+AI boundary compile + AI-001…AI-005             5/5 locally exercised
 ```
 
-Non dichiariamo una nuova esecuzione end-to-end dell'intera suite dopo ogni commit finché non viene realmente eseguita come tale.
+Chapter 24 local verification:
 
-## Evidence model
+```text
+tsc
+→ PASS for the new provider-neutral AI contract
+
+node --test tests/ai-boundary-fitness.test.mjs
+→ 5 tests
+→ 5 pass
+→ 0 fail
+```
+
+Questa evidence dimostra soltanto proprietà deterministicamente verificabili del nuovo model boundary e del seed eval.
+
+Non dimostra:
+
+```text
+model groundedness
+real prompt-injection resistance
+provider availability
+model latency
+model cost
+operator usefulness
+production AI quality
+```
+
+---
+
+# Evidence model
 
 Per artefatti e capability:
 
@@ -421,32 +300,30 @@ Current snapshot:
 
 ```text
 TypeScript application/refactoring source        Codified + previously typechecked
-Order Operations local suite                     previously Verified 19/19
 Legacy priority characterization                 Verified 6/6
-Architecture fitness AF-001…AF-005              Codified + Verified locally 5/5
-Cost Model                                      Designed + documented
-Cost fitness CF-001…CF-002                      Codified + locally exercised 2/2
-AGENTS.md                                       Codified
-Repository Map                                  Codified
-Context fitness CTX-001…CTX-004                 Codified + locally exercised 4/4
-Work-item template                              Codified
-OO-001 execution contract                       Codified / execution Pending
-Issue readiness ISSUE-001…ISSUE-004             Codified + locally Verified 4/4
-Agent Delegation Contract                       Codified
-Agent Verification Bundle                       Codified / primary evidence Pending
-AI Autonomy Matrix                              Codified / runtime enforcement partial-pending
-Agent governance AGOV-001…AGOV-005              Codified + locally exercised 5/5
-PostgreSQL integration                          Designed / Pending via OO-001
-Production billing / unit economics              Pending
-Production priority shadow telemetry             Designed / Pending
-Candidate production cutover                     Not authorized
-Azure security/network verification              Designed / Pending
-Recovery drills                                  Pending
-Production observability evidence                Pending
+Architecture fitness AF-001…AF-005              Verified locally 5/5
+Cost fitness CF-001…CF-002                      locally exercised 2/2
+Context fitness CTX-001…CTX-004                 locally exercised 4/4
+Issue readiness ISSUE-001…ISSUE-004             locally Verified 4/4
+Agent governance AGOV-001…AGOV-005              locally exercised 5/5
+AI Feature Contract                             Codified
+CaseExplanationPort + deterministic validator   Codified + locally compiled
+AI eval seed                                    Codified
+AI boundary fitness AI-001…AI-005               locally exercised 5/5
+Runtime model/provider adapter                  Pending
+AI eval execution                               Pending
+PostgreSQL integration via OO-001               Pending
+Production priority shadow telemetry            Pending
+Candidate priority cutover                      Not authorized
+Azure security/network verification             Pending
+Recovery drills                                 Pending
+Production observability evidence               Pending
 A3/A4 production agent autonomy                 Not authorized
 ```
 
-## Struttura corrente
+---
+
+# Struttura corrente
 
 ```text
 order-operations/
@@ -459,16 +336,10 @@ order-operations/
 │   └── migrations/
 ├── docs/
 │   ├── repository-map.md
-│   ├── agent-delegation-contract.md
-│   ├── agent-verification-bundle.md
-│   ├── ai-autonomy-matrix.md
 │   ├── functional-analysis.md
-│   ├── priority-functional-analysis.md
 │   ├── requirements.md
 │   ├── architecture-context.md
 │   ├── architecture-fitness-checklist.md
-│   ├── cost-model.md
-│   ├── nfr.md
 │   ├── api-contract.md
 │   ├── data-ownership.md
 │   ├── failure-mode-map.md
@@ -478,15 +349,29 @@ order-operations/
 │   ├── reliability-contract.md
 │   ├── observability-contract.md
 │   ├── testing-strategy.md
+│   ├── cost-model.md
 │   ├── legacy-understanding-map.md
 │   ├── refactoring-safety-plan.md
+│   ├── agent-delegation-contract.md
+│   ├── agent-verification-bundle.md
+│   ├── ai-autonomy-matrix.md
+│   ├── ai-feature-contract.md
 │   ├── events/
 │   └── adr/
+├── evals/
+│   └── case-explanation-v1.jsonl
 ├── infra/
 ├── src/
+│   ├── application/
+│   ├── contracts/
+│   ├── integration/
+│   ├── observability/
+│   ├── priority/
+│   └── ai/
 ├── tests/
 │   ├── agent-context-fitness.test.mjs
 │   ├── agent-governance-fitness.test.mjs
+│   ├── ai-boundary-fitness.test.mjs
 │   ├── architecture-fitness.test.mjs
 │   ├── cost-fitness.test.mjs
 │   ├── issue-readiness-fitness.test.mjs
@@ -506,40 +391,34 @@ example-software-industries/
 └── products/order-operations/
 ```
 
-## Documenti da mantenere sincronizzati
+---
+
+# Documenti da mantenere sincronizzati
 
 Quando il prodotto cambia verifichiamo almeno:
 
 - `AGENTS.md` e Repository Map quando cambia navigation/execution context;
+- Functional Analysis e Requirements quando cambia semantica;
+- API/event contract e Data Ownership Map quando cambiano contract/authority;
+- Threat Model, Security Control Matrix e Reliability Contract quando cambia il blast radius;
+- Observability Contract e Cost Model quando cambia il comportamento operativo;
+- Testing Strategy e eval dataset quando cambia la superficie di rischio;
+- AI Feature Contract quando cambiano model authority, context, retrieval, tool, output o fallback;
+- Agent Delegation Contract / Verification Bundle / Autonomy Matrix quando cambia la governance degli executor;
 - work item corrente quando cambia scope/outcome/evidence del task;
-- Agent Delegation Contract quando cambia mandate/permission/retry/stop boundary;
-- Agent Verification Bundle quando cambiano claim/evidence/acceptance expectations;
-- AI Autonomy Matrix quando cambiano capability, blast radius o evidence maturity;
-- Functional Analysis e Requirements;
-- Architecture Context e ADR;
-- Architecture Fitness Checklist;
-- Cost Model;
-- API/event contract;
-- Data Ownership Map e migration;
-- NFR;
-- Failure Mode Map;
-- Threat Model e Security Control Matrix;
-- Reliability Contract;
-- Observability Contract;
-- Testing Strategy;
-- Legacy Understanding Map;
-- Refactoring Safety Plan;
-- IaC, deployment/rollback e runbook.
+- Architecture Fitness Checklist quando una proprietà merita protezione continua.
 
-## Regole correnti di evoluzione
+---
+
+# Regole correnti di evoluzione
 
 > **Il repository contiene ciò che resta vero fra i task. La issue contiene ciò che deve diventare vero nel task corrente.**
 
-> **Una issue execution-ready elimina le scelte che l'executor non è autorizzato a inventare.**
-
 > **Il Delegation Contract dice che cosa puoi fare. Il Verification Bundle dice che cosa hai dimostrato. L'Autonomy Matrix dice fino a dove puoi procedere.**
 
-> **L'autonomia non è una ricompensa all'agente. È una decisione di rischio dell'organizzazione.**
+> **Il modello può proporre un'interpretazione. Il sistema decide ancora che cosa è vero e che cosa è autorizzato.**
+
+> **Grounding è un requisito. RAG è una possibile soluzione.**
 
 ## Obiettivo finale
 
