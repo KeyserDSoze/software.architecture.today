@@ -1,126 +1,44 @@
 ## Ownership: chi possiede il significato
 
-Una delle frasi più pericolose in un sistema enterprise è:
+Una delle frasi più pericolose in un sistema enterprise è: “Quel dato è nel database.” È tecnicamente vera e architetturalmente quasi inutile. Sapere dove un valore è memorizzato non ci dice chi possa cambiarne il significato, quali transizioni siano valide, chi debba correggere una divergenza né quali consumer dipendano da quella semantica.
 
-> “Quel dato è nel database.”
-
-È tecnicamente vera e architetturalmente insufficiente.
-
-Essere memorizzato da qualche parte non significa essere posseduto da quel componente.
-
-Un sistema può leggere, copiare, indicizzare, aggregare o mostrare un dato senza possederne il significato.
-
-La domanda corretta è:
-
-> **chi ha il diritto di decidere che cosa significa questo dato e quali transizioni sono valide?**
+Per questo la domanda più utile non è dove si trovi il dato, ma **chi abbia il diritto di dire che cosa significa**.
 
 ## Storage ownership e semantic ownership
 
-Supponiamo che Order Operations salvi localmente:
+Supponiamo che Order Operations salvi localmente `order_id`, `payment_status`, `shipment_status`, `problem_category` e `last_updated_at`. Dal punto di vista fisico quelle righe possono vivere nel suo schema. Dal punto di vista semantico, però, non hanno tutte lo stesso owner.
 
-```text
-order_id
-payment_status
-shipment_status
-problem_category
-last_updated_at
-```
+Il lifecycle commerciale dell’ordine appartiene a Orders; il lifecycle economico appartiene a Payments & Risk; il lifecycle di fulfillment appartiene a Shipping. `problem_category`, invece, può appartenere davvero a Order Operations perché rappresenta una classificazione costruita per il lavoro operativo.
 
-Da un punto di vista fisico, Order Operations possiede quelle righe.
+Questa distinzione è fondamentale. Order Operations può copiare o normalizzare `payment_status`, ma non dovrebbe inventare autonomamente che cosa significhi `Authorized`, né trasformarlo in `Paid` perché rende più semplice la UI. Lo storage locale non trasferisce automaticamente autorità semantica.
 
-Da un punto di vista semantico, la situazione può essere diversa:
+## Source of truth non significa un solo database
 
-```text
-order lifecycle       → Orders
-payment lifecycle     → Payments
-shipment lifecycle    → Shipping
-problem classification → Order Operations
-```
-
-Questo significa che Order Operations può possedere la classificazione `problem_category`, perché è una interpretazione operativa costruita per il proprio journey.
-
-Non dovrebbe però inventare una nuova semantica per `payment_status`.
-
-Se Payments dice `Authorized`, Order Operations può tradurre o rappresentare quello stato, ma non dovrebbe decidere autonomamente che un pagamento autorizzato equivale a `Paid`.
-
-Questa è una differenza di ownership, non di schema.
-
-## Source of truth non significa “un solo database”
-
-La frase *single source of truth* viene spesso usata male.
-
-Non significa necessariamente che ogni consumer debba leggere sempre la stessa tabella live.
-
-Può significare invece che per una certa decisione esiste **una sola autorità semantica**.
-
-Possiamo avere:
+La frase *single source of truth* viene spesso interpretata come “tutti leggono la stessa tabella live”. È una definizione troppo stretta. In molti sistemi possiamo avere una sola autorità semantica e numerose rappresentazioni fisiche.
 
 ```text
 Payments authoritative store
         ↓
-    events/API
+     API/eventi
         ↓
 Order Operations projection
         ↓
 Operations UI
 ```
 
-La projection contiene una copia.
+La projection contiene una copia, ma in caso di divergenza Payments rimane l’autorità sul significato economico. Il consumer deve quindi sapere se sta leggendo un valore autorevole, derivato oppure semplicemente osservato da una fonte esterna.
 
-Ma se esiste una divergenza, l'autorità resta Payments.
+Questa distinzione diventa inevitabile appena compaiono cache, read model, search index, replica, warehouse, data lake, mobile offline store o dataset destinati all’AI. Senza ownership esplicita ogni copia può lentamente trasformarsi in una seconda verità.
 
-Il consumer deve sapere che la propria rappresentazione è derivata.
+## Il database condiviso non elimina i confini
 
-Questa distinzione diventa essenziale quando introduciamo:
+Nel modular monolith di Order Operations una singola istanza PostgreSQL può essere una scelta perfettamente ragionevole. Il problema nasce quando la possibilità tecnica di fare una `JOIN` viene interpretata come diritto semantico di conoscere e modificare tutto.
 
-- cache;
-- read model;
-- search index;
-- replica;
-- data warehouse;
-- data lake;
-- materialized view;
-- mobile offline store;
-- dataset per AI.
+Una query che unisce tabelle di Orders, Payments e Shipping può anche essere efficiente. Ma prima dobbiamo capire se espone dettagli interni che cambieranno senza preavviso, se bypassa invarianti o authorization, se trasforma una migration locale in una breaking change per consumer invisibili e soprattutto chi garantisca che il significato del join sia corretto.
 
-Senza una ownership esplicita, ogni copia può lentamente diventare un secondo sistema autorevole.
+La `JOIN` non è il problema. Il problema è l’ownership implicita.
 
-## Il problema del database condiviso
-
-Un database condiviso non è automaticamente un anti-pattern.
-
-Nel nostro modular monolith può essere una scelta perfettamente ragionevole.
-
-Il problema nasce quando l'accesso fisico sostituisce il contratto semantico.
-
-Per esempio:
-
-```sql
-SELECT *
-FROM payments.payments p
-JOIN orders.orders o ON ...
-JOIN shipping.shipments s ON ...;
-```
-
-può essere tecnicamente efficace.
-
-Ma dobbiamo chiederci:
-
-- Order Operations conosce dettagli interni dei tre domini?
-- una migration di Payments rompe consumer invisibili?
-- chi garantisce che il join mantenga il significato corretto?
-- la query bypassa authorization o invarianti del dominio?
-- qualcuno può modificare direttamente una tabella che non possiede?
-
-La query non è sbagliata perché contiene una `JOIN`.
-
-È sbagliata quando crea ownership implicita.
-
-## Data contract interno
-
-Per ridurre questa ambiguità possiamo trattare alcuni confini dati come contratti.
-
-Un modulo può pubblicare:
+Per ridurla, un modulo può esporre un contratto dati intenzionale come:
 
 ```text
 PaymentOperationalSnapshot
@@ -130,137 +48,39 @@ PaymentOperationalSnapshot
 - lastChangedAt
 ```
 
-senza esporre:
+senza rendere pubblici `provider_payload`, `provider_status_code`, `retry_counter` o dettagli di locking. È la stessa disciplina vista con le API: il contratto deve esporre significato utile al consumer, non la forma accidentale del datastore.
 
-```text
-provider_payload
-retry_counter
-provider_status_code
-internal_lock_version
-```
+## Authoritative, derived, observed
 
-La prima struttura descrive una promessa semantica.
+Una Data Ownership Map utile deve distinguere almeno tre casi. Un dato **authoritative** può essere creato o modificato dall’owner secondo le regole del dominio. Un dato **derived** nasce invece da una trasformazione o da una copia di fonti autorevoli: può essere un `problem_category`, una materialized view, un search document o un read model. Un dato **observed/external** arriva da una fonte che il nostro sistema non controlla completamente, come uno stato del carrier, una risposta del payment provider o una identity claim.
 
-La seconda espone dettagli che appartengono all'implementazione.
+La distinzione non è accademica. Dice chi può correggere chi, quale failure è recuperabile, quale copia può essere rigenerata e quale cambiamento richiede una decisione di dominio.
 
-Questo principio è coerente con quanto abbiamo già fatto con le API: il contratto modella significato, non la forma accidentale del datastore.
+## Un dato derivato può essere operativo e critico
 
-## Dato autorevole, derivato e osservato
+“È derivato, quindi possiamo sempre rigenerarlo” è un’altra frase pericolosa. La possibilità teorica di rebuild non garantisce che abbiamo ancora tutti gli input, che il replay rientri nell’RTO, che le regole di derivazione siano versionate o che l’utente possa lavorare durante il rebuild.
 
-Una Data Ownership Map utile dovrebbe distinguere almeno tre categorie.
+Un read model può non essere business-authoritative e tuttavia essere essenziale per il customer support. Perderlo potrebbe non distruggere dati economici, ma bloccare Operations per ore. È un failure mode reale e deve entrare nel design di recovery.
 
-### Authoritative
+## Ownership è anche responsabilità organizzativa
 
-Il componente può:
+Se tre team possono cambiare liberamente la stessa semantica, uno schema elegante non risolve il problema. Per ogni dato importante deve esistere una responsabilità riconoscibile: qualcuno deve poter spiegare quali regole lo governino, chi approvi un cambiamento incompatibile, quali consumer ne dipendano, quali requisiti di retention esistano e come funzionino accesso, audit e recovery.
 
-- creare o modificare il dato secondo le regole del dominio;
-- definire la sua semantica;
-- dichiarare le transizioni valide.
-
-### Derived
-
-Il dato viene calcolato o copiato da una fonte autorevole.
-
-Esempi:
-
-- `problem_category` derivata da più stati;
-- search document;
-- reporting aggregate;
-- cache entry;
-- operational read model.
-
-### Observed / external
-
-Il sistema riceve un'informazione da una fonte che non controlla completamente.
-
-Per esempio:
-
-```text
-carrier tracking status
-payment provider response
-exchange rate
-identity claim
-```
-
-Il nostro sistema può normalizzare il dato, ma deve riconoscere che una parte della verità nasce fuori dal proprio boundary.
-
-## Dato derivato non significa dato sacrificabile
-
-Un errore comune è pensare:
-
-> “È derivato, quindi se si rompe lo rigeneriamo.”
-
-Forse.
-
-Ma prima dobbiamo sapere:
-
-- abbiamo ancora tutti gli input necessari?
-- possiamo ricostruirlo entro il nostro RTO?
-- la ricostruzione produce esattamente la stessa semantica?
-- le regole di derivazione sono versionate?
-- quanto costa il replay?
-- che cosa vede l'utente mentre il rebuild è in corso?
-
-Un read model può essere non autorevole ma comunque essenziale per l'operatività.
-
-La sua perdita potrebbe non causare perdita di business data, ma potrebbe bloccare il customer support per ore.
-
-È un failure mode reale.
-
-## Ownership e organizzazione
-
-La data ownership ha anche una dimensione organizzativa.
-
-Se tre team possono modificare liberamente la stessa semantica, il problema non viene risolto da uno schema database più elegante.
-
-Un owner deve essere in grado di rispondere almeno a:
-
-- quali regole governano il dato?
-- chi approva una modifica incompatibile?
-- quali consumer dipendono dal contratto?
-- quali requisiti di retention esistono?
-- come vengono gestiti accesso e audit?
-- qual è la procedura di recovery?
-
-Questo non significa che una sola persona debba conoscere tutto.
-
-Significa che la responsabilità non può essere anonima.
+Non significa che una sola persona debba conoscere tutto. Significa che la responsabilità non può essere anonima.
 
 ## ESI: una vista, più autorità
 
-Nel nostro capstone la prima mappa concettuale è:
+Nel capstone la mappa concettuale iniziale è semplice da raccontare anche se il prodotto offre una vista unificata. Orders possiede il lifecycle e lo stato commerciale dell’ordine; Payments & Risk possiede pagamento, refund e idempotenza economica; Shipping possiede fulfillment e tracking; Order Operations possiede invece il caso operativo, la classificazione del problema, l’assegnazione all’operatore e gli altri metadati introdotti specificamente per quel journey.
 
 ```text
-Orders
-  owns → order lifecycle, commercial status
-
-Payments & Risk
-  owns → payment lifecycle, refund, economic idempotency
-
-Shipping
-  owns → fulfillment/shipment lifecycle
-
-Order Operations
-  owns → operational assignment, problem classification,
-         investigation metadata
+Orders            → order lifecycle
+Payments & Risk   → payment lifecycle
+Shipping          → fulfillment lifecycle
+Order Operations  → operational case e classificazione
 ```
 
-Order Operations vuole mostrare una vista unica.
+Order Operations può aggregare questi dati senza diventare proprietario di tutto ciò che mostra. **Aggregare è una capability; possedere il significato è una responsabilità.**
 
-Questo non gli trasferisce la proprietà di tutto ciò che mostra.
+Quando l’ownership è ambigua possiamo usare un test molto concreto: se due componenti non sono d’accordo sul valore, chi ha il diritto di correggere l’altro? Se la risposta è “vince chi ha scritto per ultimo”, non abbiamo una source of truth; abbiamo due copie in competizione.
 
-La regola sarà:
-
-> **aggregare è una capability; possedere il significato è una responsabilità.**
-
-## La domanda che smaschera il problema
-
-Quando non sappiamo chi possiede un dato, possiamo usare un test semplice:
-
-> Se due componenti non sono d'accordo sul valore, **chi ha il diritto di correggere l'altro?**
-
-Se la risposta è “dipende da chi ha scritto per ultimo”, non abbiamo una source of truth.
-
-Abbiamo soltanto due copie in competizione.
-
-Ed è proprio questo che la Data Ownership Map dovrà impedire.
+La Data Ownership Map serve a impedire proprio questo.
