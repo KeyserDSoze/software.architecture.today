@@ -1,124 +1,102 @@
-# 22.8 — ESI: una issue execution-ready per Order Operations
+# 22.8 — ESI: trasformare un gap reale in un work item execution-ready
 
-Per applicare il metodo non inventiamo una feature nuova.
+Per applicare il metodo non inventiamo una feature.
 
-Prendiamo un rischio già dichiarato nella Testing Strategy:
+Usiamo un gap già dichiarato nella Testing Strategy di Order Operations: l'applicazione esprime l'intenzione di salvare `PaymentEscalation` e `OutboxMessage` nella stessa unità transazionale, ma l'evidence disponibile non attraversa ancora un motore PostgreSQL reale.
+
+Il punto di partenza è quindi onesto:
 
 ```text
 TST-005
-PaymentEscalation + Outbox atomici
+PaymentEscalation + Outbox atomicity
 
-Fast evidence
-orchestration test
+fast evidence
+application/orchestration behavior
 
-Higher-fidelity evidence
-PostgreSQL transaction
+higher-fidelity evidence
+real PostgreSQL transaction
 
-Current state
+state
 Pending
 ```
 
-Questo è un ottimo candidato per una execution issue.
+Questa è una buona candidata per execution, non per discovery. La business semantics è già definita, l'ownership è già definita e il transaction boundary è una decisione già presa. Non dobbiamo decidere **che cosa** deve succedere. Dobbiamo produrre evidence più forte sul fatto che il meccanismo scelto lo faccia davvero.
 
-La semantica business è già definita.
-
-L'ownership è già definita.
-
-La transaction boundary è già una decisione architetturale.
-
-Ci manca evidence sul database reale.
-
-## Problem
-
-I test applicativi verificano che il use case chieda alla Unit of Work di creare `PaymentEscalation` e `OutboxMessage` insieme.
-
-Non dimostrano però che l'implementazione PostgreSQL preservi realmente questa proprietà in presenza di failure.
-
-La Testing Strategy lo dichiara esplicitamente:
-
-> un fake repository non è evidence delle semantiche PostgreSQL.
-
-## Outcome
-
-Produrre una integration test suite riproducibile che dimostri su PostgreSQL reale:
+ESI crea quindi:
 
 ```text
-success
-→ PaymentEscalation committed
-→ OutboxMessage committed
-
-failure before commit
-→ neither committed
-
-failure during second write
-→ neither committed
+work-items/OO-001-postgresql-escalation-outbox-atomicity.md
 ```
 
-L'outcome non è:
+Il work item non è ancora l'esecuzione del test. È il contratto che rende quell'esecuzione delegabile.
+
+## Partire dal gap, non dal tool
+
+Una versione debole del task sarebbe:
 
 ```text
-aggiungere Testcontainers
+Add Testcontainers to the repository.
 ```
 
-Quella è una possibile implementazione dell'ambiente di test.
+Potrebbe perfino essere una buona soluzione tecnica, ma congela il meccanismo prima di aver formulato la proprietà.
 
-## Current state
+OO-001 parte invece da questo outcome:
 
-Evidence disponibile:
+> **esercitare la migration chain corrente su un PostgreSQL reale e dimostrare commit e rollback atomici per `PaymentEscalation` e `OutboxMessage`.**
+
+L'executor resta libero di scegliere il più piccolo environment riproducibile che soddisfa questa proprietà e che può essere usato da developer o CI. Container, local service o altra soluzione test-only restano decisioni locali finché non cambiano il boundary del prodotto.
+
+Questa è autonomia utile: lasciare aperto il **come** dopo aver chiuso abbastanza bene il **che cosa deve essere vero**.
+
+## Current evidence: non ripartiamo da zero
+
+OO-001 non tratta il sistema come una scatola nera.
+
+La baseline è già chiara:
 
 ```text
-local orchestration tests
-= Verified
+application orchestration intent
+= Codified + locally Verified
 
 PostgreSQL transaction semantics
 = Designed / Pending
+
+migration chain 001 → 002 on real PostgreSQL
+= Designed / Pending
 ```
 
-Schema disponibile:
+Il repository contiene inoltre le migration reali:
 
 ```text
 database/migrations/001_create_operational_case.sql
 database/migrations/002_add_payment_escalation_and_outbox.sql
 ```
 
-La migration chain non è ancora stata verificata contro un PostgreSQL reale nel capstone.
+Queste non sono fixture che il task può adattare liberamente. Sono parte della baseline che il test deve attraversare.
 
-## Scope
+Se il motore reale dimostra che la migration contiene un problema, il work item deve far emergere il problema. Riscrivere la migration soltanto per ottenere verde distruggerebbe proprio l'evidence che stiamo cercando.
 
-La issue autorizza modifiche a:
+## Lo scope protegge la semantica, non una file list arbitraria
 
-```text
-tests/integration/**
-package.json
-supporting test-environment files
-new test-only adapters/helpers
-```
+Il task autorizza la creazione del layer di integrazione, di helper test-only, degli script necessari e della configurazione riproducibile dell'environment. Può anche introdurre una dependency di test se ne spiega il valore.
 
-Può introdurre una dependency test-only se necessaria e giustificata.
+Non autorizza invece un cambio di `PaymentEscalation`, event v1, ownership, production persistence, topology Azure, RTO/RPO o migration storiche.
 
-## Out of scope
-
-Non autorizza:
+La distinzione è essenziale.
 
 ```text
-changing PaymentEscalation semantics
-changing event v1
-changing ownership
-rewriting migration 001/002 to make tests pass
-adding production persistence fields
-changing cloud topology
-changing RTO/RPO
+allowed
+→ build the evidence mechanism
+
+not allowed
+→ redefine the property being proved
 ```
 
-Questo campo è decisivo.
+Questo è molto più forte di “modifica soltanto `tests/integration/`”. Se serve aggiornare `package.json` per introdurre un golden command di integrazione, il task deve poterlo fare. Se invece il test scopre che servirebbe un nuovo field autoritativo, deve fermarsi anche se tecnicamente quel field starebbe in un file già in scope.
 
-Se la migration corrente contiene un problema reale, il test deve **scoprirlo**.
+## Canonical context: la issue non ricopia il repository
 
-Non deve modificare il passato per diventare verde.
-
-## Canonical context
-
-L'executor deve leggere almeno:
+Prima di lavorare, l'executor viene indirizzato verso le source of truth già costruite:
 
 ```text
 AGENTS.md
@@ -131,171 +109,127 @@ database/migrations/001_create_operational_case.sql
 database/migrations/002_add_payment_escalation_and_outbox.sql
 ```
 
-Non copiamo questi documenti nella issue.
+La issue non copia queste pagine.
 
-Li trattiamo come source of truth del repository.
+Il Capitolo 21 ha reso il repository navigabile proprio per evitare che ogni work item diventi un prompt autosufficiente di centinaia di righe. Qui aggiungiamo soltanto il delta: perché stiamo lavorando, quale claim manca, quale scope è autorizzato e quale evidence chiude il task.
 
-## Acceptance criteria
+## Le acceptance property
 
-### AC-01 — migration chain
+OO-001 formalizza sei proprietà.
 
-Su database vuoto:
+| ID | Proprietà da dimostrare |
+|---|---|
+| AC-01 | migration `001 → 002` eseguibile da database vuoto su PostgreSQL reale |
+| AC-02 | successful transaction committa escalation e outbox insieme |
+| AC-03 | failure sulla seconda write prima del commit lascia entrambe non committate |
+| AC-04 | suite isolata e rieseguibile senza stato residuo |
+| AC-05 | il fast-feedback layer resta eseguibile senza PostgreSQL integration environment già attivo |
+| AC-06 | il report non estende l'evidence oltre il boundary realmente verificato |
 
-```text
-001
-→ 002
-→ schema usable by integration tests
-```
+L'ultima proprietà sembra meno tecnica delle altre, ma è fondamentale. Un test locale PostgreSQL non deve diventare, per linguaggio impreciso, prova di Azure networking, HA, PITR, performance o production readiness.
 
-### AC-02 — successful atomic commit
+La qualità della closure fa parte dell'acceptance.
 
-Quando la transaction riesce:
+## Verification: ogni property ha il proprio esperimento
 
-```text
-1 PaymentEscalation
-+ 1 corresponding OutboxMessage
-```
-
-sono committed.
-
-### AC-03 — rollback on outbox write failure
-
-Quando la seconda write fallisce prima del commit:
+Il work item associa l'acceptance all'evidence richiesta:
 
 ```text
-0 committed PaymentEscalation
-0 committed OutboxMessage
+AC-01
+→ apply migration 001 + 002 on real PostgreSQL
+
+AC-02
+→ execute success transaction and query both persisted facts
+
+AC-03
+→ inject second-write failure and inspect both tables after rollback
+
+AC-04
+→ rerun from isolated / clean state
+
+AC-05
+→ prove the normal fast test path remains independent
+
+AC-06
+→ closure report contains explicit Not verified
 ```
 
-### AC-04 — deterministic cleanup
-
-La suite deve poter essere rieseguita senza dipendere dallo stato lasciato dal run precedente.
-
-### AC-05 — existing fast layer preserved
-
-Il nuovo harness non deve richiedere PostgreSQL per eseguire i normali fast test locali.
-
-Questo protegge feedback speed.
-
-## Verification
-
-La issue richiede evidence separata:
-
-```text
-fast suite
-→ existing npm test behavior remains available
-
-integration suite
-→ real PostgreSQL engine
-→ migration 001 + 002
-→ atomicity scenarios
-```
-
-Il comando concreto può essere introdotto durante implementation, per esempio:
+Il task può introdurre un comando come:
 
 ```text
 npm run test:integration
 ```
 
-ma il nome dello script non è la proprietà.
+ma il nome del comando resta un dettaglio locale. La property non è “lo script esiste”. La property è ciò che il motore PostgreSQL dimostra quando lo script viene eseguito.
 
-## Constraints
+## Stop condition: i punti in cui OO-001 smette di essere execution
 
-- test environment riproducibile;
-- nessun credential reale committato;
-- nessuna dipendenza da production Azure resources;
-- existing migrations trattate come baseline;
-- no weakening di architecture fitness per far passare il test;
-- quality evidence dichiarata proporzionalmente al boundary verificato.
+L'executor deve fermarsi se l'evidence nuova richiede una decisione che il work item non possiede.
 
-## Stop conditions
+Succede, per esempio, se `001` o `002` richiedono una modifica semantica, se lo schema contraddice il Data Ownership Map, se serve un nuovo authoritative field, se il failure scenario richiede un cambio di production behavior o se l'unico environment praticabile richiede credential o risorse production non autorizzate.
 
-L'executor deve fermarsi se:
+La stessa cosa vale se per diventare verde fosse necessario cambiare la rule che giudica il task.
 
-1. il test richiede una modifica semantica a migration 001 o 002;
-2. lo schema reale contraddice `Data Ownership Map`;
-3. serve introdurre un nuovo authoritative field;
-4. il failure scenario non è riproducibile senza cambiare production behavior;
-5. la soluzione richiede un servizio cloud reale non già autorizzato dal task;
-6. emerge una incompatibilità che richiede un nuovo ADR.
-
-In quel caso l'output corretto è:
+In questi casi la closure corretta non è un workaround:
 
 ```text
 Stopped
-Evidence
+Evidence collected
 Decision required
-Candidate follow-up
+Suggested follow-up
 ```
 
-non un workaround silenzioso.
+Il work item ha quindi un modo esplicito di produrre valore anche quando l'assunzione iniziale non regge.
 
-## Closure evidence
+## Il template diventa una convention verificabile
 
-Quando la issue sarà eseguita dovrà chiudersi con:
+ESI non crea soltanto OO-001. Introduce anche:
 
 ```text
-Environment mechanism
-Files changed
-Commands executed
-Migration result
-Atomic success result
-Rollback result
-Fast-suite impact
-Known limitations
-Not verified
+work-items/TEMPLATE.md
 ```
+
+con la struttura minima riusabile per execution e discovery work item.
+
+Per evitare che il template e il primo task diventino documentazione ornamentale, il repository aggiunge `tests/issue-readiness-fitness.test.mjs`.
+
+La baseline del Capitolo 22 contiene quattro check:
+
+| ID | Proprietà meccanica |
+|---|---|
+| ISSUE-001 | template e OO-001 esistono |
+| ISSUE-002 | entrambi conservano le sezioni minime dell'execution contract |
+| ISSUE-003 | OO-001 route verso il contesto canonical richiesto |
+| ISSUE-004 | OO-001 protegge migration/oracle, richiede PostgreSQL reale e conserva `Not verified` |
+
+Questi test non provano che OO-001 sia una issue perfetta o che l'executor implementerà correttamente il harness. Proteggono però il contratto minimo da drift meccanico.
+
+È la stessa filosofia del Capitolo 21: automatizzare ciò che è abbastanza deterministico da meritare automation, lasciare al judgment ciò che non lo è.
+
+## Stato ESI dopo il Capitolo 22
+
+A questo punto possiamo dire:
+
+```text
+Work Item template               Codified
+OO-001 execution contract        Codified
+Issue-readiness fitness          Codified + locally verifiable
+PostgreSQL atomicity execution   Pending
+Higher-fidelity TST-005 evidence Pending
+```
+
+Questa distinzione è cruciale. **Avere una buona issue non significa aver eseguito il lavoro.**
+
+Il progetto è avanzato perché ora il gap è diventato una unità di execution con boundary, acceptance, verification e stop condition. Il prossimo executor non deve reinventare né il problema né l'autorità necessaria per affrontarlo.
 
 ## Il compromesso ESI
 
-Platform preferirebbe standardizzare subito un unico harness containerizzato per tutti i team.
+Platform avrebbe potuto imporre subito un unico harness standard per tutti i team. Commerce & Operations preferisce invece proteggere la proprietà e lasciare reversibile il meccanismo. Security vieta credential production e scorciatoie su environment condivisi. Finance non vuole mantenere una superficie costosa soltanto per dimostrare una property che potrebbe essere verificata in modo più piccolo.
 
-Commerce & Operations vuole semplicemente produrre evidence su PostgreSQL senza introdurre una piattaforma test sproporzionata.
+La decisione è quindi:
 
-Security non vuole credential condivise o collegamenti a environment permanenti.
+> **richiedere PostgreSQL reale e riproducibile, senza prescrivere una piattaforma di test finché non è necessaria.**
 
-Finance non vuole mantenere un database staging sempre acceso soltanto per questo test.
+Il quality floor resta atomicity, migration fidelity, reproducibility, fast-feedback separation e credential isolation.
 
-La decisione è:
-
-> **richiedere un PostgreSQL reale e riproducibile, ma lasciare all'execution task la scelta del meccanismo più piccolo che soddisfa quella proprietà.**
-
-Accettiamo quindi una piccola dependency/test-environment complexity.
-
-Non accettiamo:
-
-- fake database come prova di transaction semantics;
-- production database come test environment;
-- modifica delle migration per rendere il test verde.
-
-Il quality floor protegge:
-
-```text
-atomicity
-migration fidelity
-reproducibility
-fast-feedback separation
-credential isolation
-```
-
-## Perché questa issue è pronta
-
-Possiamo rispondere sì alle domande di readiness:
-
-```text
-problem known?             yes
-outcome observable?        yes
-semantic owner known?      yes
-scope bounded?             yes
-canonical context exists?  yes
-verification possible?     yes
-stop conditions known?     yes
-```
-
-Non sappiamo ancora quale harness useremo.
-
-Ed è corretto.
-
-Quella è una decisione locale reversibile che l'executor può prendere.
-
-> **Una issue execution-ready non elimina ogni scelta. Elimina le scelte che l'executor non è autorizzato a inventare.**
+> **OO-001 è execution-ready perché lascia all'executor molte scelte locali e gli toglie soltanto le scelte che non è autorizzato a inventare.**
