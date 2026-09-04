@@ -1,6 +1,6 @@
 {
-  "tag": "v1.0.0-rc2",
-  "name": "Software Architecture Today — v1.0.0-rc2",
+  "tag": "v1.0.0-rc3",
+  "name": "Software Architecture Today — v1.0.0-rc3",
   "prerelease": true,
-  "notes_file": "RELEASE_NOTES_v1.0.0-rc2.md"
+  "notes_file": "RELEASE_NOTES_v1.0.0-rc3.md"
 }
