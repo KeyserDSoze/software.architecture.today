@@ -2,129 +2,117 @@
 
 “Usiamo REST” è spesso una decisione presa prima di aver descritto l'interazione.
 
-Lo stesso vale per GraphQL, gRPC, WebSocket o event-driven.
+Lo stesso vale per gRPC, GraphQL, WebSocket, webhook o messaging.
 
-Come per ogni tecnologia del libro, partiamo dal fit.
+È la stessa inversione che abbiamo visto con tecnologie e pattern: partiamo dal nome della soluzione e poi cerchiamo un requisito che la giustifichi.
 
-> **Il protocollo viene dopo il comportamento che dobbiamo ottenere.**
+Qui useremo ancora **fit before fashion**.
 
-### Request/response sincrono
+> **Il protocollo viene dopo la relazione che producer e consumer devono avere.**
 
-Quando un consumer ha bisogno di chiedere qualcosa e ricevere una risposta immediata, HTTP request/response è spesso una scelta naturale.
+Le domande utili sono più fondamentali: il consumer ha bisogno di una risposta immediata? Deve scegliere dinamicamente la shape dei dati? Il server deve poter inviare aggiornamenti senza una nuova richiesta? Producer e consumer devono essere disponibili nello stesso momento? Il contratto è fra sistemi governati insieme oppure attraversa ownership indipendenti?
 
-Ma anche qui esistono stili diversi.
+Queste forze restringono lo spazio delle opzioni molto meglio della preferenza personale per un protocollo.
 
-### REST
+## Quando il consumer deve ricevere una risposta adesso
 
-REST tende a modellare **risorse** e usa le semantiche standard di HTTP.
+Per un'interazione sincrona browser/backend o service-to-service, HTTP request/response è spesso un ottimo punto di partenza.
 
-Azure Architecture Center sottolinea che un'interfaccia REST può sfruttare verbi, status code e proprietà come idempotenza e statelessness per creare interfacce evolvibili e loosely coupled.
+Dentro HTTP possiamo però modellare l'interazione in modi differenti.
 
-Fonti:
-
-- [Microsoft Learn — API design](https://learn.microsoft.com/azure/architecture/microservices/design/api-design)
-- [Microsoft Learn — RESTful web API design](https://learn.microsoft.com/azure/architecture/best-practices/api-design)
-
-Un esempio:
+**REST** mette al centro risorse e semantiche standard del protocollo. Un'operazione come:
 
 ```http
 GET /orders/ORD-42
 ```
 
-è naturale quando `Order` è una risorsa del dominio esposta al consumer.
+ha un fit naturale quando `Order` è una risorsa che il consumer deve leggere e quando vogliamo sfruttare metodi, status code, caching e altre semantiche HTTP invece di inventarne di parallele.
 
-REST diventa meno naturale quando cerchiamo di forzare ogni operazione in una rappresentazione artificiale di risorsa.
+Azure Architecture Center evidenzia proprio il valore di interfacce REST che usano le semantiche HTTP per costruire contratti loosely coupled ed evolvibili: [Microsoft Learn — API design](https://learn.microsoft.com/azure/architecture/microservices/design/api-design) e [Microsoft Learn — RESTful web API design](https://learn.microsoft.com/azure/architecture/best-practices/api-design).
 
-### RPC e gRPC
+REST diventa meno naturale quando forziamo operazioni fortemente action-oriented dentro pseudo-risorse soltanto per rispettare una forma canonica. Il contratto deve servire il dominio, non una liturgia di URI.
 
-RPC mette al centro operazioni e metodi.
+**RPC**, e in particolare gRPC, parte invece da servizi e metodi:
 
 ```text
 GetProblematicOrders()
 EscalateOrder()
 ```
 
-gRPC definisce servizi con metodi, parametri e tipi di ritorno; di default usa Protocol Buffers come Interface Definition Language e formato dei messaggi.
+gRPC definisce servizi tipizzati e usa normalmente Protocol Buffers come IDL e formato dei messaggi: [gRPC — Introduction](https://grpc.io/docs/what-is-grpc/introduction/).
 
-Fonte:
+Può avere molto fit quando client e server sono sotto governance coordinata, code generation e typing forte riducono davvero attrito, oppure quando streaming e comunicazione service-to-service sono proprietà importanti.
 
-- [gRPC — Introduction](https://grpc.io/docs/what-is-grpc/introduction/)
+La forma da chiamata di metodo non deve però farci dimenticare la rete. Timeout, partial failure, authorization, retry e compatibility continuano a esistere. Un `GetPrice()` remoto non ha le stesse proprietà di una function call in-memory, anche se l'IDE le rende visivamente simili.
 
-gRPC può avere un fit forte quando client e server sono sotto governance tecnica coordinata, i contratti fortemente tipizzati e la generazione client/server comprano valore reale, oppure quando streaming e comunicazione service-to-service sono centrali. In cambio dobbiamo giustificare l'overhead di un protocollo binario e di una toolchain dedicata.
+## Quando il client ha esigenze di lettura molto diverse
 
-Ma l'analogia con una chiamata locale può nascondere la realtà distribuita.
+**GraphQL** sposta una parte della decisione sulla shape della risposta verso il client. Lo schema rimane tipizzato, ma il consumer può scegliere quali campi comporre in una query: [GraphQL.org](https://graphql.org/).
 
-Una chiamata remota continua però ad avere latency e timeout, partial failure e retry, problemi di compatibility e authorization. La toolchain non cancella la fisica della rete.
+Questa proprietà può essere preziosa quando web, mobile e altri client hanno viste molto differenti e la proliferazione di endpoint o l'over-fetching stanno diventando un costo reale.
 
-La sintassi da metodo non annulla la rete.
+Il prezzo è che la flessibilità del client diventa complessità del provider. Authorization a livello di campo o resolver, query cost, caching, N+1, governance dello schema e observability richiedono disciplina esplicita.
 
-### GraphQL
+GraphQL non è “REST con più libertà”.
 
-GraphQL espone uno schema tipizzato e permette al client di specificare la forma dei dati che vuole ricevere.
+Compra una forma di flessibilità lato consumer e sposta il costo verso il server e la governance del contratto.
 
-Fonte:
+## Quando il server deve iniziare la conversazione
 
-- [GraphQL.org](https://graphql.org/)
+Se il consumer deve ricevere aggiornamenti frequenti senza effettuare una nuova richiesta ogni volta, possiamo avere bisogno di un canale più persistente.
 
-Può essere utile quando diversi client hanno esigenze di lettura molto differenti e la possibilità di comporre query riduce proliferazione di endpoint o over-fetching.
+**WebSocket** crea una comunicazione bidirezionale persistente dopo l'handshake iniziale: [RFC 6455 — The WebSocket Protocol](https://www.rfc-editor.org/rfc/rfc6455.html).
 
-GraphQL sposta complessità altrove: authorization a livello di campo o resolver, analisi del costo delle query, caching e observability. N+1 e governance dello schema diventano problemi che devono essere affrontati esplicitamente.
+Ha senso quando il valore dipende davvero da push frequente e bassa latency. Ma la parola “real time” da sola non basta. Dobbiamo sapere quanto fresco debba essere il dato, quante connessioni dobbiamo mantenere, che cosa accada dopo una disconnessione e come il client recuperi informazioni perse.
 
-Non è “REST più moderno”.
+Se polling ragionevole o un meccanismo unidirezionale più semplice soddisfano il requisito, una connessione bidirezionale persistente può essere costo non necessario.
 
-È un contratto con proprietà diverse.
+Un **webhook** risolve una forza diversa. Non mantiene una connessione: permette a un sistema esterno di chiamare il nostro endpoint quando avviene un fatto. Riduce polling e disaccoppia il momento in cui noi chiediamo dall'istante in cui il provider produce il risultato.
 
-### WebSocket
+In cambio introduce autenticità del sender, retry, duplicati, ordering, replay e una nuova superficie esposta in ingresso.
 
-WebSocket permette comunicazione bidirezionale persistente tra client e server dopo un handshake iniziale.
+Una webhook `POST` è quindi soltanto la forma HTTP visibile. Il contratto reale comprende delivery semantics.
 
-Fonte:
+## Quando producer e consumer non devono essere contemporaneamente disponibili
 
-- [RFC 6455 — The WebSocket Protocol](https://www.rfc-editor.org/rfc/rfc6455.html)
+Se il valore dell'interazione non richiede una risposta immediata e vogliamo disaccoppiare producer e consumer nel tempo, messaging può essere più appropriato del request/response.
 
-Può essere appropriato quando il server deve inviare aggiornamenti frequenti e a bassa latenza al client.
+Qui il contratto non descrive più soltanto una request e una response. Deve definire channel, message, operation e semantica di delivery. AsyncAPI formalizza proprio questa idea di contratto per sistemi event-driven: [AsyncAPI — Introduction](https://www.asyncapi.com/docs/concepts/asyncapi-document).
 
-Non dobbiamo usarlo soltanto perché il requisito contiene la parola “real time”.
+La separazione temporale può aumentare resilienza e autonomia. Ma introduce eventual consistency, duplicate processing, ordering, replay, dead letter e observability distribuita.
 
-Prima di scegliere WebSocket chiediamo quanto debba essere fresco il dato, chi produca gli aggiornamenti e quanti client debbano restare connessi. Dobbiamo sapere che cosa succeda dopo una disconnessione, come recuperare eventuali eventi persi e se polling o server-sent update sarebbero già sufficienti.
+Ancora una volta il decoupling non elimina complessità.
 
-### Webhook
+Decide quale coupling vogliamo rimuovere e quale nuova responsabilità siamo disposti a governare.
 
-Un webhook inverte la direzione classica: invece di interrogare continuamente un provider, registriamo un endpoint che il provider chiamerà quando avviene qualcosa.
+## Una decision table, non un verdetto
 
-Un webhook riduce il polling, ma introduce autenticità del sender, retry e duplicati, ordering, timeout e replay. Inoltre il receiver deve spesso essere pubblicamente raggiungibile, con una superficie di sicurezza che il polling non aveva.
-
-Un webhook non è soltanto “una POST che arriva da fuori”.
-
-È un'integrazione asincrona con semantica di delivery.
-
-### Messaging ed event-driven API
-
-Quando producer e consumer non devono essere temporalmente accoppiati, messaging può essere più appropriato del request/response.
-
-AsyncAPI descrive il documento API come un contratto di comunicazione tra sender e receiver in un sistema event-driven, specificando channel, message e operation.
-
-Fonte:
-
-- [AsyncAPI — Introduction](https://www.asyncapi.com/docs/concepts/asyncapi-document)
-
-La separazione temporale può migliorare resilienza e indipendenza, ma introduce eventual consistency, delivery semantics e duplicate processing. Ordering, replay, dead letter e observability distribuita diventano parte del contratto operativo.
-
-Ancora una volta, il decoupling non elimina complessità.
-
-La sposta.
-
-### Un decision table minimale
-
-| Esigenza | Candidato iniziale | Domanda critica |
+| Forza principale | Candidato iniziale | Domanda che può smentirlo |
 |---|---|---|
-| CRUD/domain resource | HTTP/REST | la risorsa è davvero il modello giusto? |
-| operation-oriented service-to-service | RPC/gRPC | la governance dei client è coordinata? |
-| client con shape dati molto variabile | GraphQL | possiamo governare query, auth e costi? |
-| push bidirezionale frequente | WebSocket | serve davvero connessione persistente? |
-| callback tra sistemi | Webhook | come gestiamo duplicati e autenticità? |
+| risorsa/domain interaction sincrona | HTTP/REST | stiamo forzando un comando dentro una falsa risorsa? |
+| operation-oriented service-to-service | RPC/gRPC | la governance dei client è abbastanza coordinata? |
+| shape di lettura molto variabile fra client | GraphQL | possiamo governare query, auth e costo lato server? |
+| push bidirezionale frequente | WebSocket | serve davvero una connessione persistente? |
+| callback da un sistema esterno | webhook | come gestiamo autenticità, retry e duplicati? |
 | temporal decoupling | messaging/async API | possiamo operare eventual consistency e delivery failure? |
 
-Questa tabella non sceglie per noi.
+La tabella non sceglie per noi.
 
-Serve a impedire che il nome della tecnologia arrivi prima della domanda.
+Serve a mantenere l'ordine del reasoning:
+
+```text
+interaction need
+→ forces
+→ candidate styles
+→ consequences
+→ contract
+```
+
+non:
+
+```text
+tecnologia preferita
+→ API che le assomiglia
+```
+
+> **Uno stile di interazione è corretto quando rende naturale il comportamento che il consumer e il provider devono davvero avere.**
