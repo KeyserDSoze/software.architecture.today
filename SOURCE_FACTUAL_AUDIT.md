@@ -44,7 +44,9 @@ I casi reali rimangono separati da ESI.
 | 18 — Refactoring nell'era dell'AI | sì | sì — draft | sì — draft | AWS/Microsoft/GitHub/OpenRewrite; safe migration and Refactoring Safety Plan |
 | 19 — Architecture Evolution | sì | sì — draft | sì — draft | Thoughtworks/AWS/Microsoft/GitHub; fitness functions, architecture drift, exceptions, Architecture Fitness Checklist |
 | 20 — Costi e decisioni | sì | sì — draft | sì — draft | Microsoft/FinOps Foundation/Uber; TCO, unit economics, quality premiums, allocation, Cost Model |
-| 21+ | non ancora | source-first | required | research + ESI compromise + capstone update before closure |
+| 21 — AI-ready repository | sì | sì — draft | sì — draft | GitHub/OpenAI; AGENTS.md, repository context, verification commands, context fitness |
+| 22 — Issue-driven development | sì | sì — draft | sì — draft | GitHub/OpenAI; well-scoped issues, acceptance/verification, Issue Forms, atomic tasks, work-item readiness |
+| 23+ | non ancora | source-first | required | research + ESI compromise + capstone update before closure |
 
 ## Evidence vocabulary
 
@@ -275,7 +277,127 @@ CF-002 no fabricated hard-coded cost-center
 
 Questa evidence **non** equivale a una nuova esecuzione end-to-end della suite, né verifica Cost Management/Azure billing.
 
-## Source pass — Capitoli 19–20
+## Verification status — Capitolo 21
+
+Nuovi artefatti:
+
+```text
+products/order-operations/AGENTS.md
+products/order-operations/docs/repository-map.md
+products/order-operations/tests/agent-context-fitness.test.mjs
+```
+
+Il context layer è volutamente tool-neutral:
+
+```text
+AGENTS.md
+→ routing operativo
+
+Repository Map
+→ navigation context
+
+canonical docs
+→ decision/semantic context
+
+executable tests
+→ evidence
+```
+
+Gate meccanico esercitato localmente:
+
+```text
+CTX-001 agent entry point + Repository Map
+CTX-002 canonical document existence
+CTX-003 golden package scripts
+CTX-004 routing + evidence vocabulary
+→ 4 tests
+→ 4 pass
+→ 0 fail
+```
+
+Questa evidence **non** dimostra che una instruction sia semanticamente corretta, sufficiente per ogni task o immune da staleness.
+
+Stato corretto:
+
+```text
+AGENTS.md                    Codified
+Repository Map               Codified
+mechanical context fitness   Codified + locally exercised
+production agent permission  Future / Pending
+agent autonomy model         Future / Pending
+```
+
+## Verification status — Capitolo 22
+
+Nuovi artefatti:
+
+```text
+products/order-operations/work-items/TEMPLATE.md
+products/order-operations/work-items/OO-001-postgresql-escalation-outbox-atomicity.md
+products/order-operations/tests/issue-readiness-fitness.test.mjs
+```
+
+Il primo work item deriva da un gap già presente nella Testing Strategy:
+
+```text
+TST-005
+PaymentEscalation + Outbox atomicity
+higher-fidelity PostgreSQL evidence = Pending
+```
+
+`OO-001` rende espliciti:
+
+```text
+Problem
+Outcome
+Current evidence
+Scope
+Out of scope
+Canonical context
+Acceptance criteria
+Verification
+Constraints
+Stop conditions
+Dependencies
+Closure evidence
+```
+
+Il task richiede un **real PostgreSQL engine**, ma non prescrive il particolare harness. Testcontainers, Docker Compose, devcontainer o altro restano implementation choice da giustificare rispetto a riproducibilità, CI fit e costo.
+
+Issue-readiness gate eseguito localmente sulla versione corrente dei work item:
+
+```text
+ISSUE-001 template + OO-001 exist
+ISSUE-002 minimum execution contract sections
+ISSUE-003 canonical context references
+ISSUE-004 verification-oracle/evidence boundary
+→ 4 tests
+→ 4 pass
+→ 0 fail
+```
+
+Questa evidence verifica soltanto proprietà **meccaniche** del work-item contract.
+
+Non supporta ancora:
+
+```text
+PostgreSQL migration chain execution
+PaymentEscalation + Outbox real transaction atomicity
+rollback on second-write failure
+CI integration harness
+Azure Database for PostgreSQL behavior
+```
+
+Quindi:
+
+```text
+OO-001 execution contract    Codified
+issue readiness mechanics    Codified + locally Verified
+OO-001 execution             Not started / Pending
+TST-005 PostgreSQL evidence  Pending
+```
+
+## Source pass — Capitoli 19–22
 
 ### Capitolo 19
 
@@ -295,11 +417,35 @@ Principali fonti:
 - FinOps Foundation — Framework, Unit Economics, Allocation, Architecting & Workload Placement;
 - Uber Engineering — vertical CPU scaling, Big Data supply/demand, partial replication, artifact storage modernization.
 
-Uso delle fonti:
+### Capitolo 21
 
-- Microsoft/FinOps → definizioni e guidance su cost model, optimization, allocation, unit economics e architecture/cost collaboration;
-- Uber → casi reali documentati di efficiency/architecture tradeoff;
-- ESI cost surface, unit metric e decisioni → scenario simulato, non benchmark.
+Principali fonti:
+
+- GitHub Docs — repository/custom instructions, `AGENTS.md`, build/test/validation context;
+- GitHub Docs — support matrix for custom instructions;
+- OpenAI — *How OpenAI uses Codex*;
+- OpenAI — Codex / `AGENTS.md` operational behavior.
+
+Uso:
+
+- proprietà degli agent instruction mechanism → claim fattuali vicini alle fonti;
+- ESI `AGENTS.md`/Repository Map design → scenario simulato e decisione editoriale, non standard universale.
+
+### Capitolo 22
+
+Principali fonti:
+
+- GitHub Docs — best practice per coding-agent task: problem, acceptance criteria, file hints;
+- GitHub Docs — Issue Forms / structured required fields;
+- GitHub Docs/Blog — assigning issues to coding agents;
+- GitHub Blog — WRAP: effective issues, refined instructions, atomic tasks, pairing;
+- OpenAI — *How OpenAI uses Codex*: task ben circoscritti e prompt strutturati come GitHub Issue.
+
+Uso:
+
+- GitHub/OpenAI → evidence che i coding-agent workflow contemporanei traggono beneficio da task strutturati e ben circoscritti;
+- ESI work-item schema → metodo del libro, non claim che esista un unico template corretto;
+- OO-001 → scenario simulato derivato da un rischio già documentato nel capstone.
 
 ## Important distinctions
 
@@ -333,6 +479,40 @@ better architecture
 
 quando il taglio modifica una proprietà necessaria.
 
+### Repository context / task context
+
+```text
+repository canonical context
+≠
+current task specification
+```
+
+```text
+instruction
+≠
+permission boundary
+```
+
+### Issue readiness / execution evidence
+
+```text
+issue is well-structured
+≠
+issue outcome is already Verified
+```
+
+```text
+acceptance criterion
+≠
+verification command
+```
+
+```text
+agent can perform a change
+≠
+agent is authorized to make the decision behind the change
+```
+
 ## Numeri simulati ESI
 
 SLO/RTO/RPO del Capitolo 14 restano business requirement simulati:
@@ -355,6 +535,8 @@ Payment failedAttempts >= 3 → Urgent
 è anch'essa una policy simulata ESI.
 
 Il Capitolo 20 **non aggiunge prezzi, percentuali di saving o benchmark ESI simulati presentati come reali**.
+
+Il Capitolo 22 non presenta `OO-001` come una issue realmente eseguita su PostgreSQL: è un execution contract codificato, mentre l'evidence PostgreSQL resta Pending.
 
 ## Workflow editoriale corrente
 
@@ -392,6 +574,18 @@ cost driver
 → review trigger
 ```
 
+Per AI-ready repository / issue-driven execution aggiungiamo:
+
+```text
+persistent context
+→ task-specific work item
+→ scope/out-of-scope
+→ acceptance property
+→ verification mechanism
+→ stop condition
+→ closure evidence
+```
+
 ## Evidence pass rules
 
 Richiedono particolare attenzione e fonte:
@@ -404,9 +598,10 @@ Richiedono particolare attenzione e fonte:
 - benchmark/numeri reali;
 - pricing e caratteristiche commerciali variabili;
 - affermazioni storiche;
-- raccomandazioni che dipendono da evidence esterna.
+- raccomandazioni che dipendono da evidence esterna;
+- capability e behavior specifici dei coding agent/tool contemporanei.
 
-Non ogni frase editoriale richiede citation, ma non usiamo un vendor case come prova universale.
+Non ogni frase editoriale richiede citation, ma non usiamo un vendor workflow come prova universale.
 
 ## ESI compromise pass
 
@@ -433,4 +628,6 @@ Prima di una release candidata del libro:
 - `Monitored` richiede runtime signal reale;
 - temporary migration architecture deve avere cleanup condition;
 - legacy behavior `Observed` non deve trasformarsi silenziosamente in requirement `Confirmed`;
-- Cost Model e unit economics non devono essere descritti come misurati finché non esistono billing/usage data reali.
+- Cost Model e unit economics non devono essere descritti come misurati finché non esistono billing/usage data reali;
+- un work item strutturalmente ready non deve essere descritto come outcome Verified finché la verification del task non è realmente eseguita;
+- repository/agent instructions devono essere ricontrollate per staleness e non devono duplicare silenziosamente le source of truth canonical.
