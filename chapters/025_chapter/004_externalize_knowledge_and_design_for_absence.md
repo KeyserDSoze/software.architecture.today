@@ -1,288 +1,95 @@
-# Esternalizzare conoscenza e progettare per l'assenza
+# Esternalizzare conoscenza e progettare per l’assenza
 
-Il rischio più serio di un One-Man Project non è tecnico.
+Il rischio più serio di un One-Man Project non è che una persona produca molto lavoro. È che quella persona diventi il luogo in cui vivono rationale, workaround, priorità, eccezioni, conoscenza dei consumer, procedure operative e interpretazione dei requisiti.
 
-È organizzativo.
+Finché il lead è presente il sistema può sembrare estremamente efficiente. Poi arrivano ferie, malattia, cambio di ruolo o un incidente nel momento sbagliato e scopriamo che avevamo ridondanza sui dati ma non sulla conoscenza necessaria a governare il prodotto.
 
-Se una persona governa molta execution, quella persona può diventare rapidamente il luogo in cui si accumulano:
+> **Execution concentration e knowledge concentration sono due proprietà diverse.**
 
-- rationale;
-- workaround;
-- priorità;
-- credenziali operative;
-- contatti;
-- procedure;
-- eccezioni;
-- memoria degli incidenti;
-- conoscenza dei consumer nascosti;
-- interpretazione dei requisiti.
-
-A quel punto il progetto può sembrare efficiente finché il lead è presente.
-
-Poi arrivano:
-
-```text
-vacation
-illness
-role change
-incident while offline
-organizational move
-burnout
-```
-
-E scopriamo che il sistema aveva una replica del database, ma non una replica della conoscenza.
-
-## Bus factor non è un insulto al modello
-
-Il problema non è che una sola persona lavori molto sul progetto.
-
-Il problema è che una sola persona sia necessaria per:
-
-```text
-understand
-operate
-decide
-recover
-change
-```
-
-Possiamo quindi distinguere:
-
-```text
-execution concentration
-≠
-knowledge concentration
-```
-
-Un One-Man Project può avere execution concentration alta e knowledge concentration relativamente bassa se il sistema rende esplicito ciò che altrimenti vivrebbe nella testa del lead.
+Possiamo accettare la prima senza accettare la seconda.
 
 ## Il repository come memoria esterna
 
-Nel nostro percorso abbiamo costruito progressivamente:
+Durante il libro abbiamo costruito Functional Analysis, Requirements, ADR, Data Ownership Map, API Contract, Failure Mode Map, Threat Model, Reliability Contract, Observability Contract, Testing Strategy, Cost Model, Repository Map, work item, agent governance e AI Feature Contract.
 
-```text
-Functional Analysis
-Requirements
-Architecture Context
-ADR
-Data Ownership Map
-API Contract
-Failure Mode Map
-Threat Model
-Reliability Contract
-Observability Contract
-Testing Strategy
-Legacy Understanding Map
-Refactoring Safety Plan
-Architecture Fitness Checklist
-Cost Model
-Repository Map
-Work Items
-Agent governance artifacts
-AI Feature Contract
-```
+Questi artifact non servono a far sembrare il repository più “enterprise”. Servono a ridurre una proprietà concreta: la quantità di contesto che deve esistere soltanto nella testa di una persona.
 
-Questi file non servono a produrre un repository “enterprise-looking”.
+La documentazione diventa quindi parte della **continuity architecture** quando rende recuperabili decisioni e stato corrente.
 
-Servono a ridurre una proprietà molto precisa:
+Non ci interessa conservare la cronaca di ogni conversazione. Ci interessa che una persona competente possa capire che cosa è vero, chi lo possiede, perché abbiamo scelto una certa soluzione, quale evidence esiste, che cosa è ancora Pending, quali boundary non possono cambiare silenziosamente e quale evento deve riaprire una decisione.
 
-> **la quantità di contesto che deve esistere soltanto nella memoria di una persona.**
+> **Knowledge redundancy non significa copiare tutto. Significa rendere recuperabile ciò che serve per riprendere il controllo senza reinventare il sistema.**
 
-La documentazione è quindi parte della continuity architecture.
+## Maintainer non significa proprietario assoluto
 
-## Documentare decisioni, non cronaca
-
-Il rischio opposto è produrre una quantità enorme di testo che nessuno sa più usare.
-
-Per la continuity ci interessano soprattutto informazioni come:
-
-```text
-what is true?
-who owns it?
-why did we choose this?
-what must not change silently?
-what evidence exists?
-what remains pending?
-what should trigger a review?
-how do we recover?
-where do we start?
-```
-
-Non serve documentare ogni conversazione.
-
-Serve evitare che una decisione significativa diventi folklore.
-
-> **La knowledge redundancy non nasce copiando tutto. Nasce rendendo recuperabile ciò che servirebbe a una persona competente per riprendere il controllo.**
-
-## Maintainer, non proprietario assoluto
-
-GitHub ha raccontato l'introduzione di `SERVICEOWNERS` per associare componenti e servizi ai loro maintainer. Il valore descritto include una terminologia condivisa, collegamenti più stabili fra software e persone e la capacità di individuare rapidamente chi contattare durante incidenti e cambi organizzativi.
+GitHub ha raccontato l’introduzione di `SERVICEOWNERS` per associare componenti e servizi ai maintainer, creando una terminologia condivisa e un mapping più stabile fra software e persone utile anche durante incidenti e cambi organizzativi.
 
 Fonte:
 
 - [GitHub Engineering — How we organize and get things done with SERVICEOWNERS](https://github.blog/engineering/architecture-optimization/how-we-organize-and-get-things-done-with-serviceowners/)
 
-Un dettaglio interessante è il linguaggio scelto da GitHub: *maintainer* rende meglio del concetto assoluto di ownership.
+La parola *maintainer* è utile anche qui. Il lead mantiene il progetto; non possiede personalmente la truth del business, la security policy o la piattaforma. Il repository deve mostrare dove terminano le sue decision rights e dove iniziano quelle di altri owner.
 
-Per il One-Man Project questa sfumatura è utile.
-
-Il lead mantiene il progetto.
-
-Non possiede personalmente la verità del business, della security policy o della piattaforma.
+Questo evita che la continuity sia interpretata come “trovare un sostituto che sappia tutto ciò che sapeva l’hero developer”. Il sistema deve invece rendere visibile abbastanza contesto da permettere al prossimo maintainer di capire dove guardare e quando escalare.
 
 ## Il Continuity Test
 
-Introduciamo quindi un test operativo semplice:
+ESI introduce un test operativo semplice:
 
-> **Se il lead sparisse per due settimane domani mattina, una persona competente riuscirebbe a capire lo stato del progetto, non fare danni e portare avanti almeno il lavoro necessario?**
+> **Se il lead diventasse indisponibile per due settimane domani mattina, una persona competente riuscirebbe a capire lo stato del progetto, evitare danni e portare avanti almeno il lavoro necessario?**
 
-Non deve riuscire istantaneamente a essere produttiva al 100%.
+Non chiediamo al Secondary Maintainer di essere produttivo al 100% in pochi minuti. Chiediamo di poter ricostruire purpose, architecture, current work, evidence state, golden command, operational route, decision rights e failure state.
 
-Deve però poter ricostruire:
+Se per capire una decisione Pending o una stop condition serve una telefonata al lead, abbiamo trovato knowledge debt.
 
-### 1. Purpose
+Il test deve essere operativo. Controllare che `AGENTS.md`, ADR e runbook esistano non dimostra continuity. La persona deve usarli per fare qualcosa: eseguire i golden command, individuare un task safe, spiegare cosa è `Designed` e cosa è `Verified`, ricostruire un escalation path, oppure affrontare un piccolo incident drill.
 
-```text
-che cosa fa il prodotto?
-per chi?
-quali outcome protegge?
-```
-
-### 2. Current architecture
+Questa differenza è fondamentale:
 
 ```text
-quali boundary?
-quali dipendenze?
-quali owner?
+file exists
+≠
+knowledge is transferable
 ```
 
-### 3. Current work
+## Il vacation drill di ESI
+
+Nel pilot ESI il Continuity Test diventa un **vacation drill** simulato. Il lead viene considerato indisponibile e il Secondary Maintainer riceve repository e soli enterprise system autorizzati.
+
+Deve riuscire a entrare da `AGENTS.md`, usare la Repository Map, trovare AI Feature Contract e work item correnti, eseguire `npm run typecheck` e `npm test`, distinguere evidence già codificata da verification ancora Pending e identificare le non-authorities del lead.
+
+Infine deve eseguire una bounded safe verification o una piccola modifica reversibile.
+
+Il risultato del drill non è un voto alla persona. Se qualcosa è oscuro, la prima domanda è:
+
+> **Quale informazione importante era ancora tribale, stale o difficile da trovare?**
+
+Il drill trasforma quindi l’assenza simulata in evidence sulla qualità del repository come memoria operativa.
+
+## Handoff e lavoro interrotto
+
+La continuity conta anche su scale più piccole delle ferie.
+
+Quando il lead interrompe un task, una branch con codice incompleto non è un handoff sufficiente. Devono essere recuperabili almeno current goal, hypothesis, change effettuati, evidence raccolta, failure osservati, decisioni ancora aperte, prossimo passo safe e stop condition.
+
+Gli agenti possono produrre un primo handoff packet, ma il lead deve verificarne la correttezza. Un summary eloquente che omette il decision boundary peggiora la continuity invece di migliorarla.
+
+## La conoscenza esternalizzata può diventare stale
+
+Portare knowledge nel repository crea un nuovo rischio: documentazione presente ma obsoleta.
+
+Una source of truth stale può essere peggiore di una source mancante perché produce falsa confidence. Per questo la continuity resta collegata a review trigger e fitness function.
+
+Il test più forte non chiede “questo documento è aggiornato?”. Chiede “un’altra persona riesce a usarlo oggi per prendere una decisione corretta?”.
+
+Il pilot ESI è ancora in uno stato onesto:
 
 ```text
-quali task aperti?
-quali sono execution-ready?
-quali sono bloccati da una decisione?
+Continuity model   Designed
+Secondary role     Designed
+Continuity drill   Pending
 ```
 
-### 4. Evidence
+Finché il drill non viene eseguito, non dichiariamo la continuità `Verified`.
 
-```text
-che cosa è Verified?
-che cosa è soltanto Designed?
-quali test/gate esistono?
-```
-
-### 5. Operations
-
-```text
-come si builda?
-come si testa?
-come si osserva?
-come si recupera?
-```
-
-### 6. Decision rights
-
-```text
-che cosa può decidere il maintainer?
-che cosa richiede Product?
-Security?
-Payments?
-Platform?
-```
-
-### 7. Failure state
-
-```text
-quali rischi noti?
-quali workaround temporanei?
-quali fallback?
-```
-
-Se queste risposte richiedono una telefonata al lead, abbiamo trovato knowledge debt.
-
-## Vacation test
-
-Il Continuity Test può diventare molto concreto.
-
-Prima di considerare maturo il One-Man Project, ESI introduce un **vacation test** simulato:
-
-```text
-lead unavailable
-→ second maintainer receives only repo + approved enterprise systems
-→ must reconstruct current state
-→ run golden verification
-→ explain open work and known risk
-→ perform one bounded safe change or incident drill
-```
-
-Non serve aspettare davvero le ferie.
-
-Può essere un game day organizzativo.
-
-L'obiettivo non è dimostrare che il secondo maintainer sappia tutto.
-
-È scoprire quali informazioni erano ancora soltanto tribali.
-
-## Secondary maintainer
-
-One-Man Project non significa zero backup umano.
-
-ESI richiede almeno un **secondary maintainer** per progetti che superano una certa criticità.
-
-Il secondary maintainer non deve partecipare a ogni task.
-
-Deve però:
-
-- conoscere il product purpose;
-- sapere usare Repository Map e AGENTS.md;
-- sapere eseguire i golden command;
-- conoscere escalation path e decision owner;
-- partecipare periodicamente a continuity review o game day;
-- poter assumere il control plane in caso di assenza.
-
-Questo costa meno di duplicare permanentemente tutto il lavoro.
-
-Ma evita di trasformare il leverage individuale in rischio organizzativo incontrollato.
-
-## Decision log e handoff
-
-Quando il lead interrompe il lavoro, non dovrebbe lasciare soltanto:
-
-```text
-branch with half-finished code
-```
-
-Dovrebbe lasciare almeno:
-
-```text
-current goal
-current hypothesis
-what changed
-what evidence exists
-what failed
-what remains undecided
-next safe step
-stop conditions
-```
-
-Gli agenti possono aiutare a produrre questo handoff.
-
-Ma il lead deve verificarne la correttezza.
-
-## Knowledge freshness
-
-Esternalizzare conoscenza crea un nuovo rischio:
-
-```text
-documented
-but stale
-```
-
-Quindi continuiamo a usare fitness e review trigger.
-
-Una source of truth obsoleta è peggiore di una source of truth mancante quando dà falsa confidenza.
-
-Per questo il Continuity Test deve usare la documentazione per **fare qualcosa**, non soltanto controllare che i file esistano.
-
-> **La documentazione è continuity evidence quando un'altra persona riesce davvero a usarla per prendere il controllo senza inventare il sistema da capo.**
+> **La documentazione diventa continuity evidence soltanto quando un’altra persona riesce davvero a usarla per riprendere il control plane senza inventare il sistema da capo.**
