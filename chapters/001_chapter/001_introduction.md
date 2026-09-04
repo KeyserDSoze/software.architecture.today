@@ -1,207 +1,63 @@
 # Capitolo 1 — Il software è cambiato. Il problema no.
 
-Una delle sensazioni più strane del software engineering contemporaneo è questa: possiamo costruire molto più velocemente e, allo stesso tempo, sentirci meno sicuri di ciò che stiamo costruendo.
+Una delle sensazioni più strane del software engineering contemporaneo è questa: possiamo costruire molto più velocemente e, allo stesso tempo, sentirci meno sicuri di ciò che stiamo costruendo. Un’idea può diventare una demo in poche ore; una specifica può trasformarsi in una pull request; una descrizione in linguaggio naturale può produrre un’API, una migration, una suite di test, un workflow CI/CD e perfino una prima bozza di infrastruttura.
 
-Un'idea diventa una demo in poche ore.
-
-Una specifica diventa una pull request.
-
-Una descrizione in linguaggio naturale diventa un'API, una migration, una suite di test, un workflow CI/CD e perfino una prima bozza di infrastruttura.
-
-Il salto è reale.
-
-Negarlo sarebbe ingenuo.
-
-Ma da qui nasce facilmente una conclusione sbagliata:
-
-> se produrre software è diventato più semplice, allora anche costruire buoni sistemi è diventato più semplice.
+Il salto è reale, e negarlo sarebbe ingenuo. Proprio per questo è facile arrivare a una conclusione sbagliata: se produrre software è diventato più semplice, allora anche costruire buoni sistemi deve essere diventato più semplice.
 
 Non è la stessa cosa.
 
-Il software non è soltanto codice.
+Il software non è soltanto codice. È comportamento nel tempo, stato condiviso, dipendenze e dati che devono rimanere coerenti mentre il mondo attorno al sistema cambia. È un utente che fa qualcosa che non avevamo previsto, una dipendenza esterna che rallenta, un certificato che scade, una migration eseguita nel momento sbagliato o una policy di autorizzazione incompleta. È una decisione presa sei mesi fa che oggi rende costosa una modifica apparentemente banale. Ed è anche l’incidente delle tre di notte in un sistema che sulla macchina dello sviluppatore funzionava perfettamente.
 
-È comportamento nel tempo.
-
-È stato condiviso.
-
-È dipendenze.
-
-È dati che devono rimanere coerenti.
-
-È utenti che fanno cose impreviste.
-
-È traffico che cresce.
-
-È una dipendenza esterna che rallenta.
-
-È un certificato che scade.
-
-È una migration eseguita nel momento sbagliato.
-
-È una policy di autorizzazione incompleta.
-
-È una decisione presa sei mesi prima che oggi limita una modifica apparentemente semplice.
-
-È un incidente alle tre di notte in un sistema che sulla macchina dello sviluppatore funzionava perfettamente.
-
-L'AI comprime molti costi di produzione.
-
-Non cancella questa complessità.
-
-In alcuni casi la rende più visibile.
-
-In altri la nasconde meglio.
+L’AI comprime molti costi di produzione, ma non cancella questa complessità. A volte la rende più visibile; altre volte la nasconde meglio dietro un risultato che appare completo molto prima di esserlo davvero.
 
 ## Il problema non era digitare
 
-Per molto tempo abbiamo confuso una parte del mestiere con il mestiere intero.
+Per molto tempo abbiamo confuso una parte del mestiere con il mestiere intero. Scrivere codice, configurare un ambiente, cercare una libreria, orientarsi in un repository sconosciuto, preparare test, documentazione e script di deployment richiedevano tempo. Era quindi naturale associare una parte della produttività alla quantità di execution che una persona riusciva a svolgere direttamente.
 
-Scrivere codice richiedeva tempo.
+Ma le domande più costose non sono mai state soltanto quelle legate alla digitazione dell’implementazione. Prima di costruire dobbiamo capire se stiamo risolvendo il problema giusto, se il requisito è davvero quello che abbiamo compreso e quali vincoli non sono ancora emersi. Durante il design dobbiamo chiederci quali decisioni stiamo rendendo difficili da cambiare, quali failure mode introduciamo, se stiamo progettando per un carico reale o immaginario e chi possiede davvero il dato che stiamo manipolando. Dopo l’implementazione restano ancora la compatibilità dei contratti, l’operabilità, la capacità di rilevare il degrado e il costo di mantenere la scelta quando l’effetto iniziale della demo è ormai svanito.
 
-Configurare un ambiente richiedeva tempo.
-
-Cercare una libreria richiedeva tempo.
-
-Leggere un repository sconosciuto richiedeva tempo.
-
-Preparare test, documentazione e script di deployment richiedeva tempo.
-
-Era naturale associare la produttività alla quantità di execution che una persona riusciva a svolgere direttamente.
-
-Ma il problema più difficile non è mai stato soltanto digitare l'implementazione.
-
-Le domande costose arrivano prima e dopo:
-
-- abbiamo capito il problema giusto?
-- il requisito è davvero questo?
-- quali vincoli non sono stati esplicitati?
-- quali decisioni stiamo rendendo costose da cambiare?
-- quale failure mode stiamo introducendo?
-- stiamo ottimizzando per un carico reale o immaginario?
-- chi possiede questo dato?
-- che cosa succede alla compatibilità quando cambiamo il contratto?
-- chi opererà questo componente in produzione?
-- come sapremo che il sistema sta degradando?
-- quanto costa mantenere la scelta dopo la demo?
-
-L'AI può aiutarci anche su queste domande.
-
-Può proporre alternative, criticare una soluzione, cercare failure mode, confrontare pattern, leggere documentazione e costruire modelli mentali.
-
-Ma non elimina il bisogno di formularle.
-
-Anzi, quando l'execution accelera, arrivare tardi a una domanda importante diventa più costoso.
+L’AI può aiutarci anche qui. Può proporre alternative, criticare una soluzione, cercare failure mode, confrontare pattern, leggere documentazione e costruire modelli mentali. Non elimina però il bisogno di formulare le domande. Anzi, quando l’execution accelera, arrivare tardi a una domanda importante può diventare più costoso perché nel frattempo abbiamo avuto il tempo di trasformare un’assunzione in molto più software.
 
 ## Quando il collo di bottiglia si sposta
 
-Immaginiamo due team.
+Immaginiamo due team. Il primo impiega cinque giorni a implementare una feature; il secondo, usando agenti, la implementa in cinque ore. A prima vista il secondo team è enormemente più produttivo.
 
-Il primo impiega cinque giorni a implementare una feature.
+Supponiamo però che entrambi abbiano interpretato male il requisito. Il primo scopre l’errore dopo cinque giorni di lavoro. Il secondo, nello stesso intervallo di tempo, potrebbe aver già costruito backend e frontend, preparato una migration e i test, aggiunto dashboard e deployment, aggiornato la documentazione e integrato persino un servizio esterno.
 
-Il secondo, usando agenti, la implementa in cinque ore.
+La velocità ha ridotto il costo dell’esecuzione di una singola attività, ma ha aumentato il perimetro raggiunto prima della scoperta dell’errore. È questo lo spostamento che ci interessa.
 
-A prima vista il secondo team è enormemente più produttivo.
+> **Quando il costo dell’execution scende, il costo di una direzione sbagliata può salire.**
 
-Ma supponiamo che entrambi abbiano interpretato male il requisito.
-
-Il primo scopre l'errore dopo cinque giorni di lavoro.
-
-Il secondo, nello stesso tempo, potrebbe aver costruito backend e frontend, preparato una migration e i test, aggiunto dashboard e deployment, aggiornato la documentazione e integrato persino un servizio esterno.
-
-La velocità ha ridotto il costo dell'esecuzione di una singola attività.
-
-Ha aumentato il perimetro raggiunto prima della scoperta dell'errore.
-
-Questo spostamento è uno dei temi centrali del libro.
-
-> **Quando il costo dell'execution scende, il costo di una direzione sbagliata può salire.**
-
-Il nuovo collo di bottiglia diventa più spesso la chiarezza dell'intento e la qualità del contesto, ma anche la qualità delle decisioni. Conta la capacità di verificare e integrare output diversi e, soprattutto, di fermarsi quando la velocità sta portando il sistema oltre ciò che abbiamo davvero deciso.
+Il collo di bottiglia diventa allora più spesso la chiarezza dell’intento, la qualità del contesto e delle decisioni, la capacità di integrare e verificare output diversi e, soprattutto, la capacità di fermarsi quando la velocità sta portando il sistema oltre ciò che abbiamo davvero deciso.
 
 ## Il paradosso della velocità
 
-La velocità è utile quando la direzione è sufficientemente buona.
+La velocità è utile quando la direzione è sufficientemente buona. Diventa pericolosa quando la usiamo per evitare di scegliere una direzione. Da qui nasce un paradosso:
 
-È pericolosa quando la usiamo per evitare di scegliere una direzione.
+> **Più velocemente possiamo costruire, più valore acquista sapere quando non costruire ancora.**
 
-Da qui nasce un paradosso:
+Non è un invito alla paralisi da analisi, né significa trasformare ogni feature in settimane di workshop. Significa distinguere il tempo che riduce rischio dal tempo che produce soltanto attesa. Una domanda chiarita in dieci minuti può evitare ore di lavoro inutile; un contratto scritto prima di avviare tre agenti può evitare tre implementazioni incompatibili; un acceptance criterion esplicito può risparmiare una lunga discussione su che cosa significhi “finito”; un piccolo ADR può impedire che una decisione locale venga scambiata per un nuovo standard architetturale.
 
-> **più velocemente possiamo costruire, più valore acquista sapere quando non costruire ancora.**
-
-Non è un invito alla paralisi da analisi.
-
-Non significa trasformare ogni feature in tre settimane di workshop.
-
-Significa distinguere tra il tempo che riduce rischio e il tempo che produce soltanto attesa.
-
-Una domanda chiarita in dieci minuti può evitare ore di lavoro inutile.
-
-Un contratto scritto prima di avviare tre agenti può evitare tre implementazioni incompatibili.
-
-Un acceptance criterion esplicito può evitare una lunga conversazione successiva su che cosa significhi “finito”.
-
-Un piccolo ADR può impedire che una decisione locale venga scambiata per un nuovo standard architetturale.
-
-Il punto non è rallentare.
-
-È **spostare deliberatamente il tempo dove ha più leva**.
+Il punto non è rallentare. È **spostare deliberatamente il tempo dove ha più leva**.
 
 ## Ciò che è cambiato davvero
 
-L'AI cambia almeno quattro proprietà dell'execution software.
+L’AI modifica alcune proprietà fondamentali dell’execution software. Abbassa il costo marginale di molte attività: generare una variante, un test, una proposta o una prima bozza di documentazione spesso costa molto meno di prima. Allarga inoltre il perimetro che una singola persona può attraversare, rendendo più facile muoversi tra frontend, backend, infrastruttura, test, documentazione e analisi del repository.
 
-La prima è il **costo marginale** di molte attività.
+Cambia anche il parallelismo. Più attività possono essere affidate contemporaneamente ad agenti diversi, mentre i cicli locali di generazione, esecuzione e correzione diventano più brevi. Tutto questo è potente, ma nessuna di queste proprietà garantisce automaticamente che il risultato sia corretto, coerente, sicuro, operabile, utile, semplice o sostenibile nel tempo.
 
-Generare una variante in più, un test in più, una proposta in più o una prima bozza di documentazione spesso costa molto meno di prima.
-
-La seconda è la **larghezza del perimetro** che una singola persona può attraversare.
-
-È più facile muoversi tra frontend, backend, infrastruttura, test, documentazione e analisi di repository.
-
-La terza è il **parallelismo**.
-
-Più attività possono essere eseguite contemporaneamente da agenti diversi.
-
-La quarta è la **velocità del feedback locale**.
-
-Possiamo generare, eseguire, correggere e rigenerare in cicli molto più brevi.
-
-Queste quattro proprietà sono potenti.
-
-Ma nessuna garantisce automaticamente che il risultato sia corretto, coerente e sicuro, né che sia operabile, utile, semplice o sostenibile nel tempo.
-
-Sono moltiplicatori.
-
-Moltiplicano anche il metodo che trovano.
+Sono moltiplicatori. E un moltiplicatore amplifica anche il metodo che trova.
 
 ## Ciò che non è cambiato
 
-Un sistema continua a dover risolvere un problema reale.
+Un sistema continua a dover risolvere un problema reale per utenti reali, dentro vincoli tecnici, economici e organizzativi. Continua a convivere con dati, reti, failure, dipendenze e costi. Continua a essere modificato da persone che non erano presenti quando è nato e continua ad avere conseguenze quando qualcosa va storto.
 
-Continua ad avere utenti.
+Soprattutto, continua a richiedere decisioni.
 
-Continua ad avere vincoli.
+Per questo la frase “l’AI scriverà il software” è interessante ma incompleta. La domanda utile è un’altra:
 
-Continua a dover convivere con dati, reti, failure, costi, dipendenze e organizzazioni.
+> **Chi decide quale software vale la pena costruire, quali proprietà deve avere e quali compromessi siamo disposti ad accettare?**
 
-Continua a dover essere modificato da qualcuno che non era presente quando è nato.
+Il Capitolo 0 ha stabilito chi tiene il timone. Questo capitolo affronta il problema immediatamente successivo: che cosa succede quando il motore diventa molto più potente?
 
-Continua ad avere conseguenze quando qualcosa va storto.
-
-E soprattutto continua a richiedere decisioni.
-
-Per questo la frase “l'AI scriverà il software” è interessante ma incompleta.
-
-La domanda utile è:
-
-> **chi decide quale software vale la pena costruire, quali proprietà deve avere e quali compromessi siamo disposti ad accettare?**
-
-Il Capitolo 0 ha stabilito chi tiene il timone.
-
-Questo capitolo affronta il problema immediatamente successivo:
-
-> **che cosa succede quando il motore diventa molto più potente?**
-
-La risposta non è usarlo sempre al massimo.
-
-È imparare a controllare velocità, direzione e distanza di arresto.
+La risposta non è usarlo sempre al massimo. È imparare a controllare velocità, direzione e distanza di arresto.
