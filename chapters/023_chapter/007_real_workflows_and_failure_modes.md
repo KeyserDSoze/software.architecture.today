@@ -4,7 +4,7 @@ Le demo multi-agent sono quasi sempre lineari: arriva un task, più agenti colla
 
 Le piattaforme che stanno portando coding agent e agent framework dentro workflow reali raccontano invece un problema più interessante. Appena l'execution diventa concreta emergono permission, isolation, review, approval, tracing, context transfer e overreliance.
 
-Non useremo GitHub, OpenAI o Microsoft come prova che esista una sola architettura agentica corretta. Li usiamo come evidence che **governare l'execution è una parte esplicita del problema, non un dettaglio successivo al modello**.
+Non useremo GitHub, OpenAI o Microsoft come prova che esista un'architettura agentica corretta. Li usiamo come evidence che **governare l'execution è una parte esplicita del problema, non un dettaglio successivo al modello**.
 
 ## L'agent execution entra nel normale change-control surface
 
@@ -62,7 +62,7 @@ Il problema non è il singolo agent. È che abbiamo parallelizzato prima di sinc
 
 Lo stesso fenomeno appare negli handoff. Agent A conosce un'Expected Difference, una stop condition e un ownership boundary; il summary passato ad Agent B dice soltanto “completa la migration”. Il secondo agente tratta l'Expected Difference come bug e “corregge” target behavior verso il legacy.
 
-Entrambi i failure condividono la stessa radice: **il context boundary ha perso una informazione che governava il significato del task**.
+Entrambi i failure condividono la stessa radice: **il context boundary ha perso un'informazione che governava il significato del task**.
 
 Il guardrail non è aggiungere più agenti. È preservare work item, canonical context, evidence state e stop condition prima del fan-out o dell'handoff.
 
