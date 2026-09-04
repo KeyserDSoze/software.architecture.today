@@ -1,254 +1,128 @@
 # 20.3 — Unit economics: collegare costo e valore
 
-Dire che un workload costa di più non ci dice ancora se sta andando peggio.
+Dire che un workload costa di più non ci dice ancora se la sua economia sta peggiorando.
 
-Se il traffico raddoppia, i clienti raddoppiano e il costo cresce del 30%, potremmo stare migliorando.
+Se il numero di casi gestiti raddoppia e il costo cresce del 30%, potremmo stare diventando più efficienti. Se il volume resta stabile e la spesa raddoppia, abbiamo invece una domanda urgente da spiegare.
 
-Se il traffico resta fermo e il costo raddoppia, probabilmente abbiamo una domanda da fare.
-
-Per questo il costo assoluto è spesso una metrica insufficiente.
-
-La FinOps Foundation usa il concetto di **unit economics** per collegare la spesa tecnologica al valore prodotto.
+Per questo il costo assoluto è spesso soltanto il punto di partenza. La FinOps Foundation usa il concetto di **unit economics** proprio per collegare technology spend e valore prodotto.
 
 Fonti:
 
 - [FinOps Framework — Unit Economics](https://www.finops.org/framework/capabilities/unit-economics/)
 - [FinOps — Introduction to Cloud Unit Economics](https://www.finops.org/wg/introduction-cloud-unit-economics/)
 
-## Resource unit vs business unit
+## Resource unit e business unit rispondono a domande diverse
 
-Possiamo misurare unità tecniche:
+Una metrica tecnica può misurare `cost per GB`, `cost per million messages`, `cost per build minute` o, più avanti, `cost per token`. Queste unità sono preziose perché ci mostrano quanto efficientemente stiamo consumando una risorsa e spesso sono direttamente influenzabili dagli engineer.
+
+Ma non ci dicono necessariamente se quella risorsa sta producendo valore.
+
+Per questo dobbiamo affiancare unità più vicine al business: `cost per tenant`, `cost per OperationalCase handled`, `cost per Payment Escalation delivered` o `cost per successful critical journey`.
+
+La FinOps Foundation distingue infatti resource-efficiency unit metric e business unit metric.
+
+> **Il costo per risorsa ci dice quanto bene consumiamo tecnologia. Il costo per outcome ci dice se quella tecnologia sta ancora servendo il prodotto.**
+
+Le due viste non competono. Si spiegano a vicenda. Se `cost per OperationalCase` cresce, la metrica tecnica può aiutarci a capire se il problema viene da database, telemetry, message volume o capacity. Se `cost per GB` migliora ma `cost per case` peggiora, forse abbiamo ottimizzato una risorsa che non era il vero driver del valore.
+
+## Una unit metric può mentire senza essere falsa
+
+Le metriche economiche creano incentivi. Per questo vanno progettate con la stessa attenzione con cui progettiamo una fitness function.
+
+`cost per API request` può diminuire mentre il sistema diventa più chatty e usa più request per completare lo stesso journey. `cost per ticket closed` può migliorare mentre la qualità della risoluzione peggiora. `cost per merged PR`, in un workflow agentico futuro, potrebbe premiare una proliferazione di PR minuscole o merge troppo facili.
+
+La metrica non è matematicamente sbagliata. È semanticamente incompleta.
+
+Una buona unit metric deve quindi dichiarare quale outcome rappresenta, quali comportamenti indesiderati potrebbe incentivare e con quale quality metric va letta.
+
+Per Order Operations, per esempio:
 
 ```text
-cost per GB
-cost per vCPU-hour
-cost per million messages
-cost per token
-cost per build minute
-```
-
-Sono utili perché gli engineer possono controllarle direttamente.
-
-Ma non sempre raccontano il valore.
-
-Per questo servono anche unità di business:
-
-```text
-cost per tenant
-cost per order
-cost per operational case resolved
+UM-02
 cost per Payment Escalation delivered
-cost per active operator
-cost per successful business journey
+
+read with
+Payment Escalation publication SLI
 ```
 
-La FinOps Foundation distingue proprio resource-efficiency unit metric e business unit metric, e suggerisce di usare le seconde per collegare tecnologia e outcome.
+Se il costo scende ma la quota consegnata entro cinque minuti degrada, non possiamo dichiarare automaticamente un miglioramento.
 
-> **Il costo per risorsa ci dice quanto efficientemente consumiamo tecnologia. Il costo per outcome ci dice se quella tecnologia sta ancora servendo il business.**
+## Allocation: prima di attribuire valore dobbiamo attribuire il costo
 
-## Scegliere una unità che non mente
+La unit economics diventa fragile se non sappiamo a chi appartiene la spesa.
 
-Una unit metric può creare incentivi sbagliati.
-
-Esempio:
-
-```text
-cost per API request
-```
-
-potrebbe migliorare se introduciamo un'API molto chatty che produce più request per lo stesso journey.
-
-Oppure:
-
-```text
-cost per ticket chiuso
-```
-
-potrebbe sembrare ottimo se stiamo semplicemente chiudendo ticket più velocemente senza risolvere il problema.
-
-La unità deve quindi essere legata a un outcome sufficientemente stabile.
-
-Per Order Operations possiamo considerare:
-
-```text
-cost per active tenant
-cost per OperationalCase gestito
-cost per Payment Escalation delivered
-cost per critical operator journey successful
-```
-
-Non tutte devono essere KPI.
-
-Alcune possono essere diagnostiche.
-
-## Unit cost e qualità
-
-Un costo per unità va sempre letto insieme alla qualità.
-
-```text
-cost per escalation
-↓ 25%
-```
-
-non è un miglioramento se contemporaneamente:
-
-```text
-delivery <= 5m
-scende dal 99% al 92%
-```
-
-Lo stesso vale per AI:
-
-```text
-cost per token
-```
-
-è una misura tecnica.
-
-Ma una decisione di model routing potrebbe dover guardare:
-
-```text
-cost per task accepted
-cost per verified change
-cost per successful support resolution
-```
-
-perché un modello economico che produce più rework può peggiorare l'economia complessiva.
-
-## Allocation: costo senza owner è rumore
-
-Prima di misurare unit economics dobbiamo sapere a chi appartiene la spesa.
-
-La FinOps Foundation definisce **Allocation** come la pratica di assegnare cost e usage attraverso account, tag, label e metadata per creare accountability fra team e progetti.
+La FinOps Foundation definisce **Allocation** come la pratica di assegnare cost e usage attraverso account, tag, label e metadata per creare accountability fra team, prodotti e business unit.
 
 Fonte:
 
 - [FinOps Framework — Allocation](https://framework.finops.org/framework/capabilities/allocation/)
 
-Azure Cost Management supporta analogamente hierarchy, tag e allocation rule per distribuire o rendere visibili i costi di workload e servizi condivisi.
+Azure Cost Management supporta analogamente hierarchy, tag e allocation rule per rendere visibili o distribuire costi di workload e servizi condivisi.
 
 Fonte:
 
 - [Microsoft Learn — Introduction to cost allocation](https://learn.microsoft.com/en-us/azure/cost-management-billing/costs/cost-allocation-introduction)
 
-Per ESI questo significa distinguere almeno:
+Per ESI questo significa distinguere almeno il costo dedicato di Order Operations dai costi condivisi di networking, identity, security tooling, platform e observability. Se attribuiamo tutto al team prodotto possiamo far sembrare costoso un workload che usa correttamente una capability enterprise. Se non attribuiamo nulla, invece, il team perde ogni feedback economico sulle proprie decisioni.
+
+L'obiettivo non è trovare una formula moralmente perfetta. È evitare che il costo diventi anonimo.
+
+## Showback e chargeback sono meccanismi, non principi
+
+Con **showback** mostriamo al team il costo attribuito senza necessariamente spostare budget interni. Con **chargeback** la spesa viene invece trasferita formalmente a un cost center o a una business unit.
+
+Il secondo può aumentare accountability, ma può anche creare comportamenti perversi se la regola di allocazione è cattiva. Un team potrebbe evitare una capability centrale più sicura soltanto perché il chargeback la rende apparentemente più cara del workaround locale.
+
+Per questo allocation e architecture governance devono parlarsi. Il meccanismo finanziario non deve incentivare la violazione di una proprietà che l'organizzazione considera importante.
+
+## Shared cost non significa costo senza significato
+
+Landing zone, network enterprise, identity platform, CI foundation, security scanner e logging centralizzato sono esempi di costi che possono restare condivisi per scelta.
+
+Possiamo distribuirli per usage, usare un proxy, dividerli in quote o mantenerli centralizzati. La FinOps Foundation osserva che organizzazioni diverse adottano strategie differenti a seconda del tipo di shared cost.
+
+Il punto è dichiarare la scelta e il suo significato.
+
+> **Un shared cost può restare centralizzato. Non deve restare invisibile.**
+
+## Ownership economica vicino all'IaC
+
+Se l'ownership operativa nasce insieme alla risorsa, ha senso rendere disponibile nello stesso punto anche una parte dell'ownership economica.
+
+Per Order Operations la direzione è mantenere metadata come:
 
 ```text
-Order Operations dedicated cost
-Platform shared cost
-Security shared tooling
-Central observability
-Enterprise networking
-Shared identity
+workload = order-operations
+environment = <dev|staging|prod>
+owner = commerce-operations
+businessUnit = commerce-operations
+product = order-operations
 ```
 
-Se carichiamo tutto sul team prodotto, possiamo fargli sembrare costoso un workload che usa correttamente capability enterprise condivise.
+`cost-center` non viene inventato nel libro. Appartiene a un mapping Finance reale o esplicitamente simulato.
 
-Se non attribuiamo nulla, invece, il team non vede il costo delle proprie decisioni.
+Questa scelta è deliberata: preferiamo un'informazione mancante ma onesta a un codice fittizio che, entrando nell'IaC, inizierebbe a sembrare evidence reale.
 
-## Showback e chargeback
+## Le prime unit metric di ESI
 
-Due modelli utili:
+Order Operations non dispone ancora di billing production. Quindi il Capitolo 20 può **progettare** le unità, non dichiarare di averle misurate.
 
-### Showback
+Le prime tre sono sufficienti per collegare le principali superfici di costo al lavoro del prodotto:
 
-Mostriamo il costo al team responsabile.
+| ID | Unit metric | Perché esiste | Quality pair | Stato |
+|---|---|---|---|---|
+| UM-01 | cost per `OperationalCase` handled | collega run cost e volume operativo | outcome/handling quality | Designed / not measured |
+| UM-02 | cost per `Payment Escalation` delivered | rende visibile il costo della capability async | publication SLI | Designed / not measured |
+| UM-03 | observability cost per 1.000 critical journeys | intercetta telemetry che cresce più del bisogno | diagnostic coverage / SLI evidence | Designed / not measured |
 
-Non spostiamo necessariamente budget o fatture interne.
+Questa tabella contiene già una parte importante della disciplina: **la metrica economica non viaggia da sola**.
 
-Serve per visibility e decision making.
+Quando i dati production arriveranno potremo sostituire assunzioni con evidence, confrontare periodi e aggiornare la baseline. Fino ad allora non useremo numeri simulati come se fossero consuntivi.
 
-### Chargeback
+## Il costo diventa governabile quando ha tre legami
 
-Attribuiamo formalmente il costo al cost center o business unit.
+Una spesa significativa deve poter essere collegata a un owner, a un driver e a una unità di valore. Se manca uno dei tre, il sistema economico diventa più difficile da spiegare.
 
-Può creare accountability più forte, ma anche incentivi pericolosi se la regola di allocazione è cattiva.
+Un owner senza driver può soltanto ricevere una fattura. Un driver senza unità di valore può ottimizzare consumo senza sapere se sta migliorando il prodotto. Una unit metric senza buona allocation può attribuire il costo al soggetto sbagliato.
 
-Per esempio, un team potrebbe evitare una capability centralizzata più sicura soltanto perché il chargeback la rende apparentemente più costosa del workaround locale.
-
-Per questo allocation e architecture governance devono parlarsi.
-
-## Shared cost non significa costo invisibile
-
-Alcuni costi sono realmente condivisi:
-
-```text
-landing zone
-central logging
-enterprise network
-identity platform
-CI foundation
-security scanner
-```
-
-Possiamo:
-
-- lasciarli centralizzati;
-- distribuirli in parti uguali;
-- distribuirli per usage;
-- usare un proxy metric;
-- usare una combinazione.
-
-La FinOps Foundation osserva che non esiste necessariamente una sola strategia: alcune organizzazioni allocano alcuni costi e mantengono altri centralizzati in modo intenzionale.
-
-Il punto importante è che la scelta sia esplicita.
-
-> **Un shared cost può restare centralizzato. Non deve restare senza significato.**
-
-## Cost allocation metadata come parte dell'IaC
-
-Quando possibile, l'ownership economica dovrebbe nascere insieme alla risorsa.
-
-```text
-resource
-+ workload
-+ environment
-+ owner
-+ cost-center
-+ product
-```
-
-Non per trasformare ogni tag in governance burocratica.
-
-Per evitare mesi di reverse engineering della fattura.
-
-Azure consente di usare tag e policy per aumentare la coverage dell'allocazione.
-
-Questo suggerisce una buona regola:
-
-> **Se possiamo dichiarare l'ownership operativa nell'IaC, spesso possiamo dichiarare anche l'ownership economica.**
-
-## ESI: unit metric corrente
-
-Per Order Operations non abbiamo ancora real billing data.
-
-Quindi non inventiamo valori.
-
-Definiamo però già le unità che vogliamo poter misurare:
-
-```text
-Business unit metric candidate
-= monthly cost per OperationalCase handled
-
-Integration unit metric candidate
-= cost per Payment Escalation delivered
-
-Resource metric candidate
-= telemetry cost per 1,000 critical journeys
-```
-
-Stato:
-
-```text
-Designed
-not measured
-not benchmarked
-```
-
-Questa è una distinzione importante.
-
-Definire una metrica prima di avere dati non significa fingere di averla misurata.
-
-## Regola
-
-> **Il costo diventa governabile quando possiamo collegarlo a un owner, a un driver e a una unità di valore.**
+> **Unit economics non significa trasformare ogni decisione in denaro. Significa impedire che costo e valore continuino a vivere in conversazioni separate.**
