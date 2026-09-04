@@ -1,539 +1,148 @@
 # ESI — Production Readiness Review di Order Operations
 
-> **Scenario fittizio/composito.** Questa review usa lo stato reale del capstone al termine del Capitolo 25. I requisiti e le decisioni ESI sono simulati; gli stati `Verified` vengono usati soltanto quando nel percorso del libro è stata registrata evidence corrispondente.
+> **Scenario fittizio/composito.** La review usa lo stato reale del capstone. Gli stati `Verified` vengono usati soltanto quando esiste evidence corrispondente.
 
-Siamo arrivati al momento in cui dobbiamo prendere una decisione.
+Dopo venticinque capitoli Order Operations è abbastanza maturo da creare pressione per un launch. È anche abbastanza disciplinato da impedirci di confondere quella pressione con readiness.
 
-Non una decisione architetturale astratta.
+Product propone un bounded internal pilot: workforce ESI, private access, single region e core Operational Case read journey. Payment Escalation viene valutato come boundary separato. Priority candidate, Case Explanation Assistant, public ingress e remediation action restano esclusi.
 
-Una decisione di launch.
+Questa scelta restringe la promessa prima ancora di giudicarla.
 
----
+## La matrice racconta una storia semplice
 
-# 1. Launch proposal
+| Area | Claim | Current state | Launch impact |
+|---|---|---|---|
+| Functional | core semantics documented and testable | Partial | staged critical journey still required |
+| Architecture | structural boundaries explicit | Partial | runtime boundary evidence incomplete |
+| Cloud | intended Azure topology deploys correctly | Pending | core blocker |
+| Security | auth/network/RBAC boundaries hold | Pending | core blocker |
+| Reliability | recovery meets launch expectations | Pending | core blocker |
+| Observability | critical failure becomes actionable signal | Pending | core blocker |
+| Deployment | rollout can stop/recover safely | Pending | core blocker |
+| Capacity | pilot demand has known headroom | Unknown/Pending | core blocker |
+| Ownership | support/escalation route exists | Partial | continuity/support evidence pending |
+| Cost | major premiums and allocation direction known | Partial | potentially conditional for pilot |
+| Payment data | escalation/outbox atomic on PostgreSQL | Pending | escalation-only blocker |
+| AI | model quality/security/runtime behavior evaluated | Pending | AI-only; feature disabled |
+| Priority | authoritative cutover supported by runtime evidence | Pending | not authorized |
 
-Product propone un pilot interno di Order Operations.
+La conclusione non richiede un readiness score:
 
-## Proposed cohort
+> **Order Operations non è production-ready secondo l’evidence registrata nel capstone.**
 
-```text
-ESI workforce only
-bounded Operations users
-private access path
-single production region
-```
+Questa non è una sconfitta. È il primo momento in cui il sistema di evidence produce una decisione scomoda invece di una narrativa ottimista.
 
-## Proposed capability
+## Perché anche il core read-only resta NO-GO
 
-### Included candidate
+Potremmo pensare che il core sia “solo read-only” e quindi abbastanza innocuo da lanciare.
 
-```text
-core Operational Case read journey
-```
+Ma il launch boundary promette comunque authenticated private access, correct authorization/tenant isolation, real deployment path, runtime dependency connectivity, observable critical journey, support ownership e recovery/fallback praticabili.
 
-### Requested, but separately gated
+Nel capstone queste property sono in parte `Designed` o `Codified`, non ancora tutte `Verified`.
 
-```text
-Payment Escalation
-```
+La review quindi non trasforma l’intenzione in runtime evidence.
 
-### Explicitly excluded
-
-```text
-Priority candidate authoritative cutover
-Case Explanation Assistant
-public/mobile/partner ingress
-refund/remediation action
-```
-
-Questa separazione è intenzionale.
-
-Il launch non deve portarsi dietro capability non pronte soltanto perché vivono nello stesso repository.
-
----
-
-# 2. Readiness decision model
-
-Useremo:
+I blocker core restano:
 
 ```text
-READY
-→ sufficient evidence for current launch boundary
-
-CONDITIONAL
-→ may proceed only with explicit conditions
-
-BLOCKED
-→ required evidence/capability missing
-
-NOT APPLICABLE
-→ outside current launch boundary
+PRB-001 cloud deployment evidence
+PRB-002 security runtime evidence
+PRB-003 recovery evidence
+PRB-004 observability / alert evidence
+PRB-005 support / continuity evidence
+PRB-006 capacity evidence
 ```
 
-E separatamente:
+Un futuro `CONDITIONAL GO` per `LB-CORE` richiede almeno la closure di questi gap e condizioni esplicite come bounded cohort, private access, support window e capability più rischiose disabled.
 
-```text
-Accepted Risk
-Follow-up
-Unknown
-```
+## Payment Escalation non eredita la readiness del core
 
----
+`LB-ESCALATION` introduce un’altra promessa: `PaymentEscalation + OutboxMessage` devono essere atomici sul datastore reale e il publisher/messaging boundary deve poter essere governato.
 
-# 3. Readiness matrix — current state
-
-| Area | Claim | Current evidence | State | Launch impact |
-|---|---|---|---|---|
-| Functional | Core product semantics are documented | Functional Analysis + Requirements | CONDITIONAL | requires staged critical-journey verification |
-| Architecture | boundaries and ownership are explicit | Context/Data/Architecture artifacts + fitness evidence | CONDITIONAL | structural evidence exists; runtime boundary evidence incomplete |
-| Payment data | Escalation + Outbox atomicity on PostgreSQL | local orchestration tests only; OO-001 pending | BLOCKED | blocker for Payment Escalation launch boundary |
-| Cloud deployment | IaC expresses intended Azure baseline | `infra/main.bicep` Codified | BLOCKED | no full build/deploy/private-connectivity evidence recorded |
-| Security | Threat Model and controls documented | static/IaC direction + local negative logic only | BLOCKED | critical runtime/network/RBAC verification pending |
-| Reliability | SLO/RTO/RPO defined | Reliability Contract; zonal intent Codified partly | BLOCKED | restore/failover evidence pending |
-| Observability | signal/SLI contract defined | Observability Contract + local telemetry boundary | BLOCKED | staging/runtime signal + alert exercise pending |
-| Deployment | safe-deployment principles documented | architecture/docs only | BLOCKED | rollout/rollback evidence not yet recorded |
-| Capacity | capacity direction exists | >=2 App Service instances direction | UNKNOWN | no representative runtime/load evidence yet |
-| Ownership | workload/domain ownership documented | Repository Map, operating model | CONDITIONAL | secondary maintainer/production support drill pending |
-| Continuity | another maintainer can operate safely | continuity drill Designed | BLOCKED for One-Man production ownership | no drill executed |
-| Cost | major premiums/unit metrics modeled | Cost Model + allocation tags | CONDITIONAL | real billing/unit metrics pending; may not block bounded pilot |
-| AI | Case Explanation boundary/eval seed exists | contract + AI boundary fitness | NOT APPLICABLE | feature excluded from launch; OO-002 pending |
-| Priority migration | target policy coded/tested | local target/shadow tests | NOT APPLICABLE | authoritative cutover excluded |
-
-La matrice ci dice già qualcosa di importante.
-
-> **Order Operations non è production-ready oggi secondo l'evidence registrata nel capstone.**
-
-Questa non è una sconfitta.
-
-È una conclusione utile.
-
----
-
-# 4. Perché il core non riceve ancora un GO
-
-Potremmo essere tentati di dire:
-
-> il core è read-only, quindi lanciamolo.
-
-Ma anche il core richiede almeno:
-
-```text
-authenticated private access
-correct tenant/resource authorization
-real deployment path
-runtime dependency connectivity
-observable critical journey
-support ownership
-rollback/fallback
-```
-
-Nel capstone questi elementi sono in parte:
-
-```text
-Designed
-```
-
-o:
-
-```text
-Codified
-```
-
-ma non ancora tutti:
-
-```text
-Verified
-```
-
-Quindi il PRR non inventa il `GO`.
-
----
-
-# 5. Payment Escalation è un launch boundary separato
-
-Qui il blocker è molto netto.
-
-Abbiamo:
-
-```text
-PaymentEscalation
-+ OutboxMessage
-```
-
-progettati per essere atomici.
-
-Il local application test verifica l'orchestrazione.
-
-Ma il Testing Strategy dice esplicitamente:
-
-```text
-TST-005
-real PostgreSQL transaction evidence
-= Pending
-```
-
-E `OO-001` esiste proprio per chiudere quel gap.
+Il local orchestration test esiste. Ma `TST-005` e `OO-001` dichiarano ancora Pending la PostgreSQL transaction evidence.
 
 Quindi:
 
 ```text
-LB-ESCALATION
-= BLOCKED
+PRB-ESC-001
+OO-001 PostgreSQL atomicity
+→ Open / execution Pending
 ```
 
-finché non abbiamo almeno:
+Questo blocca Payment Escalation, non deve necessariamente bloccare il core read journey quando il boundary può realmente tenere la capability disabled.
 
-```text
-real migration chain
-successful atomic commit
-rollback when second write fails
-relevant concurrency/uniqueness evidence
-```
+La separazione rende la decisione più precisa, non più permissiva.
 
-Non rinominiamo la mancanza `accepted risk` solo perché il codice sembra corretto.
+## AI resta fuori dal launch
 
----
+Il Case Explanation Assistant ha un AI Feature Contract, un semantic port provider-neutral, deterministic source validation ed eval seed.
 
-# 6. AI Assistant resta fuori dal launch
+Non ha ancora real model comparison, groundedness result, prompt-injection result, provider/privacy review, latency, cost, operator usefulness o runtime monitoring.
 
-Il Case Explanation Assistant ha:
+`OO-002` esiste proprio per chiudere parte di questo gap.
 
-```text
-AI Feature Contract
-provider-neutral port
-source validator
-eval seed
-AI boundary fitness
-```
-
-Ma non ha ancora:
-
-```text
-real model comparison
-real groundedness results
-prompt-injection results
-provider/privacy review
-latency
-cost
-operator usefulness
-runtime monitoring
-```
-
-`OO-002` è stato creato per questo.
-
-Decisione:
+Quindi:
 
 ```text
 LB-AI
-= NOT READY
-= excluded from core production launch
+= NOT READY / DISABLED
 ```
 
-Questa esclusione riduce il launch risk senza richiedere che il core aspetti indefinitamente una capability opzionale.
+Escludere l’AI non è un workaround. È un vantaggio del boundary disegnato nel Capitolo 24: il core non dipende da una capability probabilistica opzionale la cui evidence non è ancora sufficiente.
 
----
+## Priority cutover resta non autorizzato
 
-# 7. Priority cutover resta non autorizzato
+ConfirmedPriorityPolicy, LegacyPriorityAdapter, BranchingPriorityPolicy ed Expected Difference mostrano che la migration è progredita. Ma mancano ancora runtime shadow telemetry, consumer/retirement evidence e un cutover/fallback gate soddisfatto.
 
-Abbiamo fatto progressi importanti:
+Quindi `LB-PRIORITY-CANDIDATE` resta `NOT AUTHORIZED`.
+
+Il compatibility path corrente continua a essere il percorso sostenuto.
+
+## Non confondiamo architettura mancante con evidence mancante
+
+La PRR non sta dicendo che il progetto non possiede architecture intent. Al contrario, possiede abbastanza design da sapere **quale evidence manca**.
+
+Per cloud servono build/lint, non-production deploy, private connectivity, smoke e rollback/fallback exercise. Per security servono negative test runtime su role, tenant, RBAC e public access. Per reliability serve un restore/recovery drill misurato. Per observability serve un alert chain esercitato. Per continuity serve un Secondary Maintainer drill. Per capacity serve almeno una pilot estimate con representative evidence.
+
+Questi gap non vengono risolti aggiungendo una nuova diagramma. Richiedono execution nel boundary appropriato.
+
+## Il single-region risk è un esempio di Accepted Risk candidato, non di blocker automatico
+
+Per un bounded internal pilot ESI potrebbe accettare di non avere active-active multi-region.
+
+Ma questa decisione diventa discutibile soltanto **dopo** che esiste evidence sulla recovery di base. Senza restore evidence non stiamo accettando un known regional downtime risk: stiamo ignorando un unknown recovery capability.
+
+Quindi `AR-CAND-001` resta candidato, non accepted risk in questa PRR.
+
+## La decisione
+
+Alla fine del Capitolo 26 la review persistente rimane:
 
 ```text
-ConfirmedPriorityPolicy
-LegacyPriorityAdapter
-BranchingPriorityPolicy
-ExpectedDifference ED-001
-local tests
+PRR-OO-001
+Decision = NO-GO — evidence closure required
 ```
 
-Ma il Refactoring Safety Plan richiede ancora:
-
-```text
-runtime shadow telemetry
-consumer inventory
-rollout evidence
-fallback owner
-```
-
-Quindi:
-
-```text
-LB-PRIORITY-CANDIDATE
-= NOT AUTHORIZED
-```
-
-Non è un blocker per il core pilot se continuiamo a utilizzare il percorso legacy/compatibility approvato.
-
----
-
-# 8. Production blocker register
-
-## PRB-001 — Cloud deployment evidence
-
-Required:
-
-```text
-Bicep build/lint
-non-production deployment
-private ingress/connectivity test
-smoke test
-rollback/fallback exercise
-```
-
-Owner:
-
-```text
-Order Operations + Platform
-```
-
-## PRB-002 — Security runtime evidence
-
-Required:
-
-```text
-wrong-role negative test
-cross-tenant negative test
-runtime RBAC negative test
-public access negative test
-production-support access path
-```
-
-Owner:
-
-```text
-Order Operations + Security + Platform
-```
-
-## PRB-003 — Reliability / recovery evidence
-
-Required:
-
-```text
-PostgreSQL backup/restore exercise
-failover path appropriate to launch boundary
-actual timing vs RTO/RPO
-```
-
-Owner:
-
-```text
-Order Operations + Platform/Operations
-```
-
-## PRB-004 — Observability / alert evidence
-
-Required:
-
-```text
-critical journey emits expected signals
-known failure emits expected signal
-SLI query exercised
-page/ticket path exercised
-owner/runbook linkage verified
-```
-
-Owner:
-
-```text
-Order Operations
-```
-
-## PRB-005 — Continuity / support readiness
-
-Required:
-
-```text
-secondary maintainer nominated in real organization
-continuity drill
-support window decision
-incident access verification
-```
-
-Owner:
-
-```text
-Commerce & Operations Engineering
-```
-
-## PRB-006 — Capacity evidence
-
-Required:
-
-```text
-pilot traffic estimate
-representative smoke/load evidence
-known bottleneck/headroom
-```
-
-Owner:
-
-```text
-Order Operations
-```
-
----
-
-# 9. Capability-specific blocker register
-
-## PRB-ESC-001
-
-```text
-OO-001 PostgreSQL atomicity
-```
-
-Blocks:
-
-```text
-Payment Escalation launch
-```
-
-Does not necessarily block:
-
-```text
-read-only core pilot
-```
-
-## PRB-AI-001
-
-```text
-OO-002 real model/provider evaluation
-```
-
-Blocks:
-
-```text
-Case Explanation Assistant production enablement
-```
-
-Does not block:
-
-```text
-core launch without AI
-```
-
----
-
-# 10. Potential accepted risk — regional recovery
-
-ESI ha già deciso un regional disaster target più rilassato rispetto all'intra-region recovery.
-
-Per un bounded internal pilot potremmo accettare:
-
-```text
-no active-active multi-region
-```
-
-Ma solo se:
-
-```text
-backup/restore evidence exists
-single-region risk is explicit
-business owner accepts downtime envelope
-launch boundary stays internal/bounded
-```
-
-Quindi:
-
-```text
-No multi-region
-```
-
-non è il blocker.
-
-Il blocker è:
-
-```text
-recovery capability not yet demonstrated
-```
-
-Questa distinzione è importante.
-
----
-
-# 11. Production Readiness decision
-
-Current decision at the end of Chapter 26 authoring:
-
-```text
-Order Operations
-Production Readiness Review
-
-Decision
-NO-GO — evidence closure required
-```
-
-Non perché il progetto sia “fatto male”.
-
-Ma perché la sua stessa disciplina ci impedisce di confondere:
+Non perché Order Operations sia “fatto male”. Perché la disciplina del libro ci impedisce di promuovere:
 
 ```text
 Designed / Codified
 ```
 
-con:
+in:
 
 ```text
 Verified for production
 ```
 
----
+senza attraversare i boundary reali che possono smentire le nostre assunzioni.
 
-# 12. Path to Conditional GO
+## Che cosa abbiamo guadagnato
 
-Il prossimo gate potrebbe consentire:
+Una checklist generica avrebbe potuto dire `security = yes`, `backup = yes`, `monitoring = yes`.
 
-```text
-CONDITIONAL GO
-for LB-CORE only
-```
+La PRR può invece dire quale security property, quale recovery evidence, quale SLI, quale launch boundary, quale owner e quale claim è ancora Pending.
 
-quando chiudiamo almeno:
+È questa precisione che rende utile il `NO-GO`.
 
-```text
-PRB-001 cloud deployment evidence
-PRB-002 security runtime evidence
-PRB-003 representative recovery evidence
-PRB-004 observability/alert evidence
-PRB-005 support/continuity evidence
-PRB-006 capacity evidence
-```
-
-con:
-
-```text
-Payment Escalation disabled unless OO-001 closes
-Case Explanation Assistant disabled
-Priority candidate disabled
-bounded internal cohort
-explicit support window
-```
-
-Questo sarebbe un vero conditional launch boundary.
-
-Non un modo elegante per saltare i blocker.
-
----
-
-# 13. Cosa abbiamo guadagnato
-
-Senza i capitoli precedenti avremmo probabilmente una checklist generica:
-
-```text
-security? yes
-backup? yes
-monitoring? yes
-```
-
-Ora possiamo dire:
-
-```text
-which security property?
-which restore evidence?
-which SLI?
-which launch boundary?
-which owner?
-which claim remains pending?
-```
-
-Questa è la differenza fra checklist e sistema di decisione.
-
-> **La Production Readiness Review non ci ha detto che Order Operations è quasi pronto. Ci ha detto esattamente quali prove mancano perché una promessa di produzione diventi difendibile.**
+> **La review non ci dice che Order Operations è quasi pronto. Ci dice esattamente quali prove devono esistere prima che una promessa di produzione diventi difendibile.**
