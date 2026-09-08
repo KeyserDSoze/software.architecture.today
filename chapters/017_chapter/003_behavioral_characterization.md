@@ -30,9 +30,7 @@ Fonte:
 
 - [Martin Fowler — Modern Mocking Tools and Black Magic](https://martinfowler.com/articles/modernMockingTools.html)
 
-Il valore del characterization test non è dire che il sistema abbia ragione.
-
-È dirci:
+Il valore del characterization test non è dire che il sistema abbia ragione. È dirci:
 
 ```text
 prima faceva X
@@ -52,9 +50,7 @@ Enterprise tenant
 → Priority = URGENT
 ```
 
-Un test può dimostrare che quel risultato avviene davvero per un input controllato.
-
-Lo stato della claim diventa `Observed`.
+Un test può dimostrare che quel risultato avviene davvero per un input controllato. Lo stato della claim diventa `Observed`.
 
 Non sappiamo ancora se la regola:
 
@@ -72,9 +68,7 @@ Observed behavior
 Confirmed requirement
 ```
 
-Il test rende il comportamento visibile.
-
-La decisione di dominio ne stabilisce il significato.
+Il test rende il comportamento visibile. La decisione di dominio ne stabilisce il significato.
 
 ## Classificare progressivamente il comportamento
 
@@ -102,9 +96,7 @@ La modernization dovrebbe eliminarlo, non consacrarlo.
 
 Abbiamo osservato qualcosa, ma non possediamo ancora evidence sufficiente per classificarlo.
 
-Questa quarta categoria è importante.
-
-Costringe il team ad ammettere che non ogni behavior deve ricevere subito una spiegazione.
+Questa quarta categoria è importante. Costringe il team ad ammettere che non ogni behavior deve ricevere subito una spiegazione.
 
 ## Golden master: confronto, non culto dello snapshot
 
@@ -124,15 +116,7 @@ same inputs
 
 Questo approccio, spesso chiamato **golden master**, è utile quando l'output è deterministico o normalizzabile e la specifica non è ancora completa.
 
-Il rischio nasce quando fotografiamo indiscriminatamente ogni byte.
-
-Timestamp, random ID, ordering accidentale, cache metadata e formatting irrilevante creano diff rumorosi.
-
-Il team inizia allora ad approvare snapshot per far tornare verde la suite.
-
-A quel punto il test non protegge più la semantica.
-
-Protegge il file snapshot.
+Il rischio nasce quando fotografiamo indiscriminatamente ogni byte. Timestamp, random ID, ordering accidentale, cache metadata e formatting irrilevante creano diff rumorosi; il team inizia allora ad approvare snapshot per far tornare verde la suite. A quel punto il test non protegge più la semantica, ma il file snapshot.
 
 La regola è:
 
@@ -165,21 +149,9 @@ protegge una proprietà osservabile indipendentemente dalla struttura interna.
 
 ## Il legacy può essere difficile da osservare
 
-Molti sistemi sono intrecciati con clock globale, filesystem, database statico, singleton, network call, environment variable e framework lifecycle.
+Molti sistemi sono intrecciati con clock globale, filesystem, database statico, singleton, network call, environment variable e framework lifecycle. Non dobbiamo per forza risolvere tutto prima di ottenere la prima evidence: possiamo iniziare dal boundary più esterno che riusciamo a controllare e creare poi seam più piccoli.
 
-Non dobbiamo per forza risolvere tutto prima di ottenere la prima evidence.
-
-Possiamo iniziare dal boundary più esterno che riusciamo a controllare.
-
-Poi creare seam più piccoli.
-
-Ma dobbiamo evitare un'altra illusione: un mocking framework molto potente può rendere testabile qualunque cosa senza rendere il design più comprensibile.
-
-Il test passa.
-
-Il coupling resta.
-
-La testability del Capitolo 16 vale anche qui: il seam dovrebbe rappresentare una dipendenza significativa, non soltanto un trucco della suite.
+Dobbiamo però evitare un'altra illusione. Un mocking framework molto potente può rendere testabile qualunque cosa senza rendere il design più comprensibile: il test passa, il coupling resta. La testability del Capitolo 16 vale anche qui; il seam dovrebbe rappresentare una dipendenza significativa, non soltanto un trucco della suite.
 
 ## Un corpus intenzionale vale più di cento input casuali
 
@@ -197,13 +169,9 @@ duplicate/retry case
 historical compatibility case
 ```
 
-La priorità non è massimizzare il numero di fixture.
+La priorità non è massimizzare il numero di fixture. È includere i casi che possono cambiare business outcome o compatibilità.
 
-È includere i casi che possono cambiare business outcome o compatibilità.
-
-Production evidence può aiutarci a scoprire input che non avremmo immaginato, ma non giustifica copiare dati reali senza governance.
-
-Possiamo usare synthetic reconstruction, anonymization, schema-preserving generation, aggregate distributions o replay sottoposto a privacy review.
+Production evidence può aiutarci a scoprire input che non avremmo immaginato, ma non giustifica copiare dati reali senza governance. Possiamo usare synthetic reconstruction, anonymization, schema-preserving generation, aggregate distributions o replay sottoposto a privacy review.
 
 La modernization non sospende Security by Design.
 
@@ -225,9 +193,7 @@ L'incidente può diventare characterization evidence e, dopo conferma, requisito
 
 ## L'AI accelera la raccolta, non la classificazione finale
 
-Un agente può enumerare branch, generare candidate input, trovare boundary value, confrontare output e minimizzare failing case.
-
-Può quindi rendere molto più economica la creazione della baseline.
+Un agente può enumerare branch, generare candidate input, trovare boundary value, confrontare output e minimizzare failing case. Può quindi rendere molto più economica la creazione della baseline.
 
 Ma non dovrebbe compiere automaticamente questo salto:
 
@@ -249,9 +215,7 @@ AI finds behavior
 
 ## Anche un bug può essere preservato temporaneamente
 
-Può sembrare paradossale, ma durante la fase di understanding è a volte corretto.
-
-Se non sappiamo ancora se una differenza sia voluta, evitare di cambiarla insieme alla struttura riduce il numero di variabili contemporanee.
+Può sembrare paradossale, ma durante la fase di understanding è a volte corretto. Se non sappiamo ancora se una differenza sia voluta, evitare di cambiarla insieme alla struttura riduce il numero di variabili contemporanee.
 
 Quando poi il comportamento viene confermato come bug, la modifica diventa deliberata:
 
@@ -266,9 +230,7 @@ Questo evita di nascondere un cambiamento funzionale dentro una modernization �
 
 ## La baseline non rende buono il legacy
 
-Una characterization suite non certifica il sistema.
-
-Rende visibile una parte del suo comportamento.
+Una characterization suite non certifica il sistema. Rende visibile una parte del suo comportamento.
 
 Prima avevamo:
 
@@ -278,8 +240,6 @@ Dopo abbiamo:
 
 > Questi behavior sono osservati e protetti; questi altri restano sconosciuti; soltanto alcuni sono già confermati.
 
-È una forma di confidence incompleta.
-
-Ma è finalmente una confidence con confini espliciti.
+È una forma di confidence incompleta, ma finalmente con confini espliciti.
 
 > **Prima di migliorare un comportamento dobbiamo essere capaci di accorgerci quando lo abbiamo cambiato, e sapere se quel cambiamento era davvero autorizzato.**

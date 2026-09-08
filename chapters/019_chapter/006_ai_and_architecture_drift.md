@@ -1,12 +1,6 @@
 # 19.6 — AI e architecture drift: il repository insegna ciò che rende visibile
 
-L'AI aumenta la velocità con cui un repository può cambiare.
-
-Questo rende più economico anche il drift.
-
-Il problema non è semplicemente che un agente “non conosce l'architettura”.
-
-È più concreto:
+L'AI aumenta la velocità con cui un repository può cambiare e rende quindi più economico anche il drift. Il problema non è semplicemente che un agente “non conosce l'architettura”, ma qualcosa di più concreto:
 
 > **l'agente vede soprattutto il contesto che gli abbiamo reso disponibile e ottimizza soprattutto il risultato che gli abbiamo chiesto.**
 
@@ -29,15 +23,7 @@ una soluzione può essere funzionalmente corretta e architetturalmente regressiv
 
 ## Il drift può diventare training data del repository
 
-C'è un failure mode ancora più sottile.
-
-Il progetto possiede già tre eccezioni storiche.
-
-Un agente esplora la codebase e le vede ripetute.
-
-Può inferire che rappresentino il pattern normale.
-
-Poi aggiunge una quarta implementazione coerente con ciò che ha osservato.
+C'è un failure mode ancora più sottile. Se il progetto possiede già tre eccezioni storiche, un agente che esplora la codebase può vederle ripetute, inferire che rappresentino il pattern normale e aggiungere una quarta implementazione coerente con ciò che ha osservato.
 
 ```text
 exception
@@ -47,9 +33,7 @@ exception
 → stronger drift
 ```
 
-A quel punto il repository inizia a insegnare agli agenti futuri il proprio drift.
-
-Questo riprende il problema del legacy:
+A quel punto il repository inizia a insegnare agli agenti futuri il proprio drift. È lo stesso problema incontrato nel legacy:
 
 ```text
 code that exists
@@ -61,9 +45,7 @@ La differenza deve essere espressa da qualcosa di più forte della frequenza del
 
 ## Un repository AI-ready deve contenere anche il proprio intent
 
-Non significa creare un file gigantesco con tutte le regole.
-
-Significa distribuire il contesto nelle forme che già usiamo:
+Non significa creare un file gigantesco con tutte le regole. Significa distribuire il contesto nelle forme che già usiamo:
 
 ```text
 Functional Analysis
@@ -77,19 +59,11 @@ CI gates
 issue acceptance criteria
 ```
 
-La documentazione spiega il perché.
-
-Il verifier dà feedback sull'implementazione.
-
-L'issue delimita il change corrente.
-
-Questa combinazione riduce la probabilità che l'agente impari l'architettura soltanto dai precedenti accidentali del codice.
+La documentazione spiega il perché, il verifier dà feedback sull'implementazione e l'issue delimita il change corrente. Questa combinazione riduce la probabilità che l'agente impari l'architettura soltanto dai precedenti accidentali del codice.
 
 ## La fitness function è anche context engineering
 
-Per un agente un architecture test non è soltanto un gate finale.
-
-È feedback durante l'execution.
+Per un agente un architecture test non è soltanto un gate finale. È feedback durante l'execution:
 
 ```text
 agent changes source
@@ -98,20 +72,11 @@ agent changes source
 → agent changes approach
 ```
 
-La fitness function diventa contemporaneamente:
-
-- documentazione eseguibile;
-- constraint;
-- verifier;
-- feedback per la strategia dell'agente.
-
-Questo è più scalabile di ricordare la regola in ogni prompt manuale.
+La fitness function diventa contemporaneamente documentazione eseguibile, constraint, verifier e feedback per la strategia dell'agente. È più scalabile di ricordare la regola in ogni prompt manuale.
 
 ## Agent Architecture Review
 
-Un agente può anche essere usato come reviewer architetturale.
-
-Può confrontare un diff con ADR e checklist, trovare nuove dependency, segnalare accessi cross-boundary, cercare vendor leakage, identificare data copy o feature flag prive di cleanup condition.
+Un agente può anche essere usato come reviewer architetturale: può confrontare un diff con ADR e checklist, trovare nuove dependency, segnalare accessi cross-boundary, cercare vendor leakage, identificare data copy o feature flag prive di cleanup condition.
 
 L'output utile però non è:
 
@@ -132,9 +97,7 @@ Review trigger hit?
 Unknowns
 ```
 
-Il reviewer non sostituisce la decisione.
-
-Riduce lo spazio di ricerca del reviewer umano.
+Il reviewer non sostituisce la decisione; riduce lo spazio di ricerca del reviewer umano.
 
 ## Non generare governance dalla forma corrente del repository
 
@@ -144,11 +107,7 @@ Il rischio opposto è chiedere:
 Create architecture tests for this codebase.
 ```
 
-Un agente può generare decine di naming rule, dependency limit, threshold e convention.
-
-Il risultato sembra sofisticato.
-
-Può avere soltanto automatizzato la fotografia corrente, compresi accidenti e legacy.
+Un agente può generare decine di naming rule, dependency limit, threshold e convention. Il risultato sembra sofisticato, ma può avere soltanto automatizzato la fotografia corrente, compresi accidenti e legacy.
 
 > **Una regola generata senza una proprietà da proteggere è rigidità generata.**
 
@@ -163,9 +122,7 @@ What happens on failure?
 When does this rule expire or change?
 ```
 
-Il source code può suggerire la regola.
-
-Non è sufficiente ad autorizzarla.
+Il source code può suggerire la regola; non è sufficiente ad autorizzarla.
 
 ## L'agente non deve poter approvare il proprio bypass
 
@@ -194,11 +151,7 @@ Un test non può decidere se:
 - un behavior legacy debba essere ritirato;
 - un nuovo SLA richieda multi-region.
 
-Queste sono decisioni di significato e trade-off.
-
-Automatizziamo la protezione delle decisioni già comprese.
-
-Manteniamo umano il judgment quando cambia il significato del sistema.
+Queste sono decisioni di significato e trade-off. Automatizziamo la protezione delle decisioni già comprese; manteniamo umano il judgment quando cambia il significato del sistema.
 
 ## Verification Bundle per change agentici ampi
 
@@ -215,17 +168,11 @@ cost/topology impact when relevant
 one-way doors requiring approval
 ```
 
-Il punto non è aggiungere documenti a ogni PR.
-
-È evitare che la velocità del diff superi la capacità del sistema di dire che cosa quel diff ha cambiato davvero.
+Il punto non è aggiungere documenti a ogni PR. È evitare che la velocità del diff superi la capacità del sistema di dire che cosa quel diff ha cambiato davvero.
 
 ## La trasformazione fondamentale
 
-Prima potevamo usare l'architect come parser umano di una parte importante dei change.
-
-Con execution agentica crescente, quel modello scala peggio.
-
-Dobbiamo quindi trasformare una parte dell'architecture governance da:
+Prima potevamo usare l'architect come parser umano di una parte importante dei change. Con execution agentica crescente, quel modello scala peggio. Dobbiamo quindi trasformare una parte dell'architecture governance da:
 
 ```text
 remember and inspect

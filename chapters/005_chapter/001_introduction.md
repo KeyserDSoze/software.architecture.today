@@ -49,7 +49,7 @@ OrderExportService
 OrderSearchService
 ```
 
-Ma le feature non sono automaticamente confini. Più feature possono condividere lo stesso modello e le stesse invarianti, quindi separararle aumenterebbe contratti e coordinamento senza comprare vera indipendenza. Al contrario, una singola feature può attraversare responsabilità che devono rimanere distinte.
+Ma le feature non sono automaticamente confini. Più feature possono condividere lo stesso modello e le stesse invarianti, quindi separarle aumenterebbe contratti e coordinamento senza comprare vera indipendenza. Al contrario, una singola feature può attraversare responsabilità che devono rimanere distinte.
 
 L'architettura non deve quindi seguire meccanicamente la forma delle issue.
 

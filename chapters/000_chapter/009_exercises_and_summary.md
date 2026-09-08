@@ -14,12 +14,6 @@ L'autonomia segue la stessa logica. Più capacità concediamo a un agente, più 
 
 Infine, l'AI può aumentare la produttività prima della competenza. Questo rende il deskilling un rischio reale. L'obiettivo non è usarla per produrre output dall'aspetto più senior, ma per sviluppare la capacità di riconoscere problemi, conseguenze e trade-off con maggiore profondità. Un repository AI-ready contribuisce a questo stesso obiettivo quando rende il contesto importante esplicito e impedisce agli agenti di dover reinventare decisioni architetturali per inferenza.
 
-### Artefatti operativi introdotti
-
-Questo capitolo introduce due artefatti che useremo più avanti. L'**Agent Delegation Contract** serve a definire obiettivo, scope, vincoli, acceptance criteria, permissions e stop condition prima di una delega significativa. L'**Agent Verification Bundle** accompagna invece il risultato con l'evidenza necessaria per giudicarlo: test, assunzioni, rischi, unresolved questions e recovery strategy.
-
-Non devono essere usati per ogni task. Sono strumenti da attivare quando il rischio li rende utili.
-
 ---
 
 ## Esercizi
@@ -34,7 +28,7 @@ Ricevi questa richiesta:
 
 Non implementare nulla.
 
-Produci un **Agent Delegation Contract** che renda il task delegabile.
+Produci una **specifica di delega** abbastanza chiara da rendere il task eseguibile senza lasciare all'esecutore decisioni di dominio implicite.
 
 Devi chiarire almeno:
 
@@ -47,7 +41,7 @@ Devi chiarire almeno:
 - acceptance criteria;
 - stop condition.
 
-Poi chiedi a un'AI di criticare il tuo contract. Non chiederle di riscriverlo subito: chiedile prima di elencare le decisioni che stai implicitamente lasciando all'esecutore.
+Poi chiedi a un'AI di criticare la tua specifica. Non chiederle di riscriverla subito: chiedile prima di elencare le decisioni che stai implicitamente lasciando all'esecutore.
 
 ### Esercizio 2 — Review di una modifica che “funziona”
 
@@ -76,7 +70,7 @@ Puoi cercarle, per esempio, in queste categorie:
 
 Per ogni invariante proponi un modo concreto per verificarla.
 
-### Esercizio 4 — Autonomy matrix
+### Esercizio 4 — Livelli di autonomia
 
 Scegli cinque tipi di task:
 
@@ -102,7 +96,7 @@ Controlla poi se alcune di queste condizioni possono essere automatizzate.
 
 ### Esercizio 6 — Verification without re-execution
 
-Chiedi a un'AI di implementare una funzione non banale. Non rileggere subito tutto il codice riga per riga: prima progetta un **Agent Verification Bundle** e decidi quali evidenze ti servano per aumentare la confidenza. Solo dopo esamina l'implementazione.
+Chiedi a un'AI di implementare una funzione non banale. Non rileggere subito tutto il codice riga per riga: prima definisci quale **evidence di verifica** ti serve per aumentare la confidenza — test, assunzioni esplicite, rischi noti, domande irrisolte e recovery quando pertinente. Solo dopo esamina l'implementazione.
 
 Alla fine confronta:
 
@@ -204,6 +198,6 @@ L'AI non elimina la necessità di ingegneria. Rende più costoso confondere prod
 
 ## Corollario
 
-> **L'AI può scrivere il codice. Il timone resta a noi.**
+> **Delegare l'execution non delega la responsabilità di comprenderne e governarne le conseguenze.**
 
-Il prossimo passo è capire che cosa dobbiamo fare prima di chiedere a qualcuno — umano o artificiale — di costruire. Perché il modo più veloce di realizzare la soluzione sbagliata è avere un esecutore straordinariamente efficiente.
+Prima di affidare l'esecuzione, però, serve sapere che cosa merita davvero di essere costruito. È da questa esigenza che nasce il lavoro sulla foundation.

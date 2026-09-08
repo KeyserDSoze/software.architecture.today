@@ -1,42 +1,20 @@
 # 17.8 — ESI: capire Operations Desk Classic prima di sostituirlo
 
-ESI incontra ora un problema diverso da tutti quelli costruiti finora.
+ESI incontra ora un problema diverso da tutti quelli costruiti finora. **Operations Desk Classic** esiste da prima di Order Operations: non l'abbiamo progettato noi, non possediamo una Functional Analysis affidabile e non sappiamo ancora distinguere con precisione fra regole necessarie, compatibilità storiche e accidenti del codice.
 
-**Operations Desk Classic** esiste da prima di Order Operations.
-
-Non l'abbiamo progettato noi, non possediamo una Functional Analysis affidabile e non sappiamo ancora distinguere con precisione fra regole necessarie, compatibilità storiche e accidenti del codice.
-
-Le pressioni per intervenire sono reali.
-
-Finance vuole ridurre runtime, pipeline e manutenzione legacy.
-
-Platform vuole eliminare deployment fuori standard.
-
-Security vuole ridurre identity tecniche storiche, permission ampie e secret statici.
-
-Commerce & Operations vuole evitare che gli operatori debbano usare due console.
-
-Operations pone però il vincolo che governa il capitolo:
+Le pressioni per intervenire sono reali. Finance vuole ridurre runtime, pipeline e manutenzione legacy; Platform vuole eliminare deployment fuori standard; Security vuole ridurre identity tecniche storiche, permission ampie e secret statici; Commerce & Operations vuole evitare che gli operatori debbano usare due console. Operations pone però il vincolo che governa il capitolo:
 
 > **non possiamo perdere un comportamento operativo importante soltanto perché nessuno riesce più a spiegare bene da dove provenga.**
 
-La risposta ESI non è una rewrite.
-
-È una discovery slice.
+La risposta ESI non è una rewrite, ma una discovery slice.
 
 ## Una sola capability: legacy case priority routing
 
-Non studiamo l'intera applicazione.
-
-Isoliamo una capability che potrebbe entrare in Order Operations:
+Non studiamo l'intera applicazione. Isoliamo una capability che potrebbe entrare in Order Operations:
 
 > **legacy case priority routing**
 
-Operations Desk Classic assegna una priority interna ad alcuni case.
-
-Order Operations oggi non possiede la stessa semantica.
-
-Prima di decidere se conservarla, cambiarla o eliminarla dobbiamo ricostruire:
+Operations Desk Classic assegna una priority interna ad alcuni case; Order Operations oggi non possiede la stessa semantica. Prima di decidere se conservarla, cambiarla o eliminarla dobbiamo ricostruire:
 
 ```text
 behavior
@@ -72,15 +50,11 @@ enterprise special case intentional     = Unknown
 current business owner                  = Unknown
 ```
 
-Questa differenza di stato è fondamentale.
-
-Se scrivessimo subito “Operations Desk Classic usa la priority per governare il workflow enterprise”, avremmo già trasformato più inferenze in fatti.
+Questa differenza di stato è fondamentale. Se scrivessimo subito “Operations Desk Classic usa la priority per governare il workflow enterprise”, avremmo già trasformato più inferenze in fatti.
 
 ## La slice legacy che introduciamo nel repository
 
-Il capstone contiene intenzionalmente una piccola implementazione legacy separata dal nuovo codice.
-
-Il comportamento osservabile è simile a:
+Il capstone contiene intenzionalmente una piccola implementazione legacy separata dal nuovo codice. Il comportamento osservabile è simile a:
 
 ```text
 closed case
@@ -99,11 +73,7 @@ otherwise
 → STANDARD
 ```
 
-Queste regole sono **fittizie**.
-
-Non sono benchmark, best practice o policy industriali.
-
-Servono a mostrare come si passa da codice esistente a conoscenza governata.
+Queste regole sono **fittizie**: non sono benchmark, best practice o policy industriali. Servono a mostrare come si passa da codice esistente a conoscenza governata.
 
 ## Prima characterization: osservare senza promuovere a requisito
 
@@ -118,17 +88,11 @@ La characterization suite produce questa baseline:
 | LB-05 | Enterprise before threshold | `STANDARD` | Observed |
 | LB-06 | ordinary open case | `STANDARD` | Observed |
 
-Nessuna riga diventa automaticamente `Confirmed`.
-
-La suite ci permette di sapere se una modifica cambia il comportamento.
-
-Non ci dice ancora quale comportamento ESI debba scegliere per il target.
+Nessuna riga diventa automaticamente `Confirmed`. La suite ci permette di sapere se una modifica cambia il comportamento; non ci dice ancora quale comportamento ESI debba scegliere per il target.
 
 ## LB-04 è il caso che ci impedisce di barare
 
-La regola Enterprise + threshold temporale sembra importante.
-
-Potrebbe derivare da:
+La regola Enterprise + threshold temporale sembra importante. Potrebbe derivare da:
 
 ```text
 contractual SLA
@@ -138,11 +102,7 @@ temporary feature never removed
 dead/unconsumed branch
 ```
 
-Il repository non può scegliere fra queste spiegazioni.
-
-Il fatto che il test osservi `URGENT` non autorizza Order Operations a introdurre la stessa regola nella propria Functional Analysis.
-
-LB-04 resta quindi:
+Il repository non può scegliere fra queste spiegazioni e il fatto che il test osservi `URGENT` non autorizza Order Operations a introdurre la stessa regola nella propria Functional Analysis. LB-04 resta quindi:
 
 ```text
 Observed behavior
@@ -154,11 +114,7 @@ Questo è il punto pedagogico più importante della slice.
 
 ## Il nightly export allarga il blast radius
 
-Durante la discovery troviamo un export notturno che sembra includere la priority.
-
-Improvvisamente il problema non è più soltanto la UI.
-
-La capability potrebbe influenzare:
+Durante la discovery troviamo un export notturno che sembra includere la priority. Improvvisamente il problema non è più soltanto la UI: la capability potrebbe influenzare
 
 ```text
 operator workflow
@@ -167,9 +123,7 @@ operator workflow
 + downstream reporting
 ```
 
-Lo stato della claim è ancora `Inferred` finché non troviamo execution evidence e owner.
-
-Ma basta per creare un blocker:
+Lo stato della claim è ancora `Inferred` finché non troviamo execution evidence e owner, ma basta per creare un blocker:
 
 > **nessun retirement del priority path finché i consumer dell'export non sono stati identificati.**
 
@@ -198,25 +152,11 @@ esiste audit?
 Order Operations legge già indirettamente questi dati?
 ```
 
-Finché queste risposte mancano, Order Operations non dichiara una nuova authority.
-
-Un nuovo modello più pulito non ci dà il diritto di ignorare writer e reader esistenti.
+Finché queste risposte mancano, Order Operations non dichiara una nuova authority. Un nuovo modello più pulito non ci dà il diritto di ignorare writer e reader esistenti.
 
 ## Perché non refactorizziamo ancora
 
-Il legacy code contiene nomi e forme che potremmo migliorare subito.
-
-Potremmo introdurre TypeScript, enum, dependency injection, funzioni più piccole e magic number più leggibili.
-
-Non lo facciamo nel Capitolo 17.
-
-La ragione non è conservatorismo.
-
-È controllo delle variabili.
-
-Stiamo ancora cercando di capire che cosa significhi il comportamento.
-
-Cambiare contemporaneamente struttura e semantica renderebbe più difficile distinguere:
+Il legacy code contiene nomi e forme che potremmo migliorare subito: potremmo introdurre TypeScript, enum, dependency injection, funzioni più piccole e magic number più leggibili. Non lo facciamo nel Capitolo 17, non per conservatorismo ma per controllo delle variabili. Stiamo ancora cercando di capire che cosa significhi il comportamento e cambiare contemporaneamente struttura e semantica renderebbe più difficile distinguere:
 
 ```text
 refactoring difference
@@ -228,7 +168,7 @@ da:
 behavioral difference
 ```
 
-Il Capitolo 18 costruirà il Refactoring Safety Plan proprio dopo avere ottenuto questa baseline.
+Il Capitolo 18 costruirà il Refactoring Safety Plan dopo avere ottenuto questa baseline.
 
 ## Candidate seam, non decisione già implementata
 
@@ -241,13 +181,7 @@ Order Operations
    └── future target policy
 ```
 
-Questo potrebbe abilitare Branch by Abstraction e shadow comparison.
-
-Al Capitolo 17 resta però **candidate**.
-
-Non sappiamo ancora quali behavior debbano vivere nella target policy.
-
-Creare subito l'implementazione nuova significherebbe usare una domanda ancora aperta come specifica.
+Questo potrebbe abilitare Branch by Abstraction e shadow comparison. Al Capitolo 17 resta però **candidate**: non sappiamo ancora quali behavior debbano vivere nella target policy e creare subito l'implementazione nuova significherebbe usare una domanda ancora aperta come specifica.
 
 ## Legacy Understanding Map — baseline del Capitolo 17
 
@@ -267,11 +201,7 @@ migration risks
 decision blockers
 ```
 
-Il file vivo del capstone continuerà a evolvere.
-
-Nei capitoli successivi alcuni behavior verranno confermati, LB-04 riceverà una decisione esplicita, il seam verrà codificato e apparirà una shadow strategy.
-
-Qui manteniamo la fotografia corretta **prima** di quelle decisioni.
+Il file vivo del capstone continuerà a evolvere. Nei capitoli successivi alcuni behavior verranno confermati, LB-04 riceverà una decisione esplicita, il seam verrà codificato e apparirà una shadow strategy; qui manteniamo la fotografia corretta **prima** di quelle decisioni.
 
 ## Il compromesso ESI del Capitolo 17
 
@@ -289,9 +219,7 @@ Qui manteniamo la fotografia corretta **prima** di quelle decisioni.
 
 ## Che cosa abbiamo davvero ottenuto
 
-A fine capitolo non abbiamo rimosso una riga di legacy.
-
-Abbiamo però trasformato:
+A fine capitolo non abbiamo rimosso una riga di legacy. Abbiamo però trasformato:
 
 ```text
 "quel codice sembra fare priority routing"

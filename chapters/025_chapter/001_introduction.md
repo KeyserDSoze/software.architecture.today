@@ -8,8 +8,6 @@ A quel punto il limite non è più soltanto quante righe una persona riesce a sc
 
 > **Quanto software può governare una singola persona quando l’execution cresce più velocemente della sua capacità di produrla direttamente?**
 
-Questa è la vera domanda del capitolo.
-
 ## Il collo di bottiglia si sposta
 
 L’AI può aumentare la capacità individuale di execution. Una ricerca Microsoft pubblicata nel 2025, aggregando tre randomized field experiment su 4.867 developer di Microsoft, Accenture e una Fortune 100, ha riportato un aumento medio del 26,08% dei task completati per chi aveva accesso a un coding assistant. È evidence utile che il throughput individuale possa crescere; non è evidence che un engineer possa sostituire un’intera organizzazione.

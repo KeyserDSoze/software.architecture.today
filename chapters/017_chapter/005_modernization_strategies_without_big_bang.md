@@ -4,9 +4,7 @@ Quando il legacy fa male, la frase più seducente è spesso:
 
 > Rifacciamolo bene da zero.
 
-A volte è la scelta corretta.
-
-Molto spesso è una decisione che confonde la complessità del codice con la complessità del sistema.
+A volte è la scelta corretta. Molto spesso è una decisione che confonde la complessità del codice con la complessità del sistema.
 
 ## Una rewrite elimina codice, non conoscenza necessaria
 
@@ -28,9 +26,7 @@ recovery
 operational knowledge
 ```
 
-Se questi vincoli appartengono al sistema reale, il nuovo codice dovrà comunque affrontarli.
-
-La differenza è che durante una rewrite rischiamo di perdere proprio i segnali che ci ricordavano della loro esistenza.
+Se questi vincoli appartengono al sistema reale, il nuovo codice dovrà comunque affrontarli. La differenza è che durante una rewrite rischiamo di perdere proprio i segnali che ci ricordavano della loro esistenza.
 
 La domanda corretta non è quindi:
 
@@ -59,19 +55,7 @@ Fonte:
 
 - [Microsoft Learn — App Modernization Guidance](https://learn.microsoft.com/en-us/azure/app-modernization-guidance/get-started/)
 
-Queste opzioni non rappresentano una classifica dal “meno moderno” al “più moderno”.
-
-`Retain` può essere la scelta corretta quando il rischio di cambiamento supera il beneficio.
-
-`Retire` può essere la modernization migliore quando una capability non serve più.
-
-`Rehost` può ridurre un rischio infrastrutturale senza toccare la semantica.
-
-`Replatform` può eliminare un vincolo operativo mantenendo gran parte del codice.
-
-`Refactor` modifica struttura preservando behavior e contract.
-
-`Rebuild` ha senso quando il modello corrente non supporta più l'obiettivo e possediamo sufficiente comprensione per specificare il target.
+Queste opzioni non rappresentano una classifica dal “meno moderno” al “più moderno”. `Retain` può essere la scelta corretta quando il rischio di cambiamento supera il beneficio, mentre `Retire` può essere la modernization migliore quando una capability non serve più. `Rehost` può ridurre un rischio infrastrutturale senza toccare la semantica e `Replatform` può eliminare un vincolo operativo mantenendo gran parte del codice. `Refactor` modifica struttura preservando behavior e contract; `Rebuild` ha senso quando il modello corrente non supporta più l'obiettivo e possediamo sufficiente comprensione per specificare il target.
 
 La regola rimane `fit before fashion`.
 
@@ -123,11 +107,7 @@ understand
 → remove legacy path
 ```
 
-La parola decisiva è `remove`.
-
-Una modernization non è completa quando il nuovo path esiste.
-
-È completa quando il vecchio path non è più necessario.
+La parola decisiva è `remove`. Una modernization non è completa quando il nuovo path esiste: è completa quando il vecchio path non è più necessario.
 
 ## Strangler Fig non significa microservizi
 
@@ -147,9 +127,7 @@ Se il modulo nuovo funziona meglio nello stesso modular monolith, estrarlo in re
 
 ## Se il dominio è confuso, estrarlo può distribuire la confusione
 
-AWS segnala esplicitamente il rischio della decomposizione prematura quando il dominio non è chiaro.
-
-Il legacy non diventa ben modellato perché lo dividiamo.
+AWS segnala esplicitamente il rischio della decomposizione prematura quando il dominio non è chiaro. Il legacy non diventa ben modellato perché lo dividiamo.
 
 Possiamo trasformare:
 
@@ -166,11 +144,7 @@ seven confusing services
 + distributed transactions
 ```
 
-Il Capitolo 17 esiste proprio per evitare questo salto.
-
-Prima ricostruiamo abbastanza significato.
-
-Poi scegliamo il boundary.
+Il Capitolo 17 esiste proprio per evitare questo salto: prima ricostruiamo abbastanza significato, poi scegliamo il boundary.
 
 ## Caso reale — GitHub e l'upgrade Rails
 
@@ -184,9 +158,7 @@ Fonte:
 
 - [GitHub Engineering — Upgrading GitHub from Rails 3.2 to 5.2](https://github.blog/engineering/infrastructure/upgrading-github-from-rails-3-2-to-5-2/)
 
-La lezione architetturale non riguarda Rails.
-
-Riguarda il metodo:
+La lezione architetturale non riguarda Rails. Riguarda il metodo:
 
 ```text
 coexistence
@@ -201,9 +173,7 @@ La modernization rimane dentro la vita del prodotto invece di diventare un proge
 
 GitHub ha anche raccontato la sostituzione di server-side Git hook che caricavano dipendenze del monolite Rails e introducevano costo significativo a ogni push.
 
-Prima di riscrivere, il team tentò il cambiamento meno invasivo: ridurre le dipendenze caricate.
-
-Solo dopo avere misurato che il beneficio non sarebbe stato sufficiente scelse di spostare il comportamento nel servizio Go già usato dal Git Systems Team.
+Prima di riscrivere, il team tentò il cambiamento meno invasivo: ridurre le dipendenze caricate. Solo dopo avere misurato che il beneficio non sarebbe stato sufficiente scelse di spostare il comportamento nel servizio Go già usato dal Git Systems Team.
 
 Fonte:
 
@@ -228,9 +198,7 @@ Fonte:
 
 - [Martin Fowler — Using the Strangler Fig with Mobile Apps](https://martinfowler.com/articles/strangler-fig-mobile-apps.html)
 
-Anche qui il pattern arriva **dopo** la comprensione del problema.
-
-Non la sostituisce.
+Anche qui il pattern arriva **dopo** la comprensione del problema. Non la sostituisce.
 
 ## La modernization slice è l'unità di progresso
 
