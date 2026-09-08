@@ -28,7 +28,7 @@ Context engineering non significa riempire il prompt di testo. Significa rendere
 
 ### 3. Delega
 
-Una buona delega rende visibili l'obiettivo, il contesto, il comportamento atteso e i vincoli, ma anche acceptance criteria, dipendenze, edge case, test, out of scope, stop condition e definition of done. Qui manteniamo una rappresentazione strutturata perché diventerà più avanti un vero artefatto riutilizzabile:
+Una buona delega rende visibili l'obiettivo, il contesto, il comportamento atteso e i vincoli, ma anche acceptance criteria, dipendenze, edge case, test, out of scope, stop condition e definition of done. Qui manteniamo una rappresentazione strutturata perché questi elementi torneranno, più avanti, quando il libro formalizzerà il lavoro agentico:
 
 ```text
 Objective
@@ -44,7 +44,7 @@ Stop conditions
 Definition of done
 ```
 
-Questa struttura diventerà il nostro **Agent Delegation Contract**. Non tutte le issue avranno bisogno di ogni campo: l'artefatto serve come vocabolario di rischi, non come formulario burocratico.
+Non tutte le attività hanno bisogno di ogni campo. La struttura serve come vocabolario dei rischi, non come formulario burocratico.
 
 ### 4. Osservazione
 
@@ -80,62 +80,7 @@ Alla fine serve qualcuno — una persona o una policy esplicita — che autorizz
 
 Possiamo automatizzare moltissimo, ma dobbiamo sempre sapere quale policy, quale gate o quale persona abbia autorizzato il passaggio successivo.
 
-### L'Agent Delegation Contract
-
-Da questo capitolo ricaviamo il primo artefatto operativo del libro. Qui la struttura è volutamente esplicita perché deve poter essere copiata e adattata:
-
-```markdown
-# Agent Delegation Contract
-
-## Objective
-Quale risultato vogliamo ottenere?
-
-## Context
-Quali informazioni del sistema sono necessarie?
-
-## Scope
-Che cosa può essere modificato?
-
-## Out of scope
-Che cosa non deve essere modificato?
-
-## Constraints
-Quali vincoli non possono essere violati?
-
-## Acceptance criteria
-Come sapremo che il task è corretto?
-
-## Verification
-Quali controlli devono essere eseguiti?
-
-## Stop conditions
-Quando l'agente deve fermarsi ed escalare?
-
-## Permissions
-Quali strumenti e risorse può usare?
-
-## Definition of done
-Quali artefatti devono essere consegnati?
-```
-
-Non lo compileremo per correggere un typo. Può invece diventare utile per un refactoring repository-wide o una migration, per una nuova integrazione o una modifica cross-service, per un task affidato a più agenti e, in generale, quando entrano security implications o un livello di autonomia elevato.
-
-### L'Agent Verification Bundle
-
-Il secondo artefatto nasce dalla fase di verifica. Anche qui manteniamo la struttura perché descrive il contenuto di una consegna, non una semplice enumerazione narrativa:
-
-```text
-Agent Verification Bundle
-├── summary
-├── diff
-├── assumptions
-├── tests-and-checks
-├── known-risks
-├── unresolved-questions
-└── rollback-or-recovery
-```
-
-Non è una checklist universale: serve quando il rischio giustifica il costo.
+Queste sette domande bastano, per ora, a fissare il modello mentale. Nella parte AI-native del libro diventeranno artifact e boundary operativi più precisi, quando avremo già costruito repository context, work item ed evidence sufficienti a non trasformarli in moduli astratti.
 
 ### Dalla chat al sistema di lavoro
 
