@@ -1,18 +1,10 @@
 # 17.2 — Ricostruire il sistema che esiste davvero
 
-La modernization sicura comincia con una rappresentazione abbastanza affidabile dello stato corrente.
-
-Non una presentazione elegante.
-
-Non un diagramma che sembra plausibile.
-
-Una mappa che permetta di distinguere ciò che esiste, ciò che deduciamo e ciò che dobbiamo ancora verificare.
+La modernization sicura comincia con una rappresentazione abbastanza affidabile dello stato corrente. Non serve una presentazione elegante né un diagramma che sembra plausibile: serve una mappa che permetta di distinguere ciò che esiste, ciò che deduciamo e ciò che dobbiamo ancora verificare.
 
 ## Inventory prima del target
 
-Il primo passo è un inventory.
-
-Non chiediamo ancora:
+Il primo passo è un inventory. Non chiediamo ancora:
 
 > Come dovrebbe essere il sistema?
 
@@ -45,17 +37,11 @@ owners
 known consumers
 ```
 
-L'elenco da solo non basta.
-
-Ogni elemento deve avere provenance e un grado di confidence.
+L'elenco da solo non basta: ogni elemento deve avere provenance e un grado di confidence.
 
 ## Seguire un journey, non una directory
 
-Esplorare `controllers/`, `services/`, `repositories/` e `utils/` può aiutare a orientarsi.
-
-Ma la struttura delle cartelle non è il comportamento del prodotto.
-
-Per comprendere una capability conviene partire da un journey concreto.
+Esplorare `controllers/`, `services/`, `repositories/` e `utils/` può aiutare a orientarsi, ma la struttura delle cartelle non è il comportamento del prodotto. Per comprendere una capability conviene partire da un journey concreto.
 
 Per esempio:
 
@@ -96,9 +82,7 @@ Questa struttura produce una mappa più utile di una call graph isolata.
 
 ## Le dependency che il compilatore non vede
 
-Nel legacy una dependency non coincide con un import.
-
-Può vivere in:
+Nel legacy una dependency non coincide con un import. Può vivere in:
 
 ```text
 shared table
@@ -115,17 +99,13 @@ email subject convention
 manual approval
 ```
 
-Un import è facile da cercare.
-
-Una regola come:
+Un import è facile da cercare. Una regola come:
 
 ```text
 job B assumes job A completed before 02:15
 ```
 
-può essere molto più pericolosa e non apparire in nessun reference graph del linguaggio.
-
-La code archaeology deve quindi cercare **coupling semantico e operativo**, non soltanto coupling simbolico.
+può essere molto più pericolosa e non apparire in nessun reference graph del linguaggio. La code archaeology deve quindi cercare **coupling semantico e operativo**, non soltanto coupling simbolico.
 
 ## Il database come documento storico
 
@@ -143,15 +123,11 @@ Cerchiamo:
 - indici che rivelano workload importanti;
 - colonne che nessuno scrive più ma qualcuno potrebbe leggere ancora.
 
-Una colonna apparentemente inutile può essere un contratto.
-
-Prima di rimuoverla dobbiamo sapere chi la considera ancora parte del sistema.
+Una colonna apparentemente inutile può essere un contratto. Prima di rimuoverla dobbiamo sapere chi la considera ancora parte del sistema.
 
 ## Static evidence e runtime evidence rispondono a domande diverse
 
-La static analysis ci dice che cosa **può** accadere secondo gli artefatti che vediamo.
-
-La runtime evidence ci aiuta a capire che cosa **accade realmente**.
+La static analysis ci dice che cosa **può** accadere secondo gli artefatti che vediamo; la runtime evidence ci aiuta a capire che cosa **accade realmente**.
 
 Fonti utili includono:
 
@@ -170,17 +146,7 @@ feature-flag exposure
 production config diff
 ```
 
-L'observability del Capitolo 15 cambia qui funzione.
-
-Non serve soltanto durante un incidente.
-
-Diventa uno strumento di archaeology.
-
-Una funzione trovata nel repository è `Found`.
-
-Una trace che mostra quella funzione nel critical journey può promuovere la claim a `Observed`.
-
-Serve ancora una decisione di dominio prima di chiamarla `Confirmed`.
+L'observability del Capitolo 15 cambia qui funzione: non serve soltanto durante un incidente, diventa uno strumento di archaeology. Una funzione trovata nel repository è `Found`; una trace che mostra quella funzione nel critical journey può promuovere la claim a `Observed`. Serve ancora una decisione di dominio prima di chiamarla `Confirmed`.
 
 ## Git history racconta decisioni, non verità correnti
 
@@ -193,13 +159,7 @@ La storia del repository può aiutarci a capire:
 - se una funzione nasceva come passaggio temporaneo;
 - quale issue descriveva la semantica originaria.
 
-`git log`, `git blame`, PR, issue e co-change analysis sono fonti preziose.
-
-Ma anche qui serve disciplina.
-
-`git blame` dice chi ha modificato una riga in passato.
-
-Non dice chi possiede oggi il comportamento.
+`git log`, `git blame`, PR, issue e co-change analysis sono fonti preziose, ma anche qui serve disciplina. `git blame` dice chi ha modificato una riga in passato; non dice chi possiede oggi il comportamento.
 
 ## Ownership è parte della comprensione
 
@@ -214,17 +174,13 @@ incident owner
 consumer owner
 ```
 
-Possono essere team differenti.
-
-GitHub ha descritto pubblicamente l'introduzione di `SERVICEOWNERS` sopra la sola file ownership proprio perché code ownership e service ownership non coincidono necessariamente.
+Possono essere team differenti. GitHub ha descritto pubblicamente l'introduzione di `SERVICEOWNERS` sopra la sola file ownership proprio perché code ownership e service ownership non coincidono necessariamente.
 
 Fonte:
 
 - [GitHub Engineering — How we organize and get things done with SERVICEOWNERS](https://github.blog/engineering/architecture-optimization/how-we-organize-and-get-things-done-with-serviceowners/)
 
-Un sistema senza owner non è soltanto difficile da mantenere.
-
-È difficile da **confermare**: manca qualcuno che possa assumersi la responsabilità del significato.
+Un sistema senza owner non è soltanto difficile da mantenere: è difficile da **confermare**, perché manca qualcuno che possa assumersi la responsabilità del significato.
 
 ## L'Evidence Ledger
 
@@ -237,9 +193,7 @@ Per evitare che una spiegazione plausibile diventi documentazione autorevole, og
 | Enterprise segue una regola diversa | characterization test | Observed | Operations | domain confirmation |
 | la regola è ancora richiesta | contract + Product decision | Confirmed | Product | — |
 
-La tabella non serve a creare burocrazia.
-
-Serve a impedire una trasformazione pericolosa:
+La tabella non serve a creare burocrazia. Serve a impedire una trasformazione pericolosa:
 
 ```text
 possible
@@ -252,9 +206,7 @@ senza che nessuna nuova evidence sia stata raccolta.
 
 ## La profondità della discovery segue il rischio
 
-Non ogni modifica merita la stessa quantità di archaeology.
-
-La profondità dipende da:
+Non ogni modifica merita la stessa quantità di archaeology. La profondità dipende da:
 
 ```text
 blast radius
@@ -267,9 +219,7 @@ current confidence
 rollback capability
 ```
 
-Cambiare una label interna può richiedere poco.
-
-Cambiare un calcolo che influenza pagamento, autorizzazione o reporting può richiedere inventory, characterization, runtime evidence e owner confirmation.
+Cambiare una label interna può richiedere poco; cambiare un calcolo che influenza pagamento, autorizzazione o reporting può richiedere inventory, characterization, runtime evidence e owner confirmation.
 
 La regola è la stessa del testing risk-driven:
 
@@ -277,9 +227,7 @@ La regola è la stessa del testing risk-driven:
 
 ## Ricostruire una Architecture Context Map al contrario
 
-Nel greenfield abbiamo costruito la context map prima dell'implementazione.
-
-Nel brownfield il percorso è inverso:
+Nel greenfield abbiamo costruito la context map prima dell'implementazione. Nel brownfield il percorso è inverso:
 
 ```text
 repository / runtime / data evidence
@@ -289,9 +237,7 @@ repository / runtime / data evidence
 → rebuild context map
 ```
 
-La mappa risultante non descrive ciò che vorremmo avere.
-
-Descrive ciò che abbiamo abbastanza evidence per sostenere oggi.
+La mappa risultante non descrive ciò che vorremmo avere. Descrive ciò che abbiamo abbastanza evidence per sostenere oggi.
 
 ## AI come acceleratore dell'inventory
 
@@ -308,9 +254,7 @@ list high fan-in modules
 list duplicated rules
 ```
 
-Ma un output utile deve conservare provenance.
-
-Meglio:
+Ma un output utile deve conservare provenance. Meglio:
 
 ```text
 Queue B
@@ -324,8 +268,6 @@ che:
 
 > Il sistema usa Queue B per il workflow X.
 
-La seconda frase è più elegante.
-
-La prima è più governabile.
+La seconda frase è più elegante; la prima è più governabile.
 
 > **Nel legacy, una mappa senza provenance può ridurre il tempo necessario per prendere la decisione sbagliata.**
