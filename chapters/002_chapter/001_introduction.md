@@ -1,12 +1,10 @@
 # Capitolo 2 — Prima del codice
 
-Nel capitolo precedente abbiamo visto che l’AI rende l’execution più economica e più veloce. È una buona notizia, ma porta con sé una conseguenza scomoda: **possiamo iniziare a costruire molto prima di avere capito abbastanza bene che cosa stiamo costruendo**.
+Il capitolo precedente ha mostrato che cosa succede quando l’execution diventa più economica: una direzione sbagliata può produrre molto software prima di essere scoperta. Il passo successivo è quindi smettere di misurare il progresso dalla velocità con cui compare una soluzione e lavorare sulla qualità del problema che la precede.
 
-Per anni molti progetti software sono stati rallentati da limiti di execution. Servivano tempo, persone, ambienti, boilerplate, configurazioni, prototipi e integrazioni. Oggi una parte di quel costo può essere compressa drasticamente: un’idea può diventare una demo in ore e, nello stesso pomeriggio, possiamo ottenere endpoint, UI, migration, test, pipeline e perfino una prima infrastruttura.
+Un requisito sbagliato implementato perfettamente resta sbagliato. Una feature inutile generata in cinque minuti è soltanto una feature inutile arrivata prima. E un’architettura costruita su assunzioni non esplicitate non diventa migliore perché è stata prodotta rapidamente.
 
-La velocità con cui possiamo produrre una soluzione, però, non ci dice nulla sulla qualità del problema che abbiamo formulato. Un requisito sbagliato implementato perfettamente resta sbagliato. Una feature inutile generata in cinque minuti è soltanto una feature inutile arrivata prima. E un’architettura costruita su assunzioni non esplicitate non diventa migliore perché è stata prodotta rapidamente.
-
-Questo capitolo riguarda quindi ciò che viene **prima** dell’architettura tecnica. Prima dei diagrammi, del framework, del database e del cloud provider dobbiamo capire quale problema stiamo cercando di risolvere e per chi, quale outcome ci interessa, quale parte del problema appartiene davvero al nostro scope e quali vincoli non possiamo ignorare. Dobbiamo rendere comprensibili i comportamenti essenziali, trasformare le qualità importanti in condizioni osservabili e decidere che cosa significhi, concretamente, poter dire che abbiamo finito.
+Questo capitolo riguarda ciò che viene **prima** dell’architettura tecnica. Prima dei diagrammi, del framework, del database e del cloud provider dobbiamo capire quale problema stiamo cercando di risolvere e per chi, quale outcome ci interessa, quale parte del problema appartiene davvero al nostro scope e quali vincoli non possiamo ignorare. Dobbiamo rendere comprensibili i comportamenti essenziali, trasformare le qualità importanti in condizioni osservabili e decidere che cosa significhi, concretamente, poter dire che abbiamo finito.
 
 Questa fase non è un rito preliminare. È **compressione dell’ambiguità**.
 
