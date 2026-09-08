@@ -1,26 +1,14 @@
 # Capitolo 18 — Refactoring nell'era dell'AI
 
-Nel Capitolo 17 abbiamo resistito alla tentazione di cambiare subito Operations Desk Classic.
+Nel Capitolo 17 abbiamo resistito alla tentazione di cambiare subito Operations Desk Classic e costruito prima una baseline: behavior osservati, claim con provenance, unknown espliciti e un candidate seam. Ora possiamo iniziare a trasformare il sistema.
 
-Abbiamo prima costruito una baseline: behavior osservati, claim con provenance, unknown espliciti e un candidate seam.
-
-Ora possiamo iniziare a trasformare il sistema.
-
-È qui che l'AI rende il refactoring contemporaneamente più potente e più pericoloso.
-
-Un agente può oggi rinominare migliaia di simboli, migrare call site, creare adapter, aggiornare framework, generare migration e produrre in minuti un diff che un team avrebbe costruito in settimane.
-
-La capacità di execution è aumentata.
-
-Il rischio semantico non è diminuito automaticamente.
+È qui che l'AI rende il refactoring contemporaneamente più potente e più pericoloso. Un agente può rinominare migliaia di simboli, migrare call site, creare adapter, aggiornare framework, generare migration e produrre in minuti un diff che un team avrebbe costruito in settimane. La capacità di execution è aumentata; il rischio semantico non è diminuito automaticamente.
 
 > **L'AI può rendere enorme il diff. Il nostro lavoro è rendere piccolo il rischio.**
 
 ## Refactoring e modernization non sono la stessa cosa
 
-Nel senso classico, refactoring significa cambiare la struttura interna preservando il comportamento osservabile.
-
-In una modernization enterprise incontriamo però spesso una sequenza più ampia:
+Nel senso classico, refactoring significa cambiare la struttura interna preservando il comportamento osservabile. In una modernization enterprise incontriamo però spesso una sequenza più ampia:
 
 ```text
 internal refactor
@@ -32,9 +20,7 @@ internal refactor
 + legacy removal
 ```
 
-Non tutto questo è refactoring puro.
-
-Per questo nel capitolo distingueremo sempre fra:
+Non tutto questo è refactoring puro. Per questo nel capitolo distingueremo sempre fra:
 
 ```text
 behavior preserved
@@ -51,9 +37,7 @@ La disciplina comune è una sola:
 
 ## Il rischio non vive nelle linee modificate
 
-Un diff di ventimila righe può essere relativamente sicuro se applica una trasformazione meccanica deterministica con ottima verification.
-
-Tre righe possono essere catastrofiche se cambiano authorization, precedence di una business rule, retry semantics o ownership di un dato.
+Un diff di ventimila righe può essere relativamente sicuro se applica una trasformazione meccanica deterministica con ottima verification; tre righe possono essere catastrofiche se cambiano authorization, precedence di una business rule, retry semantics o ownership di un dato.
 
 Non useremo quindi:
 
@@ -61,9 +45,7 @@ Non useremo quindi:
 lines changed
 ```
 
-come proxy della pericolosità.
-
-Ragioneremo piuttosto su:
+come proxy della pericolosità. Ragioneremo piuttosto su:
 
 ```text
 semantic surface
@@ -73,9 +55,7 @@ semantic surface
 ÷ evidence quality
 ```
 
-Non è una formula matematica.
-
-È un modo per ricordare che il rischio nasce dal significato del cambiamento, non dal peso del diff.
+Non è una formula matematica, ma un modo per ricordare che il rischio nasce dal significato del cambiamento, non dal peso del diff.
 
 ## Dal Legacy Understanding Map al Safety Envelope
 
@@ -93,13 +73,7 @@ come torniamo indietro?
 qual è il primo one-way door?
 ```
 
-Queste risposte formano la **safety envelope** della trasformazione.
-
-L'artefatto persistente del capitolo sarà il **Refactoring Safety Plan**.
-
-Non serve a rallentare il lavoro.
-
-Serve a permettere di accelerarlo senza rendere impliciti i rischi.
+Queste risposte formano la **safety envelope** della trasformazione e confluiscono nel **Refactoring Safety Plan**. L'artefatto non serve a rallentare il lavoro, ma a permettere di accelerarlo senza rendere impliciti i rischi.
 
 ## Più execution disponibile dovrebbe produrre batch più piccoli
 
@@ -109,11 +83,7 @@ Fonte:
 
 - [Microsoft Learn — Architecture strategies for safe deployment practices](https://learn.microsoft.com/azure/well-architected/operational-excellence/safe-deployments)
 
-Questa raccomandazione diventa ancora più importante quando gli agenti abbassano il costo del cambiamento.
-
-Se possiamo modificare cento file in pochi minuti, non segue che dovremmo modificare cento file nello stesso step.
-
-Segue piuttosto che possiamo permetterci di introdurre:
+Questa raccomandazione diventa ancora più importante quando gli agenti abbassano il costo del cambiamento. Se possiamo modificare cento file in pochi minuti, non segue che dovremmo modificare cento file nello stesso step; segue piuttosto che possiamo permetterci di introdurre:
 
 ```text
 seam
@@ -130,9 +100,7 @@ con incrementi molto più piccoli di quanto fosse economicamente conveniente pri
 
 ## Rollback è una famiglia di problemi
 
-Una parola crea molta confusione: `rollback`.
-
-Durante una modernization dobbiamo distinguere almeno:
+Una parola crea molta confusione: `rollback`. Durante una modernization dobbiamo distinguere almeno:
 
 ```text
 Deployment rollback
@@ -151,9 +119,7 @@ Contract rollback
 → tornare a una versione precedente quando consumer/provider lo consentono
 ```
 
-Una feature flag può rendere facilissimo il behavior fallback e non fare nulla per una migration dati irreversibile.
-
-Un artifact rollback può fallire perché il vecchio codice non comprende più lo schema nuovo.
+Una feature flag può rendere facilissimo il behavior fallback e non fare nulla per una migration dati irreversibile. Un artifact rollback può fallire perché il vecchio codice non comprende più lo schema nuovo.
 
 La regola è:
 
@@ -178,25 +144,11 @@ old schema is dropped
 historical provenance is destroyed
 ```
 
-Il Refactoring Safety Plan deve rendere visibile il **point of no return**.
-
-Non per vietarlo.
-
-Per sapere quando una trasformazione passa da two-way door a one-way door e richiede un livello diverso di evidence e approval.
+Il Refactoring Safety Plan deve rendere visibile il **point of no return**, non per vietarlo ma per sapere quando una trasformazione passa da two-way door a one-way door e richiede un livello diverso di evidence e approval.
 
 ## ESI: finalmente decidiamo quali behavior meritano di sopravvivere
 
-Nel Capitolo 17 abbiamo osservato sei behavior della priority routing legacy.
-
-Ora ESI svolge un workshop simulato con Operations, Product, Payments & Risk, Sales e Order Operations.
-
-Il risultato non sarà “copiamo il codice”.
-
-Sarà una classificazione semantica.
-
-Alcuni behavior vengono confermati come necessari.
-
-Uno — la vecchia regola Enterprise dopo 30 minuti — viene deliberatamente rimosso.
+Nel Capitolo 17 abbiamo osservato sei behavior della priority routing legacy. Ora ESI svolge un workshop simulato con Operations, Product, Payments & Risk, Sales e Order Operations: il risultato non è “copiamo il codice”, ma una classificazione semantica. Alcuni behavior vengono confermati come necessari; uno — la vecchia regola Enterprise dopo 30 minuti — viene deliberatamente rimosso.
 
 Questo introduce una distinzione fondamentale per tutto il capitolo:
 
@@ -206,9 +158,7 @@ regression
 intentional difference
 ```
 
-La nuova policy non deve raggiungere zero mismatch con il legacy.
-
-Deve preservare i behavior confermati e produrre **esattamente** le differenze deliberate.
+La nuova policy non deve raggiungere zero mismatch con il legacy. Deve preservare i behavior confermati e produrre **esattamente** le differenze deliberate.
 
 ## Il compromesso ESI
 
