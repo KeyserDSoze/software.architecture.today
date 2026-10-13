@@ -1,6 +1,6 @@
 {
-  "tag": "v1.0.0-rc5",
-  "name": "Software Architecture Today — v1.0.0-rc5",
+  "tag": "v1.0.0-rc6",
+  "name": "Software Architecture Today — v1.0.0-rc6",
   "prerelease": true,
-  "notes_file": "RELEASE_NOTES_v1.0.0-rc5.md"
+  "notes_file": "RELEASE_NOTES_v1.0.0-rc6.md"
 }
