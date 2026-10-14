@@ -4,7 +4,7 @@ Un libro open source sulla **Software Architecture nell'era dell'AI**, scritto d
 
 ## Leggi il libro — edizione stabile v1.0.0
 
-La **prima edizione stabile** è disponibile su [GitHub Releases](https://github.com/KeyserDSoze/software.architecture.today/releases/tag/v1.0.0), con il libro scaricabile in **PDF, EPUB e DOCX**.
+La **prima edizione stabile** è disponibile su [GitHub Releases](https://github.com/KeyserDSoze/software.architecture.today/releases), con il libro scaricabile in **PDF, EPUB e DOCX**.
 
 Le versioni `v1.0.0-rc1`–`v1.0.0-rc6` restano disponibili come snapshot del percorso editoriale. Il testo sorgente e i materiali di supporto rimangono nel repository.
 
