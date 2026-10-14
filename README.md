@@ -2,6 +2,12 @@
 
 Un libro open source sulla **Software Architecture nell'era dell'AI**, scritto da **Alessandro Rapiti**.
 
+## Leggi il libro — edizione stabile v1.0.0
+
+La **prima edizione stabile** è disponibile su [GitHub Releases](https://github.com/KeyserDSoze/software.architecture.today/releases/tag/v1.0.0), con il libro scaricabile in **PDF, EPUB e DOCX**.
+
+Le versioni `v1.0.0-rc1`–`v1.0.0-rc6` restano disponibili come snapshot del percorso editoriale. Il testo sorgente e i materiali di supporto rimangono nel repository.
+
 L'idea di partenza è semplice:
 
 > **Il software non è diventato facile. È diventato più facile produrre software.**
@@ -192,7 +198,7 @@ Le regole e gli audit sono in:
 - `reference/CHAPTERS_009_024_EVIDENCE.md`;
 - audit dedicati dei capitoli 25–30.
 
-La copertura evidence è stata completata su **tutti i capitoli 0–30** prima della preparazione del release candidate.
+La copertura evidence è stata completata su **tutti i capitoli 0–30** prima della pubblicazione della prima edizione.
 
 ## Apparati finali
 
@@ -269,7 +275,7 @@ I **Dieci comandamenti della Software Architecture nell'era dell'AI** costituisc
 
 Il manoscritto è completo nei **31 capitoli, dal Capitolo 0 al Capitolo 30**.
 
-Prima della release candidate sono stati completati:
+Prima della prima edizione stabile sono stati completati:
 
 - evidence/source audit su tutto l'arco 0–30;
 - glossario e apparati finali;
@@ -278,6 +284,6 @@ Prima della release candidate sono stati completati:
 - build e inspection di Markdown, DOCX, PDF ed EPUB;
 - continuità del capstone ESI / Order Operations.
 
-La CI deve restare verde sullo stesso commit che viene promosso a release candidate.
+La release stabile è pubblicata dalla CI soltanto dopo il completamento dei controlli sullo stesso commit che genera PDF, EPUB e DOCX.
 
 > **L'AI può scrivere il codice. Il timone resta a noi.**
